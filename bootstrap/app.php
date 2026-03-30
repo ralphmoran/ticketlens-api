@@ -26,6 +26,9 @@ return Application::configure(basePath: dirname(__DIR__))
             }
 
             if ($request->is('v1/*')) {
+                if ($e instanceof \Illuminate\Database\Eloquent\ModelNotFoundException) {
+                    return response()->json(['error' => 'Not found'], 404);
+                }
                 // Never expose internal error detail on API routes
                 $status = method_exists($e, 'getStatusCode') ? $e->getStatusCode() : 500;
                 return response()->json(['error' => 'Request failed'], $status);

@@ -1,6 +1,7 @@
 <?php
 namespace App\Jobs;
 
+use App\Models\DigestSchedule;
 use App\Services\DigestMailService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -12,6 +13,9 @@ class SendDigestEmail implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
+    public int $tries = 3;
+    public array $backoff = [10, 60, 300];
+
     public function __construct(
         private readonly int $scheduleId,
         private readonly array $digestData,
@@ -22,7 +26,7 @@ class SendDigestEmail implements ShouldQueue
 
     public function handle(DigestMailService $mailer): void
     {
-        $schedule = \App\Models\DigestSchedule::findOrFail($this->scheduleId);
-        $mailer->send($schedule->email, $this->digestData);
+        $schedule = DigestSchedule::findOrFail($this->scheduleId);
+        $mailer->send($schedule->email, $this->digestData, $schedule->timezone);
     }
 }

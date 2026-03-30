@@ -6,8 +6,8 @@ use Illuminate\Support\Facades\Mail;
 
 class DigestMailService
 {
-    public function send(string $email, array $digestData): void
+    public function send(string $email, array $digestData, string $timezone = 'UTC'): void
     {
-        Mail::to($email)->send(new TriageDigest($digestData));
+        Mail::to($email)->send(new TriageDigest($digestData, $timezone));
     }
 }

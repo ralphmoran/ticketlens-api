@@ -16,7 +16,7 @@ class DigestDeliverRequest extends FormRequest
             'summary.total'         => ['required', 'integer', 'min:0'],
             'summary.needsResponse' => ['required', 'integer', 'min:0'],
             'summary.aging'         => ['required', 'integer', 'min:0'],
-            'tickets'               => ['required', 'array', 'max:50'],
+            'tickets'               => ['required', 'array', 'min:1', 'max:50'],
             'tickets.*.ticketKey'   => ['required', 'string', 'max:50'],
             'tickets.*.summary'     => ['required', 'string', 'max:500'],
             'tickets.*.status'      => ['required', 'string', 'max:100'],

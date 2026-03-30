@@ -82,7 +82,7 @@ class DigestControllerTest extends TestCase
         $response->assertJsonValidationErrors(['tickets']);
     }
 
-    public function test_ticket_data_is_not_logged(): void
+    public function test_job_receives_schedule_id_not_raw_key(): void
     {
         $this->createSchedule();
         $this->withToken('valid-key')->postJson('/v1/digest/deliver', $this->validPayload());

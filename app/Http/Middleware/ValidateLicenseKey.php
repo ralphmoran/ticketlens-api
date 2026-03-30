@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 use App\Services\LicenseValidationService;
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\RateLimiter;
 use Symfony\Component\HttpFoundation\Response;
 
 class ValidateLicenseKey
@@ -13,14 +14,21 @@ class ValidateLicenseKey
     public function handle(Request $request, Closure $next): Response
     {
         $token = $request->bearerToken();
+        $ip = $request->ip();
+        $lockKey = "auth-fail:{$ip}";
 
-        if (!$token) {
+        // Check lockout (5 consecutive failures → 15-minute block)
+        if (RateLimiter::tooManyAttempts($lockKey, 5)) {
             return response()->json(['error' => 'Unauthorized'], 401);
         }
 
-        if (!$this->validator->isValid($token)) {
+        if (!$token || !$this->validator->isValid($token)) {
+            RateLimiter::hit($lockKey, 900); // 15-minute window
             return response()->json(['error' => 'Unauthorized'], 401);
         }
+
+        // Successful auth — clear failure count
+        RateLimiter::clear($lockKey);
 
         return $next($request);
     }

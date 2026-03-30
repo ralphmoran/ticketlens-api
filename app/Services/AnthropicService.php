@@ -7,9 +7,8 @@ class AnthropicService
 {
     public function summarize(string $brief): string
     {
-        // Security: strip null bytes and enforce size limit before forwarding
-        $sanitized = str_replace("\x00", '', strip_tags($brief));
-        $sanitized = mb_substr($sanitized, 0, 50_000);
+        // Security: strip null bytes only — preserve HTML/markdown for LLM context
+        $sanitized = mb_substr(str_replace("\x00", '', $brief), 0, 50_000);
 
         $response = Http::timeout(30)
             ->withHeaders([

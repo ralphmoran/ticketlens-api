@@ -20,8 +20,6 @@ return new class extends Migration
             $table->boolean('active')->default(true);
             $table->timestamp('last_delivered_at')->nullable();
             $table->timestamps();
-
-            $table->index('license_key_hash');
         });
     }
 

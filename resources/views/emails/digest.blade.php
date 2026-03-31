@@ -85,7 +85,7 @@
 
   </div>
   <div class="footer">
-    <a href="#">Unsubscribe</a> · Powered by <a href="https://ticketlens.io">TicketLens</a>
+    <a href="#">Unsubscribe</a> · Powered by <a href="https://ticketlens.dev">TicketLens</a>
   </div>
 </div>
 </body>

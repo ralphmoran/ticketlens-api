@@ -31,7 +31,7 @@ class ScheduleControllerTest extends TestCase
         $this->assertDatabaseHas('digest_schedules', [
             'email' => 'dev@example.com',
             'timezone' => 'America/New_York',
-            'deliver_at' => '07:00:00',
+            'deliver_at' => '07:00',
             'license_key_hash' => DigestSchedule::hashKey('valid-key'),
         ]);
     }

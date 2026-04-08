@@ -14,6 +14,7 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->append(\App\Http\Middleware\SecurityHeaders::class);
+        $middleware->web(append: [\App\Http\Middleware\HandleInertiaRequests::class]);
         $middleware->alias([
             'auth.license' => \App\Http\Middleware\ValidateLicenseKey::class,
         ]);

@@ -4,224 +4,239 @@ import { useForm } from '@inertiajs/vue3'
 
 const activeTab = ref('signin')
 
-const loginForm = useForm({
-    email: '',
-    password: '',
-    remember: false,
-})
-
-const registerForm = useForm({
-    name: '',
-    email: '',
-    password: '',
-})
+const loginForm = useForm({ email: '', password: '', remember: false })
+const registerForm = useForm({ name: '', email: '', password: '' })
 
 function submitLogin() {
-    loginForm.post('/console/login', {
-        onFinish: () => loginForm.reset('password'),
-    })
+    loginForm.post('/console/login', { onFinish: () => loginForm.reset('password') })
 }
-
 function submitRegister() {
-    registerForm.post('/console/register', {
-        onFinish: () => registerForm.reset('password'),
-    })
+    registerForm.post('/console/register', { onFinish: () => registerForm.reset('password') })
 }
 </script>
 
 <template>
-    <div class="min-h-screen flex bg-slate-950 font-sans">
-        <!-- Left panel: branding + CLI preview -->
-        <div class="hidden lg:flex lg:w-3/5 flex-col justify-between p-12 border-r border-slate-800">
+    <div class="min-h-screen flex bg-slate-950">
+
+        <!-- Left: auth panel -->
+        <div class="flex flex-col justify-center w-full lg:w-[45%] px-6 py-12 sm:px-12 lg:px-16">
+
             <!-- Wordmark -->
-            <div class="flex items-center gap-2">
-                <span class="font-mono text-xl font-semibold text-green-400">TicketLens</span>
-                <span class="text-xs font-mono bg-slate-800 text-slate-400 px-2 py-0.5 rounded">Console</span>
+            <div class="mb-10 flex items-center gap-2">
+                <span class="font-mono text-lg font-semibold text-green-400 tracking-tight">TicketLens</span>
+                <span class="text-[11px] font-mono bg-slate-800 text-slate-400 px-2 py-0.5 rounded-md border border-slate-700">Console</span>
             </div>
 
-            <!-- Terminal preview -->
-            <div class="space-y-8">
-                <div class="bg-slate-900 rounded-xl border border-slate-800 p-6 font-mono text-sm leading-7">
-                    <p class="text-slate-500">$ tl PROJ-42 --depth 2</p>
-                    <p class="text-green-400">&#x2713; Brief ready in 1.2s <span class="text-slate-500">(saved 18k tokens)</span></p>
-                    <p class="mt-4 text-slate-500">$ tl triage --profile work</p>
-                    <p class="text-green-400">&#x2713; 12 tickets <span class="text-slate-500">• 3 need action</span></p>
-                    <p class="mt-4 text-slate-500">$ tl --digest --summarize</p>
-                    <p class="text-green-400">&#x2713; Daily digest queued</p>
-                </div>
-                <p class="text-slate-500 text-sm">Trusted by developers who ship.</p>
+            <!-- Heading -->
+            <h1 class="text-2xl font-semibold text-white mb-1">
+                {{ activeTab === 'signin' ? 'Welcome back' : 'Create your account' }}
+            </h1>
+            <p class="text-slate-400 text-sm mb-8">
+                {{ activeTab === 'signin' ? 'Sign in to your TicketLens Console.' : 'Start managing your tickets smarter.' }}
+            </p>
+
+            <!-- Tabs -->
+            <div class="flex border-b border-slate-800 mb-8">
+                <button
+                    type="button"
+                    @click="activeTab = 'signin'"
+                    class="pb-3 px-1 mr-6 text-sm font-medium border-b-2 transition-colors duration-150 cursor-pointer"
+                    :class="activeTab === 'signin'
+                        ? 'border-green-400 text-green-400'
+                        : 'border-transparent text-slate-500 hover:text-slate-300'"
+                >Sign in</button>
+                <button
+                    type="button"
+                    @click="activeTab = 'register'"
+                    class="pb-3 px-1 text-sm font-medium border-b-2 transition-colors duration-150 cursor-pointer"
+                    :class="activeTab === 'register'
+                        ? 'border-green-400 text-green-400'
+                        : 'border-transparent text-slate-500 hover:text-slate-300'"
+                >Create account</button>
             </div>
 
-            <!-- Footer spacer -->
-            <div></div>
-        </div>
-
-        <!-- Right panel: auth form -->
-        <div class="flex-1 flex items-center justify-center p-6 lg:p-12">
-            <div class="w-full max-w-sm">
-                <!-- Mobile wordmark -->
-                <div class="flex items-center gap-2 mb-8 lg:hidden">
-                    <span class="font-mono text-lg font-semibold text-green-400">TicketLens</span>
-                    <span class="text-xs font-mono bg-slate-800 text-slate-400 px-2 py-0.5 rounded">Console</span>
+            <!-- Sign in form -->
+            <form v-if="activeTab === 'signin'" @submit.prevent="submitLogin" novalidate class="space-y-5">
+                <div>
+                    <label for="login-email" class="block text-sm font-medium text-slate-300 mb-2">Email</label>
+                    <input
+                        id="login-email"
+                        v-model="loginForm.email"
+                        type="email"
+                        autocomplete="email"
+                        placeholder="you@example.com"
+                        class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors duration-150"
+                    />
+                </div>
+                <div>
+                    <div class="flex items-center justify-between mb-2">
+                        <label for="login-password" class="block text-sm font-medium text-slate-300">Password</label>
+                        <a href="#" class="text-xs text-green-400 hover:text-green-300 transition-colors duration-150">Forgot password?</a>
+                    </div>
+                    <input
+                        id="login-password"
+                        v-model="loginForm.password"
+                        type="password"
+                        autocomplete="current-password"
+                        placeholder="••••••••"
+                        class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors duration-150"
+                    />
                 </div>
 
-                <!-- Tabs -->
-                <div class="flex gap-1 bg-slate-900 rounded-lg p-1 mb-8">
-                    <button
-                        type="button"
-                        class="flex-1 py-2 text-sm font-medium rounded-md transition-colors duration-150 cursor-pointer"
-                        :class="activeTab === 'signin'
-                            ? 'bg-slate-700 text-white'
-                            : 'text-slate-400 hover:text-white'"
-                        @click="activeTab = 'signin'"
-                    >
-                        Sign in
-                    </button>
-                    <button
-                        type="button"
-                        class="flex-1 py-2 text-sm font-medium rounded-md transition-colors duration-150 cursor-pointer"
-                        :class="activeTab === 'register'
-                            ? 'bg-slate-700 text-white'
-                            : 'text-slate-400 hover:text-white'"
-                        @click="activeTab = 'register'"
-                    >
-                        Create account
-                    </button>
-                </div>
-
-                <!-- Sign in form -->
-                <form v-if="activeTab === 'signin'" @submit.prevent="submitLogin" novalidate>
-                    <div class="space-y-4">
-                        <div>
-                            <label for="login-email" class="block text-sm font-medium text-slate-300 mb-1.5">
-                                Email
-                            </label>
-                            <input
-                                id="login-email"
-                                v-model="loginForm.email"
-                                type="email"
-                                autocomplete="email"
-                                required
-                                class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors duration-150"
-                                placeholder="you@example.com"
-                            />
-                        </div>
-                        <div>
-                            <div class="flex items-center justify-between mb-1.5">
-                                <label for="login-password" class="block text-sm font-medium text-slate-300">
-                                    Password
-                                </label>
-                                <a href="#" class="text-xs text-green-400 hover:text-green-300 transition-colors duration-150">
-                                    Forgot password?
-                                </a>
-                            </div>
-                            <input
-                                id="login-password"
-                                v-model="loginForm.password"
-                                type="password"
-                                autocomplete="current-password"
-                                required
-                                class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors duration-150"
-                                placeholder="••••••••"
-                            />
-                        </div>
-
-                        <!-- Error -->
-                        <p
-                            v-if="loginForm.errors.email || loginForm.errors.password"
-                            role="alert"
-                            class="text-red-400 text-sm"
-                        >
-                            {{ loginForm.errors.email || loginForm.errors.password }}
-                        </p>
-
-                        <button
-                            type="submit"
-                            :disabled="loginForm.processing"
-                            class="w-full flex items-center justify-center gap-2 bg-green-500 hover:bg-green-400 disabled:opacity-50 disabled:cursor-not-allowed text-slate-950 font-semibold py-2.5 rounded-lg text-sm transition-colors duration-150 cursor-pointer"
-                        >
-                            <svg v-if="loginForm.processing" class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
-                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
-                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
-                            </svg>
-                            Sign in
-                        </button>
-                    </div>
-                </form>
-
-                <!-- Create account form -->
-                <form v-else @submit.prevent="submitRegister" novalidate>
-                    <div class="space-y-4">
-                        <div>
-                            <label for="reg-name" class="block text-sm font-medium text-slate-300 mb-1.5">
-                                Name
-                            </label>
-                            <input
-                                id="reg-name"
-                                v-model="registerForm.name"
-                                type="text"
-                                autocomplete="name"
-                                required
-                                class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors duration-150"
-                                placeholder="Jane Smith"
-                            />
-                        </div>
-                        <div>
-                            <label for="reg-email" class="block text-sm font-medium text-slate-300 mb-1.5">
-                                Email
-                            </label>
-                            <input
-                                id="reg-email"
-                                v-model="registerForm.email"
-                                type="email"
-                                autocomplete="email"
-                                required
-                                class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors duration-150"
-                                placeholder="you@example.com"
-                            />
-                        </div>
-                        <div>
-                            <label for="reg-password" class="block text-sm font-medium text-slate-300 mb-1.5">
-                                Password
-                            </label>
-                            <input
-                                id="reg-password"
-                                v-model="registerForm.password"
-                                type="password"
-                                autocomplete="new-password"
-                                required
-                                class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors duration-150"
-                                placeholder="••••••••"
-                            />
-                        </div>
-
-                        <!-- Error -->
-                        <p
-                            v-if="registerForm.errors.email || registerForm.errors.name || registerForm.errors.password"
-                            role="alert"
-                            class="text-red-400 text-sm"
-                        >
-                            {{ registerForm.errors.name || registerForm.errors.email || registerForm.errors.password }}
-                        </p>
-
-                        <button
-                            type="submit"
-                            :disabled="registerForm.processing"
-                            class="w-full flex items-center justify-center gap-2 bg-green-500 hover:bg-green-400 disabled:opacity-50 disabled:cursor-not-allowed text-slate-950 font-semibold py-2.5 rounded-lg text-sm transition-colors duration-150 cursor-pointer"
-                        >
-                            <svg v-if="registerForm.processing" class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
-                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
-                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
-                            </svg>
-                            Create account
-                        </button>
-                    </div>
-                </form>
-
-                <p class="mt-6 text-xs text-slate-500 text-center">
-                    By continuing, you agree to our Terms and Privacy Policy.
+                <p v-if="loginForm.errors.email || loginForm.errors.password" role="alert" class="text-red-400 text-sm">
+                    {{ loginForm.errors.email || loginForm.errors.password }}
                 </p>
+
+                <button
+                    type="submit"
+                    :disabled="loginForm.processing"
+                    class="w-full flex items-center justify-center gap-2 bg-green-500 hover:bg-green-400 disabled:opacity-50 disabled:cursor-not-allowed text-slate-950 font-semibold py-3 rounded-lg text-sm transition-colors duration-150 cursor-pointer"
+                >
+                    <svg v-if="loginForm.processing" class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                    </svg>
+                    Sign in
+                </button>
+
+                <!-- Divider -->
+                <div class="relative">
+                    <div class="absolute inset-0 flex items-center"><div class="w-full border-t border-slate-800"></div></div>
+                    <div class="relative flex justify-center text-xs"><span class="bg-slate-950 px-3 text-slate-500">or continue with</span></div>
+                </div>
+
+                <!-- GitHub OAuth (UI only) -->
+                <button
+                    type="button"
+                    class="w-full flex items-center justify-center gap-3 bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-300 font-medium py-3 rounded-lg text-sm transition-colors duration-150 cursor-pointer"
+                >
+                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
+                    </svg>
+                    GitHub
+                </button>
+            </form>
+
+            <!-- Register form -->
+            <form v-else @submit.prevent="submitRegister" novalidate class="space-y-5">
+                <div>
+                    <label for="reg-name" class="block text-sm font-medium text-slate-300 mb-2">Name</label>
+                    <input id="reg-name" v-model="registerForm.name" type="text" autocomplete="name" placeholder="Jane Smith"
+                        class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors duration-150" />
+                </div>
+                <div>
+                    <label for="reg-email" class="block text-sm font-medium text-slate-300 mb-2">Email</label>
+                    <input id="reg-email" v-model="registerForm.email" type="email" autocomplete="email" placeholder="you@example.com"
+                        class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors duration-150" />
+                </div>
+                <div>
+                    <label for="reg-password" class="block text-sm font-medium text-slate-300 mb-2">Password</label>
+                    <input id="reg-password" v-model="registerForm.password" type="password" autocomplete="new-password" placeholder="••••••••"
+                        class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors duration-150" />
+                </div>
+
+                <p v-if="registerForm.errors.name || registerForm.errors.email || registerForm.errors.password" role="alert" class="text-red-400 text-sm">
+                    {{ registerForm.errors.name || registerForm.errors.email || registerForm.errors.password }}
+                </p>
+
+                <button type="submit" :disabled="registerForm.processing"
+                    class="w-full flex items-center justify-center gap-2 bg-green-500 hover:bg-green-400 disabled:opacity-50 disabled:cursor-not-allowed text-slate-950 font-semibold py-3 rounded-lg text-sm transition-colors duration-150 cursor-pointer">
+                    <svg v-if="registerForm.processing" class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                    </svg>
+                    Create account
+                </button>
+            </form>
+
+            <p class="mt-8 text-xs text-slate-500 text-center">By continuing, you agree to our Terms and Privacy Policy.</p>
+        </div>
+
+        <!-- Right: product preview (hidden on mobile) -->
+        <div class="hidden lg:flex lg:w-[55%] bg-slate-900 border-l border-slate-800 flex-col items-center justify-center p-12 relative overflow-hidden">
+            <!-- Subtle grid bg -->
+            <div class="absolute inset-0 opacity-5" style="background-image: linear-gradient(#22C55E 1px, transparent 1px), linear-gradient(90deg, #22C55E 1px, transparent 1px); background-size: 32px 32px;"></div>
+
+            <div class="relative w-full max-w-lg">
+                <!-- Mock browser chrome -->
+                <div class="bg-slate-950 rounded-xl border border-slate-700 shadow-2xl overflow-hidden">
+                    <!-- Browser bar -->
+                    <div class="flex items-center gap-1.5 px-4 py-3 border-b border-slate-800 bg-slate-900">
+                        <div class="w-2.5 h-2.5 rounded-full bg-slate-700"></div>
+                        <div class="w-2.5 h-2.5 rounded-full bg-slate-700"></div>
+                        <div class="w-2.5 h-2.5 rounded-full bg-slate-700"></div>
+                        <div class="flex-1 mx-4 bg-slate-800 rounded px-3 py-1 text-[10px] font-mono text-slate-500">console.ticketlens.dev</div>
+                    </div>
+
+                    <!-- Mock dashboard UI -->
+                    <div class="flex h-56">
+                        <!-- Mock sidebar -->
+                        <div class="w-14 bg-slate-900 border-r border-slate-800 flex flex-col items-center py-4 gap-4">
+                            <div class="w-6 h-6 rounded bg-green-500/20 border border-green-500/30"></div>
+                            <div class="w-5 h-1 rounded-full bg-slate-700"></div>
+                            <div class="w-5 h-1 rounded-full bg-green-400"></div>
+                            <div class="w-5 h-1 rounded-full bg-slate-700"></div>
+                            <div class="w-5 h-1 rounded-full bg-slate-700"></div>
+                        </div>
+                        <!-- Mock content -->
+                        <div class="flex-1 p-4 bg-slate-950">
+                            <div class="flex items-center justify-between mb-4">
+                                <div class="w-20 h-2 rounded-full bg-slate-700"></div>
+                                <div class="w-12 h-5 rounded bg-green-500/20 border border-green-500/30"></div>
+                            </div>
+                            <!-- Mock stat cards -->
+                            <div class="grid grid-cols-3 gap-2 mb-4">
+                                <div class="bg-slate-900 rounded-lg p-2 border border-slate-800">
+                                    <div class="w-8 h-1 rounded bg-slate-700 mb-2"></div>
+                                    <div class="w-12 h-3 rounded bg-green-400/40 mb-1"></div>
+                                    <div class="w-full h-1 rounded-full bg-slate-800">
+                                        <div class="h-1 w-3/4 rounded-full bg-green-500"></div>
+                                    </div>
+                                </div>
+                                <div class="bg-slate-900 rounded-lg p-2 border border-slate-800">
+                                    <div class="w-8 h-1 rounded bg-slate-700 mb-2"></div>
+                                    <div class="w-10 h-3 rounded bg-slate-600 mb-1"></div>
+                                    <div class="w-full h-1 rounded-full bg-slate-800">
+                                        <div class="h-1 w-1/2 rounded-full bg-slate-500"></div>
+                                    </div>
+                                </div>
+                                <div class="bg-slate-900 rounded-lg p-2 border border-slate-800">
+                                    <div class="w-8 h-1 rounded bg-slate-700 mb-2"></div>
+                                    <div class="w-14 h-3 rounded bg-slate-600 mb-1"></div>
+                                    <div class="w-full h-1 rounded-full bg-slate-800">
+                                        <div class="h-1 w-1/3 rounded-full bg-slate-500"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- Mock table rows -->
+                            <div class="space-y-2">
+                                <div class="flex items-center gap-2">
+                                    <div class="w-4 h-4 rounded bg-slate-800"></div>
+                                    <div class="w-24 h-1.5 rounded-full bg-slate-700"></div>
+                                    <div class="ml-auto w-10 h-1.5 rounded-full bg-green-500/40"></div>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <div class="w-4 h-4 rounded bg-slate-800"></div>
+                                    <div class="w-16 h-1.5 rounded-full bg-slate-700"></div>
+                                    <div class="ml-auto w-8 h-1.5 rounded-full bg-slate-600"></div>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <div class="w-4 h-4 rounded bg-slate-800"></div>
+                                    <div class="w-20 h-1.5 rounded-full bg-slate-700"></div>
+                                    <div class="ml-auto w-12 h-1.5 rounded-full bg-slate-600"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Caption -->
+                <div class="mt-6 text-center">
+                    <p class="text-slate-400 text-sm font-medium">Your Jira context. Zero token waste.</p>
+                    <p class="text-slate-600 text-xs mt-1">Works with Jira Cloud, Server & Data Center.</p>
+                </div>
             </div>
         </div>
+
     </div>
 </template>

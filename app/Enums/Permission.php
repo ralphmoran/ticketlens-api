@@ -16,7 +16,7 @@ enum Permission: int
     case AdminPanel  = 512;  // 2^9 — admin-only panel
 
     /** Composite tier presets */
-    public static function free(): int    { return self::MultiProject->value; }
+    public static function free(): int    { return self::Dashboard->value | self::MultiProject->value; }
     public static function pro(): int     { return self::Dashboard->value | self::ApiKeys->value | self::Scheduling->value | self::MultiProject->value; }
     public static function team(): int    { return self::pro() | self::Integrations->value | self::UsageLogs->value | self::Digest->value | self::TeamAccess->value; }
     public static function enterprise(): int { return self::team(); }

@@ -65,7 +65,7 @@ function closeSidebar() {
                 </svg>
             </button>
 
-            <span class="font-mono text-sm font-semibold text-green-400">TicketLens</span>
+            <span class="font-mono text-sm font-semibold text-indigo-400">TicketLens</span>
 
             <div class="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-xs font-semibold text-white">
                 {{ user?.name?.charAt(0)?.toUpperCase() ?? '?' }}
@@ -98,7 +98,7 @@ function closeSidebar() {
             <!-- Logo -->
             <div class="flex items-center justify-between px-5 py-5 border-b border-slate-800">
                 <div class="flex items-center gap-2">
-                    <span class="font-mono text-base font-semibold text-green-400">TicketLens</span>
+                    <span class="font-mono text-base font-semibold text-indigo-400">TicketLens</span>
                     <span class="text-[10px] font-mono bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded border border-slate-700">Console</span>
                 </div>
                 <!-- Close btn mobile -->

@@ -37,7 +37,7 @@ const tier = computed(() => user.value?.tier ?? 'free')
                     </div>
                     <p class="text-3xl font-mono font-semibold text-white mb-3">—</p>
                     <div class="w-full h-1.5 rounded-full bg-slate-800">
-                        <div class="h-1.5 w-0 rounded-full bg-green-500"></div>
+                        <div class="h-1.5 w-0 rounded-full bg-indigo-500"></div>
                     </div>
                     <p class="text-xs text-slate-600 mt-2">No data yet</p>
                 </div>
@@ -46,13 +46,13 @@ const tier = computed(() => user.value?.tier ?? 'free')
                 <div class="bg-slate-900 border border-slate-800 rounded-xl p-5">
                     <div class="flex items-center justify-between mb-4">
                         <p class="text-xs font-medium text-slate-400 uppercase tracking-wider">Tokens Saved</p>
-                        <svg class="w-4 h-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                        <svg class="w-4 h-4 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18L9 11.25l4.306 4.307a11.95 11.95 0 015.814-5.519l2.74-1.22m0 0l-5.94-2.28m5.94 2.28l-2.28 5.941"/>
                         </svg>
                     </div>
-                    <p class="text-3xl font-mono font-semibold text-green-400 mb-3">—</p>
+                    <p class="text-3xl font-mono font-semibold text-indigo-400 mb-3">—</p>
                     <div class="w-full h-1.5 rounded-full bg-slate-800">
-                        <div class="h-1.5 w-0 rounded-full bg-green-500"></div>
+                        <div class="h-1.5 w-0 rounded-full bg-indigo-500"></div>
                     </div>
                     <p class="text-xs text-slate-600 mt-2">Compared to raw Jira API</p>
                 </div>
@@ -87,7 +87,7 @@ const tier = computed(() => user.value?.tier ?? 'free')
                         <p class="text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">Usage Analytics</p>
                         <p class="text-sm text-slate-500 mt-2">Available on Pro and above.</p>
                     </div>
-                    <a href="#" class="mt-4 text-xs text-green-400 hover:text-green-300 font-medium transition-colors duration-150 cursor-pointer">Upgrade plan →</a>
+                    <a href="#" class="mt-4 text-xs text-indigo-400 hover:text-indigo-300 font-medium transition-colors duration-150 cursor-pointer">Upgrade plan →</a>
                 </div>
 
                 <!-- Team summary (Team+ permission) -->
@@ -112,21 +112,21 @@ const tier = computed(() => user.value?.tier ?? 'free')
                         <div class="w-5 h-5 rounded-full border border-slate-700 flex items-center justify-center text-[10px] font-mono text-slate-500 shrink-0 mt-0.5">1</div>
                         <div>
                             <p class="text-sm text-slate-300">Install the CLI</p>
-                            <code class="text-xs font-mono text-green-400 bg-slate-800 px-2 py-0.5 rounded mt-1 inline-block">npm install -g ticketlens</code>
+                            <code class="text-xs font-mono text-indigo-400 bg-slate-800 px-2 py-0.5 rounded mt-1 inline-block">npm install -g ticketlens</code>
                         </div>
                     </div>
                     <div class="flex items-start gap-3">
                         <div class="w-5 h-5 rounded-full border border-slate-700 flex items-center justify-center text-[10px] font-mono text-slate-500 shrink-0 mt-0.5">2</div>
                         <div>
                             <p class="text-sm text-slate-300">Connect your Jira</p>
-                            <code class="text-xs font-mono text-green-400 bg-slate-800 px-2 py-0.5 rounded mt-1 inline-block">tl config --profile work</code>
+                            <code class="text-xs font-mono text-indigo-400 bg-slate-800 px-2 py-0.5 rounded mt-1 inline-block">tl config --profile work</code>
                         </div>
                     </div>
                     <div class="flex items-start gap-3">
                         <div class="w-5 h-5 rounded-full border border-slate-700 flex items-center justify-center text-[10px] font-mono text-slate-500 shrink-0 mt-0.5">3</div>
                         <div>
                             <p class="text-sm text-slate-300">Fetch your first ticket</p>
-                            <code class="text-xs font-mono text-green-400 bg-slate-800 px-2 py-0.5 rounded mt-1 inline-block">tl PROJ-1</code>
+                            <code class="text-xs font-mono text-indigo-400 bg-slate-800 px-2 py-0.5 rounded mt-1 inline-block">tl PROJ-1</code>
                         </div>
                     </div>
                 </div>

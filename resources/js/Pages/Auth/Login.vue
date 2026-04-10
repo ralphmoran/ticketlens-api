@@ -23,7 +23,7 @@ function submitRegister() {
 
             <!-- Wordmark -->
             <div class="mb-10 flex items-center gap-2">
-                <span class="font-mono text-lg font-semibold text-green-400 tracking-tight">TicketLens</span>
+                <span class="font-mono text-lg font-semibold text-indigo-400 tracking-tight">TicketLens</span>
                 <span class="text-[11px] font-mono bg-slate-800 text-slate-400 px-2 py-0.5 rounded-md border border-slate-700">Console</span>
             </div>
 
@@ -42,7 +42,7 @@ function submitRegister() {
                     @click="activeTab = 'signin'"
                     class="pb-3 px-1 mr-6 text-sm font-medium border-b-2 transition-colors duration-150 cursor-pointer"
                     :class="activeTab === 'signin'
-                        ? 'border-green-400 text-green-400'
+                        ? 'border-indigo-400 text-indigo-400'
                         : 'border-transparent text-slate-500 hover:text-slate-300'"
                 >Sign in</button>
                 <button
@@ -50,7 +50,7 @@ function submitRegister() {
                     @click="activeTab = 'register'"
                     class="pb-3 px-1 text-sm font-medium border-b-2 transition-colors duration-150 cursor-pointer"
                     :class="activeTab === 'register'
-                        ? 'border-green-400 text-green-400'
+                        ? 'border-indigo-400 text-indigo-400'
                         : 'border-transparent text-slate-500 hover:text-slate-300'"
                 >Create account</button>
             </div>
@@ -65,13 +65,13 @@ function submitRegister() {
                         type="email"
                         autocomplete="email"
                         placeholder="you@example.com"
-                        class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors duration-150"
+                        class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors duration-150"
                     />
                 </div>
                 <div>
                     <div class="flex items-center justify-between mb-2">
                         <label for="login-password" class="block text-sm font-medium text-slate-300">Password</label>
-                        <a href="#" class="text-xs text-green-400 hover:text-green-300 transition-colors duration-150">Forgot password?</a>
+                        <a href="#" class="text-xs text-indigo-400 hover:text-indigo-300 transition-colors duration-150">Forgot password?</a>
                     </div>
                     <input
                         id="login-password"
@@ -79,7 +79,7 @@ function submitRegister() {
                         type="password"
                         autocomplete="current-password"
                         placeholder="••••••••"
-                        class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors duration-150"
+                        class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors duration-150"
                     />
                 </div>
 
@@ -90,7 +90,7 @@ function submitRegister() {
                 <button
                     type="submit"
                     :disabled="loginForm.processing"
-                    class="w-full flex items-center justify-center gap-2 bg-green-500 hover:bg-green-400 disabled:opacity-50 disabled:cursor-not-allowed text-slate-950 font-semibold py-3 rounded-lg text-sm transition-colors duration-150 cursor-pointer"
+                    class="w-full flex items-center justify-center gap-2 bg-indigo-500 hover:bg-indigo-400 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-lg text-sm transition-colors duration-150 cursor-pointer"
                 >
                     <svg v-if="loginForm.processing" class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
@@ -122,17 +122,17 @@ function submitRegister() {
                 <div>
                     <label for="reg-name" class="block text-sm font-medium text-slate-300 mb-2">Name</label>
                     <input id="reg-name" v-model="registerForm.name" type="text" autocomplete="name" placeholder="Jane Smith"
-                        class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors duration-150" />
+                        class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors duration-150" />
                 </div>
                 <div>
                     <label for="reg-email" class="block text-sm font-medium text-slate-300 mb-2">Email</label>
                     <input id="reg-email" v-model="registerForm.email" type="email" autocomplete="email" placeholder="you@example.com"
-                        class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors duration-150" />
+                        class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors duration-150" />
                 </div>
                 <div>
                     <label for="reg-password" class="block text-sm font-medium text-slate-300 mb-2">Password</label>
                     <input id="reg-password" v-model="registerForm.password" type="password" autocomplete="new-password" placeholder="••••••••"
-                        class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors duration-150" />
+                        class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors duration-150" />
                 </div>
 
                 <p v-if="registerForm.errors.name || registerForm.errors.email || registerForm.errors.password" role="alert" class="text-red-400 text-sm">
@@ -140,7 +140,7 @@ function submitRegister() {
                 </p>
 
                 <button type="submit" :disabled="registerForm.processing"
-                    class="w-full flex items-center justify-center gap-2 bg-green-500 hover:bg-green-400 disabled:opacity-50 disabled:cursor-not-allowed text-slate-950 font-semibold py-3 rounded-lg text-sm transition-colors duration-150 cursor-pointer">
+                    class="w-full flex items-center justify-center gap-2 bg-indigo-500 hover:bg-indigo-400 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-lg text-sm transition-colors duration-150 cursor-pointer">
                     <svg v-if="registerForm.processing" class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
                         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
@@ -155,7 +155,7 @@ function submitRegister() {
         <!-- Right: product preview (hidden on mobile) -->
         <div class="hidden lg:flex lg:w-[55%] bg-slate-900 border-l border-slate-800 flex-col items-center justify-center p-12 relative overflow-hidden">
             <!-- Subtle grid bg -->
-            <div class="absolute inset-0 opacity-5" style="background-image: linear-gradient(#22C55E 1px, transparent 1px), linear-gradient(90deg, #22C55E 1px, transparent 1px); background-size: 32px 32px;"></div>
+            <div class="absolute inset-0 opacity-5" style="background-image: linear-gradient(#6366F1 1px, transparent 1px), linear-gradient(90deg, #6366F1 1px, transparent 1px); background-size: 32px 32px;"></div>
 
             <div class="relative w-full max-w-lg">
                 <!-- Mock browser chrome -->
@@ -172,9 +172,9 @@ function submitRegister() {
                     <div class="flex h-56">
                         <!-- Mock sidebar -->
                         <div class="w-14 bg-slate-900 border-r border-slate-800 flex flex-col items-center py-4 gap-4">
-                            <div class="w-6 h-6 rounded bg-green-500/20 border border-green-500/30"></div>
+                            <div class="w-6 h-6 rounded bg-indigo-500/20 border border-indigo-500/30"></div>
                             <div class="w-5 h-1 rounded-full bg-slate-700"></div>
-                            <div class="w-5 h-1 rounded-full bg-green-400"></div>
+                            <div class="w-5 h-1 rounded-full bg-indigo-400"></div>
                             <div class="w-5 h-1 rounded-full bg-slate-700"></div>
                             <div class="w-5 h-1 rounded-full bg-slate-700"></div>
                         </div>
@@ -182,15 +182,15 @@ function submitRegister() {
                         <div class="flex-1 p-4 bg-slate-950">
                             <div class="flex items-center justify-between mb-4">
                                 <div class="w-20 h-2 rounded-full bg-slate-700"></div>
-                                <div class="w-12 h-5 rounded bg-green-500/20 border border-green-500/30"></div>
+                                <div class="w-12 h-5 rounded bg-indigo-500/20 border border-indigo-500/30"></div>
                             </div>
                             <!-- Mock stat cards -->
                             <div class="grid grid-cols-3 gap-2 mb-4">
                                 <div class="bg-slate-900 rounded-lg p-2 border border-slate-800">
                                     <div class="w-8 h-1 rounded bg-slate-700 mb-2"></div>
-                                    <div class="w-12 h-3 rounded bg-green-400/40 mb-1"></div>
+                                    <div class="w-12 h-3 rounded bg-indigo-400/40 mb-1"></div>
                                     <div class="w-full h-1 rounded-full bg-slate-800">
-                                        <div class="h-1 w-3/4 rounded-full bg-green-500"></div>
+                                        <div class="h-1 w-3/4 rounded-full bg-indigo-500"></div>
                                     </div>
                                 </div>
                                 <div class="bg-slate-900 rounded-lg p-2 border border-slate-800">
@@ -213,7 +213,7 @@ function submitRegister() {
                                 <div class="flex items-center gap-2">
                                     <div class="w-4 h-4 rounded bg-slate-800"></div>
                                     <div class="w-24 h-1.5 rounded-full bg-slate-700"></div>
-                                    <div class="ml-auto w-10 h-1.5 rounded-full bg-green-500/40"></div>
+                                    <div class="ml-auto w-10 h-1.5 rounded-full bg-indigo-500/40"></div>
                                 </div>
                                 <div class="flex items-center gap-2">
                                     <div class="w-4 h-4 rounded bg-slate-800"></div>

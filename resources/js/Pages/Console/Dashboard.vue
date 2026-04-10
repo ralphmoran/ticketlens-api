@@ -57,8 +57,8 @@ const tier = computed(() => user.value?.tier ?? 'free')
                     <p class="text-xs text-slate-600 mt-2">Compared to raw Jira API</p>
                 </div>
 
-                <!-- Next Digest (Scheduling permission) -->
-                <div v-if="can(Permission.Scheduling)" class="bg-slate-900 border border-slate-800 rounded-xl p-5">
+                <!-- Next Digest (Schedules permission) -->
+                <div v-if="can(Permission.Schedules)" class="bg-slate-900 border border-slate-800 rounded-xl p-5">
                     <div class="flex items-center justify-between mb-4">
                         <p class="text-xs font-medium text-slate-400 uppercase tracking-wider">Next Digest</p>
                         <svg class="w-4 h-4 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
@@ -81,8 +81,8 @@ const tier = computed(() => user.value?.tier ?? 'free')
                     <p class="text-xs text-slate-500">Active</p>
                 </div>
 
-                <!-- Usage Logs teaser for non-entitled users -->
-                <div v-if="!can(Permission.UsageLogs)" class="bg-slate-900/50 border border-slate-800/50 border-dashed rounded-xl p-5 flex flex-col items-start justify-between">
+                <!-- Export teaser for non-entitled users -->
+                <div v-if="!can(Permission.Export)" class="bg-slate-900/50 border border-slate-800/50 border-dashed rounded-xl p-5 flex flex-col items-start justify-between">
                     <div>
                         <p class="text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">Usage Analytics</p>
                         <p class="text-sm text-slate-500 mt-2">Available on Pro and above.</p>
@@ -90,8 +90,8 @@ const tier = computed(() => user.value?.tier ?? 'free')
                     <a href="#" class="mt-4 text-xs text-indigo-400 hover:text-indigo-300 font-medium transition-colors duration-150 cursor-pointer">Upgrade plan →</a>
                 </div>
 
-                <!-- Team summary (Team+ permission) -->
-                <div v-if="can(Permission.TeamAccess)" class="bg-slate-900 border border-slate-800 rounded-xl p-5">
+                <!-- Team summary (AdminUsers permission) -->
+                <div v-if="can(Permission.AdminUsers)" class="bg-slate-900 border border-slate-800 rounded-xl p-5">
                     <div class="flex items-center justify-between mb-4">
                         <p class="text-xs font-medium text-slate-400 uppercase tracking-wider">Team Seats</p>
                         <svg class="w-4 h-4 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">

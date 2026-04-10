@@ -1,24 +1,25 @@
 export const Permission = {
-    Dashboard:    1,
-    ApiKeys:      2,
-    Scheduling:   4,
-    Integrations: 8,
-    UsageLogs:    16,
-    Digest:       32,
-    MultiProject: 64,
-    TeamAccess:   128,
-    Analytics:    256,
-    AdminPanel:   512,
+    Schedules:        1,
+    Digests:          2,
+    Summarize:        4,
+    Compliance:       8,
+    Export:           16,
+    MultiAccount:     32,
+    SavingsAnalytics: 64,
+    AdminUsers:       128,
+    AdminLicenses:    256,
+    AdminRevenue:     512,
 } as const
 
 export type PermissionKey = keyof typeof Permission
 export type PermissionValue = typeof Permission[PermissionKey]
 
 export const Tiers = {
-    Free:       Permission.MultiProject,
-    Pro:        Permission.Dashboard | Permission.ApiKeys | Permission.Scheduling | Permission.MultiProject,
-    Team:       Permission.Dashboard | Permission.ApiKeys | Permission.Scheduling | Permission.MultiProject | Permission.Integrations | Permission.UsageLogs | Permission.Digest | Permission.TeamAccess,
-    Enterprise: Permission.Dashboard | Permission.ApiKeys | Permission.Scheduling | Permission.MultiProject | Permission.Integrations | Permission.UsageLogs | Permission.Digest | Permission.TeamAccess,
+    Free:       Permission.SavingsAnalytics,
+    Pro:        Permission.Schedules | Permission.Digests | Permission.Summarize | Permission.SavingsAnalytics,
+    Team:       Permission.Schedules | Permission.Digests | Permission.Summarize | Permission.SavingsAnalytics | Permission.Compliance | Permission.Export | Permission.MultiAccount,
+    Enterprise: Permission.Schedules | Permission.Digests | Permission.Summarize | Permission.SavingsAnalytics | Permission.Compliance | Permission.Export | Permission.MultiAccount,
+    AdminMask:  Permission.AdminUsers | Permission.AdminLicenses | Permission.AdminRevenue,
 } as const
 
 export function can(userPermissions: number, permission: PermissionValue): boolean {

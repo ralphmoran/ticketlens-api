@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Enums\Permission;
 use App\Services\PermissionService;
 use Closure;
 use Illuminate\Http\Request;
@@ -11,11 +12,12 @@ class HasPermission
 {
     public function __construct(private readonly PermissionService $permissions) {}
 
-    public function handle(Request $request, Closure $next, int $permission): Response
+    public function handle(Request $request, Closure $next, string $permission): Response
     {
         $user = $request->user();
+        $bit  = Permission::fromName($permission)->value;
 
-        if ($user === null || ! $this->permissions->can($user, $permission)) {
+        if ($user === null || ! $this->permissions->can($user, $bit)) {
             if ($request->expectsJson() || $request->header('X-Inertia')) {
                 return response()->json(['message' => 'Forbidden'], 403);
             }

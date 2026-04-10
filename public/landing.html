@@ -1,0 +1,1875 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TicketLens — Your AI assistant shouldn't need to read your tickets.</title>
+  <meta name="description" content="Local-first Jira CLI. Preprocesses ticket context on your machine. 60–80% token savings for Claude Code, Cursor, and every AI tool. Ticket content never leaves your machine.">
+  <meta property="og:title" content="TicketLens — Your AI assistant shouldn't need to read your tickets.">
+  <meta property="og:description" content="Local-first Jira CLI. Ticket content stays on your machine. 60–80% token savings for Claude Code and Cursor.">
+  <meta property="og:type" content="website">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preload" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
+  <noscript><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet"></noscript>
+  <style>
+    /* ============================================================
+       THEME VARIABLES
+    ============================================================ */
+    :root {
+      /* Shared */
+      --cta:        #6366F1;
+      --cta-hover:  #4F46E5;
+      --cta-glow:   rgba(99,102,241,.3);
+      --green:      #6366F1;
+      --yellow:     #E3B341;
+      --red:        #F85149;
+      --blue-code:  #79C0FF;
+      --font:       'Plus Jakarta Sans', sans-serif;
+      --mono:       'JetBrains Mono', monospace;
+      --r:          8px;
+      --rl:         12px;
+
+      /* Dark (default) */
+      --bg:              #0F172A;
+      --bg-surface:      #0e1118;
+      --bg-raised:       #131720;
+      --bg-card:         #1a2133;
+      --border:          #1b2235;
+      --border-2:        #232d42;
+      --text:            #e1e8f4;
+      --text-muted:      #7b8aa0;
+      --text-subtle:     #404958;
+      --nav-bg:          rgba(15,23,42,.92);
+      --section-alt:     #0c1119;
+    }
+    [data-theme="light"] {
+      --bg:              #F8FAFC;
+      --bg-surface:      #F1F5F9;
+      --bg-raised:       #FFFFFF;
+      --bg-card:         #FFFFFF;
+      --border:          #E2E8F0;
+      --border-2:        #CBD5E1;
+      --text:            #0F172A;
+      --text-muted:      #475569;
+      --text-subtle:     #64748B;
+      --nav-bg:          rgba(248,250,252,.95);
+      --section-alt:     #F1F5F9;
+    }
+
+    /* ============================================================
+       RESET & BASE
+    ============================================================ */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      transition: background .2s, color .2s;
+    }
+    a { text-decoration: none; color: inherit; }
+    button { font-family: var(--font); cursor: pointer; border: none; background: none; }
+
+    .container {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 96px clamp(20px,5vw,80px);
+    }
+    section { border-top: 1px solid var(--border); }
+
+    /* ============================================================
+       NAV
+    ============================================================ */
+    .nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      padding: 0 clamp(20px,5vw,80px); height: 60px;
+      display: flex; align-items: center; justify-content: center;
+      border-bottom: 1px solid transparent;
+      transition: background .25s, border-color .25s, backdrop-filter .25s;
+    }
+    .nav-inner {
+      max-width: 1280px; width: 100%;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .nav.scrolled {
+      background: var(--nav-bg);
+      border-bottom-color: var(--border);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+    }
+    .nav-logo {
+      font-weight: 700; font-size: 16px; letter-spacing: -.01em;
+      color: var(--text); display: flex; align-items: center; gap: 9px;
+    }
+    .nav-logo-mark {
+      width: 30px; height: 30px; background: var(--cta); border-radius: 7px;
+      display: flex; align-items: center; justify-content: center;
+      font-family: var(--mono); font-size: 11px; font-weight: 700; color: #fff;
+    }
+    .nav-right { display: flex; align-items: center; gap: 8px; }
+    .nav-links { display: flex; align-items: center; gap: 4px; list-style: none; margin-right: 8px; }
+    .nav-links a {
+      font-size: 14px; color: var(--text-muted); padding: 11px 12px;
+      border-radius: var(--r); transition: color .15s, background .15s;
+      min-height: 44px; display: flex; align-items: center;
+    }
+    .nav-links a:hover { color: var(--text); background: rgba(127,127,127,.08); }
+
+    /* Theme toggle */
+    .theme-btn {
+      width: 44px; height: 44px; border-radius: var(--r);
+      border: 1px solid var(--border-2); background: var(--bg-raised);
+      color: var(--text-muted); display: flex; align-items: center; justify-content: center;
+      cursor: pointer; transition: border-color .15s, color .15s, background .15s; margin-right: 4px;
+    }
+    .theme-btn:hover { border-color: var(--text-muted); color: var(--text); }
+    .theme-btn svg { width: 16px; height: 16px; flex-shrink: 0; }
+    .icon-moon { display: none; }
+    .icon-sun  { display: block; }
+    [data-theme="light"] .icon-moon { display: block; }
+    [data-theme="light"] .icon-sun  { display: none; }
+
+    .nav-cta {
+      background: var(--cta); color: #fff; padding: 7px 16px;
+      border-radius: var(--r); font-size: 13px; font-weight: 600;
+      transition: background .15s, transform .1s;
+      box-shadow: 0 2px 12px var(--cta-glow);
+    }
+    .nav-cta:hover { background: var(--cta-hover); transform: translateY(-1px); }
+    .nav-cta-ghost {
+      padding: 7px 16px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      border: 1px solid rgba(127,127,127,.25);
+      color: var(--text-muted);
+      text-decoration: none;
+      transition: border-color .15s, color .15s;
+      cursor: pointer;
+    }
+    .nav-cta-ghost:hover {
+      border-color: var(--cta);
+      color: var(--cta);
+    }
+
+    /* ============================================================
+       FOCUS STATES — keyboard navigation
+    ============================================================ */
+    :focus-visible {
+      outline: 2px solid var(--cta);
+      outline-offset: 2px;
+    }
+    /* Remove default outline only when we have our own */
+    a:focus-visible, button:focus-visible {
+      outline: 2px solid var(--cta);
+      outline-offset: 3px;
+      border-radius: var(--r);
+    }
+    .nav-logo:focus-visible { border-radius: var(--r); }
+    .theme-btn:focus-visible { border-color: var(--cta); }
+    .t-tab:focus-visible { outline-offset: -2px; }
+    .feat-item:focus-visible { outline: 2px solid var(--cta); outline-offset: -2px; }
+    .faq-q:focus-visible { outline: 2px solid var(--cta); outline-offset: 2px; border-radius: 4px; }
+    .pricing-cta:focus-visible { outline: 2px solid var(--cta); outline-offset: 3px; }
+
+    /* ============================================================
+       SECTION LABELS / HEADINGS
+    ============================================================ */
+    .section-tag {
+      display: inline-block;
+      font-family: var(--mono); font-size: 11px; font-weight: 500;
+      letter-spacing: .1em; text-transform: uppercase;
+      color: var(--cta); margin-bottom: 14px;
+    }
+    .section-h2 {
+      font-size: clamp(30px,3.5vw,48px); font-weight: 700; letter-spacing: -.03em;
+      line-height: 1.1; color: var(--text); margin-bottom: 16px;
+    }
+    .section-lead {
+      font-size: clamp(15px,1.5vw,18px); color: var(--text-muted);
+      max-width: 560px; line-height: 1.65; margin-bottom: 56px;
+    }
+
+    /* ============================================================
+       HERO
+    ============================================================ */
+    .hero {
+      background:
+        radial-gradient(ellipse 500px 500px at 72% 55%, rgba(99,102,241,.14) 0%, rgba(99,102,241,.04) 55%, transparent 70%),
+        radial-gradient(ellipse 800px 500px at 68% 50%, rgba(99,102,241,.04) 0%, transparent 65%),
+        var(--bg-surface);
+      min-height: 100vh;
+      display: flex; align-items: center; justify-content: center;
+      padding: 100px clamp(20px,5vw,80px) 80px;
+      position: relative; overflow: hidden;
+      border-top: none;
+    }
+    [data-theme="light"] .hero {
+      background:
+        radial-gradient(ellipse 500px 500px at 72% 55%, rgba(99,102,241,.08) 0%, transparent 65%),
+        var(--bg-surface);
+    }
+    .hero::before {
+      content: '';
+      position: absolute; inset: 0;
+      background-image: radial-gradient(circle, rgba(99,102,241,.4) 1px, transparent 1px);
+      background-size: 24px 24px;
+      mask-image: radial-gradient(ellipse 72% 80% at 70% 55%, black 0%, transparent 70%);
+      -webkit-mask-image: radial-gradient(ellipse 72% 80% at 70% 55%, black 0%, transparent 70%);
+      pointer-events: none; opacity: .5;
+    }
+    [data-theme="light"] .hero::before { opacity: .2; }
+    .hero::after {
+      content: '';
+      position: absolute; bottom: 0; left: 0; right: 0; height: 120px;
+      background: linear-gradient(to bottom, transparent, var(--bg));
+      pointer-events: none;
+    }
+    [data-theme="light"] .hero::after { background: linear-gradient(to bottom, transparent, var(--bg)); }
+    .hero-inner {
+      position: relative; z-index: 1;
+      display: grid; grid-template-columns: 1.1fr 1fr; gap: 80px;
+      align-items: center; max-width: 1280px; width: 100%;
+    }
+    .hero-left { display: flex; flex-direction: column; align-items: flex-start; }
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      border: 1px solid var(--border-2); background: var(--bg-card);
+      padding: 5px 14px 5px 10px; border-radius: 100px;
+      font-family: var(--mono); font-size: 12px; color: var(--text-muted);
+      margin-bottom: 32px; animation: fadeDown .6s ease both;
+    }
+    .hero-badge-dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--green); box-shadow: 0 0 8px var(--green);
+      animation: pulse 2s ease infinite;
+    }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.5} }
+    .hero h1 {
+      font-size: clamp(40px,5.5vw,76px); font-weight: 700; letter-spacing: -.04em;
+      line-height: 1.05; color: var(--text); margin-bottom: 22px;
+      animation: fadeDown .6s .1s ease both;
+    }
+    .hero h1 em { font-style: italic; color: var(--cta); }
+    .hero-sub {
+      font-size: clamp(15px,1.5vw,18px); color: var(--text-muted); max-width: 440px;
+      line-height: 1.65; margin-bottom: 40px; animation: fadeDown .6s .2s ease both;
+    }
+    .hero-ctas {
+      display: flex; gap: 12px; flex-wrap: wrap;
+      animation: fadeDown .6s .3s ease both;
+    }
+    .btn-primary {
+      background: var(--cta); color: #fff; padding: 13px 24px; border-radius: var(--r);
+      font-size: 15px; font-weight: 600; display: inline-flex; align-items: center; gap: 8px;
+      transition: background .15s, transform .1s, box-shadow .15s;
+      box-shadow: 0 4px 20px var(--cta-glow);
+    }
+    .btn-primary:hover { background: var(--cta-hover); transform: translateY(-1px); box-shadow: 0 6px 28px var(--cta-glow); }
+    .btn-secondary {
+      background: transparent; color: var(--text-muted); padding: 13px 24px;
+      border-radius: var(--r); font-size: 15px; border: 1px solid var(--border-2);
+      transition: border-color .15s, color .15s, transform .1s;
+    }
+    .btn-secondary:hover { border-color: var(--text-muted); color: var(--text); transform: translateY(-1px); }
+
+    /* ============================================================
+       TERMINAL — SHARED STYLES
+    ============================================================ */
+    .terminal-window {
+      background: #0d1117; border-radius: var(--rl);
+      border: 1px solid rgba(99,102,241,.22); overflow: hidden; text-align: left;
+    }
+    .terminal-titlebar {
+      display: flex; align-items: center;
+      background: #161b22; border-bottom: 1px solid rgba(255,255,255,.06);
+      padding: 0; min-height: 40px;
+    }
+    .t-dots {
+      display: flex; align-items: center; gap: 6px;
+      padding: 0 14px; flex-shrink: 0;
+    }
+    .t-dot { width: 11px; height: 11px; border-radius: 50%; }
+    .t-dot.r { background: #ff5f57; }
+    .t-dot.y { background: #febc2e; }
+    .t-dot.g { background: #28c840; }
+    .t-tabs { display: flex; align-items: stretch; gap: 0; flex: 1; }
+    .t-tab {
+      padding: 0 16px; height: 40px; font-family: var(--mono); font-size: 12px;
+      font-weight: 500; color: rgba(255,255,255,.3); background: transparent; border: none;
+      border-right: 1px solid rgba(255,255,255,.06); cursor: pointer;
+      transition: color .15s, background .15s; position: relative;
+      display: flex; align-items: center; gap: 7px;
+    }
+    .t-tab:first-child { border-left: 1px solid rgba(255,255,255,.06); }
+    .t-tab.active { color: #e1e8f4; background: #0d1117; border-bottom: 1px solid #0d1117; margin-bottom: -1px; z-index: 1; }
+    .t-tab:hover:not(.active) { color: rgba(255,255,255,.55); background: rgba(255,255,255,.03); }
+    .t-tab.jtb-tab { color: rgba(121,192,255,.6); text-shadow: 0 0 12px rgba(121,192,255,.5); }
+    .t-tab.jtb-tab.active { color: #79c0ff; background: #0a0f18; }
+    .jtb-badge {
+      font-size: 9px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase;
+      padding: 2px 6px; border-radius: 4px;
+      background: rgba(99,102,241,.15); color: var(--cta);
+      border: 1px solid rgba(99,102,241,.3); animation: jtbPulse 2.5s ease infinite;
+    }
+    @keyframes jtbPulse { 0%,100%{box-shadow:0 0 6px rgba(99,102,241,.2)} 50%{box-shadow:0 0 14px rgba(99,102,241,.5)} }
+    .terminal-body {
+      padding: 18px 22px 22px; font-family: var(--mono); font-size: 13px; line-height: 1.75;
+      height: 560px; overflow: hidden;
+    }
+    .t-panel { min-height: 520px; }
+    .t-prompt  { color: var(--green); user-select: none; }
+    .t-cursor  { display: inline-block; width: 7px; height: 14px; background: #e1e8f4; vertical-align: text-bottom; animation: blink 1s step-end infinite; }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+    .t-dim     { color: #404958; }
+    .t-muted   { color: #7b8aa0; }
+    .t-white   { color: #e1e8f4; }
+    .t-blue    { color: #79c0ff; }
+    .t-green   { color: #818cf8; }
+    .t-yellow  { color: #e3b341; }
+    .t-red     { color: #f85149; }
+    .t-bold    { font-weight: 700; }
+    .t-indent  { padding-left: 18px; display: block; }
+    .terminal-output-line { display: block; min-height: 1.75em; }
+
+    /* Hero terminal glow */
+    .hero-terminal-wrap {
+      position: relative; animation: slideInRight .9s .3s cubic-bezier(.16,1,.3,1) both;
+      will-change: transform, opacity;
+    }
+    .hero-terminal-wrap::before {
+      content: ''; position: absolute; inset: -60px -80px;
+      background: radial-gradient(ellipse 70% 55% at 50% 50%, rgba(99,102,241,.16) 0%, rgba(99,102,241,.05) 45%, transparent 70%);
+      pointer-events: none; z-index: 0; border-radius: 50%;
+    }
+    .hero-terminal-wrap .terminal-window {
+      position: relative; z-index: 1;
+      box-shadow: 0 0 0 1px rgba(255,255,255,.04),
+                  0 0 40px rgba(99,102,241,.25), 0 0 80px rgba(99,102,241,.1),
+                  0 32px 80px rgba(0,0,0,.6);
+    }
+
+    /* ============================================================
+       LOGOS CAROUSEL
+    ============================================================ */
+    .logos-section {
+      background: var(--section-alt); border-top: 1px solid var(--border);
+      padding: 36px 0; overflow: hidden;
+    }
+    .logos-label {
+      text-align: center; font-family: var(--mono); font-size: 11px;
+      color: var(--text-subtle); margin-bottom: 20px; letter-spacing: .08em;
+    }
+    .logos-track-wrap {
+      overflow: hidden; position: relative;
+      mask-image: linear-gradient(to right, transparent 0%, black 10%, black 90%, transparent 100%);
+      -webkit-mask-image: linear-gradient(to right, transparent 0%, black 10%, black 90%, transparent 100%);
+    }
+    .logos-track {
+      display: flex; align-items: center; gap: 0; white-space: nowrap;
+      animation: scrollLeft 28s linear infinite;
+      will-change: transform;
+    }
+    .logos-track.paused { animation-play-state: paused; }
+    @keyframes scrollLeft { 0%{transform:translateX(0)} 100%{transform:translateX(-50%)} }
+    .logo-item {
+      padding: 0 36px; font-size: 17px; font-weight: 600; letter-spacing: -.01em;
+      color: var(--text-subtle); opacity: .55; flex-shrink: 0;
+      transition: opacity .2s;
+    }
+    .logo-item:hover { opacity: .85; }
+    .logo-item.caps { text-transform: uppercase; letter-spacing: .06em; font-size: 13px; }
+
+    /* ============================================================
+       HOW IT WORKS
+    ============================================================ */
+    .how-section { background: var(--bg); content-visibility: auto; contain-intrinsic-size: 0 600px; }
+    .steps-wrap {
+      display: grid; grid-template-columns: repeat(3,1fr); gap: 48px;
+      position: relative;
+    }
+    .steps-wrap::before {
+      content: '';
+      position: absolute; top: 22px; left: calc(33.33% + 16px); right: calc(33.33% + 16px);
+      height: 1px; background: var(--border-2);
+    }
+    .step { display: flex; flex-direction: column; }
+    .step-num {
+      font-family: var(--mono); font-size: 13px; font-weight: 700;
+      color: var(--cta); margin-bottom: 20px; letter-spacing: .04em;
+    }
+    .step-name { font-size: 20px; font-weight: 700; letter-spacing: -.02em; margin-bottom: 10px; }
+    .step-desc { font-size: 14px; color: var(--text-muted); line-height: 1.65; margin-bottom: 16px; flex: 1; }
+    .step-snippet {
+      font-family: var(--mono); font-size: 12px; color: var(--blue-code);
+      background: var(--bg-raised); border: 1px solid var(--border);
+      padding: 8px 14px; border-radius: var(--r); display: inline-block;
+    }
+    [data-theme="light"] .step-snippet { background: #F8FAFC; color: #0ea5e9; }
+
+    /* ============================================================
+       FEATURES — INTERACTIVE PANEL
+    ============================================================ */
+    .features-section { background: var(--section-alt); content-visibility: auto; contain-intrinsic-size: 0 700px; }
+    .features-panel {
+      display: grid; grid-template-columns: 220px 1fr;
+      border: 1px solid var(--border-2); border-radius: var(--rl); overflow: hidden;
+      margin-top: 0;
+    }
+    .feat-list {
+      border-right: 1px solid var(--border); background: var(--bg-raised);
+      display: flex; flex-direction: column; overflow: hidden; position: relative;
+    }
+    .feat-item {
+      display: flex; flex-direction: column; gap: 3px;
+      padding: 16px 16px 14px; cursor: pointer;
+      border-bottom: 1px solid var(--border);
+      transition: background .15s;
+      min-height: 56px;
+    }
+    .feat-item:last-of-type { border-bottom: none; }
+    .feat-item:hover { background: rgba(127,127,127,.06); }
+    .feat-item.active { background: var(--bg-card); border-left: 2px solid var(--cta); padding-left: 14px; }
+    .feat-item-icon {
+      width: 20px; height: 20px; margin-bottom: 6px;
+      color: var(--text-subtle); flex-shrink: 0;
+    }
+    .feat-item.active .feat-item-icon { color: var(--cta); }
+    .feat-item-icon svg { width: 100%; height: 100%; }
+    .feat-item-name { font-size: 13px; font-weight: 600; color: var(--text); letter-spacing: -.01em; }
+    .feat-item-desc { font-size: 11px; color: var(--text-subtle); line-height: 1.4; }
+    .feat-item.active .feat-item-desc { color: var(--text-muted); }
+    .feat-tier {
+      font-family: var(--mono); font-size: 9px; font-weight: 700; letter-spacing: .06em;
+      text-transform: uppercase; padding: 2px 6px; border-radius: 4px;
+      display: inline-flex; align-items: center; width: fit-content; margin-top: 2px;
+    }
+    .feat-tier.free   { background: rgba(99,102,241,.12); color: var(--cta); border: 1px solid rgba(99,102,241,.25); }
+    .feat-tier.pro    { background: rgba(121,192,255,.1); color: #79c0ff; border: 1px solid rgba(121,192,255,.25); }
+    .feat-tier.team   { background: rgba(227,179,65,.1); color: #e3b341; border: 1px solid rgba(227,179,65,.25); }
+
+    /* Feature demo terminal */
+    .feat-demo {
+      background: #0d1117; display: flex; flex-direction: column;
+    }
+    .feat-demo-header {
+      display: flex; align-items: center; gap: 10px;
+      background: #161b22; border-bottom: 1px solid rgba(255,255,255,.06);
+      padding: 0 14px; height: 40px;
+    }
+    .feat-demo-tab {
+      font-family: var(--mono); font-size: 12px; color: rgba(255,255,255,.4); letter-spacing: .02em;
+    }
+    .feat-demo-body {
+      padding: 18px 22px; font-family: var(--mono); font-size: 12.5px; line-height: 1.75;
+      min-height: 420px; color: #e1e8f4; flex: 1;
+    }
+    .feat-progress {
+      height: 2px; background: var(--border); position: absolute; bottom: 0; left: 0; right: 0;
+    }
+    .feat-progress-bar {
+      height: 100%; background: var(--cta); width: 0%;
+      transition: width .1s linear;
+    }
+
+    /* ============================================================
+       ATLASSIAN MCP CALLOUT
+    ============================================================ */
+    .mcp-section { background: var(--bg); content-visibility: auto; contain-intrinsic-size: 0 500px; }
+    .mcp-inner {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 64px;
+      align-items: center;
+    }
+    .mcp-badge {
+      display: inline-flex; align-items: center; gap: 7px;
+      background: rgba(99,102,241,.1); border: 1px solid rgba(99,102,241,.25);
+      border-radius: 100px; padding: 4px 12px 4px 8px;
+      font-family: var(--mono); font-size: 11px; color: var(--cta); margin-bottom: 20px;
+    }
+    .mcp-badge-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--cta); }
+    .mcp-diagram {
+      background: var(--bg-raised); border: 1px solid var(--border-2);
+      border-radius: var(--rl); padding: 28px 24px; position: relative; overflow: hidden;
+    }
+    .mcp-diagram::before {
+      content: '';
+      position: absolute; inset: 0;
+      background-image: radial-gradient(circle, rgba(99,102,241,.12) 1px, transparent 1px);
+      background-size: 20px 20px; pointer-events: none; opacity: .5;
+    }
+    .mcp-flow { position: relative; z-index: 1; display: flex; flex-direction: column; gap: 12px; }
+    .mcp-row  { display: flex; align-items: center; gap: 10px; }
+    .mcp-node {
+      display: flex; align-items: center; gap: 8px; padding: 9px 14px;
+      border-radius: var(--r); font-family: var(--mono); font-size: 11.5px;
+      font-weight: 500; white-space: nowrap; flex-shrink: 0;
+    }
+    .mcp-node--green  { background: rgba(99,102,241,.1); border: 1px solid rgba(99,102,241,.35); color: #a5b4fc; }
+    .mcp-node--blue   { background: rgba(121,192,255,.08); border: 1px solid rgba(121,192,255,.3); color: #93c5fd; }
+    .mcp-node--yellow { background: rgba(227,179,65,.08); border: 1px solid rgba(227,179,65,.3); color: #fde68a; }
+    .mcp-node--center { background: rgba(99,102,241,.08); border: 2px solid rgba(99,102,241,.4); color: #a5b4fc; }
+    .mcp-arrow { color: var(--text-subtle); font-family: var(--mono); font-size: 11px; flex: 1; text-align: center; }
+    .mcp-node-icon { width: 14px; height: 14px; flex-shrink: 0; }
+    .mcp-label { font-family: var(--mono); font-size: 10px; color: var(--text-subtle); margin-top: 4px; letter-spacing: .04em; }
+
+    /* ============================================================
+       PRICING
+    ============================================================ */
+    .pricing-section { background: var(--section-alt); content-visibility: auto; contain-intrinsic-size: 0 700px; }
+    .pricing-grid {
+      display: grid; grid-template-columns: repeat(3,1fr); gap: 20px;
+    }
+    .pricing-card {
+      background: var(--bg-card); border: 1px solid var(--border-2);
+      border-radius: var(--rl); padding: 28px 24px;
+      display: flex; flex-direction: column; position: relative;
+      transition: border-color .2s, box-shadow .2s;
+    }
+    .pricing-card:hover { border-color: var(--text-subtle); box-shadow: 0 8px 40px rgba(0,0,0,.2); }
+    .pricing-card.featured {
+      border-color: var(--cta); box-shadow: 0 0 0 1px var(--cta), 0 8px 40px rgba(99,102,241,.12);
+    }
+    .pricing-card.featured:hover { box-shadow: 0 0 0 1px var(--cta), 0 12px 48px rgba(99,102,241,.18); }
+    .featured-badge {
+      position: absolute; top: -12px; left: 50%; transform: translateX(-50%);
+      background: var(--cta); color: #fff;
+      font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+      padding: 3px 12px; border-radius: 100px;
+    }
+    .pricing-tier { font-size: 14px; font-weight: 600; color: var(--text-muted); margin-bottom: 12px; }
+    .pricing-price {
+      font-size: 48px; font-weight: 700; letter-spacing: -.04em;
+      color: var(--text); line-height: 1;
+    }
+    .pricing-price sub { font-size: 18px; font-weight: 400; color: var(--text-muted); letter-spacing: 0; }
+    .pricing-period { font-size: 13px; color: var(--text-subtle); margin: 6px 0 24px; }
+    .pricing-feats { list-style: none; display: flex; flex-direction: column; gap: 10px; flex: 1; margin-bottom: 24px; }
+    .pricing-feats li {
+      font-size: 13.5px; color: var(--text-muted); display: flex; align-items: flex-start; gap: 9px;
+      line-height: 1.45;
+    }
+    .pricing-feats li::before { content: '✓'; color: var(--cta); font-weight: 700; flex-shrink: 0; }
+    .pricing-feats li.dim { color: var(--text-subtle); }
+    .pricing-feats li.dim::before { color: var(--text-subtle); }
+    .cs-badge {
+      font-family: var(--mono); font-size: 9px; font-weight: 700; letter-spacing: .06em;
+      text-transform: uppercase; padding: 2px 6px; border-radius: 4px; margin-left: 6px;
+      background: rgba(227,179,65,.12); color: #e3b341; border: 1px solid rgba(227,179,65,.25);
+      vertical-align: middle;
+    }
+    .pricing-cta {
+      display: block; text-align: center; padding: 11px 20px; border-radius: var(--r);
+      font-size: 14px; font-weight: 600; transition: all .15s; cursor: pointer;
+      min-height: 44px; display: flex; align-items: center; justify-content: center;
+    }
+    .pricing-cta.solid { background: var(--cta); color: #fff; box-shadow: 0 4px 16px var(--cta-glow); }
+    .pricing-cta.solid:hover { background: var(--cta-hover); transform: translateY(-1px); }
+    .pricing-cta.ghost {
+      background: transparent; color: var(--text-muted);
+      border: 1px solid var(--border-2); transition: border-color .15s, color .15s;
+    }
+    .pricing-cta.ghost:hover { border-color: var(--text-muted); color: var(--text); }
+    .pricing-note {
+      text-align: center; font-size: 13px; color: var(--text-subtle);
+      margin-top: 32px;
+    }
+    .pricing-note strong { color: var(--cta); font-weight: 600; }
+
+    /* ============================================================
+       COMPLIANCE / PRIVACY
+    ============================================================ */
+    .compliance-section { background: var(--bg); content-visibility: auto; contain-intrinsic-size: 0 600px; }
+    .compliance-inner { display: grid; grid-template-columns: 1fr 1fr; gap: 80px; align-items: center; }
+    .compliance-badges { display: flex; flex-direction: column; gap: 10px; margin-top: 32px; }
+    .compliance-badge {
+      display: flex; align-items: center; gap: 14px;
+      padding: 13px 16px; border-radius: var(--r);
+      background: var(--bg-raised); border: 1px solid var(--border);
+      transition: border-color .2s;
+    }
+    .compliance-badge:hover { border-color: var(--border-2); }
+    .cb-icon { width: 32px; height: 32px; flex-shrink: 0; }
+    .cb-text { display: flex; flex-direction: column; gap: 2px; }
+    .cb-label { font-family: var(--mono); font-size: 11px; font-weight: 700; color: var(--text); letter-spacing: .06em; }
+    .cb-desc  { font-size: 12px; color: var(--text-muted); line-height: 1.4; }
+
+    /* Architecture diagram — always dark */
+    .arch-diagram-wrap {
+      background: #0e1118; border: 1px solid #1b2235;
+      border-radius: var(--rl); padding: 32px 28px;
+      position: relative; overflow: hidden;
+    }
+    .arch-diagram-wrap::before {
+      content: ''; position: absolute; inset: 0;
+      background-image: radial-gradient(circle, rgba(99,102,241,.1) 1px, transparent 1px);
+      background-size: 20px 20px; pointer-events: none; opacity: .4;
+    }
+    .arch-diagram { position: relative; z-index: 1; display: flex; flex-direction: column; gap: 22px; }
+    .arch-flow    { display: flex; flex-direction: column; gap: 9px; }
+    .arch-row     { display: flex; align-items: center; }
+    .arch-divider { border: none; border-top: 1px solid #1b2235; margin: 0; }
+    .arch-label   { font-family: var(--mono); font-size: 10.5px; color: #7b8aa0; display: block; padding-left: 2px; }
+    .arch-label.red { color: rgba(248,81,73,.65); }
+
+    .arch-node {
+      display: flex; align-items: center; gap: 8px;
+      padding: 9px 13px; border-radius: 8px; flex-shrink: 0;
+      font-family: var(--mono); font-size: 11.5px; font-weight: 500; white-space: nowrap;
+    }
+    .arch-node--blue  { background: rgba(99,102,241,.1); border: 1px solid rgba(99,102,241,.4); color: #a5b4fc; }
+    .arch-node--green { background: rgba(99,102,241,.1); border: 1px solid rgba(99,102,241,.35); color: #a5b4fc; }
+    .arch-animated .arch-node--blue  { animation: nodeGlowGreen 3s ease infinite; }
+    .arch-animated .arch-node--green { animation: nodeGlowGreen 3s ease infinite .5s; }
+    .arch-node--red   { background: rgba(248,81,73,.06); border: 1px solid rgba(248,81,73,.2); color: rgba(248,81,73,.7); }
+    .arch-node--cloud { background: rgba(248,81,73,.04); border: 1px solid rgba(248,81,73,.15); color: rgba(248,81,73,.45); }
+    .arch-node-icon   { width: 15px; height: 15px; flex-shrink: 0; }
+
+    .arch-connector { flex: 1; display: flex; flex-direction: column; gap: 4px; min-width: 0; padding: 0 8px; }
+    .arch-track { position: relative; height: 2px; border-radius: 1px; }
+    .arch-track--out { background: rgba(99,102,241,.25); }
+    .arch-track--in  { background: rgba(99,102,241,.25); }
+    .arch-track--out::after  { content:''; position:absolute; right:-1px; top:50%; transform:translateY(-50%); border:5px solid transparent; border-left:7px solid rgba(99,102,241,.55); }
+    .arch-track--in::before  { content:''; position:absolute; left:-1px; top:50%; transform:translateY(-50%); border:5px solid transparent; border-right:7px solid rgba(99,102,241,.55); }
+
+    .arch-dot { position:absolute; width:7px; height:7px; border-radius:50%; top:50%; margin-top:-3.5px; }
+    .arch-dot--blue  { background:#6366f1; box-shadow:0 0 8px 3px rgba(99,102,241,.8); }
+    .arch-dot--green { background:#6366f1; box-shadow:0 0 8px 3px rgba(99,102,241,.8); }
+    .arch-animated .arch-dot--blue.d1  { animation: dotRight 2.4s linear infinite 0s; }
+    .arch-animated .arch-dot--blue.d2  { animation: dotRight 2.4s linear infinite .8s; }
+    .arch-animated .arch-dot--green.d1 { animation: dotLeft  2.4s linear infinite 1.2s; }
+    .arch-animated .arch-dot--green.d2 { animation: dotLeft  2.4s linear infinite 2.0s; }
+    @keyframes dotRight { 0%{left:-4px;opacity:0} 6%{opacity:1} 94%{opacity:1} 100%{left:calc(100% + 4px);opacity:0} }
+    @keyframes dotLeft  { 0%{left:calc(100% + 4px);opacity:0} 6%{opacity:1} 94%{opacity:1} 100%{left:-4px;opacity:0} }
+    .arch-track-label { font-family:var(--mono); font-size:9.5px; text-align:center; letter-spacing:.04em; line-height:1; }
+    .arch-track-label--out { color:rgba(99,102,241,.65); }
+    .arch-track-label--in  { color:rgba(99,102,241,.65); }
+    .arch-track-label--block { color:rgba(248,81,73,.5); text-align:center; }
+    .arch-block-row { position:relative; height:30px; display:flex; align-items:center; }
+    .arch-block-row .arch-track--block { position:absolute; left:0; right:0; top:50%; transform:translateY(-50%); height:2px; background:rgba(248,81,73,.15); border-radius:1px; }
+    .arch-barrier { position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); width:26px; height:26px; border-radius:50%; background:rgba(248,81,73,.1); border:1.5px solid rgba(248,81,73,.5); display:flex; align-items:center; justify-content:center; z-index:2; }
+    .arch-animated .arch-barrier { animation:barrierPulse 1.8s ease-in-out infinite; }
+    @keyframes barrierPulse { 0%,100%{opacity:.6;transform:translate(-50%,-50%) scale(1)} 50%{opacity:1;transform:translate(-50%,-50%) scale(1.15)} }
+    @keyframes nodeGlowGreen { 0%,100%{box-shadow:0 0 0 0 rgba(99,102,241,0);border-color:rgba(99,102,241,.35)} 50%{box-shadow:0 0 14px 4px rgba(99,102,241,.18);border-color:rgba(99,102,241,.65)} }
+    .compliance-verify { margin-top: 18px; font-size: 13px; color: #7b8aa0; position: relative; z-index: 1; }
+    .compliance-verify a { color: #6366f1; }
+
+    /* ============================================================
+       INSTALL
+    ============================================================ */
+    .install-section { background: var(--section-alt); content-visibility: auto; contain-intrinsic-size: 0 500px; }
+    .install-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+    .install-card {
+      background: var(--bg-card); border: 1px solid var(--border-2);
+      border-radius: var(--rl); padding: 28px; display: flex; flex-direction: column; gap: 16px;
+    }
+    .install-card-title { font-size: 16px; font-weight: 700; letter-spacing: -.02em; }
+    .install-card-sub   { font-size: 13px; color: var(--text-muted); line-height: 1.5; margin-top: -8px; }
+    .code-block {
+      background: #0d1117; border: 1px solid rgba(255,255,255,.07);
+      border-radius: var(--r); padding: 16px 18px;
+      font-family: var(--mono); font-size: 12.5px; line-height: 1.8;
+      position: relative; overflow: hidden;
+    }
+    [data-theme="light"] .code-block { background: #1e293b; }
+    .code-comment { color: #404958; }
+    .code-cmd     { color: #e1e8f4; }
+    .code-arg     { color: #6366f1; }
+    .copy-btn {
+      position: absolute; top: 10px; right: 10px;
+      background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.1);
+      color: rgba(255,255,255,.4); padding: 4px 10px; border-radius: 5px;
+      font-family: var(--mono); font-size: 11px; cursor: pointer;
+      transition: background .15s, color .15s;
+    }
+    .copy-btn:hover { background: rgba(255,255,255,.12); color: rgba(255,255,255,.7); }
+    .install-prereq { font-family: var(--mono); font-size: 11.5px; color: var(--text-subtle); }
+    .install-prereq strong { color: var(--cta); }
+
+    /* ============================================================
+       FAQ
+    ============================================================ */
+    .faq-section { background: var(--bg); content-visibility: auto; contain-intrinsic-size: 0 600px; }
+    .faq-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 60px; }
+    .faq-item { border-bottom: 1px solid var(--border); }
+    .faq-q {
+      width: 100%; background: none; border: none; text-align: left;
+      padding: 20px 0; display: flex; justify-content: space-between; align-items: center;
+      font-size: 15px; font-weight: 600; color: var(--text); letter-spacing: -.01em;
+      gap: 16px; transition: color .15s; cursor: pointer;
+    }
+    .faq-q:hover { color: var(--text); opacity: .85; }
+    .faq-icon {
+      width: 22px; height: 22px; border-radius: 50%; border: 1px solid var(--border-2);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px; font-weight: 300; color: var(--text-muted); flex-shrink: 0;
+      transition: transform .25s, border-color .25s, color .25s;
+    }
+    .faq-item.open .faq-icon { transform: rotate(45deg); border-color: var(--cta); color: var(--cta); }
+    .faq-a {
+      font-size: 14px; color: var(--text-muted); line-height: 1.65;
+      max-height: 0; overflow: hidden; transition: max-height .35s ease, padding .35s ease;
+    }
+    .faq-item.open .faq-a { max-height: 400px; padding-bottom: 20px; }
+    .faq-a code { font-family: var(--mono); font-size: 12px; color: var(--blue-code); }
+
+    /* ============================================================
+       FOOTER
+    ============================================================ */
+    footer {
+      background: var(--bg-surface); padding: 44px clamp(20px,5vw,80px);
+      border-top: 1px solid var(--border);
+    }
+    .footer-inner {
+      max-width: 1280px; margin: 0 auto;
+      display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 20px;
+    }
+    .footer-brand { display: flex; flex-direction: column; gap: 6px; }
+    .footer-logo  { font-weight: 700; font-size: 15px; letter-spacing: -.01em; }
+    .footer-tagline { font-family: var(--mono); font-size: 11px; color: var(--text-subtle); }
+    .footer-nav { display: flex; gap: 20px; flex-wrap: wrap; }
+    .footer-nav a { font-size: 13px; color: var(--text-muted); transition: color .15s; }
+    .footer-nav a:hover { color: var(--text); }
+
+    /* ============================================================
+       SCROLL ANIMATIONS
+    ============================================================ */
+    .js .fade-in { opacity: 0; transform: translateY(18px); transition: opacity .55s ease, transform .55s ease; }
+    .js .fade-in.visible { opacity: 1; transform: none; }
+    .fd1{transition-delay:.08s}.fd2{transition-delay:.16s}.fd3{transition-delay:.24s}
+    .fd4{transition-delay:.32s}.fd5{transition-delay:.40s}
+
+    /* ============================================================
+       KEYFRAMES
+    ============================================================ */
+    @keyframes fadeDown     { from{opacity:0;transform:translateY(-12px)} to{opacity:1;transform:none} }
+    @keyframes slideInRight { from{opacity:0;transform:translateX(64px)}  to{opacity:1;transform:none} }
+
+    /* ============================================================
+       RESPONSIVE
+    ============================================================ */
+    @media (max-width: 1100px) {
+      .hero-inner       { grid-template-columns: 1fr; gap: 48px; }
+      .hero-left        { align-items: center; text-align: center; }
+      .hero h1, .hero-sub { text-align: center; }
+      .hero-ctas        { justify-content: center; }
+      .mcp-inner        { grid-template-columns: 1fr; gap: 48px; }
+      .compliance-inner { grid-template-columns: 1fr; gap: 48px; }
+    }
+    @media (max-width: 900px) {
+      .nav-links        { display: none; }
+      .steps-wrap       { grid-template-columns: 1fr; gap: 36px; }
+      .steps-wrap::before { display: none; }
+      .features-panel   { grid-template-columns: 1fr; }
+      .feat-list        { display: grid; grid-template-columns: 1fr 1fr; border-right: none; border-bottom: 1px solid var(--border); }
+      .feat-item        { border-bottom: 1px solid var(--border); }
+      .feat-item-desc   { display: none; }
+      .feat-tier        { display: none; }
+      .pricing-grid     { grid-template-columns: 1fr; max-width: 380px; margin: 0 auto; }
+      .install-grid     { grid-template-columns: 1fr; }
+      .faq-grid         { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 768px) {
+      .container        { padding: 64px clamp(16px,4vw,40px); }
+      .step-desc        { font-size: 15px; }
+      .faq-a            { font-size: 15px; }
+      .pricing-feats li { font-size: 14px; }
+    }
+    @media (max-width: 600px) {
+      .hero h1          { font-size: 36px; }
+      .hero-ctas        { flex-direction: column; align-items: center; }
+      .hero-terminal-wrap { display: none; }
+      .container        { padding: 56px 20px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <!-- Theme initialization — must run before body paint to avoid FOUC -->
+  <script>
+    (function() {
+      var saved = localStorage.getItem('tl-theme');
+      var preferred = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', saved || preferred);
+      document.documentElement.classList.add('js');
+    })();
+  </script>
+
+  <!-- NAV -->
+  <nav class="nav" id="nav">
+    <div class="nav-inner">
+      <a href="#" class="nav-logo">
+        <div class="nav-logo-mark">tl</div>
+        TicketLens
+      </a>
+      <div class="nav-right">
+        <ul class="nav-links">
+          <li><a href="#features">Features</a></li>
+          <li><a href="#pricing">Pricing</a></li>
+          <li><a href="#compliance">Privacy</a></li>
+          <li><a href="https://github.com/ralphmoran/ticket-lens" target="_blank" rel="noopener">GitHub ↗</a></li>
+        </ul>
+        <button id="theme-toggle" class="theme-btn" aria-label="Toggle dark/light theme">
+          <!-- Sun icon (visible in dark mode) -->
+          <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="5"/>
+            <line x1="12" y1="1" x2="12" y2="3"/>
+            <line x1="12" y1="21" x2="12" y2="23"/>
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+            <line x1="1" y1="12" x2="3" y2="12"/>
+            <line x1="21" y1="12" x2="23" y2="12"/>
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+          </svg>
+          <!-- Moon icon (visible in light mode) -->
+          <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+          </svg>
+        </button>
+        <a href="/console/login" class="nav-cta-ghost">Sign in</a>
+        <a href="#install" class="nav-cta">Get started →</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <section class="hero" id="hero">
+    <div class="hero-inner">
+      <div class="hero-left">
+        <div class="hero-badge">
+          <div class="hero-badge-dot"></div>
+          Zero npm deps &middot; Node.js &ge;20 &middot; Open core
+        </div>
+        <h1>Your AI assistant<br>shouldn't need to<br><em>read your tickets.</em></h1>
+        <p class="hero-sub">TicketLens fetches, compresses, and caches Jira context locally — so Claude Code, Cursor, and any AI tool get structured briefs instead of raw API noise. Ticket content never leaves your machine.</p>
+        <div class="hero-ctas">
+          <a href="#install" class="btn-primary">
+            <svg width="15" height="15" viewBox="0 0 15 15" fill="none" aria-hidden="true">
+              <path d="M7.5 1v9M3.5 7l4 4 4-4M2 13h11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            Get Free CLI
+          </a>
+          <a href="#pricing" class="btn-secondary">See Pricing</a>
+        </div>
+      </div>
+
+      <!-- Terminal demo -->
+      <div class="hero-terminal-wrap">
+        <div class="terminal-window">
+          <div class="terminal-titlebar">
+            <div class="t-dots">
+              <div class="t-dot r"></div>
+              <div class="t-dot y"></div>
+              <div class="t-dot g"></div>
+            </div>
+            <div class="t-tabs">
+              <button class="t-tab active" data-tab="cli" id="tab-cli">ticketlens</button>
+              <button class="t-tab jtb-tab" data-tab="jtb" id="tab-jtb">
+                /jtb
+                <span class="jtb-badge">Claude Code</span>
+              </button>
+            </div>
+          </div>
+          <div class="terminal-body">
+            <!-- CLI panel -->
+            <div class="t-panel" id="t-panel-cli">
+              <span><span class="t-prompt">❯ </span><span id="t-cmd"></span><span class="t-cursor" id="t-cursor"></span></span>
+              <div id="t-output" style="display:none;margin-top:2px"></div>
+            </div>
+            <!-- /jtb panel -->
+            <div class="t-panel" id="t-panel-jtb" style="display:none">
+              <span class="t-dim">Claude Code  ●  ~/projects/auth-service</span><br><br>
+              <span><span class="t-prompt" style="color:#6366f1">❯ </span><span class="t-green">/jtb PROJ-123</span></span><br><br>
+              <span><span style="color:#febc2e">⚡</span> <span class="t-muted">TicketLens — fetching PROJ-123...</span></span><br><br>
+              <span class="t-dim">──────────────────────────────────────</span><br>
+              <span class="t-white t-bold">PROJ-123</span> <span class="t-dim">—</span> <span class="t-green">Implement OAuth2 login flow</span><br>
+              <span class="t-dim">Status: </span><span class="t-yellow">In Progress</span><span class="t-dim">  ·  Priority: </span><span class="t-red">High</span><br>
+              <span class="t-dim">Assignee: </span><span class="t-white">R. Moran</span><br><br>
+              <span class="t-muted">OAuth2 with Google + GitHub. Token rotation</span><br>
+              <span class="t-muted">required. Security audit flags resolved.</span><br><br>
+              <span class="t-dim">Linked: </span><span class="t-white">PROJ-118</span> <span class="t-green">[Done]</span> <span class="t-dim">·</span> <span class="t-white">PROJ-124</span> <span class="t-yellow">[Active]</span><br>
+              <span class="t-dim">Files:  </span><span class="t-green">src/auth/oauth.ts · middleware.ts</span><br><br>
+              <span class="t-dim">──────────────────────────────────────</span><br>
+              <span class="t-green">✓ 842 tokens loaded into Claude context.</span><br>
+              <span class="t-muted">What would you like to implement?</span><span class="t-cursor"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- LOGOS CAROUSEL -->
+  <div class="logos-section">
+    <p class="logos-label">Developers at these companies use Jira + AI tools every day</p>
+    <div class="logos-track-wrap">
+      <div class="logos-track" id="logos-track">
+        <span class="logo-item">Netflix</span>
+        <span class="logo-item">Disney</span>
+        <span class="logo-item caps">NBC</span>
+        <span class="logo-item">Spotify</span>
+        <span class="logo-item">Airbnb</span>
+        <span class="logo-item">Slack</span>
+        <span class="logo-item">GitHub</span>
+        <span class="logo-item">Stripe</span>
+        <span class="logo-item">Shopify</span>
+        <span class="logo-item">Dropbox</span>
+        <span class="logo-item caps">Adobe</span>
+        <span class="logo-item">Atlassian</span>
+        <span class="logo-item">Twilio</span>
+        <span class="logo-item">Figma</span>
+        <span class="logo-item">Linear</span>
+        <span class="logo-item">Vercel</span>
+        <!-- duplicate set for seamless loop -->
+        <span class="logo-item">Netflix</span>
+        <span class="logo-item">Disney</span>
+        <span class="logo-item caps">NBC</span>
+        <span class="logo-item">Spotify</span>
+        <span class="logo-item">Airbnb</span>
+        <span class="logo-item">Slack</span>
+        <span class="logo-item">GitHub</span>
+        <span class="logo-item">Stripe</span>
+        <span class="logo-item">Shopify</span>
+        <span class="logo-item">Dropbox</span>
+        <span class="logo-item caps">Adobe</span>
+        <span class="logo-item">Atlassian</span>
+        <span class="logo-item">Twilio</span>
+        <span class="logo-item">Figma</span>
+        <span class="logo-item">Linear</span>
+        <span class="logo-item">Vercel</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- HOW IT WORKS -->
+  <section class="how-section" id="how-it-works">
+    <div class="container">
+      <div class="fade-in">
+        <span class="section-tag">Getting started</span>
+        <h2 class="section-h2">Up and running in 15 seconds</h2>
+        <p class="section-lead">No config file. No SaaS account. No signup. Just install and run.</p>
+      </div>
+      <div class="steps-wrap fade-in">
+        <div class="step">
+          <div class="step-num">01</div>
+          <h3 class="step-name">Install</h3>
+          <p class="step-desc">One command. Globally available. Zero runtime npm dependencies beyond Node.js &ge;20.</p>
+          <span class="step-snippet">npm i -g ticketlens</span>
+        </div>
+        <div class="step">
+          <div class="step-num">02</div>
+          <h3 class="step-name">Fetch</h3>
+          <p class="step-desc">Paste any ticket key. Get a structured brief — linked issues, comments, and attachments cached locally.</p>
+          <span class="step-snippet">ticketlens PROJ-123</span>
+        </div>
+        <div class="step">
+          <div class="step-num">03</div>
+          <h3 class="step-name">Build</h3>
+          <p class="step-desc">Pipe to any AI tool, or use <code style="font-family:var(--mono);color:var(--cta)">/jtb</code> in Claude Code to load full context and enter plan mode instantly.</p>
+          <span class="step-snippet">/jtb PROJ-123</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FEATURES — INTERACTIVE PANEL -->
+  <section class="features-section" id="features">
+    <div class="container">
+      <div class="fade-in">
+        <span class="section-tag">Features</span>
+        <h2 class="section-h2">Everything you need<br>to stay in flow</h2>
+        <p class="section-lead">Click any feature to see it live.</p>
+      </div>
+      <div class="features-panel fade-in" id="features-panel">
+        <!-- Left: feature list -->
+        <div class="feat-list" id="feat-list">
+          <div class="feat-item active" data-feat="0" tabindex="0" role="button" aria-pressed="true">
+            <span class="feat-item-icon">
+              <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M5 2h7.5L17 6.5V18a1 1 0 01-1 1H5a1 1 0 01-1-1V3a1 1 0 011-1z"/>
+                <polyline points="12.5,2 12.5,6.5 17,6.5"/>
+                <line x1="7" y1="10.5" x2="13" y2="10.5"/>
+                <line x1="7" y1="13.5" x2="11" y2="13.5"/>
+              </svg>
+            </span>
+            <span class="feat-item-name">Ticket briefs</span>
+            <span class="feat-item-desc">Full context for any Jira ticket</span>
+            <span class="feat-tier free">Free</span>
+          </div>
+          <div class="feat-item" data-feat="1" tabindex="0" role="button" aria-pressed="false">
+            <span class="feat-item-icon">
+              <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <line x1="3" y1="5" x2="13" y2="5"/>
+                <line x1="3" y1="10" x2="10" y2="10"/>
+                <line x1="3" y1="15" x2="7" y2="15"/>
+                <line x1="16" y1="5" x2="16" y2="13"/>
+                <polyline points="14,11 16,14 18,11"/>
+              </svg>
+            </span>
+            <span class="feat-item-name">Triage queue</span>
+            <span class="feat-item-desc">Needs response &amp; aging alerts</span>
+            <span class="feat-tier free">Free</span>
+          </div>
+          <div class="feat-item" data-feat="2" tabindex="0" role="button" aria-pressed="false">
+            <span class="feat-item-icon">
+              <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <polyline points="16,4 16,10 10,10"/>
+                <path d="M4 16A12 12 0 0116 4"/>
+                <line x1="8" y1="16" x2="4" y2="16"/>
+                <line x1="4" y1="12" x2="4" y2="16"/>
+              </svg>
+            </span>
+            <span class="feat-item-name">--check</span>
+            <span class="feat-item-desc">VCS diff + Claude Code review</span>
+            <span class="feat-tier free">Free</span>
+          </div>
+          <div class="feat-item" data-feat="3" tabindex="0" role="button" aria-pressed="false">
+            <span class="feat-item-icon">
+              <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M10 3 L16 6 L16 11 C16 14.5 13.5 17.5 10 19 C6.5 17.5 4 14.5 4 11 L4 6 Z"/>
+                <polyline points="8,10.5 10,12.5 13,9"/>
+              </svg>
+            </span>
+            <span class="feat-item-name">--compliance</span>
+            <span class="feat-item-desc">Requirements vs diff analysis</span>
+            <span class="feat-tier free">Free 3/mo</span>
+          </div>
+          <div class="feat-item" data-feat="4" tabindex="0" role="button" aria-pressed="false">
+            <span class="feat-item-icon">
+              <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="10" cy="3.5" r="2"/>
+                <circle cx="10" cy="11" r="2"/>
+                <circle cx="4" cy="17" r="1.75"/>
+                <circle cx="16" cy="17" r="1.75"/>
+                <line x1="10" y1="5.5" x2="10" y2="9"/>
+                <line x1="10" y1="13" x2="4" y2="15.3"/>
+                <line x1="10" y1="13" x2="16" y2="15.3"/>
+              </svg>
+            </span>
+            <span class="feat-item-name">Deep traversal</span>
+            <span class="feat-item-desc">Full linked-issue dependency graph</span>
+            <span class="feat-tier pro">Pro</span>
+          </div>
+          <div class="feat-item" data-feat="5" tabindex="0" role="button" aria-pressed="false">
+            <span class="feat-item-icon">
+              <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <rect x="2" y="3" width="16" height="14" rx="2"/>
+                <polyline points="6,8.5 9.5,11 6,13.5"/>
+                <line x1="11.5" y1="13.5" x2="14.5" y2="13.5"/>
+              </svg>
+            </span>
+            <span class="feat-item-name">Claude Code /jtb</span>
+            <span class="feat-item-desc">Native slash command skill</span>
+            <span class="feat-tier free">Free</span>
+          </div>
+          <div class="feat-progress"><div class="feat-progress-bar" id="feat-progress-bar"></div></div>
+        </div>
+
+        <!-- Right: live terminal demo -->
+        <div class="feat-demo">
+          <div class="feat-demo-header">
+            <div class="t-dots">
+              <div class="t-dot r"></div>
+              <div class="t-dot y"></div>
+              <div class="t-dot g"></div>
+            </div>
+            <span class="feat-demo-tab" id="feat-demo-label">ticketlens PROJ-123</span>
+          </div>
+          <div class="feat-demo-body" id="feat-demo-body"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ATLASSIAN MCP CALLOUT -->
+  <section class="mcp-section" id="atlassian-mcp">
+    <div class="container">
+      <div class="mcp-inner fade-in">
+        <div>
+          <div class="mcp-badge">
+            <div class="mcp-badge-dot"></div>
+            Atlassian MCP compatible
+          </div>
+          <h2 class="section-h2">Works alongside<br>Atlassian MCP</h2>
+          <p class="section-lead" style="margin-bottom: 0">Atlassian MCP gives Claude write access to Jira. TicketLens handles the read side — compressing ticket context to 60–80% fewer tokens so your AI spends less budget on research and more on building.</p>
+        </div>
+        <div class="mcp-diagram fade-in fd2">
+          <div class="mcp-flow">
+            <div class="mcp-row">
+              <div class="mcp-node mcp-node--blue">
+                <svg class="mcp-node-icon" viewBox="0 0 16 16" fill="none" aria-hidden="true"><rect x="1" y="1" width="14" height="10" rx="1.5" stroke="currentColor" stroke-width="1.2"/><path d="M0 11H16" stroke="currentColor" stroke-width="1.2"/><path d="M5 13H11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+                Claude Code
+              </div>
+              <div class="mcp-arrow">→ writes →</div>
+              <div class="mcp-node mcp-node--yellow">
+                <svg class="mcp-node-icon" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M8 1 L14 7 L8 14 L2 7 Z" fill="rgba(227,179,65,.3)" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg>
+                Jira
+              </div>
+            </div>
+            <div style="font-family:var(--mono);font-size:10px;color:rgba(121,192,255,.5);padding-left:2px">via Atlassian MCP</div>
+            <div style="height:1px;background:rgba(255,255,255,.06);margin:10px 0"></div>
+            <div class="mcp-row">
+              <div class="mcp-node mcp-node--yellow">
+                <svg class="mcp-node-icon" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M8 1 L14 7 L8 14 L2 7 Z" fill="rgba(227,179,65,.3)" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg>
+                Jira
+              </div>
+              <div class="mcp-arrow">→ reads →</div>
+              <div class="mcp-node mcp-node--center">
+                <svg class="mcp-node-icon" viewBox="0 0 16 16" fill="none" aria-hidden="true"><rect x="1" y="3" width="14" height="10" rx="2" stroke="currentColor" stroke-width="1.2"/><path d="M4 7h3M4 9.5h8" stroke="currentColor" stroke-width="1" stroke-linecap="round"/></svg>
+                TicketLens
+              </div>
+              <div class="mcp-arrow">→ brief →</div>
+              <div class="mcp-node mcp-node--blue">
+                <svg class="mcp-node-icon" viewBox="0 0 16 16" fill="none" aria-hidden="true"><rect x="1" y="1" width="14" height="10" rx="1.5" stroke="currentColor" stroke-width="1.2"/><path d="M0 11H16" stroke="currentColor" stroke-width="1.2"/><path d="M5 13H11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+                Your AI
+              </div>
+            </div>
+            <div style="font-family:var(--mono);font-size:10px;color:rgba(99,102,241,.5);padding-left:2px">via TicketLens — 60–80% fewer tokens</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PRICING -->
+  <section class="pricing-section" id="pricing">
+    <div class="container">
+      <div class="fade-in" style="text-align:center">
+        <span class="section-tag">Pricing</span>
+        <h2 class="section-h2" style="max-width:400px;margin:0 auto 16px">Simple pricing.<br>No surprises.</h2>
+        <p class="section-lead" style="margin:0 auto 16px;text-align:center">Start free. Upgrade when you need it with <code style="font-family:var(--mono);color:var(--cta)">ticketlens activate &lt;key&gt;</code></p>
+      </div>
+      <div class="pricing-grid fade-in">
+
+        <!-- FREE -->
+        <div class="pricing-card fd1">
+          <div class="pricing-tier">Free</div>
+          <div class="pricing-price">$0</div>
+          <div class="pricing-period">forever</div>
+          <ul class="pricing-feats">
+            <li>Ticket fetch &amp; triage</li>
+            <li>Multi-profile (unlimited Jira instances)</li>
+            <li>Attachment downloads (images, PDFs, files)</li>
+            <li>Brief cache (4h TTL)</li>
+            <li>Depth 0–1 traversal</li>
+            <li>--check flag (VCS diff + review instructions)</li>
+            <li>Compliance check (3/month)</li>
+            <li>Claude Code /jtb skill</li>
+            <li>Jira Cloud, Server &amp; Data Center</li>
+          </ul>
+          <a href="https://github.com/ralphmoran/ticket-lens" target="_blank" rel="noopener" class="pricing-cta ghost">Get CLI free →</a>
+        </div>
+
+        <!-- PRO -->
+        <div class="pricing-card featured fd2">
+          <div class="featured-badge">Most popular</div>
+          <div class="pricing-tier">Pro</div>
+          <div class="pricing-price">$8<sub>/mo</sub></div>
+          <div class="pricing-period">billed monthly</div>
+          <ul class="pricing-feats">
+            <li>Everything in Free</li>
+            <li>--depth=2 (full dependency graph)</li>
+            <li>--compliance unlimited</li>
+            <li>--summarize (BYOK: Anthropic or OpenAI)</li>
+            <li>--summarize --cloud (no local key needed)</li>
+            <li>Scheduled daily triage digest (cron)</li>
+            <li>Configurable cache TTL (4h, 1d, 7d, 30d)</li>
+          </ul>
+          <a href="#install" class="pricing-cta solid">Get Pro →</a>
+        </div>
+
+        <!-- TEAM -->
+        <div class="pricing-card fd3">
+          <div class="pricing-tier">Team</div>
+          <div class="pricing-price">$15<sub>/seat</sub></div>
+          <div class="pricing-period">per month</div>
+          <ul class="pricing-feats">
+            <li>Everything in Pro</li>
+            <li>--assignee filter (view any teammate's tickets)</li>
+            <li>--sprint filter (filter by sprint name)</li>
+            <li>--export=csv / --export=json</li>
+            <li>Team triage dashboard<span class="cs-badge">soon</span></li>
+            <li>Slack &amp; Teams alerts<span class="cs-badge">soon</span></li>
+            <li>Priority support</li>
+          </ul>
+          <a href="#install" class="pricing-cta ghost">Get Team →</a>
+        </div>
+      </div>
+      <p class="pricing-note fade-in"><strong>Open core</strong> — The CLI is free forever. No usage limits. No forced account.</p>
+    </div>
+  </section>
+
+  <!-- COMPLIANCE / PRIVACY -->
+  <section class="compliance-section" id="compliance">
+    <div class="container">
+      <div class="compliance-inner fade-in">
+        <div>
+          <span class="section-tag">Enterprise-ready</span>
+          <h2 class="section-h2">Built for teams that<br>can't afford data leaks.</h2>
+          <p class="section-lead" style="margin-bottom:0">TicketLens never routes your ticket content through external servers. That's not a setting — it's the architecture.</p>
+          <div class="compliance-badges">
+            <!-- GDPR -->
+            <div class="compliance-badge">
+              <svg class="cb-icon" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <circle cx="16" cy="16" r="14" stroke="#6366f1" stroke-width="1.5" fill="rgba(99,102,241,.07)"/>
+                <g fill="#f0c040">
+                  <polygon points="16,4 16.5,5.5 18,5.5 16.9,6.4 17.3,8 16,7.1 14.7,8 15.1,6.4 14,5.5 15.5,5.5" transform="rotate(0,16,16) translate(0,-7)"/>
+                  <polygon points="16,4 16.5,5.5 18,5.5 16.9,6.4 17.3,8 16,7.1 14.7,8 15.1,6.4 14,5.5 15.5,5.5" transform="rotate(30,16,16) translate(0,-7)"/>
+                  <polygon points="16,4 16.5,5.5 18,5.5 16.9,6.4 17.3,8 16,7.1 14.7,8 15.1,6.4 14,5.5 15.5,5.5" transform="rotate(60,16,16) translate(0,-7)"/>
+                  <polygon points="16,4 16.5,5.5 18,5.5 16.9,6.4 17.3,8 16,7.1 14.7,8 15.1,6.4 14,5.5 15.5,5.5" transform="rotate(90,16,16) translate(0,-7)"/>
+                  <polygon points="16,4 16.5,5.5 18,5.5 16.9,6.4 17.3,8 16,7.1 14.7,8 15.1,6.4 14,5.5 15.5,5.5" transform="rotate(120,16,16) translate(0,-7)"/>
+                  <polygon points="16,4 16.5,5.5 18,5.5 16.9,6.4 17.3,8 16,7.1 14.7,8 15.1,6.4 14,5.5 15.5,5.5" transform="rotate(150,16,16) translate(0,-7)"/>
+                  <polygon points="16,4 16.5,5.5 18,5.5 16.9,6.4 17.3,8 16,7.1 14.7,8 15.1,6.4 14,5.5 15.5,5.5" transform="rotate(180,16,16) translate(0,-7)"/>
+                  <polygon points="16,4 16.5,5.5 18,5.5 16.9,6.4 17.3,8 16,7.1 14.7,8 15.1,6.4 14,5.5 15.5,5.5" transform="rotate(210,16,16) translate(0,-7)"/>
+                  <polygon points="16,4 16.5,5.5 18,5.5 16.9,6.4 17.3,8 16,7.1 14.7,8 15.1,6.4 14,5.5 15.5,5.5" transform="rotate(240,16,16) translate(0,-7)"/>
+                  <polygon points="16,4 16.5,5.5 18,5.5 16.9,6.4 17.3,8 16,7.1 14.7,8 15.1,6.4 14,5.5 15.5,5.5" transform="rotate(270,16,16) translate(0,-7)"/>
+                  <polygon points="16,4 16.5,5.5 18,5.5 16.9,6.4 17.3,8 16,7.1 14.7,8 15.1,6.4 14,5.5 15.5,5.5" transform="rotate(300,16,16) translate(0,-7)"/>
+                  <polygon points="16,4 16.5,5.5 18,5.5 16.9,6.4 17.3,8 16,7.1 14.7,8 15.1,6.4 14,5.5 15.5,5.5" transform="rotate(330,16,16) translate(0,-7)"/>
+                </g>
+              </svg>
+              <div class="cb-text">
+                <span class="cb-label">GDPR</span>
+                <span class="cb-desc">No personal data transmitted to third parties</span>
+              </div>
+            </div>
+            <!-- HIPAA -->
+            <div class="compliance-badge">
+              <svg class="cb-icon" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <path d="M16 3 L28 8 L28 17 C28 23 22 28 16 30 C10 28 4 23 4 17 L4 8 Z" stroke="#6366f1" stroke-width="1.5" fill="rgba(99,102,241,.07)" stroke-linejoin="round"/>
+                <rect x="14" y="10" width="4" height="12" rx="1" fill="#6366f1"/>
+                <rect x="10" y="14" width="12" height="4" rx="1" fill="#6366f1"/>
+              </svg>
+              <div class="cb-text">
+                <span class="cb-label">HIPAA</span>
+                <span class="cb-desc">PHI in ticket descriptions stays on-device</span>
+              </div>
+            </div>
+            <!-- SOC 2 -->
+            <div class="compliance-badge">
+              <svg class="cb-icon" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <path d="M16 3 L28 8 L28 17 C28 23 22 28 16 30 C10 28 4 23 4 17 L4 8 Z" stroke="#e3b341" stroke-width="1.5" fill="rgba(227,179,65,.07)" stroke-linejoin="round"/>
+                <path d="M10 16 L14 21 L22 12" stroke="#e3b341" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <div class="cb-text">
+                <span class="cb-label">SOC 2</span>
+                <span class="cb-desc">Minimal data surface — credentials never leave your machine</span>
+              </div>
+            </div>
+            <!-- NDA -->
+            <div class="compliance-badge">
+              <svg class="cb-icon" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <rect x="6" y="4" width="16" height="20" rx="2" stroke="#7b8aa0" stroke-width="1.5" fill="rgba(123,138,160,.06)"/>
+                <path d="M10 10 H18 M10 14 H18 M10 18 H14" stroke="#7b8aa0" stroke-width="1.2" stroke-linecap="round"/>
+                <rect x="17" y="18" width="9" height="8" rx="1.5" fill="rgba(99,102,241,.12)" stroke="#6366f1" stroke-width="1.2"/>
+                <path d="M19.5 18 V16 A2 2 0 0 1 23.5 16 V18" stroke="#6366f1" stroke-width="1.2" stroke-linecap="round" fill="none"/>
+                <circle cx="21.5" cy="21.5" r="1" fill="#6366f1"/>
+                <rect x="21" y="22" width="1" height="2" rx=".5" fill="#6366f1"/>
+              </svg>
+              <div class="cb-text">
+                <span class="cb-label">NDA</span>
+                <span class="cb-desc">Proprietary ticket content never reaches external APIs</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Architecture diagram — always dark -->
+        <div>
+          <div class="arch-diagram-wrap">
+            <div class="arch-diagram">
+              <!-- FLOW 1: Your machine ↔ Jira (allowed) -->
+              <div class="arch-flow">
+                <div class="arch-row">
+                  <div class="arch-node arch-node--blue">
+                    <svg class="arch-node-icon" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                      <rect x="1" y="2" width="14" height="9" rx="1.5" stroke="rgba(99,102,241,.85)" stroke-width="1.2" fill="none"/>
+                      <path d="M0 11 H16" stroke="rgba(99,102,241,.85)" stroke-width="1.2"/>
+                      <path d="M6 13 H10" stroke="rgba(99,102,241,.6)" stroke-width="1.5" stroke-linecap="round"/>
+                    </svg>
+                    Your machine
+                  </div>
+                  <div class="arch-connector">
+                    <span class="arch-track-label arch-track-label--out">query →</span>
+                    <div class="arch-track arch-track--out">
+                      <span class="arch-dot arch-dot--blue d1"></span>
+                      <span class="arch-dot arch-dot--blue d2"></span>
+                    </div>
+                    <div class="arch-track arch-track--in">
+                      <span class="arch-dot arch-dot--green d1"></span>
+                      <span class="arch-dot arch-dot--green d2"></span>
+                    </div>
+                    <span class="arch-track-label arch-track-label--in">← brief ✓</span>
+                  </div>
+                  <div class="arch-node arch-node--green">
+                    <svg class="arch-node-icon" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                      <path d="M8 2 L14 8 L8 14 L2 8 Z" fill="rgba(99,102,241,.3)" stroke="rgba(99,102,241,.85)" stroke-width="1.2" stroke-linejoin="round"/>
+                    </svg>
+                    Jira
+                  </div>
+                </div>
+                <span class="arch-label">TicketLens fetches directly — no relay, no proxy, no cloud.</span>
+              </div>
+              <hr class="arch-divider">
+              <!-- FLOW 2: Ticket content ✗ Anthropic (blocked) -->
+              <div class="arch-flow">
+                <div class="arch-row">
+                  <div class="arch-node arch-node--red">
+                    <svg class="arch-node-icon" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                      <rect x="2" y="1" width="10" height="13" rx="1.5" stroke="rgba(248,81,73,.45)" stroke-width="1.2" fill="none"/>
+                      <line x1="4" y1="5" x2="10" y2="5" stroke="rgba(248,81,73,.4)" stroke-width="1" stroke-linecap="round"/>
+                      <line x1="4" y1="7.5" x2="10" y2="7.5" stroke="rgba(248,81,73,.4)" stroke-width="1" stroke-linecap="round"/>
+                      <line x1="4" y1="10" x2="7" y2="10" stroke="rgba(248,81,73,.4)" stroke-width="1" stroke-linecap="round"/>
+                    </svg>
+                    Your ticket data
+                  </div>
+                  <div class="arch-connector">
+                    <div class="arch-block-row">
+                      <div class="arch-track arch-track--block"></div>
+                      <div class="arch-barrier" aria-hidden="true">
+                        <svg width="12" height="14" viewBox="0 0 12 14" fill="none">
+                          <line x1="6" y1="2" x2="6" y2="8" stroke="#f85149" stroke-width="2" stroke-linecap="round"/>
+                          <circle cx="6" cy="11.5" r="1.2" fill="#f85149"/>
+                        </svg>
+                      </div>
+                    </div>
+                    <span class="arch-track-label arch-track-label--block">blocked →</span>
+                  </div>
+                  <div class="arch-node arch-node--cloud">
+                    <svg class="arch-node-icon" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                      <path d="M4 13 Q3 9 5 8 Q5 5 8 5 Q11 3 13 6 Q15 6 15 9 Q15 13 12 13 Z" fill="rgba(248,81,73,.1)" stroke="rgba(248,81,73,.3)" stroke-width="1.1"/>
+                    </svg>
+                    Anthropic
+                  </div>
+                </div>
+                <span class="arch-label red">Without TicketLens: raw ticket context reaches Anthropic and consumes far more tokens.</span>
+              </div>
+            </div>
+            <p class="compliance-verify">TicketLens is open source. <a href="https://github.com/ralphmoran/ticket-lens" target="_blank" rel="noopener">Verify the architecture yourself →</a></p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- INSTALL -->
+  <section class="install-section" id="install">
+    <div class="container">
+      <div class="fade-in">
+        <span class="section-tag">Install</span>
+        <h2 class="section-h2">Three ways to get started</h2>
+        <p class="section-lead">npm, npx, or directly inside Claude Code. No account required.</p>
+      </div>
+      <div class="install-grid fade-in">
+        <div class="install-card fd1">
+          <div class="install-card-title">Global install (recommended)</div>
+          <div class="install-card-sub">Install once, use from any directory.</div>
+          <div class="code-block">
+            <button class="copy-btn" data-copy="npm install -g ticketlens&#10;ticketlens init&#10;ticketlens CNV1-2">Copy</button>
+            <span class="code-comment"># Install</span><br>
+            <span class="code-cmd">npm install -g ticketlens</span><br><br>
+            <span class="code-comment"># Connect your Jira instance</span><br>
+            <span class="code-cmd">ticketlens <span class="code-arg">init</span></span><br><br>
+            <span class="code-comment"># Fetch a ticket brief</span><br>
+            <span class="code-cmd">ticketlens <span class="code-arg">CNV1-2</span></span>
+          </div>
+          <div class="install-prereq">Prerequisites: <strong>Node.js &ge;20</strong></div>
+        </div>
+        <div class="install-card fd2">
+          <div class="install-card-title">Claude Code /jtb skill</div>
+          <div class="install-card-sub">Loads full ticket context directly into your Claude session.</div>
+          <div class="code-block">
+            <button class="copy-btn" data-copy="npm install -g ticketlens && ticketlens init&#10;cp $(npm root -g)/ticketlens/skills/jtb/SKILL.md ~/.claude/commands/jtb.md">Copy</button>
+            <span class="code-comment"># Install + configure</span><br>
+            <span class="code-cmd">npm install -g ticketlens &amp;&amp; ticketlens init</span><br><br>
+            <span class="code-comment"># Install /jtb Claude Code command</span><br>
+            <span class="code-cmd">cp $(npm root -g)/ticketlens/skills/jtb/SKILL.md \</span><br>
+            <span class="code-cmd">&nbsp;&nbsp;&nbsp;~/.claude/commands/jtb.md</span><br><br>
+            <span class="code-comment"># Then in Claude Code:</span><br>
+            <span class="code-cmd"><span class="code-arg">/jtb CNV1-2</span></span>
+          </div>
+          <div class="install-prereq">Requires: <strong>Claude Code</strong> + <strong>Node.js &ge;20</strong></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ -->
+  <section class="faq-section" id="faq">
+    <div class="container">
+      <div class="fade-in">
+        <span class="section-tag">FAQ</span>
+        <h2 class="section-h2">Common questions</h2>
+      </div>
+      <div class="faq-grid fade-in">
+        <div class="faq-col">
+          <div class="faq-item">
+            <button class="faq-q" aria-expanded="false">
+              Is ticket data ever sent to the cloud?
+              <span class="faq-icon" aria-hidden="true">+</span>
+            </button>
+            <div class="faq-a">No. TicketLens fetches tickets directly from your Jira instance and stores briefs locally at <code>~/.ticketlens/cache/</code>. Nothing is routed through TicketLens servers. When you use <code>--summarize --cloud</code>, only your pre-compressed brief (not raw ticket data) is sent.</div>
+          </div>
+          <div class="faq-item">
+            <button class="faq-q" aria-expanded="false">
+              How does it compare to Atlassian MCP?
+              <span class="faq-icon" aria-hidden="true">+</span>
+            </button>
+            <div class="faq-a">They're complementary. Atlassian MCP gives Claude direct Jira write access. TicketLens handles the read side — compressing ticket context to 60–80% fewer tokens. You can run both simultaneously: Atlassian MCP for creating/updating tickets, TicketLens for efficient context delivery.</div>
+          </div>
+          <div class="faq-item">
+            <button class="faq-q" aria-expanded="false">
+              Does it work with Jira Server and Data Center?
+              <span class="faq-icon" aria-hidden="true">+</span>
+            </button>
+            <div class="faq-a">Yes. TicketLens supports Jira Cloud (API token), Server/DC (Bearer PAT), and older Server/DC versions that require username + password Basic auth (pre-8.14). Auth type is auto-detected from your Jira URL during <code>ticketlens init</code>.</div>
+          </div>
+          <div class="faq-item">
+            <button class="faq-q" aria-expanded="false">
+              Can I use it without Claude Code?
+              <span class="faq-icon" aria-hidden="true">+</span>
+            </button>
+            <div class="faq-a">Yes. The CLI produces plain text output you can pipe anywhere: <code>ticketlens CNV1-2 --plain | pbcopy</code>, pipe to <code>llm</code>, write to a file, or use in any terminal workflow. Claude Code's <code>/jtb</code> is an optional enhancement.</div>
+          </div>
+        </div>
+        <div class="faq-col">
+          <div class="faq-item">
+            <button class="faq-q" aria-expanded="false">
+              How does multi-profile routing work?
+              <span class="faq-icon" aria-hidden="true">+</span>
+            </button>
+            <div class="faq-a">TicketLens auto-routes based on: (1) <code>--profile=NAME</code> flag, (2) ticket prefix match (e.g. <code>ACME-123</code> → acme profile), (3) project path match (e.g. running triage in <code>~/projects/myteam</code> → myteam profile), then falls back to your default profile or env vars.</div>
+          </div>
+          <div class="faq-item">
+            <button class="faq-q" aria-expanded="false">
+              What does --compliance check?
+              <span class="faq-icon" aria-hidden="true">+</span>
+            </button>
+            <div class="faq-a">It extracts requirements from the ticket (acceptance criteria, description, subtasks), reads your local VCS diff, and maps each requirement to code changes — flagging what's implemented, partially addressed, or missing. Free tier: 3 checks/month. Pro: unlimited.</div>
+          </div>
+          <div class="faq-item">
+            <button class="faq-q" aria-expanded="false">
+              What does the cache store?
+              <span class="faq-icon" aria-hidden="true">+</span>
+            </button>
+            <div class="faq-a">Brief JSON at <code>~/.ticketlens/cache/PROFILE/TICKET-KEY/brief.json</code> (4h TTL by default), and attachments at <code>~/.ticketlens/cache/TICKET-KEY/</code> (10 MB per-file cap). Pro users can set TTL to 4h, 1d, 7d, 30d, or 0 (disable) via <code>ticketlens config</code>.</div>
+          </div>
+          <div class="faq-item">
+            <button class="faq-q" aria-expanded="false">
+              Is the CLI really free forever?
+              <span class="faq-icon" aria-hidden="true">+</span>
+            </button>
+            <div class="faq-a">Yes. TicketLens is open core — the full CLI including fetch, triage, multi-profile, caching, --check, and Claude Code /jtb is free with no usage limits. Pro and Team add power-user features. The source is on GitHub.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <span class="footer-logo">TicketLens</span>
+        <span class="footer-tagline">Your AI assistant shouldn't need to read your tickets.</span>
+      </div>
+      <nav class="footer-nav" aria-label="Footer navigation">
+        <a href="https://github.com/ralphmoran/ticket-lens" target="_blank" rel="noopener">GitHub</a>
+        <a href="https://github.com/ralphmoran/ticket-lens/issues" target="_blank" rel="noopener">Issues</a>
+        <a href="#pricing">Pricing</a>
+        <a href="#compliance">Privacy</a>
+        <a href="#faq">FAQ</a>
+        <a href="/console/login">Console</a>
+      </nav>
+    </div>
+  </footer>
+
+  <script>
+    /* ============================================================
+       THEME TOGGLE
+    ============================================================ */
+    document.getElementById('theme-toggle').addEventListener('click', function() {
+      var html = document.documentElement;
+      var next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+      html.setAttribute('data-theme', next);
+      localStorage.setItem('tl-theme', next);
+    });
+
+    /* ============================================================
+       NAV SCROLL EFFECT
+    ============================================================ */
+    var nav = document.getElementById('nav');
+    window.addEventListener('scroll', function() {
+      nav.classList.toggle('scrolled', window.scrollY > 20);
+    }, { passive: true });
+
+    /* ============================================================
+       REDUCED MOTION DETECTION
+    ============================================================ */
+    var reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    /* ============================================================
+       HERO TERMINAL — ANIMATED TYPING
+    ============================================================ */
+    var heroAnimations = [
+      {
+        cmd: 'ticketlens triage',
+        delay: 1200,
+        output: [
+          '<span class="t-dim">Scanning myteam · In Progress, Code Review, QA...</span>',
+          '',
+          '<span class="t-red">●</span> <span class="t-white">PROJ-123</span>  <span class="t-muted">Implement OAuth2 login flow</span>  <span class="t-dim">In Progress</span>  <span class="t-red">↓ stale 7d</span>',
+          '<span class="t-red">●</span> <span class="t-white">PROJ-119</span>  <span class="t-muted">Fix mobile nav collapse</span>       <span class="t-dim">Code Review</span>  <span class="t-red">↓ stale 5d</span>',
+          '<span class="t-yellow">●</span> <span class="t-white">PROJ-124</span>  <span class="t-muted">Update API rate limits</span>         <span class="t-dim">QA</span>           <span class="t-yellow">● new comment</span>',
+          '<span class="t-green">○</span> <span class="t-white">PROJ-121</span>  <span class="t-muted">Design token audit</span>             <span class="t-dim">In Progress</span>  <span class="t-green">✓ up to date</span>',
+          '',
+          '<span class="t-dim">4 tickets · 2 need response · 1 aging</span>',
+          '<span class="t-dim">↑/↓ navigate · Enter open · q exit</span>',
+        ]
+      },
+      {
+        cmd: 'ticketlens PROJ-123',
+        delay: 900,
+        output: [
+          '<span class="t-dim">○ PROJ-123 · from cache (12m ago)  ·  --no-cache to refresh</span>',
+          '',
+          '<span class="t-white t-bold">PROJ-123</span> <span class="t-dim">—</span> <span class="t-green">Implement OAuth2 Login Flow</span>',
+          '<span class="t-dim">Status: </span><span class="t-yellow">In Progress</span>  <span class="t-dim">Priority: </span><span class="t-red">High</span>',
+          '<span class="t-dim">Assignee: </span><span class="t-white">R. Moran</span>',
+          '',
+          '<span class="t-muted">OAuth2 with Google + GitHub. Token rotation required.</span>',
+          '<span class="t-muted">Security audit flags resolved in PROJ-118.</span>',
+          '',
+          '<span class="t-dim">Linked:</span> <span class="t-white">PROJ-118</span> <span class="t-green">[Done]</span> <span class="t-dim">·</span> <span class="t-white">PROJ-124</span> <span class="t-yellow">[Active]</span>',
+          '<span class="t-dim">Files: </span><span class="t-green">src/auth/oauth.ts · middleware.ts</span>',
+          '<span class="t-dim">Cache: </span><span class="t-dim">~/.ticketlens/cache/myteam/PROJ-123/brief.json</span>',
+        ]
+      },
+      {
+        cmd: 'ticketlens PROJ-123 --compliance',
+        delay: 1000,
+        output: [
+          '<span class="t-muted">Analyzing PROJ-123 requirements against local diff...</span>',
+          '',
+          '<span class="t-green">✓</span> <span class="t-white">OAuth2 Google login</span>  <span class="t-dim">— implemented (oauth.ts:47)</span>',
+          '<span class="t-green">✓</span> <span class="t-white">OAuth2 GitHub login</span>  <span class="t-dim">— implemented (oauth.ts:89)</span>',
+          '<span class="t-green">✓</span> <span class="t-white">Token rotation</span>       <span class="t-dim">— implemented (auth.service.ts:23)</span>',
+          '<span class="t-red">✗</span> <span class="t-white">Security audit log</span>   <span class="t-dim">— NOT FOUND in diff</span>',
+          '<span class="t-yellow">?</span> <span class="t-white">Rate limiting</span>        <span class="t-dim">— partially addressed</span>',
+          '',
+          '<span class="t-dim">Compliance: 3/5 requirements met</span>',
+          '<span class="t-dim">Free tier: 2/3 monthly uses remaining</span>',
+        ]
+      }
+    ];
+
+    var heroAnim = { current: 0, typing: false, paused: false, timer: null };
+
+    function typeCmd(cmd, el, cursor, cb) {
+      var i = 0;
+      el.textContent = '';
+      cursor.style.display = 'inline-block';
+      function tick() {
+        if (heroAnim.paused) { heroAnim.timer = setTimeout(tick, 200); return; }
+        if (i < cmd.length) {
+          el.textContent += cmd[i++];
+          heroAnim.timer = setTimeout(tick, 45 + Math.random() * 30);
+        } else {
+          cb();
+        }
+      }
+      tick();
+    }
+
+    function showOutput(lines, container, cursor, delay, cb) {
+      cursor.style.display = 'none';
+      container.style.display = 'block';
+      container.innerHTML = '';
+      var i = 0;
+      function next() {
+        if (heroAnim.paused) { heroAnim.timer = setTimeout(next, 200); return; }
+        if (i < lines.length) {
+          var line = document.createElement('span');
+          line.className = 'terminal-output-line';
+          line.innerHTML = lines[i++];
+          container.appendChild(line);
+          heroAnim.timer = setTimeout(next, delay);
+        } else {
+          cursor.style.display = 'none';
+          heroAnim.timer = setTimeout(cb, 3200);
+        }
+      }
+      heroAnim.timer = setTimeout(next, 300);
+    }
+
+    function runHeroLoop() {
+      if (reducedMotion) return;
+      var anim = heroAnimations[heroAnim.current % heroAnimations.length];
+      var cmdEl = document.getElementById('t-cmd');
+      var cursor = document.getElementById('t-cursor');
+      var output = document.getElementById('t-output');
+      if (!cmdEl) return;
+      output.style.display = 'none';
+      output.innerHTML = '';
+      typeCmd(anim.cmd, cmdEl, cursor, function() {
+        showOutput(anim.output, output, cursor, anim.delay / anim.output.length, function() {
+          heroAnim.current++;
+          runHeroLoop();
+        });
+      });
+    }
+
+    // Hero terminal tabs
+    document.getElementById('tab-cli').addEventListener('click', function() {
+      this.classList.add('active');
+      document.getElementById('tab-jtb').classList.remove('active');
+      document.getElementById('t-panel-cli').style.display = 'block';
+      document.getElementById('t-panel-jtb').style.display = 'none';
+    });
+    document.getElementById('tab-jtb').addEventListener('click', function() {
+      this.classList.add('active');
+      document.getElementById('tab-cli').classList.remove('active');
+      document.getElementById('t-panel-cli').style.display = 'none';
+      document.getElementById('t-panel-jtb').style.display = 'block';
+    });
+
+    if (!reducedMotion) { setTimeout(runHeroLoop, 600); }
+
+    /* ============================================================
+       FEATURES PANEL
+    ============================================================ */
+    var featData = [
+      {
+        label: 'ticketlens PROJ-123',
+        lines: [
+          '<span style="color:#404958">○ PROJ-123 · from cache (12m ago)  ·  --no-cache to refresh</span>',
+          '',
+          '<span style="color:#e1e8f4;font-weight:700">PROJ-123</span> <span style="color:#404958">—</span> <span style="color:#6366f1">Implement OAuth2 Login Flow</span>',
+          '<span style="color:#404958">Status: </span><span style="color:#e3b341">In Progress</span>  <span style="color:#404958">Priority: </span><span style="color:#f85149">High</span>',
+          '<span style="color:#404958">Assignee: </span><span style="color:#e1e8f4">R. Moran</span>',
+          '',
+          '<span style="color:#7b8aa0">OAuth2 with Google + GitHub. Token rotation required.</span>',
+          '<span style="color:#7b8aa0">Security audit flags resolved in PROJ-118.</span>',
+          '',
+          '<span style="color:#404958">Linked: </span><span style="color:#e1e8f4">PROJ-118</span> <span style="color:#6366f1">[Done]</span> <span style="color:#404958">·</span> <span style="color:#e1e8f4">PROJ-124</span> <span style="color:#e3b341">[Active]</span>',
+          '<span style="color:#404958">Files:  </span><span style="color:#6366f1">src/auth/oauth.ts · middleware.ts</span>',
+          '<span style="color:#404958">Cache:  </span><span style="color:#404958">~/.ticketlens/cache/myteam/PROJ-123/</span>',
+        ]
+      },
+      {
+        label: 'ticketlens triage',
+        lines: [
+          '<span style="color:#404958">Scanning myteam · In Progress, Code Review, QA...</span>',
+          '',
+          '<span style="color:#f85149">●</span> <span style="color:#e1e8f4">PROJ-123</span>  <span style="color:#7b8aa0">Implement OAuth2 login flow</span>  <span style="color:#404958">In Progress</span>  <span style="color:#f85149">↓ stale 7d</span>',
+          '<span style="color:#f85149">●</span> <span style="color:#e1e8f4">PROJ-119</span>  <span style="color:#7b8aa0">Fix mobile nav collapse</span>       <span style="color:#404958">Code Review</span>  <span style="color:#f85149">↓ stale 5d</span>',
+          '<span style="color:#e3b341">●</span> <span style="color:#e1e8f4">PROJ-124</span>  <span style="color:#7b8aa0">Update API rate limits</span>         <span style="color:#404958">QA</span>           <span style="color:#e3b341">● new comment</span>',
+          '<span style="color:#6366f1">○</span> <span style="color:#e1e8f4">PROJ-121</span>  <span style="color:#7b8aa0">Design token audit</span>             <span style="color:#404958">In Progress</span>  <span style="color:#6366f1">✓ ok</span>',
+          '',
+          '<span style="color:#404958">4 tickets · 2 need response · 1 aging</span>',
+          '<span style="color:#404958">↑/↓ navigate · Enter open · q exit</span>',
+        ]
+      },
+      {
+        label: 'ticketlens PROJ-123 --check',
+        lines: [
+          '<span style="color:#404958">── VCS CHECK ───────────────────────────────────</span>',
+          '<span style="color:#404958">Branch: </span><span style="color:#6366f1">feature/oauth2-login</span>',
+          '',
+          '<span style="color:#404958">Modified files:</span>',
+          '<span style="color:#6366f1">  src/auth/oauth.ts</span>        <span style="color:#404958">+142 −8</span>',
+          '<span style="color:#6366f1">  src/middleware.ts</span>        <span style="color:#404958">+23 −2</span>',
+          '<span style="color:#6366f1">  tests/auth.test.ts</span>       <span style="color:#404958">+78 −0</span>',
+          '',
+          '<span style="color:#404958">── CLAUDE CODE INSTRUCTIONS ────────────────────</span>',
+          '<span style="color:#7b8aa0">Compare this diff against PROJ-123 requirements.</span>',
+          '<span style="color:#7b8aa0">Flag any acceptance criteria not addressed.</span>',
+          '<span style="color:#7b8aa0">Note missing tests for new auth flows.</span>',
+        ]
+      },
+      {
+        label: 'ticketlens PROJ-123 --compliance',
+        lines: [
+          '<span style="color:#7b8aa0">Analyzing PROJ-123 against local diff...</span>',
+          '',
+          '<span style="color:#6366f1">✓</span> <span style="color:#e1e8f4">OAuth2 Google login</span>    <span style="color:#404958">oauth.ts:47</span>',
+          '<span style="color:#6366f1">✓</span> <span style="color:#e1e8f4">OAuth2 GitHub login</span>    <span style="color:#404958">oauth.ts:89</span>',
+          '<span style="color:#6366f1">✓</span> <span style="color:#e1e8f4">Token rotation</span>         <span style="color:#404958">auth.service.ts:23</span>',
+          '<span style="color:#f85149">✗</span> <span style="color:#e1e8f4">Security audit logging</span> <span style="color:#404958">NOT FOUND in diff</span>',
+          '<span style="color:#e3b341">?</span> <span style="color:#e1e8f4">Rate limiting</span>          <span style="color:#404958">partially addressed</span>',
+          '',
+          '<span style="color:#404958">Compliance: 3/5 requirements met</span>',
+          '<span style="color:#404958">Free tier: 2/3 monthly uses remaining</span>',
+        ]
+      },
+      {
+        label: 'ticketlens PROJ-123 --depth=2  [Pro]',
+        lines: [
+          '<span style="color:#7b8aa0">Fetching PROJ-123 + dependency graph [Pro]...</span>',
+          '',
+          '<span style="color:#e1e8f4;font-weight:700">PROJ-123</span> <span style="color:#e3b341">In Progress</span>  <span style="color:#7b8aa0">Implement OAuth2 login flow</span>',
+          '  <span style="color:#6366f1">PROJ-118</span> <span style="color:#6366f1">[Done]</span>    <span style="color:#7b8aa0">Auth provider setup</span>',
+          '    <span style="color:#404958">PROJ-115</span> <span style="color:#404958">[Done]</span>  <span style="color:#404958">OAuth2 library selection</span>',
+          '    <span style="color:#404958">PROJ-116</span> <span style="color:#404958">[Done]</span>  <span style="color:#404958">Provider API registration</span>',
+          '  <span style="color:#e3b341">PROJ-124</span> <span style="color:#e3b341">[Active]</span>  <span style="color:#7b8aa0">Rate limit middleware</span>',
+          '    <span style="color:#404958">PROJ-126</span> <span style="color:#e3b341">[Active]</span> <span style="color:#404958">Redis integration</span>',
+          '',
+          '<span style="color:#404958">6 tickets fetched · 2,847 tokens total</span>',
+        ]
+      },
+      {
+        label: '/jtb PROJ-123  [Claude Code]',
+        lines: [
+          '<span style="color:#404958">Claude Code  ●  ~/projects/auth-service</span>',
+          '',
+          '<span style="color:#6366f1">❯ /jtb PROJ-123</span>',
+          '',
+          '<span style="color:#e3b341">⚡</span> <span style="color:#7b8aa0">TicketLens — fetching PROJ-123...</span>',
+          '',
+          '<span style="color:#404958">──────────────────────────────────────</span>',
+          '<span style="color:#e1e8f4;font-weight:700">PROJ-123</span>  <span style="color:#6366f1">Implement OAuth2 Login Flow</span>',
+          '<span style="color:#7b8aa0">OAuth2 with Google + GitHub. Token rotation required.</span>',
+          '',
+          '<span style="color:#6366f1">✓ 842 tokens loaded into Claude context.</span>',
+          '<span style="color:#7b8aa0">Entering plan mode. What would you like to implement?</span>',
+        ]
+      },
+    ];
+
+    var featActive = 0;
+    var featAutoTimer = null;
+    var FEAT_INTERVAL = 5000;
+
+    function renderFeatDemo(idx) {
+      var data = featData[idx];
+      var body = document.getElementById('feat-demo-body');
+      var label = document.getElementById('feat-demo-label');
+      if (!body) return;
+      label.textContent = data.label;
+      body.innerHTML = data.lines.map(function(l) {
+        return '<span style="display:block;min-height:1.75em">' + l + '</span>';
+      }).join('');
+    }
+
+    function setFeatActive(idx, resetTimer) {
+      var items = document.querySelectorAll('.feat-item');
+      items.forEach(function(el, i) { el.classList.toggle('active', i === idx); });
+      featActive = idx;
+      renderFeatDemo(idx);
+      if (resetTimer) {
+        clearInterval(featAutoTimer);
+        if (!reducedMotion) { startFeatAuto(); }
+      }
+      var bar = document.getElementById('feat-progress-bar');
+      if (bar && !reducedMotion) { bar.style.width = '0%'; bar.style.transition = 'none'; void bar.offsetWidth; bar.style.transition = 'width ' + FEAT_INTERVAL + 'ms linear'; bar.style.width = '100%'; }
+    }
+
+    function startFeatAuto() {
+      featAutoTimer = setInterval(function() {
+        setFeatActive((featActive + 1) % featData.length, false);
+      }, FEAT_INTERVAL);
+    }
+
+    document.querySelectorAll('.feat-item').forEach(function(el, i) {
+      el.addEventListener('click', function() { setFeatActive(i, true); });
+    });
+
+    setFeatActive(0, false);
+    if (!reducedMotion) { startFeatAuto(); }
+
+    /* ============================================================
+       PAGE VISIBILITY — pause/resume all JS loops
+    ============================================================ */
+    document.addEventListener('visibilitychange', function() {
+      var hidden = document.hidden;
+      heroAnim.paused = hidden;
+      if (hidden) {
+        clearInterval(featAutoTimer);
+        featAutoTimer = null;
+      } else {
+        if (!reducedMotion && featAutoTimer === null) { startFeatAuto(); }
+      }
+    });
+
+    /* ============================================================
+       LOGOS CAROUSEL — IntersectionObserver pause/resume
+    ============================================================ */
+    var logosTrack = document.getElementById('logos-track');
+    if (logosTrack) {
+      var logosIO = new IntersectionObserver(function(entries) {
+        entries.forEach(function(e) {
+          logosTrack.classList.toggle('paused', !e.isIntersecting);
+        });
+      }, { threshold: 0 });
+      logosIO.observe(document.querySelector('.logos-section'));
+    }
+
+    /* ============================================================
+       ARCH DIAGRAM — IntersectionObserver gate animations
+    ============================================================ */
+    var archWrap = document.querySelector('.arch-diagram-wrap');
+    if (archWrap) {
+      var archIO = new IntersectionObserver(function(entries) {
+        entries.forEach(function(e) {
+          e.target.classList.toggle('arch-animated', e.isIntersecting);
+        });
+      }, { threshold: 0.1 });
+      archIO.observe(archWrap);
+    }
+
+    /* ============================================================
+       HERO TERMINAL WRAP — remove will-change after animation
+    ============================================================ */
+    var heroWrap = document.querySelector('.hero-terminal-wrap');
+    if (heroWrap) {
+      heroWrap.addEventListener('animationend', function() {
+        this.style.willChange = 'auto';
+      }, { once: true });
+    }
+
+    /* ============================================================
+       FAQ ACCORDION
+    ============================================================ */
+    document.querySelectorAll('.faq-q').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var item = this.closest('.faq-item');
+        var isOpen = item.classList.contains('open');
+        document.querySelectorAll('.faq-item.open').forEach(function(o) {
+          o.classList.remove('open');
+          o.querySelector('.faq-q').setAttribute('aria-expanded', 'false');
+        });
+        if (!isOpen) {
+          item.classList.add('open');
+          this.setAttribute('aria-expanded', 'true');
+        }
+      });
+    });
+
+    /* ============================================================
+       COPY BUTTONS
+    ============================================================ */
+    document.querySelectorAll('.copy-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var text = this.getAttribute('data-copy');
+        navigator.clipboard.writeText(text).then(function() {}).catch(function() {});
+        btn.textContent = 'Copied!';
+        setTimeout(function() { btn.textContent = 'Copy'; }, 2000);
+      });
+    });
+
+    /* ============================================================
+       SCROLL FADE-IN
+    ============================================================ */
+    var observer = new IntersectionObserver(function(entries) {
+      entries.forEach(function(e) {
+        if (e.isIntersecting) { e.target.classList.add('visible'); observer.unobserve(e.target); }
+      });
+    }, { threshold: 0.12 });
+    document.querySelectorAll('.fade-in').forEach(function(el) { observer.observe(el); });
+  </script>
+</body>
+</html>

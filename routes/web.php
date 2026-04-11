@@ -5,8 +5,8 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', fn () => response()->file(public_path('landing.html')));
 Route::get('/inertia-test', fn () => inertia('Test'));
 
-// LemonSqueezy webhook (public, HMAC-verified inside controller — built in a later phase)
-// Route::post('/webhooks/lemonsqueezy', [\App\Http\Controllers\WebhookController::class, 'lemonsqueezy']);
+// LemonSqueezy webhook (public, HMAC-verified inside controller)
+Route::post('/webhooks/lemonsqueezy', [\App\Http\Controllers\Console\LemonSqueezyWebhookController::class, 'handle']);
 
 Route::prefix('console')->name('console.')->group(function () {
     // Auth (guest only)

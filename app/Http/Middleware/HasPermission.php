@@ -17,12 +17,16 @@ class HasPermission
         $user = $request->user();
         $bit  = Permission::fromName($permission)->value;
 
-        if ($user === null || ! $this->permissions->can($user, $bit)) {
+        if ($user === null) {
+            return redirect()->route('console.login');
+        }
+
+        if (! $this->permissions->can($user, $bit)) {
             if ($request->expectsJson() || $request->header('X-Inertia')) {
                 return response()->json(['message' => 'Forbidden'], 403);
             }
 
-            return redirect()->route('console.login');
+            return redirect()->route('console.upgrade');
         }
 
         return $next($request);

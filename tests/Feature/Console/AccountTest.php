@@ -47,4 +47,76 @@ class AccountTest extends TestCase
         $response->assertStatus(200);
         $response->assertInertia(fn ($page) => $page->component('Console/Account'));
     }
+
+    public function test_account_page_passes_key_presence_flags(): void
+    {
+        $user = User::factory()->create([
+            'tier'          => 'pro',
+            'permissions'   => 71,
+            'anthropic_key' => 'sk-ant-test-key',
+            'openai_key'    => null,
+        ]);
+
+        $response = $this->actingAs($user)->get('/console/account');
+
+        $response->assertStatus(200);
+        $response->assertInertia(fn ($page) => $page
+            ->component('Console/Account')
+            ->where('has_anthropic_key', true)
+            ->where('has_openai_key', false)
+        );
+    }
+
+    public function test_user_can_save_anthropic_key(): void
+    {
+        $user = User::factory()->create(['tier' => 'pro', 'permissions' => 71]);
+
+        $response = $this->actingAs($user)->post('/console/account/keys', [
+            'anthropic_key' => 'sk-ant-test-key-123',
+            'openai_key'    => '',
+        ]);
+
+        $response->assertRedirect();
+
+        $user->refresh();
+        $this->assertSame('sk-ant-test-key-123', $user->anthropic_key);
+        $this->assertNull($user->openai_key);
+    }
+
+    public function test_user_can_save_openai_key(): void
+    {
+        $user = User::factory()->create(['tier' => 'pro', 'permissions' => 71]);
+
+        $response = $this->actingAs($user)->post('/console/account/keys', [
+            'anthropic_key' => '',
+            'openai_key'    => 'sk-openai-test-key-456',
+        ]);
+
+        $response->assertRedirect();
+
+        $user->refresh();
+        $this->assertNull($user->anthropic_key);
+        $this->assertSame('sk-openai-test-key-456', $user->openai_key);
+    }
+
+    public function test_user_can_clear_api_keys(): void
+    {
+        $user = User::factory()->create([
+            'tier'          => 'pro',
+            'permissions'   => 71,
+            'anthropic_key' => 'sk-ant-existing',
+            'openai_key'    => 'sk-openai-existing',
+        ]);
+
+        $response = $this->actingAs($user)->post('/console/account/keys', [
+            'anthropic_key' => '',
+            'openai_key'    => '',
+        ]);
+
+        $response->assertRedirect();
+
+        $user->refresh();
+        $this->assertNull($user->anthropic_key);
+        $this->assertNull($user->openai_key);
+    }
 }

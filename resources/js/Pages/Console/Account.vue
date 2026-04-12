@@ -1,5 +1,6 @@
 <script setup>
 import ConsoleLayout from '@/Layouts/ConsoleLayout.vue'
+import { useForm } from '@inertiajs/vue3'
 
 defineOptions({ layout: ConsoleLayout })
 
@@ -9,7 +10,27 @@ const props = defineProps({
         required: true,
         // { name: string, email: string, tier: string, license: null | { status: string, expires_at: string|null } }
     },
+    has_anthropic_key: {
+        type: Boolean,
+        default: false,
+    },
+    has_openai_key: {
+        type: Boolean,
+        default: false,
+    },
 })
+
+const keyForm = useForm({
+    anthropic_key: '',
+    openai_key: '',
+})
+
+const submitKeys = () => {
+    keyForm.post('/console/account/keys', {
+        preserveScroll: true,
+        onSuccess: () => keyForm.reset(),
+    })
+}
 
 const tierStyles = {
     free:       'bg-slate-700 text-slate-300',
@@ -113,45 +134,55 @@ const licenseBadge = (status) => licenseStatusStyles[status?.toLowerCase()] ?? l
                 <p class="text-xs text-slate-500 mt-1">Used for <code class="font-mono text-slate-400">--summarize</code> and <code class="font-mono text-slate-400">--cloud</code> features</p>
             </div>
 
-            <div class="space-y-4">
+            <form @submit.prevent="submitKeys" class="space-y-4">
                 <!-- Anthropic API Key -->
                 <div class="flex flex-col sm:flex-row sm:items-center gap-3">
-                    <span class="text-sm text-slate-300 sm:w-40 shrink-0">Anthropic API Key</span>
+                    <div class="sm:w-40 shrink-0">
+                        <span class="text-sm text-slate-300">Anthropic API Key</span>
+                        <span
+                            class="block text-xs mt-0.5"
+                            :class="has_anthropic_key ? 'text-green-400' : 'text-slate-500'"
+                        >{{ has_anthropic_key ? '•••• set' : 'Not configured' }}</span>
+                    </div>
                     <div class="flex items-center gap-2 flex-1">
                         <input
+                            v-model="keyForm.anthropic_key"
                             type="text"
-                            readonly
-                            value="sk-•••••••••••••••••"
-                            class="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm font-mono text-slate-400 focus:outline-none min-w-0"
-                            placeholder="sk-•••••••••••••••••"
+                            class="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm font-mono text-slate-300 focus:outline-none focus:border-indigo-500 min-w-0"
+                            placeholder="sk-ant-…"
+                            autocomplete="off"
                         />
-                        <button
-                            disabled
-                            title="Coming soon"
-                            class="px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-slate-500 text-sm font-medium cursor-not-allowed opacity-50 shrink-0"
-                        >Update</button>
                     </div>
                 </div>
 
                 <!-- OpenAI API Key -->
                 <div class="flex flex-col sm:flex-row sm:items-center gap-3">
-                    <span class="text-sm text-slate-300 sm:w-40 shrink-0">OpenAI API Key</span>
+                    <div class="sm:w-40 shrink-0">
+                        <span class="text-sm text-slate-300">OpenAI API Key</span>
+                        <span
+                            class="block text-xs mt-0.5"
+                            :class="has_openai_key ? 'text-green-400' : 'text-slate-500'"
+                        >{{ has_openai_key ? '•••• set' : 'Not configured' }}</span>
+                    </div>
                     <div class="flex items-center gap-2 flex-1">
                         <input
+                            v-model="keyForm.openai_key"
                             type="text"
-                            readonly
-                            value="sk-•••••••••••••••••"
-                            class="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm font-mono text-slate-400 focus:outline-none min-w-0"
-                            placeholder="sk-•••••••••••••••••"
+                            class="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm font-mono text-slate-300 focus:outline-none focus:border-indigo-500 min-w-0"
+                            placeholder="sk-…"
+                            autocomplete="off"
                         />
-                        <button
-                            disabled
-                            title="Coming soon"
-                            class="px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-slate-500 text-sm font-medium cursor-not-allowed opacity-50 shrink-0"
-                        >Update</button>
                     </div>
                 </div>
-            </div>
+
+                <div class="pt-2">
+                    <button
+                        type="submit"
+                        :disabled="keyForm.processing"
+                        class="px-4 py-2 rounded-lg bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150"
+                    >Save Keys</button>
+                </div>
+            </form>
         </div>
 
         <!-- Upgrade CTA (free tier only) -->

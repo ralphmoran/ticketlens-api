@@ -29,6 +29,10 @@ Route::prefix('console')->name('console.')->group(function () {
 
         // Account — accessible to all authenticated users
         Route::get('/account', [\App\Http\Controllers\Console\AccountController::class, 'index'])->name('account');
+        Route::post('/account/keys', [\App\Http\Controllers\Console\AccountController::class, 'updateKeys'])->name('account.keys');
+
+        // Upgrade page — shown when permission is denied
+        Route::get('/upgrade', [\App\Http\Controllers\Console\UpgradeController::class, 'index'])->name('upgrade');
 
         // Workflow modules (permission-gated)
         Route::get('/schedules', [\App\Http\Controllers\Console\SchedulesController::class, 'index'])

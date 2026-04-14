@@ -1,9 +1,11 @@
 <script setup>
-import ConsoleLayout from '../../Layouts/ConsoleLayout.vue'
-import { usePermissions } from '../../composables/usePermissions'
+import ConsoleLayout from '@/Layouts/ConsoleLayout.vue'
+import { usePermissions } from '@/composables/usePermissions'
 import { usePage } from '@inertiajs/vue3'
 import { computed } from 'vue'
-import { Permission } from '../../permissions'
+import { Permission } from '@/permissions'
+
+defineOptions({ layout: ConsoleLayout })
 
 const { can } = usePermissions()
 const page = usePage()
@@ -12,8 +14,7 @@ const tier = computed(() => user.value?.tier ?? 'free')
 </script>
 
 <template>
-    <ConsoleLayout>
-        <div class="px-4 sm:px-6 lg:px-8 py-8 max-w-6xl mx-auto">
+    <div class="px-4 sm:px-6 lg:px-8 py-8 max-w-6xl mx-auto">
 
             <!-- Page header -->
             <div class="mb-8 flex items-center justify-between">
@@ -133,5 +134,4 @@ const tier = computed(() => user.value?.tier ?? 'free')
             </div>
 
         </div>
-    </ConsoleLayout>
 </template>

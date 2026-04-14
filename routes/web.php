@@ -19,11 +19,14 @@ Route::prefix('console')->name('console.')->group(function () {
         ->name('logout')
         ->middleware('auth');
 
-    // Console root → redirect to analytics
-    Route::get('/', fn () => redirect()->route('console.analytics'))->name('index');
+    // Console root → redirect to dashboard
+    Route::get('/', fn () => redirect()->route('console.dashboard'))->name('index');
 
     // Authenticated console routes
     Route::middleware('auth')->group(function () {
+        // Dashboard — landing page after login
+        Route::get('/dashboard', [\App\Http\Controllers\Console\DashboardController::class, 'index'])->name('dashboard');
+
         // Analytics — accessible to all authenticated users (Free shows teaser)
         Route::get('/analytics', [\App\Http\Controllers\Console\AnalyticsController::class, 'index'])->name('analytics');
 

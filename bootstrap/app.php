@@ -16,9 +16,11 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->append(\App\Http\Middleware\SecurityHeaders::class);
         $middleware->web(append: [\App\Http\Middleware\HandleInertiaRequests::class]);
         $middleware->redirectGuestsTo(fn () => route('console.login'));
+        $middleware->redirectUsersTo(fn () => route('console.dashboard'));
         $middleware->alias([
             'auth.license' => \App\Http\Middleware\ValidateLicenseKey::class,
             'permission'   => \App\Http\Middleware\HasPermission::class,
+            'owner'        => \App\Http\Middleware\IsOwner::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

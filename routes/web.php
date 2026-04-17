@@ -19,6 +19,9 @@ Route::prefix('console')->name('console.')->group(function () {
         ->name('logout')
         ->middleware('auth');
 
+    // Suspended account page (public — user is logged out before redirect)
+    Route::get('/suspended', fn () => inertia('Console/Suspended'))->name('suspended');
+
     // Console root → redirect to dashboard
     Route::get('/', fn () => redirect()->route('console.dashboard'))->name('index');
 
@@ -59,6 +62,31 @@ Route::prefix('console')->name('console.')->group(function () {
                 ->middleware('permission:AdminLicenses')->name('licenses');
             Route::get('/revenue', [\App\Http\Controllers\Console\AdminController::class, 'revenue'])
                 ->middleware('permission:AdminRevenue')->name('revenue');
+        });
+
+        // Owner-only panel
+        Route::prefix('owner')->name('owner.')->middleware('owner')->group(function () {
+            Route::get('/dashboard', [\App\Http\Controllers\Owner\DashboardController::class, 'index'])->name('dashboard');
+
+            // User management
+            Route::get('/users', [\App\Http\Controllers\Owner\UserController::class, 'index'])->name('users.index');
+            Route::get('/users/{user}', [\App\Http\Controllers\Owner\UserController::class, 'show'])->name('users.show');
+            Route::patch('/users/{user}', [\App\Http\Controllers\Owner\UserController::class, 'update'])->name('users.update');
+            Route::post('/users/{user}/suspend', [\App\Http\Controllers\Owner\UserController::class, 'suspend'])->name('users.suspend');
+            Route::post('/users/{user}/restore', [\App\Http\Controllers\Owner\UserController::class, 'restore'])->name('users.restore');
+            Route::delete('/users/{user}', [\App\Http\Controllers\Owner\UserController::class, 'destroy'])->name('users.destroy');
+
+            // Audit log
+            Route::get('/audit', [\App\Http\Controllers\Owner\AuditController::class, 'index'])->name('audit.index');
+
+            // Tier→feature matrix
+            Route::get('/tiers', [\App\Http\Controllers\Owner\TierController::class, 'index'])->name('tiers.index');
+            Route::post('/tiers/{tier}/features', [\App\Http\Controllers\Owner\TierController::class, 'addFeature'])->name('tiers.features.add');
+            Route::delete('/tiers/{tier}/features/{feature}', [\App\Http\Controllers\Owner\TierController::class, 'removeFeature'])->name('tiers.features.remove');
+
+            // Feature grants
+            Route::post('/users/{user}/grants', [\App\Http\Controllers\Owner\GrantController::class, 'store'])->name('grants.store');
+            Route::delete('/users/{user}/grants/{grant}', [\App\Http\Controllers\Owner\GrantController::class, 'destroy'])->name('grants.destroy');
         });
     });
 });

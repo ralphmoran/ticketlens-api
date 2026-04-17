@@ -32,6 +32,14 @@ class AuthController extends Controller
 
         $request->session()->regenerate();
 
+        if (Auth::user()->suspended_at !== null) {
+            Auth::logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+
+            return redirect()->route('console.suspended');
+        }
+
         return redirect()->intended(route('console.dashboard'));
     }
 

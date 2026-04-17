@@ -8,7 +8,8 @@ const page = usePage()
 const { can } = usePermissions()
 const sidebarOpen = ref(false)
 
-const user = computed(() => page.props.auth?.user)
+const user     = computed(() => page.props.auth?.user)
+const isOwner  = computed(() => page.props.auth?.is_owner ?? false)
 
 const navGroups = computed(() => [
     {
@@ -42,6 +43,12 @@ const navGroups = computed(() => [
         ]
     },
 ])
+
+const ownerNavItems = [
+    { label: 'Users',             href: '/console/owner/users' },
+    { label: 'Tiers & Features',  href: '/console/owner/tiers' },
+    { label: 'Audit Log',         href: '/console/owner/audit' },
+]
 
 const visibleGroups = computed(() =>
     navGroups.value
@@ -201,6 +208,25 @@ function closeSidebar() {
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                                     </svg>
                                 </template>
+                                {{ item.label }}
+                            </a>
+                        </li>
+                    </ul>
+                </template>
+
+                <!-- Owner section (only shown when is_owner = true) -->
+                <template v-if="isOwner">
+                    <p class="px-3 mb-1 text-[10px] font-semibold uppercase tracking-widest text-amber-500/70">Owner</p>
+                    <ul class="mb-5 space-y-0.5">
+                        <li v-for="item in ownerNavItems" :key="item.href">
+                            <a
+                                :href="item.href"
+                                @click="closeSidebar"
+                                class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors duration-150 cursor-pointer"
+                                :class="page.url.startsWith(item.href)
+                                    ? 'bg-amber-900/30 text-amber-300'
+                                    : 'text-amber-500/70 hover:bg-amber-900/20 hover:text-amber-300'"
+                            >
                                 {{ item.label }}
                             </a>
                         </li>

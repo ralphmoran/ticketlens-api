@@ -116,7 +116,7 @@ function restore() {
             <ul v-if="grants.length" class="divide-y divide-slate-800">
                 <li v-for="grant in grants" :key="grant.id" class="px-5 py-3 flex items-center gap-3 text-xs">
                     <span class="font-medium text-slate-200 w-32 shrink-0">{{ grant.feature?.label }}</span>
-                    <span v-if="grant.expires_at" class="text-slate-400">expires {{ grant.expires_at }}</span>
+                    <span v-if="grant.expires_at" class="text-slate-400">expires {{ grant.expires_at.slice(0, 10) }}</span>
                     <span v-else class="text-slate-500 italic">no expiry</span>
                     <span v-if="grant.note" class="text-slate-500 truncate flex-1">{{ grant.note }}</span>
                     <span v-else class="flex-1"></span>

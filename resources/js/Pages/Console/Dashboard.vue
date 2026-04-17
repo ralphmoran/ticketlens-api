@@ -34,7 +34,7 @@ const activeGrants = computed(() => page.props.auth?.activeGrants ?? [])
                     </svg>
                     <span class="text-amber-300 font-medium">{{ grant.label }}</span>
                     <span v-if="grant.expires_at" class="text-amber-500/80 text-xs">
-                        trial access until {{ new Date(grant.expires_at).toLocaleDateString() }}
+                        trial access until {{ grant.expires_at.slice(0, 10) }}
                     </span>
                     <span v-else class="text-amber-500/80 text-xs">trial access (no expiry)</span>
                 </div>

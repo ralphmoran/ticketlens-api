@@ -32,8 +32,5 @@ jobs:
       - name: Generate app key
         run: php artisan key:generate
 
-      - name: Stub Vite manifest
-        run: mkdir -p public/build && echo '{}' > public/build/manifest.json
-
       - name: Run tests
         run: php artisan test

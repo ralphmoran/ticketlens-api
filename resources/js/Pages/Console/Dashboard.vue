@@ -9,8 +9,9 @@ defineOptions({ layout: ConsoleLayout })
 
 const { can } = usePermissions()
 const page = usePage()
-const user = computed(() => page.props.auth?.user)
-const tier = computed(() => user.value?.tier ?? 'free')
+const user         = computed(() => page.props.auth?.user)
+const tier         = computed(() => user.value?.tier ?? 'free')
+const activeGrants = computed(() => page.props.auth?.activeGrants ?? [])
 </script>
 
 <template>
@@ -23,6 +24,20 @@ const tier = computed(() => user.value?.tier ?? 'free')
                     <p class="text-slate-400 text-sm mt-0.5">Welcome back, {{ user?.name?.split(' ')[0] }}.</p>
                 </div>
                 <span class="text-xs font-mono bg-slate-800 text-slate-400 px-2.5 py-1 rounded-md border border-slate-700 capitalize">{{ tier }}</span>
+            </div>
+
+            <!-- Trial notices (active grants with expiry) -->
+            <div v-if="activeGrants.length" class="mb-6 space-y-2">
+                <div v-for="grant in activeGrants" :key="grant.label" class="flex items-center gap-3 px-4 py-3 rounded-lg bg-amber-950/40 border border-amber-800/50 text-sm">
+                    <svg class="w-4 h-4 text-amber-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    <span class="text-amber-300 font-medium">{{ grant.label }}</span>
+                    <span v-if="grant.expires_at" class="text-amber-500/80 text-xs">
+                        trial access until {{ new Date(grant.expires_at).toLocaleDateString() }}
+                    </span>
+                    <span v-else class="text-amber-500/80 text-xs">trial access (no expiry)</span>
+                </div>
             </div>
 
             <!-- Stat cards grid -->

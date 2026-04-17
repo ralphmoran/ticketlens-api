@@ -8,8 +8,13 @@ const page = usePage()
 const { can } = usePermissions()
 const sidebarOpen = ref(false)
 
-const user     = computed(() => page.props.auth?.user)
-const isOwner  = computed(() => page.props.auth?.is_owner ?? false)
+const user          = computed(() => page.props.auth?.user)
+const isOwner       = computed(() => page.props.auth?.is_owner ?? false)
+const impersonating = computed(() => page.props.auth?.impersonating ?? null)
+
+function stopImpersonating() {
+    router.delete('/console/impersonate')
+}
 
 const navGroups = computed(() => [
     {
@@ -72,8 +77,35 @@ function closeSidebar() {
 <template>
     <div class="min-h-screen bg-slate-950 text-slate-100 font-sans">
 
+        <!-- Impersonation banner -->
+        <div
+            v-if="impersonating"
+            data-testid="impersonation-banner"
+            class="fixed top-0 inset-x-0 z-[60] bg-amber-500 text-slate-950 px-4 py-2 flex items-center justify-between gap-3 shadow-lg"
+        >
+            <div class="flex items-center gap-2 text-sm font-medium min-w-0">
+                <svg class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"/>
+                </svg>
+                <span class="truncate">
+                    Viewing as <span class="font-semibold">{{ impersonating.name }}</span>
+                    <span class="hidden sm:inline text-slate-900/70">({{ impersonating.email }})</span>
+                </span>
+            </div>
+            <button
+                type="button"
+                @click="stopImpersonating"
+                class="shrink-0 text-xs px-3 py-1 rounded bg-slate-950 text-amber-400 hover:bg-slate-900 transition font-semibold cursor-pointer"
+            >
+                Stop impersonating
+            </button>
+        </div>
+
         <!-- Mobile/Tablet top header -->
-        <header class="lg:hidden fixed top-0 inset-x-0 z-30 flex items-center justify-between px-4 h-14 bg-slate-900 border-b border-slate-800">
+        <header
+            class="lg:hidden fixed inset-x-0 z-30 flex items-center justify-between px-4 h-14 bg-slate-900 border-b border-slate-800"
+            :class="impersonating ? 'top-9' : 'top-0'"
+        >
             <button
                 type="button"
                 @click="sidebarOpen = true"
@@ -111,7 +143,8 @@ function closeSidebar() {
         <!-- Sidebar -->
         <aside
             :class="[
-                'fixed inset-y-0 left-0 z-50 w-64 bg-slate-900 border-r border-slate-800 flex flex-col transition-transform duration-200',
+                'fixed left-0 bottom-0 z-50 w-64 bg-slate-900 border-r border-slate-800 flex flex-col transition-transform duration-200',
+                impersonating ? 'top-9' : 'top-0',
                 sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
             ]"
         >
@@ -257,7 +290,7 @@ function closeSidebar() {
         </aside>
 
         <!-- Main content wrapper -->
-        <div class="lg:pl-64">
+        <div class="lg:pl-64" :class="{ 'pt-9 lg:pt-9': impersonating }">
             <main class="min-w-0 pt-14 lg:pt-0">
                 <slot />
             </main>

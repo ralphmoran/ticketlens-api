@@ -27,6 +27,12 @@ Route::prefix('console')->name('console.')->group(function () {
 
     // Authenticated console routes
     Route::middleware('auth')->group(function () {
+        // Stop impersonation — lives OUTSIDE the `owner` sub-group because during
+        // impersonation the session is authed as the target (non-owner). The controller
+        // checks the `impersonator_id` session key to authorise.
+        Route::delete('/impersonate', [\App\Http\Controllers\Owner\ImpersonationController::class, 'destroy'])
+            ->name('impersonate.stop');
+
         // Dashboard — landing page after login
         Route::get('/dashboard', [\App\Http\Controllers\Console\DashboardController::class, 'index'])->name('dashboard');
 
@@ -87,6 +93,9 @@ Route::prefix('console')->name('console.')->group(function () {
             // Feature grants
             Route::post('/users/{user}/grants', [\App\Http\Controllers\Owner\GrantController::class, 'store'])->name('grants.store');
             Route::delete('/users/{user}/grants/{grant}', [\App\Http\Controllers\Owner\GrantController::class, 'destroy'])->name('grants.destroy');
+
+            // Impersonation — start only (stop lives outside this group, see above)
+            Route::post('/impersonate/{user}', [\App\Http\Controllers\Owner\ImpersonationController::class, 'store'])->name('impersonate.start');
         });
     });
 });

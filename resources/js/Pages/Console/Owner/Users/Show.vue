@@ -41,6 +41,10 @@ function suspend() {
 function restore() {
     router.post(`/console/owner/users/${props.user.id}/restore`, {}, { preserveScroll: true })
 }
+
+function impersonate() {
+    router.post(`/console/owner/impersonate/${props.user.id}`)
+}
 </script>
 
 <template>
@@ -59,6 +63,12 @@ function restore() {
                     <p class="text-slate-400 text-sm">{{ user.email }}</p>
                 </div>
                 <div class="flex gap-2">
+                    <button
+                        v-if="!user.suspended_at"
+                        @click="impersonate"
+                        data-testid="impersonate-button"
+                        class="text-xs px-3 py-1.5 rounded bg-indigo-900/30 text-indigo-300 border border-indigo-800 hover:bg-indigo-900/60 transition"
+                    >Impersonate</button>
                     <button v-if="!user.suspended_at" @click="suspend" class="text-xs px-3 py-1.5 rounded bg-amber-900/30 text-amber-300 border border-amber-800 hover:bg-amber-900/60 transition">Suspend</button>
                     <button v-else @click="restore" class="text-xs px-3 py-1.5 rounded bg-emerald-900/30 text-emerald-300 border border-emerald-800 hover:bg-emerald-900/60 transition">Restore</button>
                 </div>

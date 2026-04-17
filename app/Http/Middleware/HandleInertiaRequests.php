@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Models\UserFeatureGrant;
+use App\Services\ImpersonationService;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -57,12 +58,18 @@ class HandleInertiaRequests extends Middleware
                 ->all();
         }
 
+        $impersonating = null;
+        if ($user !== null && $request->session()->has(ImpersonationService::SESSION_KEY)) {
+            $impersonating = $user->only('name', 'email');
+        }
+
         return array_merge(parent::share($request), [
             'auth' => [
                 'user'                 => $user ? $user->only('id', 'name', 'email', 'tier', 'permissions') : null,
                 'effectivePermissions' => $effectivePermissions,
                 'is_owner'             => $user?->is_owner ?? false,
                 'activeGrants'         => $activeGrants,
+                'impersonating'        => $impersonating,
             ],
         ]);
     }

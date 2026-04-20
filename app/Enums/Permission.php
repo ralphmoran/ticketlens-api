@@ -13,14 +13,13 @@ enum Permission: int
     case SavingsAnalytics = 64;   // 2^6 — Free tier
     case AdminUsers       = 128;  // 2^7
     case AdminLicenses    = 256;  // 2^8
-    case AdminRevenue     = 512;  // 2^9
 
     /** Composite tier presets */
     public static function free(): int       { return self::SavingsAnalytics->value; }                                                                                              // 64
     public static function pro(): int        { return self::Schedules->value | self::Digests->value | self::Summarize->value | self::SavingsAnalytics->value; }                     // 71
     public static function team(): int       { return self::pro() | self::Compliance->value | self::Export->value | self::MultiAccount->value; }                                    // 127
     public static function enterprise(): int { return self::team(); }                                                                                                               // 127
-    public static function adminMask(): int  { return self::AdminUsers->value | self::AdminLicenses->value | self::AdminRevenue->value; }                                           // 896
+    public static function adminMask(): int  { return self::AdminUsers->value | self::AdminLicenses->value; }                                                                       // 384
 
     public function label(): string
     {
@@ -34,7 +33,6 @@ enum Permission: int
             self::SavingsAnalytics => 'Savings Analytics',
             self::AdminUsers       => 'Admin Users',
             self::AdminLicenses    => 'Admin Licenses',
-            self::AdminRevenue     => 'Admin Revenue',
         };
     }
 

@@ -60,27 +60,26 @@ Route::prefix('console')->name('console.')->group(function () {
         Route::get('/team', [\App\Http\Controllers\Console\TeamController::class, 'index'])
             ->middleware('permission:MultiAccount')->name('team');
 
-        // Admin section
+        // Admin section (Team manager scoped — Stage 4 will rescope, Licenses kept until Stage 2 moves it)
         Route::prefix('admin')->name('admin.')->group(function () {
-            Route::get('/clients', [\App\Http\Controllers\Console\AdminController::class, 'clients'])
-                ->middleware('permission:AdminUsers')->name('clients');
             Route::get('/licenses', [\App\Http\Controllers\Console\AdminController::class, 'licenses'])
                 ->middleware('permission:AdminLicenses')->name('licenses');
-            Route::get('/revenue', [\App\Http\Controllers\Console\AdminController::class, 'revenue'])
-                ->middleware('permission:AdminRevenue')->name('revenue');
         });
 
         // Owner-only panel
         Route::prefix('owner')->name('owner.')->middleware('owner')->group(function () {
             Route::get('/dashboard', [\App\Http\Controllers\Owner\DashboardController::class, 'index'])->name('dashboard');
 
-            // User management
-            Route::get('/users', [\App\Http\Controllers\Owner\UserController::class, 'index'])->name('users.index');
-            Route::get('/users/{user}', [\App\Http\Controllers\Owner\UserController::class, 'show'])->name('users.show');
-            Route::patch('/users/{user}', [\App\Http\Controllers\Owner\UserController::class, 'update'])->name('users.update');
-            Route::post('/users/{user}/suspend', [\App\Http\Controllers\Owner\UserController::class, 'suspend'])->name('users.suspend');
-            Route::post('/users/{user}/restore', [\App\Http\Controllers\Owner\UserController::class, 'restore'])->name('users.restore');
-            Route::delete('/users/{user}', [\App\Http\Controllers\Owner\UserController::class, 'destroy'])->name('users.destroy');
+            // Client management
+            Route::get('/clients', [\App\Http\Controllers\Owner\ClientController::class, 'index'])->name('clients.index');
+            Route::get('/clients/{user}', [\App\Http\Controllers\Owner\ClientController::class, 'show'])->name('clients.show');
+            Route::patch('/clients/{user}', [\App\Http\Controllers\Owner\ClientController::class, 'update'])->name('clients.update');
+            Route::post('/clients/{user}/suspend', [\App\Http\Controllers\Owner\ClientController::class, 'suspend'])->name('clients.suspend');
+            Route::post('/clients/{user}/restore', [\App\Http\Controllers\Owner\ClientController::class, 'restore'])->name('clients.restore');
+            Route::delete('/clients/{user}', [\App\Http\Controllers\Owner\ClientController::class, 'destroy'])->name('clients.destroy');
+
+            // Revenue dashboard (MRR, tier breakdown, recent license events)
+            Route::get('/revenue', [\App\Http\Controllers\Owner\RevenueController::class, 'index'])->name('revenue');
 
             // Audit log
             Route::get('/audit', [\App\Http\Controllers\Owner\AuditController::class, 'index'])->name('audit.index');
@@ -91,8 +90,8 @@ Route::prefix('console')->name('console.')->group(function () {
             Route::delete('/tiers/{tier}/features/{feature}', [\App\Http\Controllers\Owner\TierController::class, 'removeFeature'])->name('tiers.features.remove');
 
             // Feature grants
-            Route::post('/users/{user}/grants', [\App\Http\Controllers\Owner\GrantController::class, 'store'])->name('grants.store');
-            Route::delete('/users/{user}/grants/{grant}', [\App\Http\Controllers\Owner\GrantController::class, 'destroy'])->name('grants.destroy');
+            Route::post('/clients/{user}/grants', [\App\Http\Controllers\Owner\GrantController::class, 'store'])->name('grants.store');
+            Route::delete('/clients/{user}/grants/{grant}', [\App\Http\Controllers\Owner\GrantController::class, 'destroy'])->name('grants.destroy');
 
             // Impersonation — start only (stop lives outside this group, see above)
             Route::post('/impersonate/{user}', [\App\Http\Controllers\Owner\ImpersonationController::class, 'store'])->name('impersonate.start');

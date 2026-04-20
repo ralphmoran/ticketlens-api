@@ -10,39 +10,27 @@ class AdminTest extends TestCase
 {
     use RefreshDatabase;
 
-    // Admin = free(64) | AdminUsers(128) | AdminLicenses(256) | AdminRevenue(512) = 960
+    // Admin-licenses access = free(64) | AdminLicenses(256) = 320
     private function makeAdminUser(): User
     {
-        return User::factory()->create(['tier' => 'enterprise', 'permissions' => 960]);
+        return User::factory()->create(['tier' => 'enterprise', 'permissions' => 320]);
     }
 
-    public function test_guest_is_redirected_to_login_for_clients(): void
+    public function test_guest_is_redirected_to_login_for_licenses(): void
     {
-        $response = $this->get('/console/admin/clients');
+        $response = $this->get('/console/admin/licenses');
 
         $response->assertRedirect('/console/login');
     }
 
-    public function test_non_admin_gets_403_for_clients(): void
+    public function test_non_admin_gets_403_for_licenses(): void
     {
-        // Team (127) has no AdminUsers bit (128)
+        // Team (127) has no AdminLicenses bit (256)
         $user = User::factory()->create(['tier' => 'team', 'permissions' => 127]);
 
-        $response = $this->actingAs($user)->getJson('/console/admin/clients');
+        $response = $this->actingAs($user)->getJson('/console/admin/licenses');
 
         $response->assertStatus(403);
-    }
-
-    public function test_admin_sees_clients_page(): void
-    {
-        $user = $this->makeAdminUser();
-
-        $response = $this->actingAs($user)->get('/console/admin/clients');
-
-        $response->assertStatus(200);
-        $response->assertInertia(fn ($page) => $page
-            ->component('Console/Admin/Clients')
-        );
     }
 
     public function test_admin_sees_licenses_page(): void
@@ -57,15 +45,21 @@ class AdminTest extends TestCase
         );
     }
 
-    public function test_admin_sees_revenue_page(): void
+    public function test_admin_clients_route_is_removed(): void
+    {
+        $user = $this->makeAdminUser();
+
+        $response = $this->actingAs($user)->get('/console/admin/clients');
+
+        $response->assertStatus(404);
+    }
+
+    public function test_admin_revenue_route_is_removed(): void
     {
         $user = $this->makeAdminUser();
 
         $response = $this->actingAs($user)->get('/console/admin/revenue');
 
-        $response->assertStatus(200);
-        $response->assertInertia(fn ($page) => $page
-            ->component('Console/Admin/Revenue')
-        );
+        $response->assertStatus(404);
     }
 }

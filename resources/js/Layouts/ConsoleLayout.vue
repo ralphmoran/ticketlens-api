@@ -42,16 +42,15 @@ const navGroups = computed(() => [
     {
         label: 'Admin',
         items: [
-            { label: 'Clients',     href: '/console/admin/clients',  permission: Permission.AdminUsers,     icon: 'user-group' },
             { label: 'Licenses',    href: '/console/admin/licenses', permission: Permission.AdminLicenses,  icon: 'key' },
-            { label: 'Revenue',     href: '/console/admin/revenue',  permission: Permission.AdminRevenue,   icon: 'currency-dollar' },
         ]
     },
 ])
 
 const ownerNavItems = [
-    { label: 'Users',             href: '/console/owner/users' },
+    { label: 'Clients',           href: '/console/owner/clients' },
     { label: 'Tiers & Features',  href: '/console/owner/tiers' },
+    { label: 'Revenue',           href: '/console/owner/revenue' },
     { label: 'Audit Log',         href: '/console/owner/audit' },
 ]
 

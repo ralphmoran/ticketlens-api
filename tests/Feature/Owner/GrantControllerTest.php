@@ -42,7 +42,7 @@ class GrantControllerTest extends TestCase
         $feature = $this->makeFeature();
 
         $response = $this->actingAs($owner)->post(
-            "/console/owner/users/{$user->id}/grants",
+            "/console/owner/clients/{$user->id}/grants",
             ['feature_id' => $feature->id],
         );
 
@@ -63,7 +63,7 @@ class GrantControllerTest extends TestCase
         $expiry  = now()->addDays(7)->toDateString();
 
         $this->actingAs($owner)->post(
-            "/console/owner/users/{$user->id}/grants",
+            "/console/owner/clients/{$user->id}/grants",
             ['feature_id' => $feature->id, 'expires_at' => $expiry],
         );
 
@@ -77,7 +77,7 @@ class GrantControllerTest extends TestCase
         $feature = $this->makeFeature();
 
         $this->actingAs($owner)->post(
-            "/console/owner/users/{$user->id}/grants",
+            "/console/owner/clients/{$user->id}/grants",
             ['feature_id' => $feature->id, 'note' => 'Pilot trial'],
         );
 
@@ -91,7 +91,7 @@ class GrantControllerTest extends TestCase
         $feature = $this->makeFeature();
 
         $this->actingAs($owner)->post(
-            "/console/owner/users/{$user->id}/grants",
+            "/console/owner/clients/{$user->id}/grants",
             ['feature_id' => $feature->id],
         );
 
@@ -109,7 +109,7 @@ class GrantControllerTest extends TestCase
         $feature  = $this->makeFeature();
 
         $response = $this->actingAs($nonOwner)->post(
-            "/console/owner/users/{$user->id}/grants",
+            "/console/owner/clients/{$user->id}/grants",
             ['feature_id' => $feature->id],
         );
 
@@ -123,7 +123,7 @@ class GrantControllerTest extends TestCase
         $user  = $this->makeUser();
 
         $response = $this->actingAs($owner)->post(
-            "/console/owner/users/{$user->id}/grants",
+            "/console/owner/clients/{$user->id}/grants",
             ['feature_id' => 9999],
         );
 
@@ -137,7 +137,7 @@ class GrantControllerTest extends TestCase
         $feature = $this->makeFeature();
 
         $response = $this->actingAs($owner)->post(
-            "/console/owner/users/{$user->id}/grants",
+            "/console/owner/clients/{$user->id}/grants",
             ['feature_id' => $feature->id, 'expires_at' => now()->subDay()->toDateString()],
         );
 
@@ -159,7 +159,7 @@ class GrantControllerTest extends TestCase
         ]);
 
         $response = $this->actingAs($owner)->delete(
-            "/console/owner/users/{$user->id}/grants/{$grant->id}",
+            "/console/owner/clients/{$user->id}/grants/{$grant->id}",
         );
 
         $response->assertRedirect();
@@ -178,7 +178,7 @@ class GrantControllerTest extends TestCase
             'granted_by' => $owner->id,
         ]);
 
-        $this->actingAs($owner)->delete("/console/owner/users/{$user->id}/grants/{$grant->id}");
+        $this->actingAs($owner)->delete("/console/owner/clients/{$user->id}/grants/{$grant->id}");
 
         $this->assertDatabaseHas('audit_logs', [
             'actor_id'       => $owner->id,
@@ -201,7 +201,7 @@ class GrantControllerTest extends TestCase
         ]);
 
         $response = $this->actingAs($nonOwner)->delete(
-            "/console/owner/users/{$user->id}/grants/{$grant->id}",
+            "/console/owner/clients/{$user->id}/grants/{$grant->id}",
         );
 
         $response->assertRedirect('/console/dashboard');
@@ -222,7 +222,7 @@ class GrantControllerTest extends TestCase
         UserFeatureGrant::where('id', $grant->id)->update(['revoked_at' => now()]);
 
         $response = $this->actingAs($owner)->delete(
-            "/console/owner/users/{$user->id}/grants/{$grant->id}",
+            "/console/owner/clients/{$user->id}/grants/{$grant->id}",
         );
 
         $response->assertStatus(404);

@@ -61,7 +61,7 @@ watch(action, () => {
                             <span class="font-mono text-xs px-1.5 py-0.5 rounded bg-slate-800 text-slate-300">{{ log.action }}</span>
                         </td>
                         <td class="px-4 py-3 text-xs text-slate-400">
-                            <Link v-if="log.target_user" :href="`/console/owner/users/${log.target_user?.id}`" class="hover:text-white transition">
+                            <Link v-if="log.target_user" :href="`/console/owner/clients/${log.target_user?.id}`" class="hover:text-white transition">
                                 {{ log.target_user?.email }}
                             </Link>
                             <span v-else>—</span>

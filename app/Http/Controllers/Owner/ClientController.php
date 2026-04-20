@@ -13,7 +13,7 @@ use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
-class UserController extends Controller
+class ClientController extends Controller
 {
     private const VALID_TIERS = ['free', 'pro', 'team', 'enterprise'];
 
@@ -37,17 +37,19 @@ class UserController extends Controller
             $query->where('tier', $tier);
         }
 
-        return Inertia::render('Console/Owner/Users/Index', [
-            'users'   => $query->latest()->paginate(20)->withQueryString(),
+        return Inertia::render('Console/Owner/Clients/Index', [
+            'clients' => $query->latest()->paginate(20)->withQueryString(),
             'filters' => $request->only('search', 'tier'),
         ]);
     }
 
     public function show(User $user): Response
     {
-        return Inertia::render('Console/Owner/Users/Show', [
-            'user'     => $user,
-            'features' => Feature::orderBy('sort_order')->get(['id', 'label']),
+        return Inertia::render('Console/Owner/Clients/Show', [
+            'client'   => $user,
+            'features' => Feature::orderBy('sort_order')
+                ->where('name', 'not like', 'admin_%')
+                ->get(['id', 'label']),
             'grants'   => UserFeatureGrant::where('user_id', $user->id)
                 ->active()
                 ->with('feature:id,label')

@@ -28,8 +28,8 @@ defineProps({
         </div>
 
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
-            <Link href="/console/owner/users" class="block bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg p-4 text-sm font-medium text-slate-200 transition">
-                Users
+            <Link href="/console/owner/clients" class="block bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg p-4 text-sm font-medium text-slate-200 transition">
+                Clients
             </Link>
             <Link href="/console/owner/tiers" class="block bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg p-4 text-sm font-medium text-slate-200 transition">
                 Tiers &amp; Features

@@ -95,7 +95,7 @@ function formatDate(date) {
             <table class="w-full text-sm">
                 <thead>
                     <tr class="border-b border-slate-800">
-                        <th class="px-5 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">User</th>
+                        <th class="px-5 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Client</th>
                         <th class="px-5 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Tier</th>
                         <th class="px-5 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Status</th>
                         <th class="px-5 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Date</th>

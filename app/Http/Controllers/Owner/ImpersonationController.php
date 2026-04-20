@@ -40,6 +40,6 @@ class ImpersonationController extends Controller
             return redirect()->route('console.dashboard');
         }
 
-        return redirect()->route('console.owner.users.show', $stopped->target_user_id);
+        return redirect()->route('console.owner.clients.show', $stopped->target_user_id);
     }
 }

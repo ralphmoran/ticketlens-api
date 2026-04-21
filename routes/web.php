@@ -63,7 +63,7 @@ Route::prefix('console')->name('console.')->group(function () {
         // Admin section (Team manager scoped — Stage 4 will rescope, Licenses kept until Stage 2 moves it)
         Route::prefix('admin')->name('admin.')->group(function () {
             Route::get('/licenses', [\App\Http\Controllers\Console\AdminController::class, 'licenses'])
-                ->middleware('permission:AdminLicenses')->name('licenses');
+                ->middleware('permission:TeamManageSeats')->name('licenses');
         });
 
         // Owner-only panel

@@ -24,9 +24,8 @@ class FeatureSeeder extends Seeder
         ['name' => 'export',           'bit_value' => 16,  'label' => 'Export',             'description' => 'CSV / JSON export',                'sort_order' => 50],
         ['name' => 'multi_account',    'bit_value' => 32,  'label' => 'Multi-Account',      'description' => 'Team seat management',             'sort_order' => 60],
         ['name' => 'savings_analytics','bit_value' => 64,  'label' => 'Savings Analytics',  'description' => 'Token savings dashboard',          'sort_order' => 70],
-        ['name' => 'admin_users',      'bit_value' => 128, 'label' => 'Admin: Users',       'description' => 'Manage client accounts',           'sort_order' => 80],
-        ['name' => 'admin_licenses',   'bit_value' => 256, 'label' => 'Admin: Licenses',    'description' => 'Manage license keys',              'sort_order' => 90],
-        ['name' => 'admin_revenue',    'bit_value' => 512, 'label' => 'Admin: Revenue',     'description' => 'View revenue dashboard',           'sort_order' => 100],
+        ['name' => 'team_manage_members', 'bit_value' => 128, 'label' => 'Team: Manage Members', 'description' => 'Invite and remove team members', 'sort_order' => 80],
+        ['name' => 'team_manage_seats',   'bit_value' => 256, 'label' => 'Team: Manage Seats',   'description' => 'Allocate and rotate team seats', 'sort_order' => 90],
     ];
 
     // Default tier→feature preset (mirrors Permission enum presets)

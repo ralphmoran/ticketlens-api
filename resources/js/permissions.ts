@@ -6,8 +6,8 @@ export const Permission = {
     Export:           16,
     MultiAccount:     32,
     SavingsAnalytics: 64,
-    AdminUsers:       128,
-    AdminLicenses:    256,
+    TeamManageMembers: 128,
+    TeamManageSeats:   256,
 } as const
 
 export type PermissionKey = keyof typeof Permission
@@ -18,7 +18,7 @@ export const Tiers = {
     Pro:        Permission.Schedules | Permission.Digests | Permission.Summarize | Permission.SavingsAnalytics,
     Team:       Permission.Schedules | Permission.Digests | Permission.Summarize | Permission.SavingsAnalytics | Permission.Compliance | Permission.Export | Permission.MultiAccount,
     Enterprise: Permission.Schedules | Permission.Digests | Permission.Summarize | Permission.SavingsAnalytics | Permission.Compliance | Permission.Export | Permission.MultiAccount,
-    AdminMask:  Permission.AdminUsers | Permission.AdminLicenses,
+    TeamManagerMask: Permission.TeamManageMembers | Permission.TeamManageSeats,
 } as const
 
 export function can(userPermissions: number, permission: PermissionValue): boolean {

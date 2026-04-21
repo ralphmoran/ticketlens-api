@@ -10,7 +10,7 @@ class AdminTest extends TestCase
 {
     use RefreshDatabase;
 
-    // Admin-licenses access = free(64) | AdminLicenses(256) = 320
+    // Team-manager access = free(64) | TeamManageSeats(256) = 320
     private function makeAdminUser(): User
     {
         return User::factory()->create(['tier' => 'enterprise', 'permissions' => 320]);
@@ -25,7 +25,7 @@ class AdminTest extends TestCase
 
     public function test_non_admin_gets_403_for_licenses(): void
     {
-        // Team (127) has no AdminLicenses bit (256)
+        // Team (127) has no TeamManageSeats bit (256) without explicit manager promotion
         $user = User::factory()->create(['tier' => 'team', 'permissions' => 127]);
 
         $response = $this->actingAs($user)->getJson('/console/admin/licenses');

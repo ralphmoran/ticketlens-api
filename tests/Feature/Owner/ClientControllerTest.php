@@ -90,8 +90,9 @@ class ClientControllerTest extends TestCase
     {
         $owner  = $this->makeOwner();
         $client = $this->makeClient();
-        \App\Models\Feature::create(['name' => 'schedules',    'bit_value' => 1,   'label' => 'Schedules', 'sort_order' => 10]);
-        \App\Models\Feature::create(['name' => 'admin_users',  'bit_value' => 128, 'label' => 'Admin: Users', 'sort_order' => 80]);
+        \App\Models\Feature::create(['name' => 'schedules',           'bit_value' => 1,   'label' => 'Schedules', 'sort_order' => 10]);
+        \App\Models\Feature::create(['name' => 'admin_users',         'bit_value' => 128, 'label' => 'Admin: Users', 'sort_order' => 80]);
+        \App\Models\Feature::create(['name' => 'team_manage_members', 'bit_value' => 130, 'label' => 'Team: Manage Members', 'sort_order' => 85]);
 
         $response = $this->actingAs($owner)->get("/console/owner/clients/{$client->id}");
 

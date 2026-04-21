@@ -78,13 +78,20 @@ class PermissionBitmaskLockTest extends TestCase
         $this->assertSame(64, Permission::SavingsAnalytics->value);
     }
 
-    public function test_admin_users_is_bit_7(): void
+    public function test_team_manage_members_is_bit_7(): void
     {
-        $this->assertSame(128, Permission::AdminUsers->value);
+        // Renamed from AdminUsers — bit VALUE unchanged at 128 (stability invariant).
+        $this->assertSame(128, Permission::TeamManageMembers->value);
     }
 
-    public function test_admin_licenses_is_bit_8(): void
+    public function test_team_manage_seats_is_bit_8(): void
     {
-        $this->assertSame(256, Permission::AdminLicenses->value);
+        // Renamed from AdminLicenses — bit VALUE unchanged at 256 (stability invariant).
+        $this->assertSame(256, Permission::TeamManageSeats->value);
+    }
+
+    public function test_team_manager_mask_is_384(): void
+    {
+        $this->assertSame(384, Permission::teamManagerMask());
     }
 }

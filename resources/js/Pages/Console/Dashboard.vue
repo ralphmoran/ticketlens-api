@@ -106,8 +106,8 @@ const activeGrants = computed(() => page.props.auth?.activeGrants ?? [])
                     <a href="#" class="mt-4 text-xs text-indigo-400 hover:text-indigo-300 font-medium transition-colors duration-150 cursor-pointer">Upgrade plan →</a>
                 </div>
 
-                <!-- Team summary (AdminUsers permission) -->
-                <div v-if="can(Permission.AdminUsers)" class="bg-slate-900 border border-slate-800 rounded-xl p-5">
+                <!-- Team summary (TeamManageMembers permission) -->
+                <div v-if="can(Permission.TeamManageMembers)" class="bg-slate-900 border border-slate-800 rounded-xl p-5">
                     <div class="flex items-center justify-between mb-4">
                         <p class="text-xs font-medium text-slate-400 uppercase tracking-wider">Team Seats</p>
                         <svg class="w-4 h-4 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">

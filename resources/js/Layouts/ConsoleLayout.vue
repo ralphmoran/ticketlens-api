@@ -42,7 +42,7 @@ const navGroups = computed(() => [
     {
         label: 'Admin',
         items: [
-            { label: 'Licenses',    href: '/console/admin/licenses', permission: Permission.AdminLicenses,  icon: 'key' },
+            { label: 'Licenses',    href: '/console/admin/licenses', permission: Permission.TeamManageSeats, icon: 'key' },
         ]
     },
 ])

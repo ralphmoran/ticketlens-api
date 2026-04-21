@@ -81,6 +81,13 @@ Route::prefix('console')->name('console.')->group(function () {
             // Revenue dashboard (MRR, tier breakdown, recent license events)
             Route::get('/revenue', [\App\Http\Controllers\Owner\RevenueController::class, 'index'])->name('revenue');
 
+            // License issuance — Owner generates keys directly + optionally emails
+            Route::get('/licenses',                 [\App\Http\Controllers\Owner\LicenseController::class, 'index'])->name('licenses.index');
+            Route::get('/licenses/create',          [\App\Http\Controllers\Owner\LicenseController::class, 'create'])->name('licenses.create');
+            Route::post('/licenses',                [\App\Http\Controllers\Owner\LicenseController::class, 'store'])->name('licenses.store');
+            Route::get('/licenses/{license}/created', [\App\Http\Controllers\Owner\LicenseController::class, 'created'])->name('licenses.created');
+            Route::delete('/licenses/{license}',    [\App\Http\Controllers\Owner\LicenseController::class, 'destroy'])->name('licenses.destroy');
+
             // Audit log
             Route::get('/audit', [\App\Http\Controllers\Owner\AuditController::class, 'index'])->name('audit.index');
 

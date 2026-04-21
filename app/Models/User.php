@@ -46,4 +46,26 @@ class User extends Authenticatable
     {
         return $this->belongsTo(License::class);
     }
+
+    /**
+     * The group this user OWNS (Team-tier manager role).
+     * Null for regular members and solo Pro/Free users.
+     */
+    public function ownedGroup(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(Group::class, 'owner_id');
+    }
+
+    /**
+     * Primary team — first group via pivot. Team-tier members belong to exactly one.
+     */
+    public function team(): ?Group
+    {
+        return $this->groups()->first();
+    }
+
+    public function isTeamManager(): bool
+    {
+        return $this->ownedGroup()->exists();
+    }
 }

@@ -60,10 +60,12 @@ Route::prefix('console')->name('console.')->group(function () {
         Route::get('/team', [\App\Http\Controllers\Console\TeamController::class, 'index'])
             ->middleware('permission:MultiAccount')->name('team');
 
-        // Admin section (Team manager scoped — Stage 4 will rescope, Licenses kept until Stage 2 moves it)
-        Route::prefix('admin')->name('admin.')->group(function () {
-            Route::get('/licenses', [\App\Http\Controllers\Console\AdminController::class, 'licenses'])
-                ->middleware('permission:TeamManageSeats')->name('licenses');
+        // Admin section (Team manager scoped to their own group)
+        Route::prefix('admin')->name('admin.')->middleware('team.manager')->group(function () {
+            Route::get('/members',                  [\App\Http\Controllers\Console\Admin\MembersController::class, 'index'])->name('members.index');
+            Route::delete('/members/{user}',        [\App\Http\Controllers\Console\Admin\MembersController::class, 'destroy'])->name('members.destroy');
+            Route::post('/members/{user}/promote',  [\App\Http\Controllers\Console\Admin\MembersController::class, 'promote'])->name('members.promote');
+            Route::get('/seats',                    [\App\Http\Controllers\Console\Admin\SeatsController::class, 'index'])->name('seats.index');
         });
 
         // Owner-only panel

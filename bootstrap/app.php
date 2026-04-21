@@ -18,9 +18,10 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->redirectGuestsTo(fn () => route('console.login'));
         $middleware->redirectUsersTo(fn () => route('console.dashboard'));
         $middleware->alias([
-            'auth.license' => \App\Http\Middleware\ValidateLicenseKey::class,
-            'permission'   => \App\Http\Middleware\HasPermission::class,
-            'owner'        => \App\Http\Middleware\IsOwner::class,
+            'auth.license'     => \App\Http\Middleware\ValidateLicenseKey::class,
+            'permission'       => \App\Http\Middleware\HasPermission::class,
+            'owner'            => \App\Http\Middleware\IsOwner::class,
+            'team.manager'     => \App\Http\Middleware\EnsureTeamManager::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

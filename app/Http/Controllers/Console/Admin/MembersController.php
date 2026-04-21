@@ -3,10 +3,12 @@
 namespace App\Http\Controllers\Console\Admin;
 
 use App\Enums\Permission;
+use App\Exceptions\SeatLimitReached;
 use App\Http\Controllers\Controller;
 use App\Models\License;
 use App\Models\User;
 use App\Services\AuditService;
+use App\Services\MembersService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -19,7 +21,26 @@ use Inertia\Response;
  */
 class MembersController extends Controller
 {
-    public function __construct(private readonly AuditService $audit) {}
+    public function __construct(
+        private readonly AuditService $audit,
+        private readonly MembersService $members,
+    ) {}
+
+    public function store(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'email' => ['required', 'email:rfc', 'max:255'],
+            'name'  => ['nullable', 'string', 'max:255'],
+        ]);
+
+        try {
+            $this->members->invite($request->user(), $validated['email'], $validated['name'] ?? null);
+        } catch (SeatLimitReached $e) {
+            return back()->withErrors(['email' => $e->getMessage()]);
+        }
+
+        return back();
+    }
 
     public function index(Request $request): Response
     {

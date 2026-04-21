@@ -63,6 +63,7 @@ Route::prefix('console')->name('console.')->group(function () {
         // Admin section (Team manager scoped to their own group)
         Route::prefix('admin')->name('admin.')->middleware('team.manager')->group(function () {
             Route::get('/members',                  [\App\Http\Controllers\Console\Admin\MembersController::class, 'index'])->name('members.index');
+            Route::post('/members',                 [\App\Http\Controllers\Console\Admin\MembersController::class, 'store'])->name('members.store');
             Route::delete('/members/{user}',        [\App\Http\Controllers\Console\Admin\MembersController::class, 'destroy'])->name('members.destroy');
             Route::post('/members/{user}/promote',  [\App\Http\Controllers\Console\Admin\MembersController::class, 'promote'])->name('members.promote');
             Route::get('/seats',                    [\App\Http\Controllers\Console\Admin\SeatsController::class, 'index'])->name('seats.index');

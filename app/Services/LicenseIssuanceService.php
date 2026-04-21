@@ -2,7 +2,9 @@
 
 namespace App\Services;
 
+use App\Enums\Permission;
 use App\Mail\LicenseIssuedMail;
+use App\Models\Group;
 use App\Models\License;
 use App\Models\User;
 use Illuminate\Support\Carbon;
@@ -44,7 +46,7 @@ class LicenseIssuanceService
         $hash   = hash('sha256', $rawKey);
 
         $license = DB::transaction(function () use ($owner, $recipient, $tier, $expiresAt, $seats, $hash) {
-            return License::create([
+            $license = License::create([
                 'user_id'           => $recipient->id,
                 'issued_by_user_id' => $owner->id,
                 'lemon_key_hash'    => $hash,
@@ -53,6 +55,14 @@ class LicenseIssuanceService
                 'seats'             => $seats ?? self::DEFAULT_SEATS[$tier],
                 'expires_at'        => $expiresAt,
             ]);
+
+            // For Team/Enterprise: recipient becomes the group manager with manager bits.
+            // Invariant: every Team-tier license has exactly one manager at issuance time.
+            if (in_array($tier, ['team', 'enterprise'], true)) {
+                $this->bootstrapTeamGroup($recipient, $tier);
+            }
+
+            return $license;
         });
 
         // Audit log includes ONLY the last 8 hex of the hash — never the raw key.
@@ -107,6 +117,33 @@ class LicenseIssuanceService
     {
         // Str::uuid() returns a cryptographically random v4 UUID (128 bits).
         return self::KEY_PREFIX . Str::uuid()->toString();
+    }
+
+    /**
+     * Creates a Group owned by the recipient, attaches them as member 1,
+     * and OR's the TeamManager bits onto their permissions. Idempotent —
+     * if the recipient already owns a group, we keep it and only ensure
+     * the bits are set.
+     */
+    private function bootstrapTeamGroup(User $recipient, string $tier): void
+    {
+        $group = $recipient->ownedGroup;
+
+        if ($group === null) {
+            $groupName = trim(($recipient->name ?? $recipient->email) . "'s Team");
+            $group     = Group::create(['name' => $groupName, 'owner_id' => $recipient->id]);
+        }
+
+        if (! $group->members()->where('users.id', $recipient->id)->exists()) {
+            $group->members()->attach($recipient->id);
+        }
+
+        // Grant manager bits in addition to tier permissions. Rank-and-file
+        // seats won't get these — only the group owner.
+        $target = $recipient->permissions | Permission::team() | Permission::teamManagerMask();
+        if ($recipient->permissions !== $target || $recipient->tier !== $tier) {
+            $recipient->update(['tier' => $tier, 'permissions' => $target]);
+        }
     }
 
     private function assertValidTier(string $tier): void

@@ -1,0 +1,56 @@
+/*
+ * TicketLens design-system tokens.
+ * Phase 3 of the tl-* refactor. Additive only — no consumers in this phase.
+ * Values and names match docs/design-system/AUDIT.md §2 in the CLI repo.
+ */
+
+:root {
+  /* Surface */
+  --tl-bg: oklch(0.185 0.013 255);
+  --tl-surface: oklch(0.225 0.014 255);
+  --tl-surface-2: oklch(0.275 0.015 255);
+  --tl-surface-3: oklch(0.325 0.015 255);
+  --tl-border: oklch(0.28 0.014 255);
+  --tl-border-strong: oklch(0.33 0.014 255);
+
+  /* Text */
+  --tl-text: oklch(0.98 0 0);
+  --tl-text-primary: oklch(0.93 0.012 255);
+  --tl-text-secondary: oklch(0.85 0.015 255);
+  --tl-text-muted: oklch(0.72 0.018 255);
+  --tl-text-subtle: oklch(0.62 0.018 255);
+
+  /* Brand */
+  --tl-brand: oklch(0.55 0.18 275);
+  --tl-brand-hover: oklch(0.6 0.18 275);
+  --tl-brand-soft: oklch(0.72 0.17 275);
+  --tl-brand-tint: oklch(0.72 0.17 275 / 0.10);
+
+  /* Semantic */
+  --tl-warn: oklch(0.82 0.15 75);
+  --tl-danger: oklch(0.68 0.19 25);
+  --tl-success: oklch(0.72 0.17 155);
+
+  /* Radius */
+  --tl-radius-sm: 0.25rem;
+  --tl-radius: 0.5rem;
+  --tl-radius-lg: 0.75rem;
+  --tl-radius-full: 9999px;
+
+  /* Shadow / focus ring */
+  --tl-ring-subtle: 0 0 0 1px oklch(0.45 0.015 255);
+  --tl-ring-brand: 0 0 0 2px oklch(0.6 0.18 275);
+  --tl-shadow-lg: 0 10px 15px -3px oklch(0 0 0 / 0.3);
+
+  /* Transitions */
+  --tl-transition-fast: 100ms ease-out;
+  --tl-transition: 150ms ease-out;
+  --tl-transition-slow: 200ms ease-out;
+
+  /* Z-index scale */
+  --tl-z-base: 10;
+  --tl-z-nav: 30;
+  --tl-z-sidebar: 40;
+  --tl-z-overlay: 50;
+  --tl-z-banner: 60;
+}

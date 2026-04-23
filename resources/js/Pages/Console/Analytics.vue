@@ -1,5 +1,6 @@
 <script setup>
 import ConsoleLayout from '@/Layouts/ConsoleLayout.vue'
+import TlIcon from '@/components/TlIcon.vue'
 import { computed } from 'vue'
 
 defineOptions({ layout: ConsoleLayout })
@@ -81,9 +82,7 @@ function formatAction(action) {
                         <p class="text-xs text-slate-500">last 30 days</p>
                     </div>
                     <div class="absolute inset-0 flex flex-col items-center justify-center gap-2">
-                        <svg class="w-5 h-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"/>
-                        </svg>
+                        <TlIcon name="lock-closed" class="w-5 h-5 text-slate-400" />
                         <span class="text-xs text-slate-400 font-medium">Pro only</span>
                     </div>
                 </div>
@@ -95,9 +94,7 @@ function formatAction(action) {
                         <p class="text-xs text-slate-500">vs. raw API cost</p>
                     </div>
                     <div class="absolute inset-0 flex flex-col items-center justify-center gap-2">
-                        <svg class="w-5 h-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"/>
-                        </svg>
+                        <TlIcon name="lock-closed" class="w-5 h-5 text-slate-400" />
                         <span class="text-xs text-slate-400 font-medium">Pro only</span>
                     </div>
                 </div>
@@ -109,9 +106,7 @@ function formatAction(action) {
                         <p class="text-xs text-slate-500">last 30 days</p>
                     </div>
                     <div class="absolute inset-0 flex flex-col items-center justify-center gap-2">
-                        <svg class="w-5 h-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"/>
-                        </svg>
+                        <TlIcon name="lock-closed" class="w-5 h-5 text-slate-400" />
                         <span class="text-xs text-slate-400 font-medium">Pro only</span>
                     </div>
                 </div>
@@ -129,9 +124,7 @@ function formatAction(action) {
                     class="shrink-0 inline-flex items-center gap-2 bg-indigo-500 hover:bg-indigo-400 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors duration-150 cursor-pointer"
                 >
                     Upgrade to Pro
-                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/>
-                    </svg>
+                    <TlIcon name="arrow-right" class="w-4 h-4" />
                 </a>
             </div>
 
@@ -146,9 +139,7 @@ function formatAction(action) {
                 <div class="bg-slate-900 border border-slate-800 rounded-xl p-5">
                     <div class="flex items-center justify-between mb-4">
                         <p class="text-xs font-medium text-slate-400 uppercase tracking-wider">Total Tokens Saved</p>
-                        <svg class="w-4 h-4 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18L9 11.25l4.306 4.307a11.95 11.95 0 015.814-5.519l2.74-1.22m0 0l-5.94-2.28m5.94 2.28l-2.28 5.941"/>
-                        </svg>
+                        <TlIcon name="trending-up" class="w-4 h-4 text-indigo-500" />
                     </div>
                     <p class="text-3xl font-mono font-semibold text-indigo-400">{{ formatNumber(stats.totalTokens) }}</p>
                     <p class="text-xs text-slate-500 mt-1">tokens compressed</p>
@@ -157,9 +148,7 @@ function formatAction(action) {
                 <div class="bg-slate-900 border border-slate-800 rounded-xl p-5">
                     <div class="flex items-center justify-between mb-4">
                         <p class="text-xs font-medium text-slate-400 uppercase tracking-wider">Estimated Savings</p>
-                        <svg class="w-4 h-4 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                        </svg>
+                        <TlIcon name="currency-dollar" class="w-4 h-4 text-slate-600" />
                     </div>
                     <p class="text-3xl font-mono font-semibold text-slate-300">{{ estimatedSavings }}</p>
                     <p class="text-xs text-slate-500 mt-1">at $0.015 / 1K tokens</p>
@@ -168,9 +157,7 @@ function formatAction(action) {
                 <div class="bg-slate-900 border border-slate-800 rounded-xl p-5">
                     <div class="flex items-center justify-between mb-4">
                         <p class="text-xs font-medium text-slate-400 uppercase tracking-wider">Total API Calls</p>
-                        <svg class="w-4 h-4 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M17.25 6.75L22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3l-4.5 16.5"/>
-                        </svg>
+                        <TlIcon name="code" class="w-4 h-4 text-slate-600" />
                     </div>
                     <p class="text-3xl font-mono font-semibold text-white">{{ formatNumber(stats.totalCalls) }}</p>
                     <p class="text-xs text-slate-500 mt-1">total requests logged</p>

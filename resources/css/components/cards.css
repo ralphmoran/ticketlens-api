@@ -1,0 +1,32 @@
+/*
+ * Card primitives — AUDIT §3.1
+ * tl-card base + --flush / --lg / --sm / --stack modifiers
+ * tl-empty-state for centered placeholder states
+ */
+
+@layer components {
+  .tl-card {
+    @apply bg-slate-900 border border-slate-800 rounded-xl p-5;
+  }
+
+  .tl-card--flush {
+    @apply overflow-hidden;
+    padding: 0;
+  }
+
+  .tl-card--lg {
+    @apply p-6;
+  }
+
+  .tl-card--sm {
+    @apply p-4;
+  }
+
+  .tl-card--stack {
+    @apply space-y-2;
+  }
+
+  .tl-empty-state {
+    @apply bg-slate-900 border border-slate-800 rounded-xl p-12 flex flex-col items-center justify-center text-center;
+  }
+}

@@ -1,0 +1,32 @@
+/*
+ * Typography primitives — AUDIT §3.2
+ * tl-heading / tl-subtext / tl-label (+ --spaced) / tl-hint / tl-lede
+ *
+ * tl-field-label lives in forms.css because AUDIT §6 groups it with form primitives.
+ */
+
+@layer components {
+  .tl-heading {
+    @apply text-xl font-semibold text-white;
+  }
+
+  .tl-subtext {
+    @apply text-slate-400 text-sm mt-0.5;
+  }
+
+  .tl-label {
+    @apply text-xs font-medium text-slate-400 uppercase tracking-wider;
+  }
+
+  .tl-label--spaced {
+    @apply mb-4;
+  }
+
+  .tl-hint {
+    @apply text-xs text-slate-500 mt-1;
+  }
+
+  .tl-lede {
+    @apply text-sm text-slate-400 mb-4;
+  }
+}

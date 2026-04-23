@@ -1,0 +1,16 @@
+/*
+ * Nav / sidebar primitives — AUDIT §3.8
+ * tl-nav-link base and tl-nav-group-label.
+ * Active/owner state modifiers are intentionally deferred to Phase 6 so the
+ * exact classes can be lifted verbatim from ConsoleLayout's :class binding.
+ */
+
+@layer components {
+  .tl-nav-link {
+    @apply flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors duration-150 cursor-pointer;
+  }
+
+  .tl-nav-group-label {
+    @apply px-3 mb-1 text-[10px] font-semibold uppercase tracking-widest text-slate-500;
+  }
+}

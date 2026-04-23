@@ -1,0 +1,65 @@
+/*
+ * Button primitives — AUDIT §3.5
+ * tl-btn + variants (primary/secondary/neutral/sm)
+ * tl-btn-ghost + color modifiers
+ * tl-chip-btn + color modifiers
+ */
+
+@layer components {
+  .tl-btn {
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .tl-btn--primary {
+    @apply px-4 py-2 rounded-lg bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-500 disabled:opacity-40 transition;
+  }
+
+  .tl-btn--secondary {
+    @apply px-3 py-1.5 rounded bg-slate-700 text-slate-200 hover:bg-slate-600 transition;
+  }
+
+  .tl-btn--neutral {
+    @apply px-4 py-2 rounded-lg bg-slate-800 text-slate-200 text-sm hover:bg-slate-700 transition;
+  }
+
+  .tl-btn--sm {
+    @apply text-xs py-1.5;
+  }
+
+  .tl-btn-ghost {
+    @apply text-xs transition;
+  }
+
+  .tl-btn-ghost--brand {
+    @apply text-indigo-400 hover:text-indigo-300;
+  }
+
+  .tl-btn-ghost--danger {
+    @apply text-red-400 hover:text-red-300;
+  }
+
+  .tl-btn-ghost--warn {
+    @apply text-amber-400 hover:text-amber-300;
+  }
+
+  .tl-btn-ghost--success {
+    @apply text-emerald-400 hover:text-emerald-300;
+  }
+
+  .tl-chip-btn {
+    @apply text-xs px-3 py-1.5 rounded border transition;
+  }
+
+  .tl-chip-btn--danger {
+    @apply bg-red-900/30 text-red-300 border-red-800 hover:bg-red-900/60;
+  }
+
+  .tl-chip-btn--warn {
+    @apply bg-amber-900/30 text-amber-300 border-amber-800 hover:bg-amber-900/60;
+  }
+
+  .tl-chip-btn--success {
+    @apply bg-emerald-900/30 text-emerald-300 border-emerald-800 hover:bg-emerald-900/60;
+  }
+}

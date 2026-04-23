@@ -1,0 +1,34 @@
+/*
+ * Table primitives — AUDIT §3.3
+ * tl-thead / tl-th (+ --right, --muted) / tl-tr / tl-divide / tl-td--empty
+ */
+
+@layer components {
+  .tl-thead {
+    @apply border-b border-slate-800 text-slate-400 text-xs uppercase tracking-wider;
+  }
+
+  .tl-th {
+    @apply text-left px-5 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider;
+  }
+
+  .tl-th--right {
+    @apply text-right;
+  }
+
+  .tl-th--muted {
+    @apply text-slate-500;
+  }
+
+  .tl-tr {
+    @apply hover:bg-slate-800/30 transition-colors duration-100;
+  }
+
+  .tl-divide {
+    @apply divide-y divide-slate-800/60;
+  }
+
+  .tl-td--empty {
+    @apply px-4 py-8 text-center text-slate-500 text-sm;
+  }
+}

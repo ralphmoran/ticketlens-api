@@ -1,0 +1,36 @@
+/*
+ * Badge / status primitives — AUDIT §3.6
+ * tl-badge + --brand color modifier
+ * tl-dot + --brand / --success color modifiers
+ * tl-kbd (code/keyboard chip) + --brand modifier
+ */
+
+@layer components {
+  .tl-badge {
+    @apply inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full border;
+  }
+
+  .tl-badge--brand {
+    @apply text-indigo-400 bg-indigo-400/10 border-indigo-400/20;
+  }
+
+  .tl-dot {
+    @apply w-1.5 h-1.5 rounded-full inline-block;
+  }
+
+  .tl-dot--brand {
+    @apply bg-indigo-400;
+  }
+
+  .tl-dot--success {
+    @apply bg-emerald-400;
+  }
+
+  .tl-kbd {
+    @apply text-xs font-mono text-slate-200 bg-slate-800 px-2 py-0.5 rounded;
+  }
+
+  .tl-kbd--brand {
+    @apply text-indigo-400 bg-slate-800 px-1.5 py-0.5 rounded font-mono;
+  }
+}

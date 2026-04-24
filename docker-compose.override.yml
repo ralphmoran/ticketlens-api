@@ -1,0 +1,23 @@
+services:
+    laravel.test:
+        ports: !override
+            - '${VITE_PORT:-5173}:${VITE_PORT:-5173}'
+        environment:
+            # Make Vite emit same-origin asset URLs so they pass the proxy +
+            # Laravel's CSP without cross-origin blocking.
+            VITE_ORIGIN: '${VITE_ORIGIN:-http://ticketlens.test}'
+            VITE_HMR_HOST: '${VITE_HMR_HOST:-ticketlens.test}'
+            VITE_HMR_CLIENT_PORT: '${VITE_HMR_CLIENT_PORT:-80}'
+
+    proxy:
+        image: 'nginx:alpine'
+        ports:
+            - '80:80'
+        volumes:
+            - './docker/nginx-proxy.conf:/etc/nginx/conf.d/default.conf:ro'
+            - './docker/_proxy-headers.conf:/etc/nginx/conf.d/_proxy-headers.conf:ro'
+            - '../ticket-lens/site:/usr/share/nginx/html:ro'
+        networks:
+            - sail
+        depends_on:
+            - laravel.test

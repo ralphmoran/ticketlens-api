@@ -3,22 +3,29 @@
 namespace Database\Seeders;
 
 use App\Enums\Permission;
+use App\Models\Group;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 
 /**
- * Dev test accounts — one per access level.
+ * Dev test accounts — one per customer-facing role, plus one platform-owner account.
  * All passwords: "password"
  *
- * Run: php artisan db:seed --class=DevSeeder
+ * Role model — three independent axes:
+ *   - tier           : customer subscription plan (free, pro, team)
+ *   - team-manager   : owns a `groups` row; set via `groups.owner_id = user.id`
+ *   - platform owner : TicketLens staff; set via `users.is_owner = true`
  *
- * | Email                   | Tier   | Permissions | Can access                          |
- * |-------------------------|--------|-------------|-------------------------------------|
- * | free@test.local         | free   | 64          | SavingsAnalytics only               |
- * | pro@test.local          | pro    | 71          | + Schedules / Digests / Summarize   |
- * | team@test.local         | team   | 127         | + Compliance / Export / MultiAccount|
- * | admin@test.local        | free   | 960         | Admin panels, free-tier features    |
- * | superadmin@test.local   | team   | 1023        | Everything                          |
+ * | Email                     | Tier | is_owner | Owns group? | Sidebar                                        |
+ * |---------------------------|------|:--------:|:-----------:|------------------------------------------------|
+ * | free@test.local           | free |  false   | no          | Overview                                       |
+ * | pro@test.local            | pro  |  false   | no          | Overview + Workflow                            |
+ * | team-member@test.local    | team |  false   | no (seat)   | Overview + Workflow + Team                     |
+ * | team-manager@test.local   | team |  false   | yes         | Overview + Workflow + Team + Admin             |
+ * | owner@test.local          | team |  true    | yes         | Everything + Owner                             |
+ *
+ * Run: php artisan db:seed --class=DevSeeder
+ * Idempotent — safe to run multiple times.
  */
 class DevSeeder extends Seeder
 {
@@ -26,53 +33,50 @@ class DevSeeder extends Seeder
 
     public function run(): void
     {
-        $accounts = [
-            [
-                'name'        => 'Free User',
-                'email'       => 'free@test.local',
-                'tier'        => 'free',
-                'permissions' => Permission::free(),
-            ],
-            [
-                'name'        => 'Pro User',
-                'email'       => 'pro@test.local',
-                'tier'        => 'pro',
-                'permissions' => Permission::pro(),
-            ],
-            [
-                'name'        => 'Team User',
-                'email'       => 'team@test.local',
-                'tier'        => 'team',
-                'permissions' => Permission::team(),
-            ],
-            [
-                'name'        => 'Admin',
-                'email'       => 'admin@test.local',
-                'tier'        => 'free',
-                'permissions' => Permission::free() | Permission::adminMask(),
-            ],
-            [
-                'name'        => 'Super Admin',
-                'email'       => 'superadmin@test.local',
-                'tier'        => 'team',
-                'permissions' => Permission::team() | Permission::adminMask(),
-                'is_owner'    => true,
-            ],
-        ];
+        $free        = $this->upsertUser('Free User',         'free@test.local',         'free', Permission::free());
+        $pro         = $this->upsertUser('Pro User',          'pro@test.local',          'pro',  Permission::pro());
+        $teamMember  = $this->upsertUser('Team Member',       'team-member@test.local',  'team', Permission::team());
+        $teamManager = $this->upsertUser('Team Manager',      'team-manager@test.local', 'team', Permission::team() | Permission::teamManagerMask());
+        $owner       = $this->upsertUser('Platform Owner',    'owner@test.local',        'team', Permission::team() | Permission::teamManagerMask(), is_owner: true);
 
-        foreach ($accounts as $account) {
-            User::updateOrCreate(
-                ['email' => $account['email']],
-                [
-                    'name'        => $account['name'],
-                    'password'    => self::PASSWORD,
-                    'tier'        => $account['tier'],
-                    'permissions' => $account['permissions'],
-                    'is_owner'    => $account['is_owner'] ?? false,
-                ],
-            );
+        $managerGroup = $this->ensureOwnedGroup($teamManager, "Team Manager's Team");
+        $managerGroup->users()->syncWithoutDetaching([$teamManager->id, $teamMember->id]);
 
-            $this->command->info("  {$account['email']} (tier={$account['tier']}, permissions={$account['permissions']}, is_owner=" . ($account['is_owner'] ?? false ? 'true' : 'false') . ')');
-        }
+        $ownerGroup = $this->ensureOwnedGroup($owner, "Platform Owner's Team");
+        $ownerGroup->users()->syncWithoutDetaching([$owner->id]);
+
+        unset($free, $pro);
+    }
+
+    private function upsertUser(string $name, string $email, string $tier, int $permissions, bool $is_owner = false): User
+    {
+        $user = User::updateOrCreate(
+            ['email' => $email],
+            [
+                'name'        => $name,
+                'password'    => self::PASSWORD,
+                'tier'        => $tier,
+                'permissions' => $permissions,
+                'is_owner'    => $is_owner,
+            ],
+        );
+
+        $this->command->info(sprintf(
+            '  %s (tier=%s, permissions=%d, is_owner=%s)',
+            $email,
+            $tier,
+            $permissions,
+            $is_owner ? 'true' : 'false',
+        ));
+
+        return $user;
+    }
+
+    private function ensureOwnedGroup(User $owner, string $name): Group
+    {
+        return Group::firstOrCreate(
+            ['owner_id' => $owner->id],
+            ['name' => $name, 'permissions' => 0],
+        );
     }
 }

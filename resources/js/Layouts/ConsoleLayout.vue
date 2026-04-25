@@ -11,6 +11,7 @@ const sidebarOpen = ref(false)
 
 const user          = computed(() => page.props.auth?.user)
 const isOwner       = computed(() => page.props.auth?.is_owner ?? false)
+const isTeamManager = computed(() => page.props.auth?.is_team_manager ?? false)
 const impersonating = computed(() => page.props.auth?.impersonating ?? null)
 
 function stopImpersonating() {
@@ -20,13 +21,16 @@ function stopImpersonating() {
 const navGroups = computed(() => [
     {
         label: 'Overview',
+        requiresTeamManager: false,
         items: [
+            { label: 'Dashboard',   href: '/console/dashboard', permission: null,                       icon: 'dashboard' },
             { label: 'Analytics',   href: '/console/analytics', permission: null,                       icon: 'chart-bar' },
             { label: 'Account',     href: '/console/account',   permission: null,                       icon: 'user-circle' },
         ]
     },
     {
         label: 'Workflow',
+        requiresTeamManager: false,
         items: [
             { label: 'Schedules',   href: '/console/schedules', permission: Permission.Schedules,       icon: 'calendar' },
             { label: 'Digests',     href: '/console/digests',   permission: Permission.Digests,         icon: 'inbox' },
@@ -36,12 +40,14 @@ const navGroups = computed(() => [
     },
     {
         label: 'Team',
+        requiresTeamManager: false,
         items: [
             { label: 'Team',        href: '/console/team',      permission: Permission.MultiAccount,    icon: 'users' },
         ]
     },
     {
         label: 'Admin',
+        requiresTeamManager: true,
         items: [
             { label: 'Members',     href: '/console/admin/members', permission: Permission.TeamManageMembers, icon: 'user-group' },
             { label: 'Seats',       href: '/console/admin/seats',   permission: Permission.TeamManageSeats,   icon: 'key' },
@@ -59,6 +65,7 @@ const ownerNavItems = [
 
 const visibleGroups = computed(() =>
     navGroups.value
+        .filter(g => ! g.requiresTeamManager || isTeamManager.value)
         .map(g => ({
             ...g,
             items: g.items.filter(item => item.permission === null || can(item.permission))

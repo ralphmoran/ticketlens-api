@@ -38,14 +38,17 @@ App runs at **http://localhost**. Mailpit (email preview) at **http://localhost:
 
 ## Test accounts
 
-| Email | Password | Role |
-|-------|----------|------|
-| `superadmin@test.local` | `password` | Owner (`is_owner=true`), Team tier |
-| `pro@test.local` | `password` | Pro tier |
-| `team@test.local` | `password` | Team tier |
-| `free@test.local` | `password` | Free tier (suspended) |
+All passwords: `password`. Login at `/console/login`.
 
-Login at `/console/login`.
+| Email | Tier | `is_owner` | Owns group? | Sidebar shows |
+|-------|------|:----------:|:-----------:|---------------|
+| `free@test.local` | free | false | no | Overview |
+| `pro@test.local` | pro | false | no | Overview + Workflow |
+| `team-member@test.local` | team | false | no (seat under manager) | Overview + Workflow + Team |
+| `team-manager@test.local` | team | false | yes | Overview + Workflow + Team + Admin |
+| `owner@test.local` | team | true | yes | Everything + Owner |
+
+`tier`, team-manager role (group ownership), and platform-owner role (`is_owner`) are independent — each axis gates a different slice of the UI.
 
 ---
 

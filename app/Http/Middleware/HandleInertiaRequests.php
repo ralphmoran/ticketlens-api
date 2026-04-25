@@ -37,14 +37,20 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
-        $user = $request->user();
+        $user                 = $request->user();
         $effectivePermissions = null;
-
-        $activeGrants = [];
+        $isTeamManager        = false;
+        $activeGrants         = [];
 
         if ($user !== null) {
             $user->load('groups');
             $effectivePermissions = app(\App\Services\PermissionService::class)->effective($user);
+
+            // Matches EnsureTeamManager middleware predicate: manager bit AND owned group.
+            // Both are required — a bit without a group is meaningless (nothing to
+            // manage), a group without the bit is revoked manager access.
+            $hasManagerBit = ($effectivePermissions & \App\Enums\Permission::TeamManageMembers->value) !== 0;
+            $isTeamManager = $hasManagerBit && $user->isTeamManager();
 
             $activeGrants = UserFeatureGrant::where('user_id', $user->id)
                 ->active()
@@ -68,6 +74,7 @@ class HandleInertiaRequests extends Middleware
                 'user'                 => $user ? $user->only('id', 'name', 'email', 'tier', 'permissions') : null,
                 'effectivePermissions' => $effectivePermissions,
                 'is_owner'             => $user?->is_owner ?? false,
+                'is_team_manager'      => $isTeamManager,
                 'activeGrants'         => $activeGrants,
                 'impersonating'        => $impersonating,
             ],

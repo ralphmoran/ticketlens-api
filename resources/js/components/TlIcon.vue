@@ -10,7 +10,7 @@
  */
 import { computed } from 'vue'
 import {
-  BarChart3, CircleUser, Calendar, Inbox, FileText, ShieldCheck,
+  LayoutDashboard, BarChart3, CircleUser, Calendar, Inbox, FileText, ShieldCheck,
   Users, UsersRound, Key, DollarSign,
   Menu, X, LogOut, TriangleAlert,
   Clock, RefreshCw, ArrowRight, CircleCheck, CircleX,
@@ -20,6 +20,7 @@ import {
 
 const ICONS = {
   // Navigation
+  'dashboard': LayoutDashboard,
   'chart-bar': BarChart3,
   'user-circle': CircleUser,
   'calendar': Calendar,

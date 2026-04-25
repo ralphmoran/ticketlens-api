@@ -3,10 +3,12 @@
 namespace Tests\Feature;
 
 use App\Enums\Permission;
+use App\Models\Feature;
 use App\Models\Group;
 use App\Models\User;
 use Database\Seeders\DevSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 /**
@@ -104,5 +106,11 @@ class DevSeederTest extends TestCase
 
         $this->assertSame(5, User::count());
         $this->assertSame(2, Group::count(), 'Expect exactly two owned groups (manager + owner)');
+    }
+
+    public function test_features_and_tier_features_are_populated(): void
+    {
+        $this->assertSame(9, Feature::count(), 'FeatureSeeder must run before users so the Owner panel renders.');
+        $this->assertGreaterThan(0, DB::table('tier_features')->count());
     }
 }

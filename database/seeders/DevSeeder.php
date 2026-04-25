@@ -33,6 +33,11 @@ class DevSeeder extends Seeder
 
     public function run(): void
     {
+        // Reference data must exist before users are wired up — the Owner
+        // panel's Tiers & Features and Clients > Show pages both render
+        // empty if `features` / `tier_features` are not populated.
+        $this->call(FeatureSeeder::class);
+
         $free        = $this->upsertUser('Free User',         'free@test.local',         'free', Permission::free());
         $pro         = $this->upsertUser('Pro User',          'pro@test.local',          'pro',  Permission::pro());
         $teamMember  = $this->upsertUser('Team Member',       'team-member@test.local',  'team', Permission::team());

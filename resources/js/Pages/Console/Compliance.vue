@@ -1,5 +1,6 @@
 <script setup>
 import ConsoleLayout from '@/Layouts/ConsoleLayout.vue'
+import TlIcon from '@/components/TlIcon.vue'
 import { computed } from 'vue'
 
 defineOptions({ layout: ConsoleLayout })
@@ -66,9 +67,7 @@ function formatDate(iso) {
 
         <!-- Empty state -->
         <div v-if="checks.length === 0" class="bg-slate-900 border border-slate-800 rounded-xl p-12 flex flex-col items-center justify-center text-center">
-            <svg class="w-10 h-10 text-slate-700 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"/>
-            </svg>
+            <TlIcon name="shield-check" class="w-10 h-10 text-slate-700 mb-4" />
             <p class="text-slate-300 font-medium mb-1">No compliance checks yet.</p>
             <p class="text-slate-500 text-sm">
                 Run <code class="font-mono text-indigo-400 bg-slate-800 px-1.5 py-0.5 rounded">ticketlens --check</code> to run your first check.

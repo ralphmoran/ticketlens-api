@@ -1,5 +1,6 @@
 <script setup>
 import ConsoleLayout from '@/Layouts/ConsoleLayout.vue'
+import TlIcon from '@/components/TlIcon.vue'
 import { Link } from '@inertiajs/vue3'
 
 defineOptions({ layout: ConsoleLayout })
@@ -63,9 +64,7 @@ const relevantTiers = tiers.filter(t =>
                         :key="feature"
                         class="flex items-center gap-2 text-sm text-slate-300"
                     >
-                        <svg class="w-4 h-4 text-indigo-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-                        </svg>
+                        <TlIcon name="check" :stroke-width="2" class="w-4 h-4 text-indigo-400 shrink-0" />
                         {{ feature }}
                     </li>
                 </ul>

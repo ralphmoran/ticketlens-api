@@ -1,5 +1,6 @@
 <script setup>
 import ConsoleLayout from '@/Layouts/ConsoleLayout.vue'
+import TlIcon from '@/components/TlIcon.vue'
 import { router } from '@inertiajs/vue3'
 import { ref } from 'vue'
 
@@ -41,9 +42,7 @@ function dismiss() {
         <!-- Success banner -->
         <div class="bg-emerald-900/20 border border-emerald-800/50 rounded-xl p-5 mb-5">
             <div class="flex items-center gap-3">
-                <svg class="w-6 h-6 text-emerald-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                </svg>
+                <TlIcon name="check-circle" :stroke-width="2" class="w-6 h-6 text-emerald-400 shrink-0" />
                 <div>
                     <h1 class="text-base font-semibold text-emerald-200">License issued</h1>
                     <p class="text-xs text-emerald-400/80 mt-0.5">

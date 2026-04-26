@@ -1,5 +1,6 @@
 <script setup>
 import ConsoleLayout from '@/Layouts/ConsoleLayout.vue'
+import TlIcon from '@/components/TlIcon.vue'
 import { router } from '@inertiajs/vue3'
 
 defineOptions({ layout: ConsoleLayout })
@@ -62,9 +63,7 @@ const TIER_LABELS = {
                                 ]"
                                 :title="hasFeature(tier, feature.id) ? 'Remove from ' + tier : 'Add to ' + tier"
                             >
-                                <svg v-if="hasFeature(tier, feature.id)" class="w-full h-full text-white p-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-                                </svg>
+                                <TlIcon v-if="hasFeature(tier, feature.id)" name="check" :stroke-width="3" class="w-full h-full text-white p-0.5" />
                             </button>
                         </td>
                     </tr>

@@ -1,5 +1,6 @@
 <script setup>
 import ConsoleLayout from '@/Layouts/ConsoleLayout.vue'
+import TlIcon from '@/components/TlIcon.vue'
 import { computed } from 'vue'
 import { Link } from '@inertiajs/vue3'
 
@@ -33,9 +34,7 @@ function formatDate(iso) {
 
         <!-- No-license state -->
         <div v-if="!hasLicense" class="bg-slate-900 border border-slate-800 rounded-xl p-12 flex flex-col items-center justify-center text-center">
-            <svg class="w-10 h-10 text-slate-700 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
-            </svg>
+            <TlIcon name="lock-closed" class="w-10 h-10 text-slate-700 mb-4" />
             <p class="text-slate-300 font-medium mb-1">Active license required to manage schedules</p>
             <p class="text-slate-500 text-sm mb-6">Upgrade to Pro to configure and view your digest schedules.</p>
             <Link href="/console/account" class="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors duration-150">
@@ -45,9 +44,7 @@ function formatDate(iso) {
 
         <!-- Empty state -->
         <div v-else-if="schedules.length === 0" class="bg-slate-900 border border-slate-800 rounded-xl p-12 flex flex-col items-center justify-center text-center">
-            <svg class="w-10 h-10 text-slate-700 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 13.5h3.86a2.25 2.25 0 012.012 1.244l.256.512a2.25 2.25 0 002.013 1.244h3.218a2.25 2.25 0 002.013-1.244l.256-.512a2.25 2.25 0 012.013-1.244h3.859m-19.5.338V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18v-4.162c0-.224-.034-.447-.1-.661L19.24 5.338a2.25 2.25 0 00-2.15-1.588H6.911a2.25 2.25 0 00-2.15 1.588L2.35 13.177a2.25 2.25 0 00-.1.661z" />
-            </svg>
+            <TlIcon name="inbox" class="w-10 h-10 text-slate-700 mb-4" />
             <p class="text-slate-300 font-medium mb-1">No schedules configured yet</p>
             <p class="text-slate-500 text-sm">
                 Run <code class="font-mono text-indigo-400 bg-slate-800 px-1.5 py-0.5 rounded">ticketlens --schedule</code> to set up your first digest schedule.

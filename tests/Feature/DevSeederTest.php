@@ -83,9 +83,14 @@ class DevSeederTest extends TestCase
     {
         $user = User::where('email', 'owner@test.local')->firstOrFail();
 
-        $this->assertSame('team', $user->tier);
+        // Owner is decoupled from the tier system — tier='owner' is a sentinel,
+        // permissions=0 because god mode comes from is_owner=true via the
+        // PermissionService short-circuit. No owned group either.
+        $this->assertSame('owner', $user->tier);
+        $this->assertSame(0, $user->permissions);
         $this->assertTrue($user->is_owner);
-        $this->assertTrue($user->isTeamManager());
+        $this->assertFalse($user->isTeamManager());
+        $this->assertSame(0, $user->groups()->count(), 'Owner must not belong to any team group.');
     }
 
     public function test_manager_group_contains_both_manager_and_member(): void
@@ -105,7 +110,7 @@ class DevSeederTest extends TestCase
         $this->seed(DevSeeder::class);
 
         $this->assertSame(5, User::count());
-        $this->assertSame(2, Group::count(), 'Expect exactly two owned groups (manager + owner)');
+        $this->assertSame(1, Group::count(), 'Expect exactly one owned group — the team manager. Owner is tier-decoupled and groupless.');
     }
 
     public function test_features_and_tier_features_are_populated(): void

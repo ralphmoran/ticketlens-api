@@ -43,6 +43,15 @@ const TIER_COLORS = {
     pro:        'bg-blue-900/40 text-blue-300',
     team:       'bg-violet-900/40 text-violet-300',
     enterprise: 'bg-amber-900/40 text-amber-300',
+    owner:      'bg-amber-500/20 text-amber-300 border border-amber-700/40',
+}
+
+// Drop the meta first/last "« Previous" / "Next »" entries — those are rendered
+// separately so the numbered links list stays clean. `label` may contain &laquo;
+// / &raquo; HTML entities, so use v-html where rendered.
+function pageLinks(links) {
+    if (!Array.isArray(links)) return []
+    return links.slice(1, -1)
 }
 </script>
 
@@ -109,9 +118,16 @@ const TIER_COLORS = {
                         <td class="px-4 py-3 text-right">
                             <div class="flex items-center justify-end gap-2">
                                 <Link :href="`/console/owner/clients/${client.id}`" class="text-xs text-slate-400 hover:text-white transition">View</Link>
-                                <button v-if="!client.suspended_at && !client.deleted_at" @click="suspend(client.id)" class="text-xs text-amber-400 hover:text-amber-300 transition">Suspend</button>
-                                <button v-if="client.suspended_at && !client.deleted_at" @click="restore(client.id)" class="text-xs text-emerald-400 hover:text-emerald-300 transition">Restore</button>
-                                <button v-if="!client.deleted_at" @click="destroy(client.id)" class="text-xs text-red-400 hover:text-red-300 transition">Delete</button>
+                                <span
+                                    v-if="client.is_owner"
+                                    data-testid="owner-protected-badge"
+                                    class="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-900/30 text-amber-400 border border-amber-700/40"
+                                >Protected</span>
+                                <template v-else>
+                                    <button v-if="!client.suspended_at && !client.deleted_at" @click="suspend(client.id)" class="text-xs text-amber-400 hover:text-amber-300 transition">Suspend</button>
+                                    <button v-if="client.suspended_at && !client.deleted_at" @click="restore(client.id)" class="text-xs text-emerald-400 hover:text-emerald-300 transition">Restore</button>
+                                    <button v-if="!client.deleted_at" @click="destroy(client.id)" class="text-xs text-red-400 hover:text-red-300 transition">Delete</button>
+                                </template>
                             </div>
                         </td>
                     </tr>
@@ -123,9 +139,54 @@ const TIER_COLORS = {
         </div>
 
         <!-- Pagination -->
-        <div v-if="clients.last_page > 1" class="mt-4 flex gap-2 justify-end">
-            <Link v-if="clients.prev_page_url" :href="clients.prev_page_url" class="px-3 py-1.5 rounded bg-slate-800 text-slate-300 text-sm hover:bg-slate-700 transition">Prev</Link>
-            <Link v-if="clients.next_page_url" :href="clients.next_page_url" class="px-3 py-1.5 rounded bg-slate-800 text-slate-300 text-sm hover:bg-slate-700 transition">Next</Link>
-        </div>
+        <nav
+            v-if="clients.last_page > 1"
+            aria-label="Clients pagination"
+            data-testid="clients-pagination"
+            class="mt-4 flex flex-wrap items-center justify-between gap-2"
+        >
+            <p class="text-xs text-slate-500">
+                Showing
+                <span class="text-slate-300 font-medium">{{ clients.from ?? 0 }}</span>–<span class="text-slate-300 font-medium">{{ clients.to ?? 0 }}</span>
+                of
+                <span class="text-slate-300 font-medium">{{ clients.total }}</span>
+            </p>
+            <div class="flex flex-wrap items-center gap-1">
+                <Link
+                    v-if="clients.prev_page_url"
+                    :href="clients.prev_page_url"
+                    rel="prev"
+                    class="px-2.5 py-1.5 rounded bg-slate-800 text-slate-300 text-xs hover:bg-slate-700 transition"
+                >‹ Prev</Link>
+                <span v-else class="px-2.5 py-1.5 rounded bg-slate-900 text-slate-600 text-xs cursor-not-allowed">‹ Prev</span>
+
+                <template v-for="link in pageLinks(clients.links)" :key="link.label + link.url">
+                    <Link
+                        v-if="link.url"
+                        :href="link.url"
+                        :class="[
+                            'px-2.5 py-1.5 rounded text-xs transition',
+                            link.active
+                                ? 'bg-indigo-600 text-white'
+                                : 'bg-slate-800 text-slate-300 hover:bg-slate-700',
+                        ]"
+                        v-html="link.label"
+                    />
+                    <span
+                        v-else
+                        class="px-2 py-1.5 text-xs text-slate-600"
+                        v-html="link.label"
+                    />
+                </template>
+
+                <Link
+                    v-if="clients.next_page_url"
+                    :href="clients.next_page_url"
+                    rel="next"
+                    class="px-2.5 py-1.5 rounded bg-slate-800 text-slate-300 text-xs hover:bg-slate-700 transition"
+                >Next ›</Link>
+                <span v-else class="px-2.5 py-1.5 rounded bg-slate-900 text-slate-600 text-xs cursor-not-allowed">Next ›</span>
+            </div>
+        </nav>
     </div>
 </template>

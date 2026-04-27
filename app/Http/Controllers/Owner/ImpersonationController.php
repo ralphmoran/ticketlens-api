@@ -15,6 +15,8 @@ class ImpersonationController extends Controller
 
     public function store(Request $request, User $user): RedirectResponse
     {
+        abort_if($user->is_owner, 403, 'The platform owner account cannot be impersonated.');
+
         if ($user->id === $request->user()->id) {
             throw ValidationException::withMessages(['target' => 'You cannot impersonate yourself.']);
         }

@@ -74,14 +74,34 @@ class ImpersonationControllerTest extends TestCase
 
     public function test_owner_cannot_impersonate_self(): void
     {
+        // The is_owner guard fires first for the owner-as-target scenario (403,
+        // "platform owner cannot be impersonated"), which subsumes the older
+        // ValidationException-based self-impersonation check. Both checks remain
+        // — the self-check stays as defense in depth.
         $owner = $this->makeOwner();
 
         $response = $this->actingAs($owner)->post("/console/owner/impersonate/{$owner->id}");
 
-        $response->assertRedirect();
-        $response->assertSessionHasErrors('target');
+        $response->assertStatus(403);
         $this->assertNull(session('impersonator_id'));
         $this->assertDatabaseEmpty('impersonation_sessions');
+    }
+
+    public function test_cannot_impersonate_owner_target(): void
+    {
+        $owner = $this->makeOwner();
+
+        // Fabricate a second is_owner row via direct DB to test the controller
+        // guard independently of the singleton invariant.
+        $protectedTarget = $this->makeUser(['email' => 'protected@test.com']);
+        \DB::table('users')->where('id', $protectedTarget->id)->update(['is_owner' => true]);
+
+        $response = $this->actingAs($owner)->post("/console/owner/impersonate/{$protectedTarget->id}");
+
+        $response->assertStatus(403);
+        $this->assertNull(session('impersonator_id'));
+        $this->assertDatabaseEmpty('impersonation_sessions');
+        $this->assertSame($owner->id, Auth::id());
     }
 
     public function test_owner_cannot_cascade_impersonation(): void

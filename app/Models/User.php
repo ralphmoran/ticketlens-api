@@ -19,6 +19,30 @@ class User extends Authenticatable
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable, SoftDeletes;
 
+    protected static function booted(): void
+    {
+        // Singleton invariant: at most one row may have is_owner=true.
+        // Enforced in PHP because MySQL 8 has no filtered unique index. The check
+        // skips when the row being saved is itself the existing owner, so renames /
+        // password resets / suspended_at toggles on the owner row do not trip.
+        static::saving(function (User $user): void {
+            if (! $user->is_owner) {
+                return;
+            }
+
+            $existsAnotherOwner = static::query()
+                ->where('is_owner', true)
+                ->when($user->exists, fn ($q) => $q->where('id', '!=', $user->id))
+                ->exists();
+
+            if ($existsAnotherOwner) {
+                throw new \RuntimeException(
+                    'Only a single platform owner account may exist.',
+                );
+            }
+        });
+    }
+
     /**
      * Get the attributes that should be cast.
      *

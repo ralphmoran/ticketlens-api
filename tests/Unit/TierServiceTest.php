@@ -87,4 +87,36 @@ class TierServiceTest extends TestCase
 
         $this->assertEquals(127, $teamUser->fresh()->permissions);
     }
+
+    // ---- Owner accounts must be opted out of tier sync ----
+
+    public function test_sync_user_skips_owner_account(): void
+    {
+        $feature = $this->seedFeature('schedules', 1);
+        DB::table('tier_features')->insert(['tier' => 'pro', 'feature_id' => $feature->id]);
+
+        $owner = User::factory()->create([
+            'tier'        => 'pro',
+            'permissions' => 0,
+            'is_owner'    => true,
+        ]);
+
+        $this->service->syncUser($owner);
+
+        $this->assertEquals(0, $owner->fresh()->permissions, 'Owner permissions must not be overwritten by tier sync.');
+    }
+
+    public function test_sync_all_for_tier_skips_owner_rows(): void
+    {
+        $feature = $this->seedFeature('schedules', 1);
+        DB::table('tier_features')->insert(['tier' => 'pro', 'feature_id' => $feature->id]);
+
+        $proUser = User::factory()->create(['tier' => 'pro', 'permissions' => 0, 'is_owner' => false]);
+        $owner   = User::factory()->create(['tier' => 'pro', 'permissions' => 42, 'is_owner' => true]);
+
+        $this->service->syncAllForTier('pro');
+
+        $this->assertEquals(1,  $proUser->fresh()->permissions, 'Non-owner pro user gets tier preset.');
+        $this->assertEquals(42, $owner->fresh()->permissions,   'Owner permissions must be untouched by bulk sync.');
+    }
 }

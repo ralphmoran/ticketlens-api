@@ -69,6 +69,16 @@ class LemonSqueezyWebhookController
 
     private function activateSubscription(User $user, array $data): void
     {
+        // Owner is decoupled from the tier system — tier='owner' / permissions=0
+        // are immutable sentinels granted by is_owner=true. A replayed valid
+        // signed webhook event pointing at the owner row would otherwise
+        // overwrite both. License-row creation is also skipped because owners
+        // do not consume LemonSqueezy subscriptions.
+        if ($user->is_owner) {
+            Log::warning('LemonSqueezy webhook: ignored event targeting platform owner', ['user_id' => $user->id]);
+            return;
+        }
+
         $productName = strtolower($data['data']['attributes']['product_name'] ?? '');
         $tierKey     = $this->resolveTierKey($productName);
         $tierConfig  = self::TIER_MAP[$tierKey] ?? null;
@@ -102,6 +112,12 @@ class LemonSqueezyWebhookController
 
     private function deactivateSubscription(User $user): void
     {
+        // Same rationale as activateSubscription — owner sentinels are immutable.
+        if ($user->is_owner) {
+            Log::warning('LemonSqueezy webhook: ignored cancel/expire event targeting platform owner', ['user_id' => $user->id]);
+            return;
+        }
+
         $newPermissions = ($user->permissions & Permission::adminMask()) | Permission::free();
 
         $user->update([
@@ -114,6 +130,10 @@ class LemonSqueezyWebhookController
 
     private function pauseSubscription(User $user, string $event): void
     {
+        if ($user->is_owner) {
+            return; // owner has no LemonSqueezy subscription rows to pause
+        }
+
         $status = $event === 'subscription_paused' ? 'paused' : 'active';
         License::where('user_id', $user->id)->update(['status' => $status]);
     }

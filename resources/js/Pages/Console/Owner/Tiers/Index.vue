@@ -38,6 +38,20 @@ const TIER_LABELS = {
             <p class="text-slate-400 text-sm mt-0.5">Check a cell to include that feature in the tier. Changes apply immediately to all users on that tier.</p>
         </div>
 
+        <!-- Owner is decoupled from the tier system — make it explicit so the
+             matrix is never mistaken for a way to grant the owner extra features. -->
+        <div
+            class="mb-5 px-4 py-3 rounded-lg bg-amber-900/20 border border-amber-700/40 text-amber-300 text-xs flex items-start gap-2"
+            data-testid="owner-decoupling-notice"
+        >
+            <span class="font-semibold uppercase tracking-wider">Note</span>
+            <span class="text-amber-200/90">
+                Tier matrix changes do <strong>not</strong> affect the platform owner.
+                Owner permissions are granted by the <code class="font-mono">is_owner</code> flag
+                (god mode), not by any tier — adjusting the matrix here only updates customer accounts.
+            </span>
+        </div>
+
         <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
             <table class="w-full text-sm">
                 <thead>

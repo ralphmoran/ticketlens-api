@@ -227,4 +227,60 @@ class GrantControllerTest extends TestCase
 
         $response->assertStatus(404);
     }
+
+    // --- Owner-target protection ---
+    //   Granting features to the owner is semantically a no-op (PermissionService
+    //   short-circuits before consulting grants), but the endpoint must reject the
+    //   request to avoid orphaned audit/grant rows pointing at the god account.
+
+    private function fabricateProtectedOwner(): User
+    {
+        $protected = $this->makeUser();
+        \DB::table('users')->where('id', $protected->id)->update(['is_owner' => true]);
+
+        return $protected->fresh();
+    }
+
+    public function test_cannot_create_grant_for_owner_target(): void
+    {
+        $owner          = $this->makeOwner();
+        $protectedOwner = $this->fabricateProtectedOwner();
+        $feature        = $this->makeFeature();
+
+        $response = $this->actingAs($owner)->post(
+            "/console/owner/clients/{$protectedOwner->id}/grants",
+            ['feature_id' => $feature->id],
+        );
+
+        $response->assertStatus(403);
+        $this->assertDatabaseMissing('user_feature_grants', [
+            'user_id'    => $protectedOwner->id,
+            'feature_id' => $feature->id,
+        ]);
+    }
+
+    public function test_cannot_revoke_grant_for_owner_target(): void
+    {
+        $owner          = $this->makeOwner();
+        $protectedOwner = $this->fabricateProtectedOwner();
+        $feature        = $this->makeFeature();
+
+        // Insert a grant directly via query builder so the (still-being-protected)
+        // controller path can be tested in isolation. In practice no grant should
+        // ever exist for an owner row — this proves the endpoint blocks even when
+        // a stale row is present.
+        $grantId = \DB::table('user_feature_grants')->insertGetId([
+            'user_id'    => $protectedOwner->id,
+            'feature_id' => $feature->id,
+            'granted_by' => $owner->id,
+            'created_at' => now(),
+        ]);
+
+        $response = $this->actingAs($owner)->delete(
+            "/console/owner/clients/{$protectedOwner->id}/grants/{$grantId}",
+        );
+
+        $response->assertStatus(403);
+        $this->assertNull(UserFeatureGrant::find($grantId)->revoked_at);
+    }
 }

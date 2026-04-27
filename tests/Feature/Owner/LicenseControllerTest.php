@@ -235,4 +235,54 @@ class LicenseControllerTest extends TestCase
         $response->assertRedirect('/console/dashboard');
         $this->assertSame('active', $license->fresh()->status);
     }
+
+    // --- Owner-target protection ---
+    //   The platform owner has god permissions via is_owner=true and is decoupled
+    //   from the tier system. Issuing a license to the owner row would route
+    //   through LicenseIssuanceService::bootstrapTeamGroup, which writes
+    //   recipient->update(['tier'=>..., 'permissions'=>...]) — that would
+    //   corrupt the owner sentinel values established by the migration.
+
+    private function fabricateProtectedOwner(): User
+    {
+        $protected = User::factory()->create(['tier' => 'free']);
+        \DB::table('users')->where('id', $protected->id)->update(['is_owner' => true]);
+
+        return $protected->fresh();
+    }
+
+    public function test_create_recipient_list_excludes_owner(): void
+    {
+        $owner          = $this->makeOwner();
+        $protectedOwner = $this->fabricateProtectedOwner();
+
+        $response = $this->actingAs($owner)->get('/console/owner/licenses/create');
+
+        $response->assertStatus(200);
+        $response->assertInertia(fn ($page) => $page
+            ->component('Console/Owner/Licenses/Create')
+            ->where(
+                'clients',
+                fn ($clients) => collect($clients)->every(fn ($c) => $c['id'] !== $protectedOwner->id),
+            ),
+        );
+    }
+
+    public function test_cannot_issue_license_to_owner(): void
+    {
+        $owner          = $this->makeOwner();
+        $protectedOwner = $this->fabricateProtectedOwner();
+
+        $response = $this->actingAs($owner)->post('/console/owner/licenses', [
+            'user_id'    => $protectedOwner->id,
+            'tier'       => 'pro',
+            'send_email' => false,
+        ]);
+
+        $response->assertStatus(422);
+        $this->assertDatabaseMissing('licenses', ['user_id' => $protectedOwner->id]);
+        // Owner sentinel values must not have been overwritten by bootstrapTeamGroup.
+        $fresh = $protectedOwner->fresh();
+        $this->assertSame('free', $fresh->tier, 'Owner sentinel tier must not have been mutated by issuance.');
+    }
 }

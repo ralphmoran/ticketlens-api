@@ -109,4 +109,53 @@ class WebhookTest extends TestCase
             'tier' => 'free',
         ]);
     }
+
+    // --- Owner-target protection ---
+    //   The webhook is HMAC-verified but unauthenticated. A replayed valid event
+    //   pointing at the owner row would otherwise overwrite the owner sentinel
+    //   tier='owner' / permissions=0 with the tier values from the payload.
+    //   Owner permissions come from the is_owner flag, not from tier — the
+    //   webhook must skip these mutations.
+
+    public function test_webhook_does_not_mutate_owner_on_subscription_created(): void
+    {
+        $owner = User::factory()->create(['is_owner' => true, 'tier' => 'owner', 'permissions' => 0]);
+
+        $response = $this->postSigned([
+            'meta' => [
+                'event_name'  => 'subscription_created',
+                'custom_data' => ['user_id' => $owner->id],
+            ],
+            'data' => [
+                'attributes' => [
+                    'user_email'   => $owner->email,
+                    'product_name' => 'Pro',
+                    'identifier'   => 'lemon-key-fake',
+                ],
+            ],
+        ]);
+
+        $response->assertStatus(200);
+        $fresh = $owner->fresh();
+        $this->assertSame('owner', $fresh->tier, 'Owner sentinel tier must not be overwritten by webhook.');
+        $this->assertSame(0, $fresh->permissions, 'Owner permissions sentinel must not be overwritten by webhook.');
+    }
+
+    public function test_webhook_does_not_mutate_owner_on_subscription_cancelled(): void
+    {
+        $owner = User::factory()->create(['is_owner' => true, 'tier' => 'owner', 'permissions' => 0]);
+
+        $response = $this->postSigned([
+            'meta' => [
+                'event_name'  => 'subscription_cancelled',
+                'custom_data' => ['user_id' => $owner->id],
+            ],
+            'data' => ['attributes' => ['user_email' => $owner->email]],
+        ]);
+
+        $response->assertStatus(200);
+        $fresh = $owner->fresh();
+        $this->assertSame('owner', $fresh->tier);
+        $this->assertSame(0, $fresh->permissions);
+    }
 }

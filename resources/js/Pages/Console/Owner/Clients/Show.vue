@@ -83,7 +83,13 @@ function impersonate() {
                     <h1 class="text-lg font-semibold text-white">{{ client.name }}</h1>
                     <p class="text-slate-400 text-sm">{{ client.email }}</p>
                 </div>
-                <div class="flex gap-2">
+                <div v-if="client.is_owner" class="flex items-center gap-2">
+                    <span
+                        data-testid="owner-protected-badge"
+                        class="text-[10px] uppercase tracking-wider px-2 py-1 rounded bg-amber-900/30 text-amber-400 border border-amber-700/40"
+                    >Platform owner — protected</span>
+                </div>
+                <div v-else class="flex gap-2">
                     <button
                         v-if="!client.suspended_at"
                         @click="impersonate"
@@ -95,8 +101,8 @@ function impersonate() {
                 </div>
             </div>
 
-            <!-- Tier edit -->
-            <div class="flex items-center gap-3">
+            <!-- Tier edit (hidden for owner — owner is tier-decoupled) -->
+            <div v-if="!client.is_owner" class="flex items-center gap-3">
                 <label class="text-xs text-slate-400 uppercase tracking-wider w-16">Tier</label>
                 <select v-model="form.tier" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-slate-500">
                     <option value="free">Free</option>
@@ -109,10 +115,14 @@ function impersonate() {
                 </button>
                 <p v-if="form.errors.tier" class="text-red-400 text-xs">{{ form.errors.tier }}</p>
             </div>
+            <p
+                v-else
+                class="text-xs text-slate-500 italic"
+            >Tier and feature grants are not editable for the platform owner — god permissions are granted by the owner flag, not by tier or grants.</p>
         </div>
 
-        <!-- Feature grants -->
-        <div class="bg-slate-900 border border-slate-800 rounded-xl mb-6">
+        <!-- Feature grants — hidden for owner (god mode bypasses bitmask) -->
+        <div v-if="!client.is_owner" class="bg-slate-900 border border-slate-800 rounded-xl mb-6">
             <div class="px-5 py-3 border-b border-slate-800">
                 <h2 class="text-sm font-medium text-slate-300">Feature grants</h2>
                 <p class="text-xs text-slate-500 mt-0.5">Give this client specific features beyond their tier. Leave expiry blank for a permanent grant.</p>

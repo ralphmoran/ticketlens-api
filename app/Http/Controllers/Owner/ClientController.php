@@ -65,6 +65,8 @@ class ClientController extends Controller
 
     public function update(Request $request, User $user): RedirectResponse
     {
+        abort_if($user->is_owner, 403, 'The platform owner account is protected.');
+
         $validated = $request->validate([
             'tier' => ['required', 'string', 'in:' . implode(',', self::VALID_TIERS)],
         ]);
@@ -81,6 +83,8 @@ class ClientController extends Controller
 
     public function suspend(Request $request, User $user): RedirectResponse
     {
+        abort_if($user->is_owner, 403, 'The platform owner account cannot be suspended.');
+
         $user->update(['suspended_at' => now()]);
 
         $this->audit->logFromRequest($request, 'user.suspended', $user);
@@ -90,6 +94,11 @@ class ClientController extends Controller
 
     public function restore(Request $request, User $user): RedirectResponse
     {
+        // The owner row should never be in a suspended state (suspend is guarded),
+        // but defense in depth: if a future raw-DB write toggles it, restore must
+        // not silently clear the flag without owner authorisation review.
+        abort_if($user->is_owner, 403, 'The platform owner account is restored only by direct intervention.');
+
         $user->update(['suspended_at' => null]);
 
         $this->audit->logFromRequest($request, 'user.restored', $user);
@@ -99,6 +108,8 @@ class ClientController extends Controller
 
     public function destroy(Request $request, User $user): RedirectResponse
     {
+        abort_if($user->is_owner, 403, 'The platform owner account cannot be deleted.');
+
         if ($user->id === $request->user()->id) {
             abort(422, 'Cannot delete your own account.');
         }

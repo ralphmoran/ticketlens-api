@@ -46,7 +46,11 @@ class LicenseController extends Controller
     public function create(): Response
     {
         return Inertia::render('Console/Owner/Licenses/Create', [
+            // Exclude the owner row from the recipient picker — issuing a license
+            // to the owner would route through bootstrapTeamGroup() and overwrite
+            // the owner sentinel tier/permissions.
             'clients' => User::query()
+                ->where('is_owner', false)
                 ->whereNull('deleted_at')
                 ->orderBy('email')
                 ->limit(500)
@@ -65,6 +69,11 @@ class LicenseController extends Controller
         ]);
 
         $recipient = User::findOrFail($validated['user_id']);
+
+        // Defence in depth: the create() endpoint already filters owner out of
+        // the picker, but the store endpoint is reachable directly so it must
+        // also reject the owner row.
+        abort_if($recipient->is_owner, 422, 'Cannot issue a license to the platform owner.');
 
         $result = $this->issuance->issue(
             owner: $request->user(),

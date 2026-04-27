@@ -1,6 +1,7 @@
 <script setup>
 import ConsoleLayout from '@/Layouts/ConsoleLayout.vue'
-import { useForm } from '@inertiajs/vue3'
+import { Link, useForm } from '@inertiajs/vue3'
+import { computed, ref } from 'vue'
 
 defineOptions({ layout: ConsoleLayout })
 
@@ -25,7 +26,18 @@ const keyForm = useForm({
     openai_key: '',
 })
 
+const inlineError = ref('')
+
+const bothFieldsEmpty = computed(() =>
+    keyForm.anthropic_key.trim() === '' && keyForm.openai_key.trim() === ''
+)
+
 const submitKeys = () => {
+    if (bothFieldsEmpty.value) {
+        inlineError.value = 'Enter at least one API key before saving.'
+        return
+    }
+    inlineError.value = ''
     keyForm.post('/console/account/keys', {
         preserveScroll: true,
         onSuccess: () => keyForm.reset(),
@@ -37,6 +49,7 @@ const tierStyles = {
     pro:        'bg-indigo-600 text-white',
     team:       'bg-violet-600 text-white',
     enterprise: 'bg-amber-600 text-white',
+    owner:      'bg-amber-500 text-slate-950',
 }
 
 const licenseStatusStyles = {
@@ -90,12 +103,10 @@ const licenseBadge = (status) => licenseStatusStyles[status?.toLowerCase()] ?? l
 
             <template v-if="!account.license">
                 <p class="text-sm text-slate-400 mb-4">No active license.</p>
-                <a
-                    href="https://ticketlens.dev/#pricing"
-                    target="_blank"
-                    rel="noopener noreferrer"
+                <Link
+                    href="/console/upgrade"
                     class="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg border border-indigo-500 text-indigo-400 text-sm font-medium hover:bg-indigo-500/10 transition-colors duration-150"
-                >Get a license →</a>
+                >Get a license →</Link>
             </template>
 
             <template v-else>
@@ -175,12 +186,23 @@ const licenseBadge = (status) => licenseStatusStyles[status?.toLowerCase()] ?? l
                     </div>
                 </div>
 
-                <div class="pt-2">
+                <div class="pt-2 flex flex-col gap-2">
                     <button
                         type="submit"
-                        :disabled="keyForm.processing"
-                        class="px-4 py-2 rounded-lg bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150"
+                        :disabled="keyForm.processing || bothFieldsEmpty"
+                        data-testid="save-keys-button"
+                        class="self-start px-4 py-2 rounded-lg bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150"
                     >Save Keys</button>
+                    <p
+                        v-if="inlineError"
+                        role="alert"
+                        data-testid="save-keys-error"
+                        class="text-xs text-red-400"
+                    >{{ inlineError }}</p>
+                    <p
+                        v-else-if="bothFieldsEmpty"
+                        class="text-xs text-slate-500"
+                    >Enter at least one API key to enable Save.</p>
                 </div>
             </form>
         </div>
@@ -193,12 +215,10 @@ const licenseBadge = (status) => licenseStatusStyles[status?.toLowerCase()] ?? l
             <p class="text-sm font-medium text-white">
                 Unlock Pro features &mdash; Schedules, Digests, Summarize and more
             </p>
-            <a
-                href="https://ticketlens.dev/#pricing"
-                target="_blank"
-                rel="noopener noreferrer"
+            <Link
+                href="/console/upgrade"
                 class="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-white text-indigo-600 text-sm font-semibold hover:bg-indigo-50 transition-colors duration-150 shrink-0"
-            >Upgrade →</a>
+            >Upgrade →</Link>
         </div>
 
     </div>

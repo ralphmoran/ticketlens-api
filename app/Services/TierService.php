@@ -24,9 +24,16 @@ class TierService
     /**
      * Set a user's permissions to their tier's current preset.
      * Wrapped in a transaction — caller should not wrap again.
+     *
+     * Owner accounts are skipped: their permissions are granted by `is_owner=true`
+     * (god mode in PermissionService) and must never be coupled to tier mutations.
      */
     public function syncUser(User $user): void
     {
+        if ($user->is_owner) {
+            return;
+        }
+
         DB::transaction(function () use ($user): void {
             $permissions = $this->permissionsForTier($user->tier);
             $user->update(['permissions' => $permissions]);
@@ -35,13 +42,16 @@ class TierService
 
     /**
      * Bulk-sync all users on a given tier after the tier's feature set changes.
+     * Owner rows are excluded — see syncUser().
      */
     public function syncAllForTier(string $tier): void
     {
         $permissions = $this->permissionsForTier($tier);
 
         DB::transaction(function () use ($tier, $permissions): void {
-            User::where('tier', $tier)->update(['permissions' => $permissions]);
+            User::where('tier', $tier)
+                ->where('is_owner', false)
+                ->update(['permissions' => $permissions]);
         });
     }
 }

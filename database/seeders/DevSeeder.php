@@ -16,13 +16,13 @@ use Illuminate\Database\Seeder;
  *   - team-manager   : owns a `groups` row; set via `groups.owner_id = user.id`
  *   - platform owner : TicketLens staff; set via `users.is_owner = true`
  *
- * | Email                     | Tier | is_owner | Owns group? | Sidebar                                        |
- * |---------------------------|------|:--------:|:-----------:|------------------------------------------------|
- * | free@test.local           | free |  false   | no          | Overview                                       |
- * | pro@test.local            | pro  |  false   | no          | Overview + Workflow                            |
- * | team-member@test.local    | team |  false   | no (seat)   | Overview + Workflow + Team                     |
- * | team-manager@test.local   | team |  false   | yes         | Overview + Workflow + Team + Admin             |
- * | owner@test.local          | team |  true    | yes         | Everything + Owner                             |
+ * | Email                     | Tier  | is_owner | Owns group? | Sidebar                                        |
+ * |---------------------------|-------|:--------:|:-----------:|------------------------------------------------|
+ * | free@test.local           | free  |  false   | no          | Overview                                       |
+ * | pro@test.local            | pro   |  false   | no          | Overview + Workflow                            |
+ * | team-member@test.local    | team  |  false   | no (seat)   | Overview + Workflow + Team                     |
+ * | team-manager@test.local   | team  |  false   | yes         | Overview + Workflow + Team + Admin             |
+ * | owner@test.local          | owner |  true    | no          | Everything + Owner (god mode via is_owner)     |
  *
  * Run: php artisan db:seed --class=DevSeeder
  * Idempotent — safe to run multiple times.
@@ -42,15 +42,17 @@ class DevSeeder extends Seeder
         $pro         = $this->upsertUser('Pro User',          'pro@test.local',          'pro',  Permission::pro());
         $teamMember  = $this->upsertUser('Team Member',       'team-member@test.local',  'team', Permission::team());
         $teamManager = $this->upsertUser('Team Manager',      'team-manager@test.local', 'team', Permission::team() | Permission::teamManagerMask());
-        $owner       = $this->upsertUser('Platform Owner',    'owner@test.local',        'team', Permission::team() | Permission::teamManagerMask(), is_owner: true);
+
+        // Owner is decoupled from the tier system — tier='owner' is a sentinel,
+        // permissions=0 because god mode is granted by is_owner=true via the
+        // PermissionService short-circuit. No owned group: owners do not appear
+        // in any team's roster.
+        $owner = $this->upsertUser('Platform Owner', 'owner@test.local', 'owner', 0, is_owner: true);
 
         $managerGroup = $this->ensureOwnedGroup($teamManager, "Team Manager's Team");
         $managerGroup->users()->syncWithoutDetaching([$teamManager->id, $teamMember->id]);
 
-        $ownerGroup = $this->ensureOwnedGroup($owner, "Platform Owner's Team");
-        $ownerGroup->users()->syncWithoutDetaching([$owner->id]);
-
-        unset($free, $pro);
+        unset($free, $pro, $owner);
     }
 
     private function upsertUser(string $name, string $email, string $tier, int $permissions, bool $is_owner = false): User

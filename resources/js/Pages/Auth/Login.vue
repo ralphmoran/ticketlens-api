@@ -158,7 +158,7 @@ function submitRegister() {
                         <div class="w-2.5 h-2.5 rounded-full bg-slate-700"></div>
                         <div class="w-2.5 h-2.5 rounded-full bg-slate-700"></div>
                         <div class="w-2.5 h-2.5 rounded-full bg-slate-700"></div>
-                        <div class="flex-1 mx-4 bg-slate-800 rounded px-3 py-1 text-[10px] font-mono text-slate-500">ticketlens.dev/console</div>
+                        <div class="flex-1 mx-4 bg-slate-800 rounded px-3 py-1 text-[10px] font-mono text-slate-500">ticketlens.test/console</div>
                     </div>
 
                     <!-- Mock dashboard UI -->

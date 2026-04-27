@@ -173,16 +173,14 @@ function closeSidebar() {
             <!-- Nav groups -->
             <nav class="flex-1 overflow-y-auto px-3 py-4">
                 <template v-for="group in visibleGroups" :key="group.label">
-                    <p class="px-3 mb-1 text-[10px] font-semibold uppercase tracking-widest text-slate-500">{{ group.label }}</p>
+                    <p class="tl-nav-group-label">{{ group.label }}</p>
                     <ul class="mb-5 space-y-0.5">
                         <li v-for="item in group.items" :key="item.href">
                             <a
                                 :href="item.href"
                                 @click="closeSidebar"
-                                class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors duration-150 cursor-pointer"
-                                :class="page.url.startsWith(item.href)
-                                    ? 'bg-slate-800 text-white'
-                                    : 'text-slate-400 hover:bg-slate-800/60 hover:text-white'"
+                                class="tl-nav-link"
+                                :class="page.url.startsWith(item.href) ? 'tl-nav-link--active' : 'tl-nav-link--inactive'"
                             >
                                 <TlIcon :name="item.icon" class="w-4 h-4 shrink-0" />
                                 {{ item.label }}
@@ -193,16 +191,14 @@ function closeSidebar() {
 
                 <!-- Owner section (only shown when is_owner = true) -->
                 <template v-if="isOwner">
-                    <p class="px-3 mb-1 text-[10px] font-semibold uppercase tracking-widest text-amber-500/70">Owner</p>
+                    <p class="tl-nav-group-label tl-nav-group-label--owner">Owner</p>
                     <ul class="mb-5 space-y-0.5">
                         <li v-for="item in ownerNavItems" :key="item.href">
                             <a
                                 :href="item.href"
                                 @click="closeSidebar"
-                                class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors duration-150 cursor-pointer"
-                                :class="page.url.startsWith(item.href)
-                                    ? 'bg-amber-900/30 text-amber-300'
-                                    : 'text-amber-500/70 hover:bg-amber-900/20 hover:text-amber-300'"
+                                class="tl-nav-link"
+                                :class="page.url.startsWith(item.href) ? 'tl-nav-link--owner-active' : 'tl-nav-link--owner-inactive'"
                             >
                                 {{ item.label }}
                             </a>

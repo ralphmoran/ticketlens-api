@@ -1,8 +1,10 @@
 /*
  * Nav / sidebar primitives — AUDIT §3.8
- * tl-nav-link base and tl-nav-group-label.
- * Active/owner state modifiers are intentionally deferred to Phase 6 so the
- * exact classes can be lifted verbatim from ConsoleLayout's :class binding.
+ * tl-nav-link base + 4 state modifiers (active/inactive × member/owner)
+ * tl-nav-group-label (slate by default) + --owner amber override
+ *
+ * State modifiers were deferred from Phase 4 and added in Phase 6, lifted
+ * verbatim from ConsoleLayout's :class binding so visual parity is preserved.
  */
 
 @layer components {
@@ -10,7 +12,27 @@
     @apply flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors duration-150 cursor-pointer;
   }
 
+  .tl-nav-link--active {
+    @apply bg-slate-800 text-white;
+  }
+
+  .tl-nav-link--inactive {
+    @apply text-slate-400 hover:bg-slate-800/60 hover:text-white;
+  }
+
+  .tl-nav-link--owner-active {
+    @apply bg-amber-900/30 text-amber-300;
+  }
+
+  .tl-nav-link--owner-inactive {
+    @apply text-amber-500/70 hover:bg-amber-900/20 hover:text-amber-300;
+  }
+
   .tl-nav-group-label {
     @apply px-3 mb-1 text-[10px] font-semibold uppercase tracking-widest text-slate-500;
+  }
+
+  .tl-nav-group-label--owner {
+    @apply text-amber-500/70;
   }
 }

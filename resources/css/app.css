@@ -8,6 +8,7 @@
 @import './components/badges.css';
 @import './components/typography.css';
 @import './components/layout.css';
+@import './components/tabs.css';
 
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../storage/framework/views/*.php';

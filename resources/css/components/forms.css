@@ -36,4 +36,8 @@
   .tl-field-label {
     @apply text-slate-300 font-medium mb-1;
   }
+
+  .tl-field-label--hero {
+    @apply block text-sm font-medium text-slate-300;
+  }
 }

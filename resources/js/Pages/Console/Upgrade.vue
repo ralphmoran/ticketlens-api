@@ -37,18 +37,18 @@ const relevantTiers = tiers.filter(t =>
 </script>
 
 <template>
-    <div class="px-4 sm:px-6 lg:px-8 py-8 max-w-3xl mx-auto">
+    <div class="tl-page max-w-3xl">
 
         <div class="mb-8">
-            <h1 class="text-xl font-semibold text-white">Upgrade Required</h1>
-            <p class="text-slate-400 text-sm mt-0.5">This feature is not available on your current plan.</p>
+            <h1 class="tl-heading">Upgrade Required</h1>
+            <p class="tl-subtext">This feature is not available on your current plan.</p>
         </div>
 
         <div class="grid gap-4 sm:grid-cols-2">
             <div
                 v-for="tier in relevantTiers"
                 :key="tier.key"
-                class="bg-slate-900 border border-slate-800 rounded-xl p-6 flex flex-col"
+                class="tl-card tl-card--lg flex flex-col"
             >
                 <div class="mb-4">
                     <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">{{ tier.name }}</span>

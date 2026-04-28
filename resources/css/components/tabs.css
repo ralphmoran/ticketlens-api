@@ -1,0 +1,23 @@
+/*
+ * Tab primitives — switcher controls (form/view toggles).
+ * Distinct from nav (linking) and forms (input). Currently used by
+ * Auth/Login.vue (signin / register switcher).
+ *
+ * tl-tab base + state modifiers --active / --inactive.
+ * Tab spacing (e.g. mr-6 between tabs) is positioning, applied inline.
+ */
+
+@layer components {
+  .tl-tab {
+    @apply pb-3 px-1 text-sm font-medium border-b-2 transition-colors duration-150 cursor-pointer
+           focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950;
+  }
+
+  .tl-tab--active {
+    @apply border-indigo-400 text-indigo-400;
+  }
+
+  .tl-tab--inactive {
+    @apply border-transparent text-slate-500 hover:text-slate-300;
+  }
+}

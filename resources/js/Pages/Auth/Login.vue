@@ -41,37 +41,33 @@ function submitRegister() {
                 <button
                     type="button"
                     @click="activeTab = 'signin'"
-                    class="pb-3 px-1 mr-6 text-sm font-medium border-b-2 transition-colors duration-150 cursor-pointer"
-                    :class="activeTab === 'signin'
-                        ? 'border-indigo-400 text-indigo-400'
-                        : 'border-transparent text-slate-500 hover:text-slate-300'"
+                    class="tl-tab mr-6"
+                    :class="activeTab === 'signin' ? 'tl-tab--active' : 'tl-tab--inactive'"
                 >Sign in</button>
                 <button
                     type="button"
                     @click="activeTab = 'register'"
-                    class="pb-3 px-1 text-sm font-medium border-b-2 transition-colors duration-150 cursor-pointer"
-                    :class="activeTab === 'register'
-                        ? 'border-indigo-400 text-indigo-400'
-                        : 'border-transparent text-slate-500 hover:text-slate-300'"
+                    class="tl-tab"
+                    :class="activeTab === 'register' ? 'tl-tab--active' : 'tl-tab--inactive'"
                 >Create account</button>
             </div>
 
             <!-- Sign in form -->
             <form v-if="activeTab === 'signin'" @submit.prevent="submitLogin" novalidate class="space-y-5">
                 <div>
-                    <label for="login-email" class="block text-sm font-medium text-slate-300 mb-2">Email</label>
+                    <label for="login-email" class="tl-field-label--hero mb-2">Email</label>
                     <input
                         id="login-email"
                         v-model="loginForm.email"
                         type="email"
                         autocomplete="email"
                         placeholder="you@example.com"
-                        class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors duration-150"
+                        class="tl-input--hero"
                     />
                 </div>
                 <div>
                     <div class="flex items-center justify-between mb-2">
-                        <label for="login-password" class="block text-sm font-medium text-slate-300">Password</label>
+                        <label for="login-password" class="tl-field-label--hero">Password</label>
                         <a href="#" class="text-xs text-indigo-400 hover:text-indigo-300 transition-colors duration-150">Forgot password?</a>
                     </div>
                     <input
@@ -80,7 +76,7 @@ function submitRegister() {
                         type="password"
                         autocomplete="current-password"
                         placeholder="••••••••"
-                        class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors duration-150"
+                        class="tl-input--hero"
                     />
                 </div>
 
@@ -91,7 +87,7 @@ function submitRegister() {
                 <button
                     type="submit"
                     :disabled="loginForm.processing"
-                    class="w-full flex items-center justify-center gap-2 bg-indigo-500 hover:bg-indigo-400 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-lg text-sm transition-colors duration-150 cursor-pointer"
+                    class="tl-btn--hero"
                 >
                     <TlIcon v-if="loginForm.processing" name="spinner" class="animate-spin w-4 h-4" />
                     Sign in
@@ -116,27 +112,26 @@ function submitRegister() {
             <!-- Register form -->
             <form v-else @submit.prevent="submitRegister" novalidate class="space-y-5">
                 <div>
-                    <label for="reg-name" class="block text-sm font-medium text-slate-300 mb-2">Name</label>
+                    <label for="reg-name" class="tl-field-label--hero mb-2">Name</label>
                     <input id="reg-name" v-model="registerForm.name" type="text" autocomplete="name" placeholder="Jane Smith"
-                        class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors duration-150" />
+                        class="tl-input--hero" />
                 </div>
                 <div>
-                    <label for="reg-email" class="block text-sm font-medium text-slate-300 mb-2">Email</label>
+                    <label for="reg-email" class="tl-field-label--hero mb-2">Email</label>
                     <input id="reg-email" v-model="registerForm.email" type="email" autocomplete="email" placeholder="you@example.com"
-                        class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors duration-150" />
+                        class="tl-input--hero" />
                 </div>
                 <div>
-                    <label for="reg-password" class="block text-sm font-medium text-slate-300 mb-2">Password</label>
+                    <label for="reg-password" class="tl-field-label--hero mb-2">Password</label>
                     <input id="reg-password" v-model="registerForm.password" type="password" autocomplete="new-password" placeholder="••••••••"
-                        class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors duration-150" />
+                        class="tl-input--hero" />
                 </div>
 
                 <p v-if="registerForm.errors.name || registerForm.errors.email || registerForm.errors.password" role="alert" class="text-red-400 text-sm">
                     {{ registerForm.errors.name || registerForm.errors.email || registerForm.errors.password }}
                 </p>
 
-                <button type="submit" :disabled="registerForm.processing"
-                    class="w-full flex items-center justify-center gap-2 bg-indigo-500 hover:bg-indigo-400 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-lg text-sm transition-colors duration-150 cursor-pointer">
+                <button type="submit" :disabled="registerForm.processing" class="tl-btn--hero">
                     <TlIcon v-if="registerForm.processing" name="spinner" class="animate-spin w-4 h-4" />
                     Create account
                 </button>

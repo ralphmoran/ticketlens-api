@@ -9,8 +9,8 @@ import TlIcon from '@/components/TlIcon.vue'
             <div class="inline-flex items-center justify-center w-14 h-14 rounded-full bg-red-900/30 border border-red-800 mb-6">
                 <TlIcon name="ban" class="w-7 h-7 text-red-400" />
             </div>
-            <h1 class="text-xl font-semibold text-white mb-2">Account suspended</h1>
-            <p class="text-slate-400 text-sm mb-8">
+            <h1 class="tl-heading mb-2">Account suspended</h1>
+            <p class="tl-lede mb-8">
                 Your account has been suspended. Please contact our support team to resolve this.
             </p>
             <a

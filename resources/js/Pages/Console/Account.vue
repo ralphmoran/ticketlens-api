@@ -68,12 +68,12 @@ const licenseBadge = (status) => licenseStatusStyles[status?.toLowerCase()] ?? l
 
         <!-- Page header -->
         <div class="mb-2">
-            <h1 class="text-xl font-semibold text-white">Account</h1>
-            <p class="text-slate-400 text-sm mt-0.5">Manage your profile and subscription.</p>
+            <h1 class="tl-heading">Account</h1>
+            <p class="tl-subtext">Manage your profile and subscription.</p>
         </div>
 
         <!-- Account Info card -->
-        <div class="bg-slate-900 border border-slate-800 rounded-xl p-6">
+        <div class="tl-card tl-card--lg">
             <h2 class="text-sm font-semibold text-slate-300 uppercase tracking-wider mb-5">Account Info</h2>
 
             <div class="space-y-4">
@@ -98,7 +98,7 @@ const licenseBadge = (status) => licenseStatusStyles[status?.toLowerCase()] ?? l
         </div>
 
         <!-- License card -->
-        <div class="bg-slate-900 border border-slate-800 rounded-xl p-6">
+        <div class="tl-card tl-card--lg">
             <h2 class="text-sm font-semibold text-slate-300 uppercase tracking-wider mb-5">License</h2>
 
             <template v-if="!account.license">
@@ -139,10 +139,10 @@ const licenseBadge = (status) => licenseStatusStyles[status?.toLowerCase()] ?? l
         </div>
 
         <!-- API Keys card (BYOK) -->
-        <div class="bg-slate-900 border border-slate-800 rounded-xl p-6">
+        <div class="tl-card tl-card--lg">
             <div class="mb-5">
                 <h2 class="text-sm font-semibold text-slate-300 uppercase tracking-wider">AI Provider Keys</h2>
-                <p class="text-xs text-slate-500 mt-1">Used for <code class="font-mono text-slate-400">--summarize</code> and <code class="font-mono text-slate-400">--cloud</code> features</p>
+                <p class="tl-hint">Used for <code class="font-mono text-slate-400">--summarize</code> and <code class="font-mono text-slate-400">--cloud</code> features</p>
             </div>
 
             <form @submit.prevent="submitKeys" class="space-y-4">

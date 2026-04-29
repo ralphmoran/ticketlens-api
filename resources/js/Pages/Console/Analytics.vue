@@ -50,13 +50,13 @@ function formatAction(action) {
 </script>
 
 <template>
-    <div class="px-4 sm:px-6 lg:px-8 py-8 max-w-6xl mx-auto">
+    <div class="tl-page">
 
         <!-- Page header -->
         <div class="mb-8 flex items-center justify-between">
             <div>
-                <h1 class="text-xl font-semibold text-white">Analytics</h1>
-                <p class="text-slate-400 text-sm mt-0.5">Token savings and usage breakdown.</p>
+                <h1 class="tl-heading">Analytics</h1>
+                <p class="tl-subtext">Token savings and usage breakdown.</p>
             </div>
             <span
                 class="text-xs font-mono px-2.5 py-1 rounded-md border capitalize"
@@ -75,9 +75,9 @@ function formatAction(action) {
             <!-- Blurred stat cards -->
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-8">
 
-                <div class="relative bg-slate-900 border border-slate-800 rounded-xl p-5 overflow-hidden">
+                <div class="tl-card relative overflow-hidden">
                     <div class="blur-sm pointer-events-none select-none">
-                        <p class="text-xs font-medium text-slate-400 uppercase tracking-wider mb-4">Tokens Saved</p>
+                        <p class="tl-label tl-label--spaced">Tokens Saved</p>
                         <p class="text-3xl font-mono font-semibold text-indigo-400 mb-1">12,847</p>
                         <p class="text-xs text-slate-500">last 30 days</p>
                     </div>
@@ -87,9 +87,9 @@ function formatAction(action) {
                     </div>
                 </div>
 
-                <div class="relative bg-slate-900 border border-slate-800 rounded-xl p-5 overflow-hidden">
+                <div class="tl-card relative overflow-hidden">
                     <div class="blur-sm pointer-events-none select-none">
-                        <p class="text-xs font-medium text-slate-400 uppercase tracking-wider mb-4">Estimated Savings</p>
+                        <p class="tl-label tl-label--spaced">Estimated Savings</p>
                         <p class="text-3xl font-mono font-semibold text-slate-300 mb-1">$38.54</p>
                         <p class="text-xs text-slate-500">vs. raw API cost</p>
                     </div>
@@ -99,9 +99,9 @@ function formatAction(action) {
                     </div>
                 </div>
 
-                <div class="relative bg-slate-900 border border-slate-800 rounded-xl p-5 overflow-hidden">
+                <div class="tl-card relative overflow-hidden">
                     <div class="blur-sm pointer-events-none select-none">
-                        <p class="text-xs font-medium text-slate-400 uppercase tracking-wider mb-4">API Calls</p>
+                        <p class="tl-label tl-label--spaced">API Calls</p>
                         <p class="text-3xl font-mono font-semibold text-white mb-1">341</p>
                         <p class="text-xs text-slate-500">last 30 days</p>
                     </div>
@@ -136,27 +136,27 @@ function formatAction(action) {
             <!-- Stat cards -->
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-8">
 
-                <div class="bg-slate-900 border border-slate-800 rounded-xl p-5">
+                <div class="tl-card">
                     <div class="flex items-center justify-between mb-4">
-                        <p class="text-xs font-medium text-slate-400 uppercase tracking-wider">Total Tokens Saved</p>
+                        <p class="tl-label">Total Tokens Saved</p>
                         <TlIcon name="trending-up" class="w-4 h-4 text-indigo-500" />
                     </div>
                     <p class="text-3xl font-mono font-semibold text-indigo-400">{{ formatNumber(stats.totalTokens) }}</p>
                     <p class="text-xs text-slate-500 mt-1">tokens compressed</p>
                 </div>
 
-                <div class="bg-slate-900 border border-slate-800 rounded-xl p-5">
+                <div class="tl-card">
                     <div class="flex items-center justify-between mb-4">
-                        <p class="text-xs font-medium text-slate-400 uppercase tracking-wider">Estimated Savings</p>
+                        <p class="tl-label">Estimated Savings</p>
                         <TlIcon name="currency-dollar" class="w-4 h-4 text-slate-600" />
                     </div>
                     <p class="text-3xl font-mono font-semibold text-slate-300">{{ estimatedSavings }}</p>
                     <p class="text-xs text-slate-500 mt-1">at $0.015 / 1K tokens</p>
                 </div>
 
-                <div class="bg-slate-900 border border-slate-800 rounded-xl p-5">
+                <div class="tl-card">
                     <div class="flex items-center justify-between mb-4">
-                        <p class="text-xs font-medium text-slate-400 uppercase tracking-wider">Total API Calls</p>
+                        <p class="tl-label">Total API Calls</p>
                         <TlIcon name="code" class="w-4 h-4 text-slate-600" />
                     </div>
                     <p class="text-3xl font-mono font-semibold text-white">{{ formatNumber(stats.totalCalls) }}</p>
@@ -166,7 +166,7 @@ function formatAction(action) {
             </div>
 
             <!-- Activity chart (last 14 days) -->
-            <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 mb-6">
+            <div class="tl-card mb-6">
                 <h2 class="text-sm font-semibold text-white mb-5">Activity — last 14 days</h2>
 
                 <div v-if="daily.length === 0" class="text-sm text-slate-500 py-4 text-center">
@@ -192,7 +192,7 @@ function formatAction(action) {
             </div>
 
             <!-- Action breakdown table -->
-            <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+            <div class="tl-card tl-card--flush">
                 <div class="px-5 py-4 border-b border-slate-800">
                     <h2 class="text-sm font-semibold text-white">Breakdown by action</h2>
                 </div>
@@ -204,9 +204,9 @@ function formatAction(action) {
                 <table v-else class="w-full text-sm">
                     <thead>
                         <tr class="border-b border-slate-800">
-                            <th class="px-5 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Action</th>
-                            <th class="px-5 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">Tokens</th>
-                            <th class="px-5 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">Calls</th>
+                            <th class="tl-th tl-th--muted">Action</th>
+                            <th class="tl-th tl-th--right tl-th--muted">Tokens</th>
+                            <th class="tl-th tl-th--right tl-th--muted">Calls</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-800">

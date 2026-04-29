@@ -16,13 +16,13 @@ const activeGrants = computed(() => page.props.auth?.activeGrants ?? [])
 </script>
 
 <template>
-    <div class="px-4 sm:px-6 lg:px-8 py-8 max-w-6xl mx-auto">
+    <div class="tl-page">
 
             <!-- Page header -->
             <div class="mb-8 flex items-center justify-between">
                 <div>
-                    <h1 class="text-xl font-semibold text-white">Dashboard</h1>
-                    <p class="text-slate-400 text-sm mt-0.5">Welcome back, {{ user?.name?.split(' ')[0] }}.</p>
+                    <h1 class="tl-heading">Dashboard</h1>
+                    <p class="tl-subtext">Welcome back, {{ user?.name?.split(' ')[0] }}.</p>
                 </div>
                 <span class="text-xs font-mono bg-slate-800 text-slate-400 px-2.5 py-1 rounded-md border border-slate-700 capitalize">{{ tier }}</span>
             </div>
@@ -43,9 +43,9 @@ const activeGrants = computed(() => page.props.auth?.activeGrants ?? [])
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
 
                 <!-- API Calls (all tiers with Dashboard) -->
-                <div class="bg-slate-900 border border-slate-800 rounded-xl p-5">
+                <div class="tl-card">
                     <div class="flex items-center justify-between mb-4">
-                        <p class="text-xs font-medium text-slate-400 uppercase tracking-wider">API Calls Today</p>
+                        <p class="tl-label">API Calls Today</p>
                         <TlIcon name="code" class="w-4 h-4 text-slate-600" />
                     </div>
                     <p class="text-3xl font-mono font-semibold text-white mb-3">—</p>
@@ -56,9 +56,9 @@ const activeGrants = computed(() => page.props.auth?.activeGrants ?? [])
                 </div>
 
                 <!-- Tokens Saved (all tiers) -->
-                <div class="bg-slate-900 border border-slate-800 rounded-xl p-5">
+                <div class="tl-card">
                     <div class="flex items-center justify-between mb-4">
-                        <p class="text-xs font-medium text-slate-400 uppercase tracking-wider">Tokens Saved</p>
+                        <p class="tl-label">Tokens Saved</p>
                         <TlIcon name="trending-up" class="w-4 h-4 text-indigo-500" />
                     </div>
                     <p class="text-3xl font-mono font-semibold text-indigo-400 mb-3">—</p>
@@ -69,9 +69,9 @@ const activeGrants = computed(() => page.props.auth?.activeGrants ?? [])
                 </div>
 
                 <!-- Next Digest (Schedules permission) -->
-                <div v-if="can(Permission.Schedules)" class="bg-slate-900 border border-slate-800 rounded-xl p-5">
+                <div v-if="can(Permission.Schedules)" class="tl-card">
                     <div class="flex items-center justify-between mb-4">
-                        <p class="text-xs font-medium text-slate-400 uppercase tracking-wider">Next Digest</p>
+                        <p class="tl-label">Next Digest</p>
                         <TlIcon name="clock" class="w-4 h-4 text-slate-600" />
                     </div>
                     <p class="text-3xl font-mono font-semibold text-white mb-3">—</p>
@@ -79,9 +79,9 @@ const activeGrants = computed(() => page.props.auth?.activeGrants ?? [])
                 </div>
 
                 <!-- Active License -->
-                <div class="bg-slate-900 border border-slate-800 rounded-xl p-5">
+                <div class="tl-card">
                     <div class="flex items-center justify-between mb-4">
-                        <p class="text-xs font-medium text-slate-400 uppercase tracking-wider">License</p>
+                        <p class="tl-label">License</p>
                         <TlIcon name="badge-check" class="w-4 h-4 text-slate-600" />
                     </div>
                     <p class="text-sm font-mono font-semibold text-white mb-1 capitalize">{{ tier }} plan</p>
@@ -98,9 +98,9 @@ const activeGrants = computed(() => page.props.auth?.activeGrants ?? [])
                 </div>
 
                 <!-- Team summary (TeamManageMembers permission) -->
-                <div v-if="can(Permission.TeamManageMembers)" class="bg-slate-900 border border-slate-800 rounded-xl p-5">
+                <div v-if="can(Permission.TeamManageMembers)" class="tl-card">
                     <div class="flex items-center justify-between mb-4">
-                        <p class="text-xs font-medium text-slate-400 uppercase tracking-wider">Team Seats</p>
+                        <p class="tl-label">Team Seats</p>
                         <TlIcon name="users" class="w-4 h-4 text-slate-600" />
                     </div>
                     <p class="text-3xl font-mono font-semibold text-white mb-3">—</p>
@@ -110,7 +110,7 @@ const activeGrants = computed(() => page.props.auth?.activeGrants ?? [])
             </div>
 
             <!-- Quick start (shown when no activity) -->
-            <div class="bg-slate-900 border border-slate-800 rounded-xl p-6">
+            <div class="tl-card tl-card--lg">
                 <h2 class="text-sm font-semibold text-white mb-4">Quick start</h2>
                 <div class="space-y-3">
                     <div class="flex items-start gap-3">

@@ -35,10 +35,6 @@
     @apply text-xs transition;
   }
 
-  .tl-btn-ghost--brand {
-    @apply text-indigo-400 hover:text-indigo-300;
-  }
-
   .tl-btn-ghost--danger {
     @apply text-red-400 hover:text-red-300;
   }
@@ -53,10 +49,6 @@
 
   .tl-chip-btn {
     @apply text-xs px-3 py-1.5 rounded border transition;
-  }
-
-  .tl-chip-btn--danger {
-    @apply bg-red-900/30 text-red-300 border-red-800 hover:bg-red-900/60;
   }
 
   .tl-chip-btn--warn {

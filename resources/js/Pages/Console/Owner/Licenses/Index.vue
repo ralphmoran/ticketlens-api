@@ -100,7 +100,7 @@ const STATUS_COLORS = {
                             <p class="text-xs text-slate-500 font-mono">{{ license.user?.email }}</p>
                         </td>
                         <td class="px-4 py-3">
-                            <span :class="['capitalize text-xs font-medium px-2 py-0.5 rounded', TIER_COLORS[license.tier]]">{{ license.tier }}</span>
+                            <span :class="['capitalize text-xs font-medium px-2 py-0.5 rounded', TIER_COLORS[license.tier] ?? 'bg-slate-700 text-slate-300']">{{ license.tier }}</span>
                         </td>
                         <td class="px-4 py-3 text-slate-300 font-mono text-xs">{{ license.seats }}</td>
                         <td class="px-4 py-3 text-xs">

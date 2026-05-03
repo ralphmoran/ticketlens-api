@@ -1,7 +1,7 @@
 /*
  * Form primitives — AUDIT §3.4
  * tl-input base (+ --sm / --full modifiers), tl-select, tl-checkbox,
- * tl-field-label, tl-input--hero (standalone larger variant for Login + primary forms).
+ * tl-input--hero (standalone larger variant for Login + primary forms).
  *
  * Note: tl-input includes focus:ring by default. AUDIT flagged 13/18 <input>
  * elements currently lack any focus ring — adoption in Phase 6 fixes that
@@ -31,10 +31,6 @@
 
   .tl-checkbox {
     @apply w-4 h-4 rounded bg-slate-800 border-slate-700 text-indigo-600 focus:ring-1 focus:ring-slate-500;
-  }
-
-  .tl-field-label {
-    @apply text-slate-300 font-medium mb-1;
   }
 
   .tl-field-label--hero {

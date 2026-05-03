@@ -25,10 +25,10 @@ watch(action, () => {
 </script>
 
 <template>
-    <div class="px-4 sm:px-6 lg:px-8 py-8 max-w-6xl mx-auto">
+    <div class="tl-page">
         <div class="mb-6">
-            <h1 class="text-xl font-semibold text-white">Audit Log</h1>
-            <p class="text-slate-400 text-sm mt-0.5">All owner-initiated actions.</p>
+            <h1 class="tl-heading">Audit Log</h1>
+            <p class="tl-subtext">All owner-initiated actions.</p>
         </div>
 
         <!-- Filter -->
@@ -37,28 +37,28 @@ watch(action, () => {
                 v-model="action"
                 type="text"
                 placeholder="Filter by action (e.g. user.suspended)…"
-                class="w-full max-w-sm bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
+                class="tl-input w-full max-w-sm"
             />
         </div>
 
         <!-- Table -->
-        <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+        <div class="tl-card tl-card--flush">
             <table class="w-full text-sm">
                 <thead>
-                    <tr class="border-b border-slate-800 text-slate-400 text-xs uppercase tracking-wider">
-                        <th class="px-4 py-3 text-left">Time</th>
-                        <th class="px-4 py-3 text-left">Actor</th>
-                        <th class="px-4 py-3 text-left">Action</th>
-                        <th class="px-4 py-3 text-left">Target</th>
-                        <th class="px-4 py-3 text-left">IP</th>
+                    <tr class="tl-thead">
+                        <th class="tl-th">Time</th>
+                        <th class="tl-th">Actor</th>
+                        <th class="tl-th">Action</th>
+                        <th class="tl-th">Target</th>
+                        <th class="tl-th">IP</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-slate-800">
-                    <tr v-for="log in logs.data" :key="log.id" class="hover:bg-slate-800/50">
+                <tbody class="tl-divide">
+                    <tr v-for="log in logs.data" :key="log.id" class="tl-tr">
                         <td class="px-4 py-3 font-mono text-slate-500 text-xs whitespace-nowrap">{{ log.created_at }}</td>
                         <td class="px-4 py-3 text-slate-300 text-xs">{{ log.actor?.name ?? '—' }}</td>
-                        <td class="px-4 py-3">
-                            <span class="font-mono text-xs px-1.5 py-0.5 rounded bg-slate-800 text-slate-300">{{ log.action }}</span>
+                        <td class="px-5 py-3">
+                            <span class="tl-kbd">{{ log.action }}</span>
                         </td>
                         <td class="px-4 py-3 text-xs text-slate-400">
                             <Link v-if="log.target_user" :href="`/console/owner/clients/${log.target_user?.id}`" class="hover:text-white transition">
@@ -69,7 +69,7 @@ watch(action, () => {
                         <td class="px-4 py-3 text-xs text-slate-500 font-mono">{{ log.ip_address ?? '—' }}</td>
                     </tr>
                     <tr v-if="!logs.data?.length">
-                        <td colspan="5" class="px-4 py-8 text-center text-slate-500 text-sm">No log entries.</td>
+                        <td colspan="5" class="tl-td--empty">No log entries.</td>
                     </tr>
                 </tbody>
             </table>

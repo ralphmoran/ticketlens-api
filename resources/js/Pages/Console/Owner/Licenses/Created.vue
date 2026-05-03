@@ -54,24 +54,24 @@ function dismiss() {
         </div>
 
         <!-- Key reveal -->
-        <div class="bg-slate-900 border border-slate-800 rounded-xl p-6 mb-5">
-            <label class="block text-xs text-slate-400 uppercase tracking-wider mb-2">License key (shown once)</label>
+        <div class="tl-card tl-card--lg mb-5">
+            <label class="tl-label block mb-2">License key (shown once)</label>
             <div class="flex items-center gap-2">
                 <input
                     id="raw-key"
                     :value="raw_key"
                     readonly
-                    class="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 font-mono text-sm text-emerald-300 focus:outline-none"
+                    class="tl-input flex-1 font-mono text-emerald-300"
                     @focus="$event.target.select()"
                 />
                 <button
                     @click="copyKey"
-                    class="px-4 py-2 rounded-lg bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-500 transition min-w-24"
+                    class="tl-btn tl-btn--primary min-w-24"
                 >
                     {{ copied ? 'Copied' : 'Copy' }}
                 </button>
             </div>
-            <p class="text-xs text-slate-500 mt-3">
+            <p class="tl-hint mt-3">
                 Activation: <code class="text-slate-400">ticketlens activate {{ raw_key }}</code>
             </p>
         </div>
@@ -83,7 +83,7 @@ function dismiss() {
 
         <!-- Dismiss -->
         <div class="flex justify-end">
-            <button @click="dismiss" class="px-4 py-2 rounded-lg bg-slate-800 text-slate-200 text-sm hover:bg-slate-700 transition">
+            <button @click="dismiss" class="tl-btn tl-btn--neutral">
                 Done
             </button>
         </div>

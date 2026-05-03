@@ -32,10 +32,10 @@ const TIER_LABELS = {
 </script>
 
 <template>
-    <div class="px-4 sm:px-6 lg:px-8 py-8 max-w-6xl mx-auto">
+    <div class="tl-page">
         <div class="mb-6">
-            <h1 class="text-xl font-semibold text-white">Tiers &amp; Features</h1>
-            <p class="text-slate-400 text-sm mt-0.5">Check a cell to include that feature in the tier. Changes apply immediately to all users on that tier.</p>
+            <h1 class="tl-heading">Tiers &amp; Features</h1>
+            <p class="tl-subtext">Check a cell to include that feature in the tier. Changes apply immediately to all users on that tier.</p>
         </div>
 
         <!-- Owner is decoupled from the tier system — make it explicit so the
@@ -52,16 +52,16 @@ const TIER_LABELS = {
             </span>
         </div>
 
-        <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+        <div class="tl-card tl-card--flush">
             <table class="w-full text-sm">
                 <thead>
-                    <tr class="border-b border-slate-800 text-slate-400 text-xs uppercase tracking-wider">
-                        <th class="px-4 py-3 text-left">Feature</th>
-                        <th v-for="tier in tiers" :key="tier" class="px-4 py-3 text-center">{{ TIER_LABELS[tier] }}</th>
+                    <tr class="tl-thead">
+                        <th class="tl-th">Feature</th>
+                        <th v-for="tier in tiers" :key="tier" class="px-5 py-3 text-center text-xs font-medium text-slate-400 uppercase tracking-wider">{{ TIER_LABELS[tier] }}</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-slate-800">
-                    <tr v-for="feature in features" :key="feature.id" class="hover:bg-slate-800/30">
+                <tbody class="tl-divide">
+                    <tr v-for="feature in features" :key="feature.id" class="tl-tr">
                         <td class="px-4 py-3">
                             <span class="font-medium text-slate-200">{{ feature.label }}</span>
                             <p v-if="feature.description" class="text-slate-500 text-xs">{{ feature.description }}</p>

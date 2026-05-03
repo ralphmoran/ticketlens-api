@@ -77,7 +77,7 @@ function impersonate() {
         </div>
 
         <!-- Client card -->
-        <div class="bg-slate-900 border border-slate-800 rounded-xl p-6 mb-6">
+        <div class="tl-card tl-card--lg mb-6">
             <div class="flex items-start justify-between mb-4">
                 <div>
                     <h1 class="text-lg font-semibold text-white">{{ client.name }}</h1>
@@ -96,21 +96,21 @@ function impersonate() {
                         data-testid="impersonate-button"
                         class="text-xs px-3 py-1.5 rounded bg-indigo-900/30 text-indigo-300 border border-indigo-800 hover:bg-indigo-900/60 transition"
                     >Impersonate</button>
-                    <button v-if="!client.suspended_at" @click="suspend" class="text-xs px-3 py-1.5 rounded bg-amber-900/30 text-amber-300 border border-amber-800 hover:bg-amber-900/60 transition">Suspend</button>
-                    <button v-else @click="restore" class="text-xs px-3 py-1.5 rounded bg-emerald-900/30 text-emerald-300 border border-emerald-800 hover:bg-emerald-900/60 transition">Restore</button>
+                    <button v-if="!client.suspended_at" @click="suspend" class="tl-chip-btn tl-chip-btn--warn">Suspend</button>
+                    <button v-else @click="restore" class="tl-chip-btn tl-chip-btn--success">Restore</button>
                 </div>
             </div>
 
             <!-- Tier edit (hidden for owner — owner is tier-decoupled) -->
             <div v-if="!client.is_owner" class="flex items-center gap-3">
-                <label class="text-xs text-slate-400 uppercase tracking-wider w-16">Tier</label>
+                <label class="tl-label w-16">Tier</label>
                 <select v-model="form.tier" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-slate-500">
                     <option value="free">Free</option>
                     <option value="pro">Pro</option>
                     <option value="team">Team</option>
                     <option value="enterprise">Enterprise</option>
                 </select>
-                <button @click="save" :disabled="form.processing || form.tier === client.tier" class="text-xs px-3 py-1.5 rounded bg-slate-700 text-slate-200 hover:bg-slate-600 disabled:opacity-40 transition">
+                <button @click="save" :disabled="form.processing || form.tier === client.tier" class="tl-btn tl-btn--secondary tl-btn--sm disabled:opacity-40">
                     Save
                 </button>
                 <p v-if="form.errors.tier" class="text-red-400 text-xs">{{ form.errors.tier }}</p>
@@ -122,7 +122,7 @@ function impersonate() {
         </div>
 
         <!-- Feature grants — hidden for owner (god mode bypasses bitmask) -->
-        <div v-if="!client.is_owner" class="bg-slate-900 border border-slate-800 rounded-xl mb-6">
+        <div v-if="!client.is_owner" class="tl-card tl-card--flush mb-6">
             <div class="px-5 py-3 border-b border-slate-800">
                 <h2 class="text-sm font-medium text-slate-300">Feature grants</h2>
                 <p class="text-xs text-slate-500 mt-0.5">Give this client specific features beyond their tier. Leave expiry blank for a permanent grant.</p>
@@ -171,14 +171,14 @@ function impersonate() {
         </div>
 
         <!-- Audit log -->
-        <div class="bg-slate-900 border border-slate-800 rounded-xl">
+        <div class="tl-card tl-card--flush">
             <div class="px-5 py-3 border-b border-slate-800">
                 <h2 class="text-sm font-medium text-slate-300">Audit history</h2>
             </div>
             <ul v-if="logs.length" class="divide-y divide-slate-800">
                 <li v-for="log in logs" :key="log.id" class="px-5 py-3 text-xs flex items-center gap-3">
                     <span class="font-mono text-slate-500 w-36 shrink-0">{{ log.created_at }}</span>
-                    <span class="px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 font-mono">{{ log.action }}</span>
+                    <span class="tl-kbd">{{ log.action }}</span>
                     <span v-if="log.actor" class="text-slate-400">by {{ log.actor.name }}</span>
                 </li>
             </ul>

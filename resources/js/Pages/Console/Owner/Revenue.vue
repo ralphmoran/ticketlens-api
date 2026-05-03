@@ -38,29 +38,29 @@ function formatDate(date) {
 </script>
 
 <template>
-    <div class="px-4 sm:px-6 lg:px-8 py-8 max-w-6xl mx-auto">
+    <div class="tl-page">
 
         <div class="mb-8">
-            <h1 class="text-xl font-semibold text-white">Revenue</h1>
-            <p class="text-slate-400 text-sm mt-0.5">MRR and subscription overview</p>
+            <h1 class="tl-heading">Revenue</h1>
+            <p class="tl-subtext">MRR and subscription overview</p>
         </div>
 
         <!-- Top stat cards -->
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-8">
-            <div class="bg-slate-900 border border-slate-800 rounded-xl p-5">
-                <p class="text-xs font-medium text-slate-400 uppercase tracking-wider mb-4">Monthly Recurring Revenue</p>
+            <div class="tl-card">
+                <p class="tl-label tl-label--spaced">Monthly Recurring Revenue</p>
                 <p class="text-3xl font-mono font-semibold text-indigo-400">${{ mrr.toFixed(2) }}</p>
-                <p class="text-xs text-slate-500 mt-1">active paid licenses</p>
+                <p class="tl-hint">active paid licenses</p>
             </div>
-            <div class="bg-slate-900 border border-slate-800 rounded-xl p-5">
-                <p class="text-xs font-medium text-slate-400 uppercase tracking-wider mb-4">Active Subscriptions</p>
+            <div class="tl-card">
+                <p class="tl-label tl-label--spaced">Active Subscriptions</p>
                 <p class="text-3xl font-mono font-semibold text-emerald-400">{{ total_active }}</p>
-                <p class="text-xs text-slate-500 mt-1">non-expired active licenses</p>
+                <p class="tl-hint">non-expired active licenses</p>
             </div>
-            <div class="bg-slate-900 border border-slate-800 rounded-xl p-5">
-                <p class="text-xs font-medium text-slate-400 uppercase tracking-wider mb-4">Conversion Rate</p>
+            <div class="tl-card">
+                <p class="tl-label tl-label--spaced">Conversion Rate</p>
                 <p class="text-3xl font-mono font-semibold text-violet-400">{{ conversionRate }}%</p>
-                <p class="text-xs text-slate-500 mt-1">paid vs. total users</p>
+                <p class="tl-hint">paid vs. total users</p>
             </div>
         </div>
 
@@ -68,7 +68,7 @@ function formatDate(date) {
         <div class="mb-8">
             <h2 class="text-sm font-semibold text-white mb-4">Users by tier</h2>
             <div class="grid grid-cols-2 gap-4">
-                <div class="bg-slate-900 border border-slate-800 rounded-xl p-5">
+                <div class="tl-card">
                     <p class="text-xs font-medium text-slate-500 uppercase tracking-wider mb-3">Free</p>
                     <p class="text-3xl font-mono font-semibold text-slate-400">{{ tier_breakdown.free }}</p>
                 </div>
@@ -88,21 +88,21 @@ function formatDate(date) {
         </div>
 
         <!-- Recent events -->
-        <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+        <div class="tl-card tl-card--flush">
             <div class="px-5 py-4 border-b border-slate-800">
                 <h2 class="text-sm font-semibold text-white">Recent license events</h2>
             </div>
             <table class="w-full text-sm">
                 <thead>
-                    <tr class="border-b border-slate-800">
-                        <th class="px-5 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Client</th>
-                        <th class="px-5 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Tier</th>
-                        <th class="px-5 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Status</th>
-                        <th class="px-5 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Date</th>
+                    <tr class="tl-thead">
+                        <th class="tl-th tl-th--muted">Client</th>
+                        <th class="tl-th tl-th--muted">Tier</th>
+                        <th class="tl-th tl-th--muted">Status</th>
+                        <th class="tl-th tl-th--muted">Date</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-slate-800">
-                    <tr v-for="event in recent_events" :key="event.id" class="hover:bg-slate-800/40 transition-colors duration-100">
+                <tbody class="tl-divide">
+                    <tr v-for="event in recent_events" :key="event.id" class="tl-tr">
                         <td class="px-5 py-3 font-mono text-xs text-slate-400">{{ event.user?.email ?? '—' }}</td>
                         <td class="px-5 py-3">
                             <span class="text-xs font-mono px-2 py-0.5 rounded border capitalize" :class="tierClass(event.tier)">{{ event.tier }}</span>

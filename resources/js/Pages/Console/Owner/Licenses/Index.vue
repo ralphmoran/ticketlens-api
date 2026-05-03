@@ -46,31 +46,31 @@ const STATUS_COLORS = {
 </script>
 
 <template>
-    <div class="px-4 sm:px-6 lg:px-8 py-8 max-w-6xl mx-auto">
+    <div class="tl-page">
         <div class="mb-6 flex items-center justify-between">
             <div>
-                <h1 class="text-xl font-semibold text-white">Licenses</h1>
-                <p class="text-slate-400 text-sm mt-0.5">{{ licenses.total }} issued</p>
+                <h1 class="tl-heading">Licenses</h1>
+                <p class="tl-subtext">{{ licenses.total }} issued</p>
             </div>
-            <Link href="/console/owner/licenses/create" class="text-sm px-4 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-500 transition font-medium">
+            <Link href="/console/owner/licenses/create" class="tl-btn tl-btn--primary">
                 Issue license
             </Link>
         </div>
 
         <!-- Filters -->
         <div class="flex flex-wrap gap-3 mb-5">
-            <select v-model="source" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-slate-500">
+            <select v-model="source" class="tl-select">
                 <option value="">All sources</option>
                 <option value="owner_issued">Owner-issued</option>
                 <option value="lemonsqueezy">LemonSqueezy</option>
             </select>
-            <select v-model="tier" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-slate-500">
+            <select v-model="tier" class="tl-select">
                 <option value="">All tiers</option>
                 <option value="pro">Pro</option>
                 <option value="team">Team</option>
                 <option value="enterprise">Enterprise</option>
             </select>
-            <select v-model="status" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-slate-500">
+            <select v-model="status" class="tl-select">
                 <option value="">All statuses</option>
                 <option value="active">Active</option>
                 <option value="cancelled">Cancelled</option>
@@ -80,21 +80,21 @@ const STATUS_COLORS = {
         </div>
 
         <!-- Table -->
-        <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+        <div class="tl-card tl-card--flush">
             <table class="w-full text-sm">
                 <thead>
-                    <tr class="border-b border-slate-800 text-slate-400 text-xs uppercase tracking-wider">
-                        <th class="px-4 py-3 text-left">Client</th>
-                        <th class="px-4 py-3 text-left">Tier</th>
-                        <th class="px-4 py-3 text-left">Seats</th>
-                        <th class="px-4 py-3 text-left">Source</th>
-                        <th class="px-4 py-3 text-left">Status</th>
-                        <th class="px-4 py-3 text-left">Expires</th>
-                        <th class="px-4 py-3 text-right">Actions</th>
+                    <tr class="tl-thead">
+                        <th class="tl-th">Client</th>
+                        <th class="tl-th">Tier</th>
+                        <th class="tl-th">Seats</th>
+                        <th class="tl-th">Source</th>
+                        <th class="tl-th">Status</th>
+                        <th class="tl-th">Expires</th>
+                        <th class="tl-th tl-th--right">Actions</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-slate-800">
-                    <tr v-for="license in licenses.data" :key="license.id" class="hover:bg-slate-800/50">
+                <tbody class="tl-divide">
+                    <tr v-for="license in licenses.data" :key="license.id" class="tl-tr">
                         <td class="px-4 py-3">
                             <p class="text-slate-200">{{ license.user?.name ?? '—' }}</p>
                             <p class="text-xs text-slate-500 font-mono">{{ license.user?.email }}</p>
@@ -112,11 +112,11 @@ const STATUS_COLORS = {
                         </td>
                         <td class="px-4 py-3 text-slate-500 text-xs font-mono">{{ license.expires_at?.slice(0, 10) ?? 'never' }}</td>
                         <td class="px-4 py-3 text-right">
-                            <button v-if="license.status === 'active'" @click="revoke(license.id)" class="text-xs text-red-400 hover:text-red-300 transition">Revoke</button>
+                            <button v-if="license.status === 'active'" @click="revoke(license.id)" class="tl-btn-ghost tl-btn-ghost--danger">Revoke</button>
                         </td>
                     </tr>
                     <tr v-if="!licenses.data?.length">
-                        <td colspan="7" class="px-4 py-8 text-center text-slate-500 text-sm">No licenses found.</td>
+                        <td colspan="7" class="tl-td--empty">No licenses found.</td>
                     </tr>
                 </tbody>
             </table>

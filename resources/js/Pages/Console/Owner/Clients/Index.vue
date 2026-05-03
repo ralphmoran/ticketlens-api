@@ -56,11 +56,11 @@ function pageLinks(links) {
 </script>
 
 <template>
-    <div class="px-4 sm:px-6 lg:px-8 py-8 max-w-6xl mx-auto">
+    <div class="tl-page">
         <div class="mb-6 flex items-center justify-between">
             <div>
-                <h1 class="text-xl font-semibold text-white">Clients</h1>
-                <p class="text-slate-400 text-sm mt-0.5">{{ clients.total }} accounts</p>
+                <h1 class="tl-heading">Clients</h1>
+                <p class="tl-subtext">{{ clients.total }} accounts</p>
             </div>
         </div>
 
@@ -70,11 +70,11 @@ function pageLinks(links) {
                 v-model="search"
                 type="text"
                 placeholder="Search by email or name…"
-                class="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
+                class="tl-input flex-1"
             />
             <select
                 v-model="tier"
-                class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-slate-500"
+                class="tl-select"
             >
                 <option value="">All tiers</option>
                 <option value="free">Free</option>
@@ -85,19 +85,19 @@ function pageLinks(links) {
         </div>
 
         <!-- Table -->
-        <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+        <div class="tl-card tl-card--flush">
             <table class="w-full text-sm">
                 <thead>
-                    <tr class="border-b border-slate-800 text-slate-400 text-xs uppercase tracking-wider">
-                        <th class="px-4 py-3 text-left">Client</th>
-                        <th class="px-4 py-3 text-left">Tier</th>
-                        <th class="px-4 py-3 text-left">Status</th>
-                        <th class="px-4 py-3 text-left">Joined</th>
-                        <th class="px-4 py-3 text-right">Actions</th>
+                    <tr class="tl-thead">
+                        <th class="tl-th">Client</th>
+                        <th class="tl-th">Tier</th>
+                        <th class="tl-th">Status</th>
+                        <th class="tl-th">Joined</th>
+                        <th class="tl-th tl-th--right">Actions</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-slate-800">
-                    <tr v-for="client in clients.data" :key="client.id" class="hover:bg-slate-800/50">
+                <tbody class="tl-divide">
+                    <tr v-for="client in clients.data" :key="client.id" class="tl-tr">
                         <td class="px-4 py-3">
                             <Link :href="`/console/owner/clients/${client.id}`" class="text-slate-200 hover:text-white font-medium">
                                 {{ client.name }}
@@ -124,15 +124,15 @@ function pageLinks(links) {
                                     class="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-900/30 text-amber-400 border border-amber-700/40"
                                 >Protected</span>
                                 <template v-else>
-                                    <button v-if="!client.suspended_at && !client.deleted_at" @click="suspend(client.id)" class="text-xs text-amber-400 hover:text-amber-300 transition">Suspend</button>
-                                    <button v-if="client.suspended_at && !client.deleted_at" @click="restore(client.id)" class="text-xs text-emerald-400 hover:text-emerald-300 transition">Restore</button>
-                                    <button v-if="!client.deleted_at" @click="destroy(client.id)" class="text-xs text-red-400 hover:text-red-300 transition">Delete</button>
+                                    <button v-if="!client.suspended_at && !client.deleted_at" @click="suspend(client.id)" class="tl-btn-ghost tl-btn-ghost--warn">Suspend</button>
+                                    <button v-if="client.suspended_at && !client.deleted_at" @click="restore(client.id)" class="tl-btn-ghost tl-btn-ghost--success">Restore</button>
+                                    <button v-if="!client.deleted_at" @click="destroy(client.id)" class="tl-btn-ghost tl-btn-ghost--danger">Delete</button>
                                 </template>
                             </div>
                         </td>
                     </tr>
                     <tr v-if="!clients.data?.length">
-                        <td colspan="5" class="px-4 py-8 text-center text-slate-500 text-sm">No clients found.</td>
+                        <td colspan="5" class="tl-td--empty">No clients found.</td>
                     </tr>
                 </tbody>
             </table>

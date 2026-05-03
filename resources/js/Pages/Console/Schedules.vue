@@ -24,16 +24,16 @@ function formatDate(iso) {
 </script>
 
 <template>
-    <div class="px-4 sm:px-6 lg:px-8 py-8 max-w-6xl mx-auto">
+    <div class="tl-page">
 
         <!-- Page header -->
         <div class="mb-8">
-            <h1 class="text-xl font-semibold text-white">Digest Schedules</h1>
-            <p class="text-slate-400 text-sm mt-0.5">Your scheduled digest deliveries</p>
+            <h1 class="tl-heading">Digest Schedules</h1>
+            <p class="tl-subtext">Your scheduled digest deliveries</p>
         </div>
 
         <!-- No-license state -->
-        <div v-if="!hasLicense" class="bg-slate-900 border border-slate-800 rounded-xl p-12 flex flex-col items-center justify-center text-center">
+        <div v-if="!hasLicense" class="tl-empty-state">
             <TlIcon name="lock-closed" class="w-10 h-10 text-slate-700 mb-4" />
             <p class="text-slate-300 font-medium mb-1">Active license required to manage schedules</p>
             <p class="text-slate-500 text-sm mb-6">Upgrade to Pro to configure and view your digest schedules.</p>
@@ -43,17 +43,17 @@ function formatDate(iso) {
         </div>
 
         <!-- Empty state -->
-        <div v-else-if="schedules.length === 0" class="bg-slate-900 border border-slate-800 rounded-xl p-12 flex flex-col items-center justify-center text-center">
+        <div v-else-if="schedules.length === 0" class="tl-empty-state">
             <TlIcon name="inbox" class="w-10 h-10 text-slate-700 mb-4" />
             <p class="text-slate-300 font-medium mb-1">No schedules configured yet</p>
             <p class="text-slate-500 text-sm">
-                Run <code class="font-mono text-indigo-400 bg-slate-800 px-1.5 py-0.5 rounded">ticketlens --schedule</code> to set up your first digest schedule.
+                Run <code class="tl-kbd tl-kbd--brand">ticketlens --schedule</code> to set up your first digest schedule.
             </p>
         </div>
 
         <!-- Schedule list -->
         <template v-else>
-            <p class="text-sm text-slate-400 mb-4">
+            <p class="tl-lede">
                 <span class="font-mono text-indigo-400 font-semibold">{{ activeCount }}</span>
                 active {{ activeCount === 1 ? 'schedule' : 'schedules' }} of
                 <span class="font-mono text-slate-300 font-semibold">{{ schedules.length }}</span>
@@ -62,15 +62,15 @@ function formatDate(iso) {
 
             <!-- Mobile cards -->
             <div class="md:hidden space-y-3">
-                <div v-for="row in schedules" :key="row.id" class="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-2">
+                <div v-for="row in schedules" :key="row.id" class="tl-card tl-card--sm tl-card--stack">
                     <div class="flex items-center justify-between gap-2">
                         <span class="text-sm text-slate-200 font-medium truncate">{{ row.email }}</span>
-                        <span v-if="row.active" class="inline-flex items-center gap-1 text-xs font-medium text-emerald-400 bg-emerald-400/10 border border-emerald-400/20 px-2 py-0.5 rounded-full shrink-0">
-                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block"></span>
+                        <span v-if="row.active" class="tl-badge tl-badge--success shrink-0">
+                            <span class="tl-dot tl-dot--success"></span>
                             Active
                         </span>
-                        <span v-else class="inline-flex items-center gap-1 text-xs font-medium text-slate-400 bg-slate-500/10 border border-slate-500/20 px-2 py-0.5 rounded-full shrink-0">
-                            <span class="w-1.5 h-1.5 rounded-full bg-slate-500 inline-block"></span>
+                        <span v-else class="tl-badge tl-badge--neutral shrink-0">
+                            <span class="tl-dot tl-dot--neutral"></span>
                             Paused
                         </span>
                     </div>
@@ -85,30 +85,30 @@ function formatDate(iso) {
             </div>
 
             <!-- Desktop table -->
-            <div class="hidden md:block bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+            <div class="hidden md:block tl-card tl-card--flush">
                 <table class="w-full text-sm">
                     <thead>
-                        <tr class="border-b border-slate-800">
-                            <th class="text-left px-5 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">Email</th>
-                            <th class="text-left px-5 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">Timezone</th>
-                            <th class="text-left px-5 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">Time</th>
-                            <th class="text-left px-5 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">Status</th>
-                            <th class="text-left px-5 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">Last Delivered</th>
-                            <th class="text-left px-5 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">Created</th>
+                        <tr class="tl-thead">
+                            <th class="tl-th">Email</th>
+                            <th class="tl-th">Timezone</th>
+                            <th class="tl-th">Time</th>
+                            <th class="tl-th">Status</th>
+                            <th class="tl-th">Last Delivered</th>
+                            <th class="tl-th">Created</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-slate-800/60">
-                        <tr v-for="row in schedules" :key="row.id" class="hover:bg-slate-800/30 transition-colors duration-100">
+                    <tbody class="tl-divide">
+                        <tr v-for="row in schedules" :key="row.id" class="tl-tr">
                             <td class="px-5 py-3.5 text-slate-200 whitespace-nowrap">{{ row.email }}</td>
                             <td class="px-5 py-3.5 text-slate-400 text-xs whitespace-nowrap">{{ row.timezone }}</td>
                             <td class="px-5 py-3.5 font-mono text-slate-300 text-xs whitespace-nowrap">{{ row.deliver_at }}</td>
                             <td class="px-5 py-3.5">
-                                <span v-if="row.active" class="inline-flex items-center gap-1 text-xs font-medium text-emerald-400 bg-emerald-400/10 border border-emerald-400/20 px-2 py-0.5 rounded-full">
-                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block"></span>
+                                <span v-if="row.active" class="tl-badge tl-badge--success">
+                                    <span class="tl-dot tl-dot--success"></span>
                                     Active
                                 </span>
-                                <span v-else class="inline-flex items-center gap-1 text-xs font-medium text-slate-400 bg-slate-500/10 border border-slate-500/20 px-2 py-0.5 rounded-full">
-                                    <span class="w-1.5 h-1.5 rounded-full bg-slate-500 inline-block"></span>
+                                <span v-else class="tl-badge tl-badge--neutral">
+                                    <span class="tl-dot tl-dot--neutral"></span>
                                     Paused
                                 </span>
                             </td>

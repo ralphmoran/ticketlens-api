@@ -1,7 +1,7 @@
 /*
  * Badge / status primitives — AUDIT §3.6
- * tl-badge + --brand color modifier
- * tl-dot + --brand / --success color modifiers
+ * tl-badge + --brand / --success / --neutral color modifiers
+ * tl-dot + --brand / --success / --neutral color modifiers
  * tl-kbd (code/keyboard chip) + --brand modifier
  */
 
@@ -14,6 +14,14 @@
     @apply text-indigo-400 bg-indigo-400/10 border-indigo-400/20;
   }
 
+  .tl-badge--success {
+    @apply text-emerald-400 bg-emerald-400/10 border-emerald-400/20;
+  }
+
+  .tl-badge--neutral {
+    @apply text-slate-400 bg-slate-500/10 border-slate-500/20;
+  }
+
   .tl-dot {
     @apply w-1.5 h-1.5 rounded-full inline-block;
   }
@@ -24,6 +32,10 @@
 
   .tl-dot--success {
     @apply bg-emerald-400;
+  }
+
+  .tl-dot--neutral {
+    @apply bg-slate-500;
   }
 
   .tl-kbd {

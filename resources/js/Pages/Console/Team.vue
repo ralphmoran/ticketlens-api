@@ -18,16 +18,16 @@ function hexPermissions(bitmask) {
 </script>
 
 <template>
-    <div class="px-4 sm:px-6 lg:px-8 py-8 max-w-6xl mx-auto">
+    <div class="tl-page">
 
         <!-- Page header -->
         <div class="mb-8">
-            <h1 class="text-xl font-semibold text-white">Team Management</h1>
-            <p class="text-slate-400 text-sm mt-0.5">Manage groups and member permissions</p>
+            <h1 class="tl-heading">Team Management</h1>
+            <p class="tl-subtext">Manage groups and member permissions</p>
         </div>
 
         <!-- Empty state -->
-        <div v-if="groups.length === 0" class="bg-slate-900 border border-slate-800 rounded-xl p-12 flex flex-col items-center justify-center text-center">
+        <div v-if="groups.length === 0" class="tl-empty-state">
             <TlIcon name="user-group" class="w-10 h-10 text-slate-700 mb-4" />
             <p class="text-slate-300 font-medium mb-1">No groups yet.</p>
             <p class="text-slate-500 text-sm">Contact support to create a group.</p>
@@ -35,7 +35,7 @@ function hexPermissions(bitmask) {
 
         <!-- Groups list -->
         <div v-else class="space-y-4">
-            <div v-for="group in groups" :key="group.id" class="bg-slate-900 border border-slate-800 rounded-xl p-5">
+            <div v-for="group in groups" :key="group.id" class="tl-card">
 
                 <!-- Group header -->
                 <div class="flex items-center justify-between mb-4">

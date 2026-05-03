@@ -27,15 +27,15 @@ const barClass = computed(() => {
     <div class="px-4 sm:px-6 lg:px-8 py-8 max-w-3xl mx-auto">
 
         <div class="mb-6">
-            <h1 class="text-xl font-semibold text-white">Seats</h1>
-            <p class="text-slate-400 text-sm mt-0.5">{{ group.name }}</p>
+            <h1 class="tl-heading">Seats</h1>
+            <p class="tl-subtext">{{ group.name }}</p>
         </div>
 
         <div v-if="!license" class="bg-amber-900/20 border border-amber-800/50 rounded-xl p-5 text-amber-200 text-sm">
             No active license found. Contact support.
         </div>
 
-        <div v-else class="bg-slate-900 border border-slate-800 rounded-xl p-6">
+        <div v-else class="tl-card tl-card--lg">
             <div class="flex items-baseline justify-between mb-4">
                 <div>
                     <p class="text-xs text-slate-500 uppercase tracking-wider">Plan</p>

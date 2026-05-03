@@ -29,17 +29,17 @@ function formatDate(iso) {
 </script>
 
 <template>
-    <div class="px-4 sm:px-6 lg:px-8 py-8 max-w-6xl mx-auto">
+    <div class="tl-page">
 
         <!-- Page header -->
         <div class="mb-8">
-            <h1 class="text-xl font-semibold text-white">Compliance History</h1>
-            <p class="text-slate-400 text-sm mt-0.5">
-                Ticket compliance checks via <code class="font-mono text-indigo-400 bg-slate-800 px-1.5 py-0.5 rounded text-xs">ticketlens --check</code>
+            <h1 class="tl-heading">Compliance History</h1>
+            <p class="tl-subtext">
+                Ticket compliance checks via <code class="tl-kbd tl-kbd--brand">ticketlens --check</code>
             </p>
         </div>
 
-        <!-- Monthly usage meter (free tier only) -->
+        <!-- Monthly usage meter (free tier only — colors are dynamic, stays inline) -->
         <div
             v-if="monthlyLimit !== null"
             class="mb-6 rounded-xl border p-4"
@@ -49,7 +49,7 @@ function formatDate(iso) {
                 <span class="text-sm font-medium" :class="atLimit ? 'text-amber-400' : 'text-slate-300'">
                     {{ monthlyCount }} of {{ monthlyLimit }} checks used this month
                 </span>
-                <a v-if="atLimit" href="/console/account" class="text-xs font-medium text-amber-400 hover:text-amber-300 transition-colors">
+                <a v-if="atLimit" href="/console/account" class="tl-btn-ghost tl-btn-ghost--warn font-medium">
                     Upgrade for unlimited checks →
                 </a>
             </div>
@@ -66,29 +66,29 @@ function formatDate(iso) {
         </div>
 
         <!-- Empty state -->
-        <div v-if="checks.length === 0" class="bg-slate-900 border border-slate-800 rounded-xl p-12 flex flex-col items-center justify-center text-center">
+        <div v-if="checks.length === 0" class="tl-empty-state">
             <TlIcon name="shield-check" class="w-10 h-10 text-slate-700 mb-4" />
             <p class="text-slate-300 font-medium mb-1">No compliance checks yet.</p>
             <p class="text-slate-500 text-sm">
-                Run <code class="font-mono text-indigo-400 bg-slate-800 px-1.5 py-0.5 rounded">ticketlens --check</code> to run your first check.
+                Run <code class="tl-kbd tl-kbd--brand">ticketlens --check</code> to run your first check.
             </p>
         </div>
 
         <!-- Data -->
         <template v-else>
-            <p class="text-sm text-slate-400 mb-4">
+            <p class="tl-lede">
                 <span class="font-mono text-slate-300 font-semibold">{{ checks.length }}</span>
                 {{ checks.length === 1 ? 'check' : 'checks' }} recorded
             </p>
 
             <!-- Mobile cards -->
             <div class="md:hidden space-y-3">
-                <div v-for="row in checks" :key="row.id" class="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-2">
+                <div v-for="row in checks" :key="row.id" class="tl-card tl-card--sm tl-card--stack">
                     <div class="flex items-center justify-between">
-                        <code v-if="row.ticket_key" class="text-xs font-mono text-slate-200 bg-slate-800 px-2 py-0.5 rounded">{{ row.ticket_key }}</code>
+                        <code v-if="row.ticket_key" class="tl-kbd">{{ row.ticket_key }}</code>
                         <span v-else class="text-slate-600 text-sm">—</span>
-                        <span class="inline-flex items-center gap-1 text-xs font-medium text-indigo-400 bg-indigo-400/10 border border-indigo-400/20 px-2 py-0.5 rounded-full">
-                            <span class="w-1.5 h-1.5 rounded-full bg-indigo-400 inline-block"></span>
+                        <span class="tl-badge tl-badge--brand">
+                            <span class="tl-dot tl-dot--brand"></span>
                             Checked
                         </span>
                     </div>
@@ -100,27 +100,27 @@ function formatDate(iso) {
             </div>
 
             <!-- Desktop table -->
-            <div class="hidden md:block bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+            <div class="hidden md:block tl-card tl-card--flush">
                 <table class="w-full text-sm">
                     <thead>
-                        <tr class="border-b border-slate-800">
-                            <th class="text-left px-5 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">Ticket</th>
-                            <th class="text-left px-5 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">Date</th>
-                            <th class="text-right px-5 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">Tokens</th>
-                            <th class="text-right px-5 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">Status</th>
+                        <tr class="tl-thead">
+                            <th class="tl-th">Ticket</th>
+                            <th class="tl-th">Date</th>
+                            <th class="tl-th tl-th--right">Tokens</th>
+                            <th class="tl-th tl-th--right">Status</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-slate-800/60">
-                        <tr v-for="row in checks" :key="row.id" class="hover:bg-slate-800/30 transition-colors duration-100">
+                    <tbody class="tl-divide">
+                        <tr v-for="row in checks" :key="row.id" class="tl-tr">
                             <td class="px-5 py-3.5">
-                                <code v-if="row.ticket_key" class="text-xs font-mono text-slate-200 bg-slate-800 px-2 py-0.5 rounded">{{ row.ticket_key }}</code>
+                                <code v-if="row.ticket_key" class="tl-kbd">{{ row.ticket_key }}</code>
                                 <span v-else class="text-slate-600">—</span>
                             </td>
                             <td class="px-5 py-3.5 font-mono text-slate-400 text-xs whitespace-nowrap">{{ formatDate(row.created_at) }}</td>
                             <td class="px-5 py-3.5 text-right font-mono text-indigo-400 font-semibold text-xs">{{ (row.tokens_used ?? 0).toLocaleString() }}</td>
                             <td class="px-5 py-3.5 text-right">
-                                <span class="inline-flex items-center gap-1 text-xs font-medium text-indigo-400 bg-indigo-400/10 border border-indigo-400/20 px-2 py-0.5 rounded-full">
-                                    <span class="w-1.5 h-1.5 rounded-full bg-indigo-400 inline-block"></span>
+                                <span class="tl-badge tl-badge--brand">
+                                    <span class="tl-dot tl-dot--brand"></span>
                                     Checked
                                 </span>
                             </td>

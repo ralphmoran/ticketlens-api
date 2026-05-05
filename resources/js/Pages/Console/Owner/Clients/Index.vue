@@ -1,7 +1,9 @@
 <script setup>
 import ConsoleLayout from '@/Layouts/ConsoleLayout.vue'
+import TlIcon from '@/Components/TlIcon.vue'
+import TlPagination from '@/Components/TlPagination.vue'
+import { useTableFilters } from '@/composables/useTableFilters'
 import { Link, router } from '@inertiajs/vue3'
-import { ref, watch } from 'vue'
 
 defineOptions({ layout: ConsoleLayout })
 
@@ -10,19 +12,11 @@ const props = defineProps({
     filters: Object,
 })
 
-const search = ref(props.filters?.search ?? '')
-const tier   = ref(props.filters?.tier ?? '')
-
-let debounce
-watch([search, tier], () => {
-    clearTimeout(debounce)
-    debounce = setTimeout(() => {
-        router.get('/console/owner/clients', { search: search.value, tier: tier.value }, {
-            preserveState: true,
-            replace: true,
-        })
-    }, 300)
-})
+const { filters, loading, navigate } = useTableFilters({
+    search:   props.filters?.search   ?? '',
+    tier:     props.filters?.tier     ?? '',
+    per_page: props.filters?.per_page ?? 20,
+}, '/console/owner/clients')
 
 function suspend(clientId) {
     router.post(`/console/owner/clients/${clientId}/suspend`, {}, { preserveScroll: true })
@@ -38,20 +32,16 @@ function destroy(clientId) {
     }
 }
 
+function impersonate(clientId) {
+    router.post(`/console/owner/impersonate/${clientId}`)
+}
+
 const TIER_COLORS = {
     free:       'bg-slate-700 text-slate-300',
     pro:        'bg-blue-900/40 text-blue-300',
     team:       'bg-violet-900/40 text-violet-300',
     enterprise: 'bg-amber-900/40 text-amber-300',
     owner:      'bg-amber-500/20 text-amber-300 border border-amber-700/40',
-}
-
-// Drop the meta first/last "« Previous" / "Next »" entries — those are rendered
-// separately so the numbered links list stays clean. `label` may contain &laquo;
-// / &raquo; HTML entities, so use v-html where rendered.
-function pageLinks(links) {
-    if (!Array.isArray(links)) return []
-    return links.slice(1, -1)
 }
 </script>
 
@@ -67,15 +57,12 @@ function pageLinks(links) {
         <!-- Filters -->
         <div class="flex gap-3 mb-5">
             <input
-                v-model="search"
+                v-model="filters.search"
                 type="text"
                 placeholder="Search by email or name…"
                 class="tl-input flex-1"
             />
-            <select
-                v-model="tier"
-                class="tl-select"
-            >
+            <select v-model="filters.tier" class="tl-select">
                 <option value="">All tiers</option>
                 <option value="free">Free</option>
                 <option value="pro">Pro</option>
@@ -84,109 +71,126 @@ function pageLinks(links) {
             </select>
         </div>
 
-        <!-- Table -->
-        <div class="tl-card tl-card--flush">
-            <table class="w-full text-sm">
-                <thead>
-                    <tr class="tl-thead">
-                        <th class="tl-th">Client</th>
-                        <th class="tl-th">Tier</th>
-                        <th class="tl-th">Status</th>
-                        <th class="tl-th">Joined</th>
-                        <th class="tl-th tl-th--right">Actions</th>
-                    </tr>
-                </thead>
-                <tbody class="tl-divide">
-                    <tr v-for="client in clients.data" :key="client.id" class="tl-tr">
-                        <td class="px-4 py-3">
-                            <Link :href="`/console/owner/clients/${client.id}`" class="text-slate-200 hover:text-white font-medium">
-                                {{ client.name }}
-                            </Link>
-                            <p class="text-slate-500 text-xs">{{ client.email }}</p>
-                        </td>
-                        <td class="px-4 py-3">
-                            <span :class="['capitalize text-xs font-medium px-2 py-0.5 rounded', TIER_COLORS[client.tier] ?? 'bg-slate-700 text-slate-300']">
-                                {{ client.tier }}
-                            </span>
-                        </td>
-                        <td class="px-4 py-3">
-                            <span v-if="client.deleted_at" class="text-xs text-slate-500">Deleted</span>
-                            <span v-else-if="client.suspended_at" class="text-xs text-red-400">Suspended</span>
-                            <span v-else class="text-xs text-emerald-400">Active</span>
-                        </td>
-                        <td class="px-4 py-3 text-slate-500 text-xs">{{ client.created_at?.slice(0, 10) }}</td>
-                        <td class="px-4 py-3 text-right">
-                            <div class="flex items-center justify-end gap-2">
-                                <Link :href="`/console/owner/clients/${client.id}`" class="text-xs text-slate-400 hover:text-white transition">View</Link>
-                                <span
-                                    v-if="client.is_owner"
-                                    data-testid="owner-protected-badge"
-                                    class="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-900/30 text-amber-400 border border-amber-700/40"
-                                >Protected</span>
-                                <template v-else>
-                                    <button v-if="!client.suspended_at && !client.deleted_at" @click="suspend(client.id)" class="tl-btn-ghost tl-btn-ghost--warn">Suspend</button>
-                                    <button v-if="client.suspended_at && !client.deleted_at" @click="restore(client.id)" class="tl-btn-ghost tl-btn-ghost--success">Restore</button>
-                                    <button v-if="!client.deleted_at" @click="destroy(client.id)" class="tl-btn-ghost tl-btn-ghost--danger">Delete</button>
-                                </template>
-                            </div>
-                        </td>
-                    </tr>
-                    <tr v-if="!clients.data?.length">
-                        <td colspan="5" class="tl-td--empty">No clients found.</td>
-                    </tr>
-                </tbody>
-            </table>
+        <!-- Table with loading overlay -->
+        <div class="relative">
+            <div
+                v-if="loading"
+                class="absolute inset-0 z-10 flex items-center justify-center rounded-lg bg-slate-950/60"
+            >
+                <TlIcon name="spinner" class="w-5 h-5 animate-spin text-indigo-400" />
+            </div>
+
+            <div class="tl-card tl-card--flush" :class="{ 'pointer-events-none': loading }">
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="tl-thead">
+                            <th class="tl-th">Client</th>
+                            <th class="tl-th">Tier</th>
+                            <th class="tl-th">Status</th>
+                            <th class="tl-th">Joined</th>
+                            <th class="tl-th tl-th--right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="tl-divide">
+                        <tr v-for="client in clients.data" :key="client.id" class="tl-tr">
+                            <td class="px-4 py-3">
+                                <Link :href="`/console/owner/clients/${client.id}`" class="text-slate-200 hover:text-white font-medium">
+                                    {{ client.name }}
+                                </Link>
+                                <p class="text-slate-500 text-xs">{{ client.email }}</p>
+                            </td>
+                            <td class="px-4 py-3">
+                                <span :class="['capitalize text-xs font-medium px-2 py-0.5 rounded', TIER_COLORS[client.tier] ?? 'bg-slate-700 text-slate-300']">
+                                    {{ client.tier }}
+                                </span>
+                            </td>
+                            <td class="px-4 py-3">
+                                <span v-if="client.deleted_at" class="text-xs text-slate-500">Deleted</span>
+                                <span v-else-if="client.suspended_at" class="text-xs text-red-400">Suspended</span>
+                                <span v-else class="text-xs text-emerald-400">Active</span>
+                            </td>
+                            <td class="px-4 py-3 text-slate-500 text-xs">{{ client.created_at?.slice(0, 10) }}</td>
+                            <td class="px-4 py-3 text-right">
+                                <div class="flex items-center justify-end gap-2">
+                                    <!-- View -->
+                                    <Link
+                                        :href="`/console/owner/clients/${client.id}`"
+                                        class="flex items-center gap-1 text-xs text-slate-400 hover:text-white transition"
+                                        title="View client"
+                                    >
+                                        <TlIcon name="eye" class="w-3.5 h-3.5 shrink-0" />
+                                        View
+                                    </Link>
+
+                                    <!-- Owner row: Protected badge, no actions -->
+                                    <span
+                                        v-if="client.is_owner"
+                                        data-testid="owner-protected-badge"
+                                        class="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-900/30 text-amber-400 border border-amber-700/40"
+                                    >Protected</span>
+
+                                    <template v-else>
+                                        <!-- Impersonate (active and suspended clients, not deleted) -->
+                                        <button
+                                            v-if="!client.deleted_at"
+                                            @click="impersonate(client.id)"
+                                            class="flex items-center gap-1 tl-btn-ghost text-indigo-400 hover:text-indigo-300"
+                                            title="Impersonate this client"
+                                            data-testid="impersonate-button"
+                                        >
+                                            <TlIcon name="user-circle" class="w-3.5 h-3.5 shrink-0" />
+                                            Impersonate
+                                        </button>
+
+                                        <!-- Suspend (active only) -->
+                                        <button
+                                            v-if="!client.suspended_at && !client.deleted_at"
+                                            @click="suspend(client.id)"
+                                            class="flex items-center gap-1 tl-btn-ghost tl-btn-ghost--warn"
+                                            title="Suspend client"
+                                        >
+                                            <TlIcon name="ban" class="w-3.5 h-3.5 shrink-0" />
+                                            Suspend
+                                        </button>
+
+                                        <!-- Restore (suspended only) -->
+                                        <button
+                                            v-if="client.suspended_at && !client.deleted_at"
+                                            @click="restore(client.id)"
+                                            class="flex items-center gap-1 tl-btn-ghost tl-btn-ghost--success"
+                                            title="Restore client"
+                                        >
+                                            <TlIcon name="refresh" class="w-3.5 h-3.5 shrink-0" />
+                                            Restore
+                                        </button>
+
+                                        <!-- Delete (not yet deleted) -->
+                                        <button
+                                            v-if="!client.deleted_at"
+                                            @click="destroy(client.id)"
+                                            class="flex items-center gap-1 tl-btn-ghost tl-btn-ghost--danger"
+                                            title="Soft-delete client"
+                                        >
+                                            <TlIcon name="x-circle" class="w-3.5 h-3.5 shrink-0" />
+                                            Delete
+                                        </button>
+                                    </template>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr v-if="!clients.data?.length">
+                            <td colspan="5" class="tl-td--empty">No clients found.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
 
-        <!-- Pagination -->
-        <nav
-            v-if="clients.last_page > 1"
-            aria-label="Clients pagination"
-            data-testid="clients-pagination"
-            class="mt-4 flex flex-wrap items-center justify-between gap-2"
-        >
-            <p class="text-xs text-slate-500">
-                Showing
-                <span class="text-slate-300 font-medium">{{ clients.from ?? 0 }}</span>–<span class="text-slate-300 font-medium">{{ clients.to ?? 0 }}</span>
-                of
-                <span class="text-slate-300 font-medium">{{ clients.total }}</span>
-            </p>
-            <div class="flex flex-wrap items-center gap-1">
-                <Link
-                    v-if="clients.prev_page_url"
-                    :href="clients.prev_page_url"
-                    rel="prev"
-                    class="px-2.5 py-1.5 rounded bg-slate-800 text-slate-300 text-xs hover:bg-slate-700 transition"
-                >‹ Prev</Link>
-                <span v-else class="px-2.5 py-1.5 rounded bg-slate-900 text-slate-600 text-xs cursor-not-allowed">‹ Prev</span>
-
-                <template v-for="link in pageLinks(clients.links)" :key="link.label + link.url">
-                    <Link
-                        v-if="link.url"
-                        :href="link.url"
-                        :class="[
-                            'px-2.5 py-1.5 rounded text-xs transition',
-                            link.active
-                                ? 'bg-indigo-600 text-white'
-                                : 'bg-slate-800 text-slate-300 hover:bg-slate-700',
-                        ]"
-                        v-html="link.label"
-                    />
-                    <span
-                        v-else
-                        class="px-2 py-1.5 text-xs text-slate-600"
-                        v-html="link.label"
-                    />
-                </template>
-
-                <Link
-                    v-if="clients.next_page_url"
-                    :href="clients.next_page_url"
-                    rel="next"
-                    class="px-2.5 py-1.5 rounded bg-slate-800 text-slate-300 text-xs hover:bg-slate-700 transition"
-                >Next ›</Link>
-                <span v-else class="px-2.5 py-1.5 rounded bg-slate-900 text-slate-600 text-xs cursor-not-allowed">Next ›</span>
-            </div>
-        </nav>
+        <!-- Pagination footer -->
+        <TlPagination
+            :paginator="clients"
+            v-model:perPage="filters.per_page"
+            @page="n => navigate({ page: n })"
+        />
     </div>
 </template>

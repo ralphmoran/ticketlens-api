@@ -37,9 +37,11 @@ class ClientController extends Controller
             $query->where('tier', $tier);
         }
 
+        $perPage = min(max(1, (int) $request->input('per_page', 20)), 100);
+
         return Inertia::render('Console/Owner/Clients/Index', [
-            'clients' => $query->latest()->paginate(20)->withQueryString(),
-            'filters' => $request->only('search', 'tier'),
+            'clients' => $query->latest()->paginate($perPage)->withQueryString(),
+            'filters' => array_merge($request->only('search', 'tier'), ['per_page' => $perPage]),
         ]);
     }
 

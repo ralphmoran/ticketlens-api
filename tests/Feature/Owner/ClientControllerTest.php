@@ -300,6 +300,51 @@ class ClientControllerTest extends TestCase
         $this->assertNotNull($protectedOwner->fresh()->suspended_at);
     }
 
+    // --- Per-page ---
+
+    public function test_clients_list_respects_per_page_parameter(): void
+    {
+        $owner = $this->makeOwner();
+        for ($i = 0; $i < 15; $i++) {
+            $this->makeClient(['email' => "client{$i}@test.com"]);
+        }
+
+        $response = $this->actingAs($owner)->get('/console/owner/clients?per_page=5');
+
+        $response->assertStatus(200);
+        $response->assertInertia(fn ($page) => $page
+            ->component('Console/Owner/Clients/Index')
+            ->has('clients.data', 5)
+            ->where('filters.per_page', 5)
+        );
+    }
+
+    public function test_clients_list_caps_per_page_at_100(): void
+    {
+        $owner = $this->makeOwner();
+
+        $response = $this->actingAs($owner)->get('/console/owner/clients?per_page=9999');
+
+        $response->assertStatus(200);
+        $response->assertInertia(fn ($page) => $page
+            ->component('Console/Owner/Clients/Index')
+            ->where('filters.per_page', 100)
+        );
+    }
+
+    public function test_clients_list_clamps_per_page_zero_to_one(): void
+    {
+        $owner = $this->makeOwner();
+
+        $response = $this->actingAs($owner)->get('/console/owner/clients?per_page=0');
+
+        $response->assertStatus(200);
+        $response->assertInertia(fn ($page) => $page
+            ->component('Console/Owner/Clients/Index')
+            ->where('filters.per_page', 1)
+        );
+    }
+
     // --- Route name verification (impersonation stop redirects here) ---
 
     public function test_clients_show_route_name_is_console_owner_clients_show(): void

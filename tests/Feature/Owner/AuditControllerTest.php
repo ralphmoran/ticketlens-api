@@ -66,6 +66,38 @@ class AuditControllerTest extends TestCase
         );
     }
 
+    public function test_audit_log_respects_per_page_parameter(): void
+    {
+        $owner = $this->makeOwner();
+        $user  = User::factory()->create();
+
+        for ($i = 0; $i < 15; $i++) {
+            $this->makeLog($owner, $user, 'user.suspended');
+        }
+
+        $response = $this->actingAs($owner)->get('/console/owner/audit?per_page=5');
+
+        $response->assertStatus(200);
+        $response->assertInertia(fn ($page) => $page
+            ->component('Console/Owner/Audit/Index')
+            ->has('logs.data', 5)
+            ->where('filters.per_page', 5)
+        );
+    }
+
+    public function test_audit_log_caps_per_page_at_100(): void
+    {
+        $owner = $this->makeOwner();
+
+        $response = $this->actingAs($owner)->get('/console/owner/audit?per_page=9999');
+
+        $response->assertStatus(200);
+        $response->assertInertia(fn ($page) => $page
+            ->component('Console/Owner/Audit/Index')
+            ->where('filters.per_page', 100)
+        );
+    }
+
     public function test_audit_log_filterable_by_action(): void
     {
         $owner = $this->makeOwner();

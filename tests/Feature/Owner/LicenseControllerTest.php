@@ -26,6 +26,44 @@ class LicenseControllerTest extends TestCase
 
     // --- Index ---
 
+    public function test_licenses_list_respects_per_page_parameter(): void
+    {
+        $owner     = $this->makeOwner();
+        $recipient = User::factory()->create();
+
+        for ($i = 0; $i < 15; $i++) {
+            License::create([
+                'user_id'        => $recipient->id,
+                'lemon_key_hash' => str_repeat((string) $i, 64),
+                'status'         => 'active',
+                'tier'           => 'pro',
+                'seats'          => 1,
+            ]);
+        }
+
+        $response = $this->actingAs($owner)->get('/console/owner/licenses?per_page=5');
+
+        $response->assertStatus(200);
+        $response->assertInertia(fn ($page) => $page
+            ->component('Console/Owner/Licenses/Index')
+            ->has('licenses.data', 5)
+            ->where('filters.per_page', 5)
+        );
+    }
+
+    public function test_licenses_list_caps_per_page_at_100(): void
+    {
+        $owner = $this->makeOwner();
+
+        $response = $this->actingAs($owner)->get('/console/owner/licenses?per_page=9999');
+
+        $response->assertStatus(200);
+        $response->assertInertia(fn ($page) => $page
+            ->component('Console/Owner/Licenses/Index')
+            ->where('filters.per_page', 100)
+        );
+    }
+
     public function test_owner_can_list_licenses(): void
     {
         $owner = $this->makeOwner();

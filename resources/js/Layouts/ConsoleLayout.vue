@@ -192,7 +192,8 @@ function closeSidebar() {
 
             <!-- Nav groups -->
             <nav class="flex-1 overflow-y-auto py-4" :class="sidebarCollapsed ? 'px-2' : 'px-3'">
-                <template v-for="group in visibleGroups" :key="group.label">
+                <template v-for="(group, index) in visibleGroups" :key="group.label">
+                    <hr v-if="sidebarCollapsed && index > 0" class="border-slate-700/60 my-2" />
                     <p v-show="!sidebarCollapsed" class="tl-nav-group-label">{{ group.label }}</p>
                     <ul class="mb-5 space-y-0.5">
                         <li v-for="item in group.items" :key="item.href">
@@ -215,6 +216,7 @@ function closeSidebar() {
 
                 <!-- Owner section (only shown when is_owner = true) -->
                 <template v-if="isOwner">
+                    <hr v-if="sidebarCollapsed" class="border-slate-700/60 my-2" />
                     <p v-show="!sidebarCollapsed" class="tl-nav-group-label tl-nav-group-label--owner">Owner</p>
                     <ul class="mb-5 space-y-0.5">
                         <li v-for="item in ownerNavItems" :key="item.href">

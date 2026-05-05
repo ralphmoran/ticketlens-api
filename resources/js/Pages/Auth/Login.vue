@@ -99,14 +99,23 @@ function submitRegister() {
                     <div class="relative flex justify-center text-xs"><span class="bg-slate-950 px-3 text-slate-500">or continue with</span></div>
                 </div>
 
-                <!-- GitHub OAuth (UI only) -->
-                <button
-                    type="button"
-                    class="w-full flex items-center justify-center gap-3 bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-300 font-medium py-3 rounded-lg text-sm transition-colors duration-150 cursor-pointer"
-                >
-                    <TlIcon name="github" class="w-4 h-4" />
-                    GitHub
-                </button>
+                <!-- OAuth buttons (UI only) -->
+                <div class="grid grid-cols-2 gap-3">
+                    <button
+                        type="button"
+                        class="flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-300 font-medium py-3 rounded-lg text-sm transition-colors duration-150 cursor-pointer"
+                    >
+                        <TlIcon name="github" class="w-4 h-4" />
+                        GitHub
+                    </button>
+                    <button
+                        type="button"
+                        class="flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-300 font-medium py-3 rounded-lg text-sm transition-colors duration-150 cursor-pointer"
+                    >
+                        <TlIcon name="google" class="w-4 h-4" />
+                        Google
+                    </button>
+                </div>
             </form>
 
             <!-- Register form -->

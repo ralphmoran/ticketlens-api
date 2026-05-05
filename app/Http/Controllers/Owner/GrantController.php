@@ -28,15 +28,22 @@ class GrantController extends Controller
             'note'       => ['nullable', 'string', 'max:255'],
         ]);
 
+        $feature = Feature::findOrFail($validated['feature_id']);
+
         $grant = UserFeatureGrant::create([
             'user_id'    => $user->id,
-            'feature_id' => $validated['feature_id'],
+            'feature_id' => $feature->id,
             'granted_by' => $request->user()->id,
             'expires_at' => $validated['expires_at'] ?? null,
             'note'       => $validated['note'] ?? null,
         ]);
 
-        $this->audit->logFromRequest($request, 'grant.created', $user, $grant->feature_id);
+        $this->audit->logFromRequest($request, 'grant.created', $user, null, [
+            'feature_id'    => $feature->id,
+            'feature_label' => $feature->label,
+            'expires_at'    => $validated['expires_at'] ?? null,
+            'note'          => $validated['note'] ?? null,
+        ]);
 
         return back();
     }
@@ -52,7 +59,12 @@ class GrantController extends Controller
 
         UserFeatureGrant::where('id', $grant->id)->update(['revoked_at' => now()]);
 
-        $this->audit->logFromRequest($request, 'grant.revoked', $user, $grant->feature_id);
+        $grant->load('feature');
+
+        $this->audit->logFromRequest($request, 'grant.revoked', $user, [
+            'feature_id'    => $grant->feature->id,
+            'feature_label' => $grant->feature->label,
+        ]);
 
         return back();
     }

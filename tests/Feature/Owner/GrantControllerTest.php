@@ -102,6 +102,46 @@ class GrantControllerTest extends TestCase
         ]);
     }
 
+    public function test_grant_creation_audit_entry_includes_feature_label(): void
+    {
+        $owner   = $this->makeOwner();
+        $user    = $this->makeUser();
+        $feature = $this->makeFeature();
+        $expiry  = now()->addDays(7)->toDateString();
+
+        $this->actingAs($owner)->post(
+            "/console/owner/clients/{$user->id}/grants",
+            ['feature_id' => $feature->id, 'expires_at' => $expiry, 'note' => 'Trial'],
+        );
+
+        $log = AuditLog::where('action', 'grant.created')->firstOrFail();
+
+        $this->assertSame($feature->id,    $log->new_value['feature_id']);
+        $this->assertSame($feature->label, $log->new_value['feature_label']);
+        $this->assertSame($expiry,         $log->new_value['expires_at']);
+        $this->assertSame('Trial',         $log->new_value['note']);
+    }
+
+    public function test_grant_revocation_audit_entry_includes_feature_label(): void
+    {
+        $owner   = $this->makeOwner();
+        $user    = $this->makeUser();
+        $feature = $this->makeFeature();
+
+        $grant = UserFeatureGrant::create([
+            'user_id'    => $user->id,
+            'feature_id' => $feature->id,
+            'granted_by' => $owner->id,
+        ]);
+
+        $this->actingAs($owner)->delete("/console/owner/clients/{$user->id}/grants/{$grant->id}");
+
+        $log = AuditLog::where('action', 'grant.revoked')->firstOrFail();
+
+        $this->assertSame($feature->id,    $log->old_value['feature_id']);
+        $this->assertSame($feature->label, $log->old_value['feature_label']);
+    }
+
     public function test_non_owner_cannot_create_grant(): void
     {
         $nonOwner = $this->makeUser(['permissions' => 1023]);

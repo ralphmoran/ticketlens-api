@@ -86,19 +86,28 @@ class ClientControllerTest extends TestCase
         $response->assertInertia(fn ($page) => $page->component('Console/Owner/Clients/Show'));
     }
 
-    public function test_show_excludes_admin_prefixed_features_from_grant_dropdown(): void
+    public function test_show_excludes_team_manager_features_from_grant_dropdown(): void
     {
         $owner  = $this->makeOwner();
         $client = $this->makeClient();
-        \App\Models\Feature::create(['name' => 'schedules',           'bit_value' => 1,   'label' => 'Schedules', 'sort_order' => 10]);
-        \App\Models\Feature::create(['name' => 'admin_users',         'bit_value' => 128, 'label' => 'Admin: Users', 'sort_order' => 80]);
-        \App\Models\Feature::create(['name' => 'team_manage_members', 'bit_value' => 130, 'label' => 'Team: Manage Members', 'sort_order' => 85]);
+        \App\Models\Feature::create(['name' => 'schedules',           'bit_value' => 1,   'label' => 'Schedules',             'sort_order' => 10]);
+        \App\Models\Feature::create(['name' => 'team_manage_members', 'bit_value' => 128, 'label' => 'Team: Manage Members',  'sort_order' => 80]);
+        \App\Models\Feature::create(['name' => 'team_manage_seats',   'bit_value' => 256, 'label' => 'Team: Manage Seats',    'sort_order' => 90]);
 
         $response = $this->actingAs($owner)->get("/console/owner/clients/{$client->id}");
 
+        $schedulesFeature      = \App\Models\Feature::where('name', 'schedules')->firstOrFail();
+        $teamMembersFeature    = \App\Models\Feature::where('name', 'team_manage_members')->firstOrFail();
+        $teamSeatsFeature      = \App\Models\Feature::where('name', 'team_manage_seats')->firstOrFail();
+
         $response->assertInertia(fn ($page) => $page
             ->component('Console/Owner/Clients/Show')
-            ->where('features', fn ($features) => collect($features)->every(fn ($f) => !str_starts_with($f['name'] ?? '', 'admin_')))
+            ->where('features', function ($features) use ($schedulesFeature, $teamMembersFeature, $teamSeatsFeature) {
+                $ids = collect($features)->pluck('id');
+                return $ids->contains($schedulesFeature->id)
+                    && ! $ids->contains($teamMembersFeature->id)
+                    && ! $ids->contains($teamSeatsFeature->id);
+            })
         );
     }
 

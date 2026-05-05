@@ -176,10 +176,19 @@ function impersonate() {
                 <h2 class="text-sm font-medium text-slate-300">Audit history</h2>
             </div>
             <ul v-if="logs.length" class="divide-y divide-slate-800">
-                <li v-for="log in logs" :key="log.id" class="px-5 py-3 text-xs flex items-center gap-3">
+                <li v-for="log in logs" :key="log.id" class="px-5 py-3 text-xs flex items-center gap-3 flex-wrap">
                     <span class="font-mono text-slate-500 w-36 shrink-0">{{ log.created_at }}</span>
                     <span class="tl-kbd">{{ log.action }}</span>
-                    <span v-if="log.actor" class="text-slate-400">by {{ log.actor.name }}</span>
+                    <span v-if="log.action === 'grant.created' && log.new_value?.feature_label" class="text-slate-400">
+                        {{ log.new_value.feature_label }}
+                        <span v-if="log.new_value.expires_at" class="text-slate-500">until {{ log.new_value.expires_at }}</span>
+                        <span v-else class="text-slate-500">(permanent)</span>
+                        <span v-if="log.new_value.note" class="text-slate-600">— {{ log.new_value.note }}</span>
+                    </span>
+                    <span v-else-if="log.action === 'grant.revoked' && log.old_value?.feature_label" class="text-slate-400">
+                        {{ log.old_value.feature_label }}
+                    </span>
+                    <span v-if="log.actor" class="text-slate-500 ml-auto">by {{ log.actor.name }}</span>
                 </li>
             </ul>
             <p v-else class="px-5 py-6 text-center text-slate-500 text-sm">No audit history.</p>

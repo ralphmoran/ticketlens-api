@@ -12,7 +12,16 @@ class SchedulesController
 {
     public function index(Request $request): Response
     {
-        $user    = $request->user();
+        $user = $request->user();
+
+        if ($user->is_owner) {
+            return Inertia::render('Console/Schedules', [
+                'schedules'  => [],
+                'hasLicense' => true,
+                'timezones'  => \DateTimeZone::listIdentifiers(),
+            ]);
+        }
+
         $license = License::where('user_id', $user->id)->first();
 
         if (! $license) {

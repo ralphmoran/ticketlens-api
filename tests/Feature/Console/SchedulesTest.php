@@ -42,4 +42,23 @@ class SchedulesTest extends TestCase
             ->has('timezones')
         );
     }
+
+    public function test_owner_can_access_schedules_without_license(): void
+    {
+        $owner = User::factory()->create([
+            'tier'        => 'owner',
+            'permissions' => 0,
+            'is_owner'    => true,
+        ]);
+
+        $response = $this->actingAs($owner)->get('/console/schedules');
+
+        $response->assertStatus(200);
+        $response->assertInertia(fn ($page) => $page
+            ->component('Console/Schedules')
+            ->where('hasLicense', true)
+            ->has('schedules')
+            ->has('timezones')
+        );
+    }
 }

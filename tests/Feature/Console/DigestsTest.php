@@ -40,4 +40,21 @@ class DigestsTest extends TestCase
             ->has('digests')
         );
     }
+
+    public function test_owner_can_access_digests_page(): void
+    {
+        $owner = User::factory()->create([
+            'tier'        => 'owner',
+            'permissions' => 0,
+            'is_owner'    => true,
+        ]);
+
+        $response = $this->actingAs($owner)->get('/console/digests');
+
+        $response->assertStatus(200);
+        $response->assertInertia(fn ($page) => $page
+            ->component('Console/Digests')
+            ->has('digests')
+        );
+    }
 }

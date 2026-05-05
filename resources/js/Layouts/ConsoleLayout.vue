@@ -8,7 +8,13 @@ import TlIcon from '../components/TlIcon.vue'
 const page = usePage()
 const { can } = usePermissions()
 const sidebarOpen = ref(false)
-const sidebarCollapsed = ref(false)
+const SIDEBAR_KEY = 'tl-sidebar-collapsed'
+const sidebarCollapsed = ref(localStorage.getItem(SIDEBAR_KEY) === 'true')
+
+function toggleCollapsed() {
+    sidebarCollapsed.value = !sidebarCollapsed.value
+    localStorage.setItem(SIDEBAR_KEY, sidebarCollapsed.value)
+}
 
 const user          = computed(() => page.props.auth?.user)
 const isOwner       = computed(() => page.props.auth?.is_owner ?? false)
@@ -167,7 +173,7 @@ function closeSidebar() {
                 <!-- Desktop collapse toggle -->
                 <button
                     type="button"
-                    @click="sidebarCollapsed = !sidebarCollapsed"
+                    @click="toggleCollapsed"
                     class="hidden lg:flex p-1 text-slate-500 hover:text-white cursor-pointer rounded transition-colors duration-150"
                     :aria-label="sidebarCollapsed ? 'Expand navigation' : 'Collapse navigation'"
                 >

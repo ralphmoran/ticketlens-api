@@ -8,6 +8,7 @@ import TlIcon from '../components/TlIcon.vue'
 const page = usePage()
 const { can } = usePermissions()
 const sidebarOpen = ref(false)
+const sidebarCollapsed = ref(false)
 
 const user          = computed(() => page.props.auth?.user)
 const isOwner       = computed(() => page.props.auth?.is_owner ?? false)
@@ -56,11 +57,11 @@ const navGroups = computed(() => [
 ])
 
 const ownerNavItems = [
-    { label: 'Clients',           href: '/console/owner/clients' },
-    { label: 'Licenses',          href: '/console/owner/licenses' },
-    { label: 'Tiers & Features',  href: '/console/owner/tiers' },
-    { label: 'Revenue',           href: '/console/owner/revenue' },
-    { label: 'Audit Log',         href: '/console/owner/audit' },
+    { label: 'Clients',           href: '/console/owner/clients',   icon: 'building' },
+    { label: 'Licenses',          href: '/console/owner/licenses',  icon: 'badge-check' },
+    { label: 'Tiers & Features',  href: '/console/owner/tiers',     icon: 'layers' },
+    { label: 'Revenue',           href: '/console/owner/revenue',   icon: 'currency-dollar' },
+    { label: 'Audit Log',         href: '/console/owner/audit',     icon: 'history' },
 ]
 
 const visibleGroups = computed(() =>
@@ -148,17 +149,30 @@ function closeSidebar() {
         <!-- Sidebar -->
         <aside
             :class="[
-                'fixed left-0 bottom-0 z-50 w-64 bg-slate-900 border-r border-slate-800 flex flex-col transition-transform duration-200',
+                'fixed left-0 bottom-0 z-50 bg-slate-900 border-r border-slate-800 flex flex-col transition-all duration-200',
                 impersonating ? 'top-9' : 'top-0',
-                sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+                sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0',
+                sidebarCollapsed ? 'lg:w-16' : 'w-64',
             ]"
         >
             <!-- Logo -->
-            <div class="flex items-center justify-between px-5 py-5 border-b border-slate-800">
-                <div class="flex items-center gap-2">
-                    <span class="font-mono text-base font-semibold text-indigo-400">TicketLens</span>
+            <div
+                class="flex items-center border-b border-slate-800 px-4 py-5"
+                :class="sidebarCollapsed ? 'justify-center' : 'justify-between px-5'"
+            >
+                <div v-show="!sidebarCollapsed" class="flex items-center gap-2 overflow-hidden">
+                    <span class="font-mono text-base font-semibold text-indigo-400 whitespace-nowrap">TicketLens</span>
                     <span class="text-[10px] font-mono bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded border border-slate-700">Console</span>
                 </div>
+                <!-- Desktop collapse toggle -->
+                <button
+                    type="button"
+                    @click="sidebarCollapsed = !sidebarCollapsed"
+                    class="hidden lg:flex p-1 text-slate-500 hover:text-white cursor-pointer rounded transition-colors duration-150"
+                    :aria-label="sidebarCollapsed ? 'Expand navigation' : 'Collapse navigation'"
+                >
+                    <TlIcon :name="sidebarCollapsed ? 'chevron-right' : 'chevron-left'" class="w-4 h-4" :stroke-width="2" />
+                </button>
                 <!-- Close btn mobile -->
                 <button
                     type="button"
@@ -171,19 +185,23 @@ function closeSidebar() {
             </div>
 
             <!-- Nav groups -->
-            <nav class="flex-1 overflow-y-auto px-3 py-4">
+            <nav class="flex-1 overflow-y-auto py-4" :class="sidebarCollapsed ? 'px-2' : 'px-3'">
                 <template v-for="group in visibleGroups" :key="group.label">
-                    <p class="tl-nav-group-label">{{ group.label }}</p>
+                    <p v-show="!sidebarCollapsed" class="tl-nav-group-label">{{ group.label }}</p>
                     <ul class="mb-5 space-y-0.5">
                         <li v-for="item in group.items" :key="item.href">
                             <a
                                 :href="item.href"
+                                :title="sidebarCollapsed ? item.label : undefined"
                                 @click="closeSidebar"
                                 class="tl-nav-link"
-                                :class="page.url.startsWith(item.href) ? 'tl-nav-link--active' : 'tl-nav-link--inactive'"
+                                :class="[
+                                    page.url.startsWith(item.href) ? 'tl-nav-link--active' : 'tl-nav-link--inactive',
+                                    sidebarCollapsed ? 'justify-center px-0' : '',
+                                ]"
                             >
                                 <TlIcon :name="item.icon" class="w-4 h-4 shrink-0" />
-                                {{ item.label }}
+                                <span v-show="!sidebarCollapsed">{{ item.label }}</span>
                             </a>
                         </li>
                     </ul>
@@ -191,16 +209,21 @@ function closeSidebar() {
 
                 <!-- Owner section (only shown when is_owner = true) -->
                 <template v-if="isOwner">
-                    <p class="tl-nav-group-label tl-nav-group-label--owner">Owner</p>
+                    <p v-show="!sidebarCollapsed" class="tl-nav-group-label tl-nav-group-label--owner">Owner</p>
                     <ul class="mb-5 space-y-0.5">
                         <li v-for="item in ownerNavItems" :key="item.href">
                             <a
                                 :href="item.href"
+                                :title="sidebarCollapsed ? item.label : undefined"
                                 @click="closeSidebar"
                                 class="tl-nav-link"
-                                :class="page.url.startsWith(item.href) ? 'tl-nav-link--owner-active' : 'tl-nav-link--owner-inactive'"
+                                :class="[
+                                    page.url.startsWith(item.href) ? 'tl-nav-link--owner-active' : 'tl-nav-link--owner-inactive',
+                                    sidebarCollapsed ? 'justify-center px-0' : '',
+                                ]"
                             >
-                                {{ item.label }}
+                                <TlIcon :name="item.icon" class="w-4 h-4 shrink-0" />
+                                <span v-show="!sidebarCollapsed">{{ item.label }}</span>
                             </a>
                         </li>
                     </ul>
@@ -208,17 +231,21 @@ function closeSidebar() {
             </nav>
 
             <!-- User footer -->
-            <div class="px-4 py-4 border-t border-slate-800 flex items-center gap-3">
+            <div
+                class="py-4 border-t border-slate-800 flex items-center"
+                :class="sidebarCollapsed ? 'flex-col gap-2 px-2' : 'flex-row gap-3 px-4'"
+            >
                 <div class="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-xs font-semibold text-white shrink-0">
                     {{ user?.name?.charAt(0)?.toUpperCase() ?? '?' }}
                 </div>
-                <div class="min-w-0 flex-1">
+                <div v-show="!sidebarCollapsed" class="min-w-0 flex-1 overflow-hidden">
                     <p class="text-sm font-medium text-white truncate">{{ user?.name }}</p>
                     <p class="text-xs text-slate-500 truncate font-mono">{{ user?.tier }}</p>
                 </div>
                 <button
                     type="button"
                     @click="logout"
+                    :title="sidebarCollapsed ? 'Sign out' : undefined"
                     class="shrink-0 p-1.5 text-slate-500 hover:text-white hover:bg-slate-800 rounded-md transition-colors duration-150 cursor-pointer"
                     aria-label="Sign out"
                 >
@@ -228,7 +255,7 @@ function closeSidebar() {
         </aside>
 
         <!-- Main content wrapper -->
-        <div class="lg:pl-64" :class="{ 'pt-9 lg:pt-9': impersonating }">
+        <div :class="[sidebarCollapsed ? 'lg:pl-16' : 'lg:pl-64', { 'pt-9 lg:pt-9': impersonating }]" class="transition-all duration-200">
             <main class="min-w-0 pt-14 lg:pt-0">
                 <slot />
             </main>

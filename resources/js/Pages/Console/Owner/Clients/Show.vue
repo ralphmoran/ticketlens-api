@@ -154,12 +154,12 @@ function impersonate() {
 }
 
 // ── Audit log pagination ──────────────────────────────────────────────────────
+const auditPerPage = ref(props.logs.per_page ?? 10)
+
 function navigateAuditPage(page, perPage) {
-    const params = { audit_page: page }
-    if (perPage) params.audit_per_page = perPage
     router.get(
         `/console/owner/clients/${props.client.id}`,
-        params,
+        { audit_page: page, audit_per_page: perPage ?? auditPerPage.value },
         { preserveScroll: true, only: ['logs'] }
     )
 }
@@ -424,14 +424,13 @@ const TIER_LABELS = { free: 'Free', pro: 'Pro', team: 'Team', enterprise: 'Enter
             </ul>
             <p v-else class="px-5 py-6 text-center text-slate-500 text-sm">No audit history.</p>
 
-            <TlPagination
-                v-if="logs.last_page > 1"
-                :paginator="logs"
-                :perPage="logs.per_page"
-                @page="navigateAuditPage"
-                @update:perPage="p => navigateAuditPage(1, p)"
-            />
         </div>
+
+        <TlPagination
+            :paginator="logs"
+            v-model:perPage="auditPerPage"
+            @page="n => navigateAuditPage(n, auditPerPage)"
+        />
 
     </div>
 </template>

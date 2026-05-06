@@ -73,13 +73,20 @@ Route::prefix('console')->name('console.')->group(function () {
         Route::prefix('owner')->name('owner.')->middleware('owner')->group(function () {
             Route::get('/dashboard', [\App\Http\Controllers\Owner\DashboardController::class, 'index'])->name('dashboard');
 
-            // Client management
-            Route::get('/clients', [\App\Http\Controllers\Owner\ClientController::class, 'index'])->name('clients.index');
+            // Client management — /create must be before {user} to avoid model-binding collision
+            Route::get('/clients',        [\App\Http\Controllers\Owner\ClientController::class, 'index'])->name('clients.index');
+            Route::get('/clients/create', [\App\Http\Controllers\Owner\ClientController::class, 'create'])->name('clients.create');
+            Route::post('/clients',       [\App\Http\Controllers\Owner\ClientController::class, 'store'])->name('clients.store');
             Route::get('/clients/{user}', [\App\Http\Controllers\Owner\ClientController::class, 'show'])->name('clients.show');
             Route::patch('/clients/{user}', [\App\Http\Controllers\Owner\ClientController::class, 'update'])->name('clients.update');
             Route::post('/clients/{user}/suspend', [\App\Http\Controllers\Owner\ClientController::class, 'suspend'])->name('clients.suspend');
             Route::post('/clients/{user}/restore', [\App\Http\Controllers\Owner\ClientController::class, 'restore'])->name('clients.restore');
             Route::delete('/clients/{user}', [\App\Http\Controllers\Owner\ClientController::class, 'destroy'])->name('clients.destroy');
+
+            // Team management
+            Route::get('/teams',                                    [\App\Http\Controllers\Owner\TeamController::class, 'index'])->name('teams.index');
+            Route::get('/teams/{group}',                            [\App\Http\Controllers\Owner\TeamController::class, 'show'])->name('teams.show');
+            Route::delete('/teams/{group}/members/{user}',          [\App\Http\Controllers\Owner\TeamController::class, 'removeMember'])->name('teams.members.destroy');
 
             // Revenue dashboard (MRR, tier breakdown, recent license events)
             Route::get('/revenue', [\App\Http\Controllers\Owner\RevenueController::class, 'index'])->name('revenue');

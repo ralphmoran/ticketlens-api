@@ -45,8 +45,40 @@ class ClientController extends Controller
         ]);
     }
 
-    public function show(User $user): Response
+    public function create(): Response
     {
+        return Inertia::render('Console/Owner/Clients/Create');
+    }
+
+    public function store(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'name'     => ['required', 'string', 'max:255'],
+            'email'    => ['required', 'email', 'max:255', 'unique:users,email'],
+            'password' => ['required', 'string', 'min:8'],
+            'tier'     => ['required', 'string', 'in:' . implode(',', self::VALID_TIERS)],
+        ]);
+
+        $user = User::create([
+            'name'     => $validated['name'],
+            'email'    => $validated['email'],
+            'password' => $validated['password'],
+            'tier'     => $validated['tier'],
+        ]);
+
+        $this->tiers->syncUser($user->fresh());
+
+        $this->audit->logFromRequest($request, 'user.created', $user, null, [
+            'tier' => $validated['tier'],
+        ]);
+
+        return redirect()->route('console.owner.clients.show', $user);
+    }
+
+    public function show(Request $request, User $user): Response
+    {
+        $perPage = min(max(1, (int) $request->input('audit_per_page', 10)), 50);
+
         return Inertia::render('Console/Owner/Clients/Show', [
             'client'   => $user,
             'features' => Feature::orderBy('sort_order')
@@ -59,9 +91,9 @@ class ClientController extends Controller
                 ->get(),
             'logs'     => \App\Models\AuditLog::where('target_user_id', $user->id)
                 ->latest()
-                ->limit(50)
                 ->with('actor')
-                ->get(),
+                ->paginate($perPage, ['*'], 'audit_page')
+                ->withQueryString(),
         ]);
     }
 

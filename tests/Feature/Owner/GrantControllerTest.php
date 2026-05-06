@@ -35,6 +35,39 @@ class GrantControllerTest extends TestCase
 
     // --- Store ---
 
+    public function test_grant_store_redirects_to_client_show(): void
+    {
+        $owner   = $this->makeOwner();
+        $user    = $this->makeUser();
+        $feature = $this->makeFeature();
+
+        $response = $this->actingAs($owner)->post(
+            "/console/owner/clients/{$user->id}/grants",
+            ['feature_id' => $feature->id],
+        );
+
+        $response->assertRedirect("/console/owner/clients/{$user->id}");
+    }
+
+    public function test_grant_destroy_redirects_to_client_show(): void
+    {
+        $owner   = $this->makeOwner();
+        $user    = $this->makeUser();
+        $feature = $this->makeFeature();
+
+        $grant = UserFeatureGrant::create([
+            'user_id'    => $user->id,
+            'feature_id' => $feature->id,
+            'granted_by' => $owner->id,
+        ]);
+
+        $response = $this->actingAs($owner)->delete(
+            "/console/owner/clients/{$user->id}/grants/{$grant->id}",
+        );
+
+        $response->assertRedirect("/console/owner/clients/{$user->id}");
+    }
+
     public function test_owner_can_create_grant_without_expiry(): void
     {
         $owner   = $this->makeOwner();

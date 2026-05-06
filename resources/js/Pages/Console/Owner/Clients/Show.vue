@@ -1,6 +1,7 @@
 <script setup>
 import ConsoleLayout from '@/Layouts/ConsoleLayout.vue'
 import TlIcon from '@/components/TlIcon.vue'
+import TlPagination from '@/Components/TlPagination.vue'
 import { Link, router, useForm } from '@inertiajs/vue3'
 import { ref, reactive, computed } from 'vue'
 
@@ -10,8 +11,27 @@ const props = defineProps({
     client:   Object,
     features: Array,
     grants:   Array,
-    logs:     Array,
+    logs:     Object,
 })
+
+// ── Date formatting ────────────────────────────────────────────────────────────
+const dateFmt = new Intl.DateTimeFormat('en-US', {
+    month: 'short', day: 'numeric', year: 'numeric',
+    hour: 'numeric', minute: '2-digit',
+})
+const dateFmtShort = new Intl.DateTimeFormat('en-US', {
+    month: 'short', day: 'numeric', year: 'numeric',
+})
+
+function formatDate(dateStr) {
+    if (!dateStr) return '—'
+    return dateFmt.format(new Date(dateStr))
+}
+
+function formatDateShort(dateStr) {
+    if (!dateStr) return '—'
+    return dateFmtShort.format(new Date(dateStr))
+}
 
 // ── Toast ─────────────────────────────────────────────────────────────────────
 const toast = ref('')
@@ -90,6 +110,7 @@ function submitGrant(feature) {
         },
         {
             preserveScroll: true,
+            only: ['grants', 'logs'],
             onSuccess: () => {
                 expandedId.value = null
                 flashToast(`${feature.label} granted.`)
@@ -104,6 +125,7 @@ function revokeGrant(feature, grantId) {
         `/console/owner/clients/${props.client.id}/grants/${grantId}`,
         {
             preserveScroll: true,
+            only: ['grants', 'logs'],
             onSuccess: () => flashToast(`${feature.label} grant revoked.`),
         }
     )
@@ -129,6 +151,17 @@ function restore() {
 
 function impersonate() {
     router.post(`/console/owner/impersonate/${props.client.id}`)
+}
+
+// ── Audit log pagination ──────────────────────────────────────────────────────
+function navigateAuditPage(page, perPage) {
+    const params = { audit_page: page }
+    if (perPage) params.audit_per_page = perPage
+    router.get(
+        `/console/owner/clients/${props.client.id}`,
+        params,
+        { preserveScroll: true, only: ['logs'] }
+    )
 }
 
 const TIER_LABELS = { free: 'Free', pro: 'Pro', team: 'Team', enterprise: 'Enterprise' }
@@ -281,7 +314,7 @@ const TIER_LABELS = { free: 'Free', pro: 'Pro', team: 'Team', enterprise: 'Enter
                                         class="tl-badge tl-badge--brand text-[10px]"
                                     >
                                         <TlIcon name="clock" :strokeWidth="2" class="w-3 h-3" />
-                                        expires {{ activeGrant(feature).expires_at.slice(0, 10) }}
+                                        expires {{ formatDateShort(activeGrant(feature).expires_at) }}
                                     </span>
                                     <span v-else class="tl-badge tl-badge--brand text-[10px]">Permanent</span>
                                 </template>
@@ -373,13 +406,13 @@ const TIER_LABELS = { free: 'Free', pro: 'Pro', team: 'Team', enterprise: 'Enter
             <div class="px-5 py-3 border-b border-slate-800">
                 <h2 class="text-sm font-medium text-slate-300">Audit history</h2>
             </div>
-            <ul v-if="logs.length" class="tl-divide">
-                <li v-for="log in logs" :key="log.id" class="px-5 py-3 text-xs flex items-center gap-3 flex-wrap">
-                    <span class="font-mono text-slate-500 w-36 shrink-0">{{ log.created_at }}</span>
+            <ul v-if="logs.data?.length" class="tl-divide">
+                <li v-for="log in logs.data" :key="log.id" class="px-5 py-3 text-xs flex items-center gap-3 flex-wrap">
+                    <span class="font-mono text-slate-500 w-44 shrink-0">{{ formatDate(log.created_at) }}</span>
                     <span class="tl-kbd">{{ log.action }}</span>
                     <span v-if="log.action === 'grant.created' && log.new_value?.feature_label" class="text-slate-400">
                         {{ log.new_value.feature_label }}
-                        <span v-if="log.new_value.expires_at" class="text-slate-500">until {{ log.new_value.expires_at }}</span>
+                        <span v-if="log.new_value.expires_at" class="text-slate-500">until {{ formatDateShort(log.new_value.expires_at) }}</span>
                         <span v-else class="text-slate-500">(permanent)</span>
                         <span v-if="log.new_value.note" class="text-slate-600"> — {{ log.new_value.note }}</span>
                     </span>
@@ -390,6 +423,14 @@ const TIER_LABELS = { free: 'Free', pro: 'Pro', team: 'Team', enterprise: 'Enter
                 </li>
             </ul>
             <p v-else class="px-5 py-6 text-center text-slate-500 text-sm">No audit history.</p>
+
+            <TlPagination
+                v-if="logs.last_page > 1"
+                :paginator="logs"
+                :perPage="logs.per_page"
+                @page="navigateAuditPage"
+                @update:perPage="p => navigateAuditPage(1, p)"
+            />
         </div>
 
     </div>

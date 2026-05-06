@@ -64,6 +64,7 @@ const navGroups = computed(() => [
 
 const ownerNavItems = [
     { label: 'Clients',           href: '/console/owner/clients',   icon: 'building' },
+    { label: 'Teams',             href: '/console/owner/teams',     icon: 'users' },
     { label: 'Licenses',          href: '/console/owner/licenses',  icon: 'badge-check' },
     { label: 'Tiers & Features',  href: '/console/owner/tiers',     icon: 'layers' },
     { label: 'Revenue',           href: '/console/owner/revenue',   icon: 'currency-dollar' },

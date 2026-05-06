@@ -45,7 +45,7 @@ class GrantController extends Controller
             'note'          => $validated['note'] ?? null,
         ]);
 
-        return back();
+        return redirect()->route('console.owner.clients.show', $user);
     }
 
     public function destroy(Request $request, User $user, int $grantId): RedirectResponse
@@ -66,6 +66,6 @@ class GrantController extends Controller
             'feature_label' => $grant->feature->label,
         ]);
 
-        return back();
+        return redirect()->route('console.owner.clients.show', $user);
     }
 }

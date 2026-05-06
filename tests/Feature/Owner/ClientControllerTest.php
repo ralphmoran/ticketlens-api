@@ -360,4 +360,173 @@ class ClientControllerTest extends TestCase
     {
         $this->assertTrue(\Illuminate\Support\Facades\Route::has('console.owner.clients.show'));
     }
+
+    // --- Show: paginated audit logs ---
+
+    public function test_show_audit_logs_are_paginated(): void
+    {
+        $owner  = $this->makeOwner();
+        $client = $this->makeClient();
+
+        $response = $this->actingAs($owner)->get("/console/owner/clients/{$client->id}");
+
+        $response->assertInertia(fn ($page) => $page
+            ->component('Console/Owner/Clients/Show')
+            ->has('logs.data')
+            ->has('logs.per_page')
+        );
+    }
+
+    public function test_show_audit_logs_default_10_per_page(): void
+    {
+        $owner  = $this->makeOwner();
+        $client = $this->makeClient();
+
+        // 12 audit log entries for the client
+        for ($i = 0; $i < 12; $i++) {
+            AuditLog::create([
+                'actor_id'       => $owner->id,
+                'target_user_id' => $client->id,
+                'action'         => 'user.updated',
+                'ip_address'     => '127.0.0.1',
+            ]);
+        }
+
+        $response = $this->actingAs($owner)->get("/console/owner/clients/{$client->id}");
+
+        $response->assertInertia(fn ($page) => $page
+            ->component('Console/Owner/Clients/Show')
+            ->has('logs.data', 10)
+            ->where('logs.per_page', 10)
+            ->where('logs.total', 12)
+        );
+    }
+
+    // --- Create / Store (register new client) ---
+
+    public function test_owner_can_view_client_create_form(): void
+    {
+        $owner = $this->makeOwner();
+
+        $response = $this->actingAs($owner)->get('/console/owner/clients/create');
+
+        $response->assertStatus(200);
+        $response->assertInertia(fn ($page) => $page->component('Console/Owner/Clients/Create'));
+    }
+
+    public function test_non_owner_cannot_view_create_form(): void
+    {
+        $user = $this->makeClient(['permissions' => 1023]);
+
+        $response = $this->actingAs($user)->get('/console/owner/clients/create');
+
+        $response->assertRedirect('/console/dashboard');
+    }
+
+    public function test_owner_can_register_new_client(): void
+    {
+        $owner = $this->makeOwner();
+
+        $response = $this->actingAs($owner)->post('/console/owner/clients', [
+            'name'     => 'Jane Smith',
+            'email'    => 'jane@example.com',
+            'password' => 'secret1234',
+            'tier'     => 'pro',
+        ]);
+
+        $response->assertRedirect();
+        $this->assertDatabaseHas('users', [
+            'name'  => 'Jane Smith',
+            'email' => 'jane@example.com',
+            'tier'  => 'pro',
+        ]);
+    }
+
+    public function test_register_client_creates_audit_log(): void
+    {
+        $owner = $this->makeOwner();
+
+        $this->actingAs($owner)->post('/console/owner/clients', [
+            'name'     => 'Jane Smith',
+            'email'    => 'jane@example.com',
+            'password' => 'secret1234',
+            'tier'     => 'free',
+        ]);
+
+        $this->assertDatabaseHas('audit_logs', [
+            'actor_id' => $owner->id,
+            'action'   => 'user.created',
+        ]);
+    }
+
+    public function test_register_client_redirects_to_show(): void
+    {
+        $owner = $this->makeOwner();
+
+        $response = $this->actingAs($owner)->post('/console/owner/clients', [
+            'name'     => 'Jane Smith',
+            'email'    => 'jane@example.com',
+            'password' => 'secret1234',
+            'tier'     => 'free',
+        ]);
+
+        $user = \App\Models\User::where('email', 'jane@example.com')->firstOrFail();
+        $response->assertRedirect("/console/owner/clients/{$user->id}");
+    }
+
+    public function test_register_requires_name(): void
+    {
+        $owner = $this->makeOwner();
+
+        $response = $this->actingAs($owner)->post('/console/owner/clients', [
+            'email'    => 'jane@example.com',
+            'password' => 'secret1234',
+            'tier'     => 'free',
+        ]);
+
+        $response->assertSessionHasErrors('name');
+    }
+
+    public function test_register_requires_unique_email(): void
+    {
+        $owner    = $this->makeOwner();
+        $existing = $this->makeClient(['email' => 'taken@example.com']);
+
+        $response = $this->actingAs($owner)->post('/console/owner/clients', [
+            'name'     => 'Jane Smith',
+            'email'    => 'taken@example.com',
+            'password' => 'secret1234',
+            'tier'     => 'free',
+        ]);
+
+        $response->assertSessionHasErrors('email');
+    }
+
+    public function test_register_requires_password_min_8(): void
+    {
+        $owner = $this->makeOwner();
+
+        $response = $this->actingAs($owner)->post('/console/owner/clients', [
+            'name'     => 'Jane Smith',
+            'email'    => 'jane@example.com',
+            'password' => 'short',
+            'tier'     => 'free',
+        ]);
+
+        $response->assertSessionHasErrors('password');
+    }
+
+    public function test_register_requires_valid_tier(): void
+    {
+        $owner = $this->makeOwner();
+
+        $response = $this->actingAs($owner)->post('/console/owner/clients', [
+            'name'     => 'Jane Smith',
+            'email'    => 'jane@example.com',
+            'password' => 'secret1234',
+            'tier'     => 'invalid',
+        ]);
+
+        $response->assertSessionHasErrors('tier');
+    }
 }

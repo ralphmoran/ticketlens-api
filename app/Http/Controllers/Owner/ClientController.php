@@ -51,7 +51,7 @@ class ClientController extends Controller
             'client'   => $user,
             'features' => Feature::orderBy('sort_order')
                 ->whereNotIn('name', ['team_manage_members', 'team_manage_seats'])
-                ->get(['id', 'label']),
+                ->get(['id', 'label', 'bit_value', 'description']),
             'grants'   => UserFeatureGrant::where('user_id', $user->id)
                 ->active()
                 ->with('feature:id,label')

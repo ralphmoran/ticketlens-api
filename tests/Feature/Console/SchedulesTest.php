@@ -174,7 +174,7 @@ class SchedulesTest extends TestCase
         $response->assertSessionHasErrors('deliverAt');
     }
 
-    public function test_owner_cannot_create_schedule_without_license(): void
+    public function test_owner_can_create_schedule_without_license(): void
     {
         $owner = User::factory()->create([
             'tier'        => 'owner',
@@ -184,8 +184,24 @@ class SchedulesTest extends TestCase
 
         $response = $this->actingAs($owner)->post('/console/schedules', $this->validPayload);
 
-        $response->assertRedirect();
-        $response->assertSessionHasErrors('license');
-        $this->assertDatabaseEmpty('digest_schedules');
+        $response->assertRedirect(route('console.schedules'));
+        $this->assertDatabaseHas('digest_schedules', [
+            'email'      => 'daily@example.com',
+            'timezone'   => 'America/New_York',
+            'deliver_at' => '08:00',
+            'active'     => true,
+        ]);
+    }
+
+    public function test_owner_schedule_is_isolated_from_licensed_user(): void
+    {
+        $owner = User::factory()->create(['tier' => 'owner', 'permissions' => 0, 'is_owner' => true]);
+        $user  = $this->proUser();
+        $this->licenseFor($user);
+
+        $this->actingAs($owner)->post('/console/schedules', $this->validPayload);
+        $this->actingAs($user)->post('/console/schedules', array_merge($this->validPayload, ['email' => 'user@example.com']));
+
+        $this->assertDatabaseCount('digest_schedules', 2);
     }
 }

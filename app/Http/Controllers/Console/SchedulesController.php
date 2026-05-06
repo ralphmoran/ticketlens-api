@@ -14,16 +14,16 @@ class SchedulesController
 {
     public function store(ScheduleRequest $request): RedirectResponse
     {
-        $license = License::where('user_id', $request->user()->id)->first();
+        $hash = $this->hashForUser($request->user());
 
-        if (! $license) {
+        if (! $hash) {
             return back()->withErrors(['license' => 'No active license found. Upgrade to Pro to manage schedules.']);
         }
 
         $data = $request->validated();
 
         DigestSchedule::updateOrCreate(
-            ['license_key_hash' => $license->lemon_key_hash],
+            ['license_key_hash' => $hash],
             [
                 'email'      => $data['email'],
                 'timezone'   => $data['timezone'],
@@ -38,33 +38,29 @@ class SchedulesController
     public function index(Request $request): Response
     {
         $user = $request->user();
+        $hash = $this->hashForUser($user);
 
+        $schedules = $hash
+            ? DigestSchedule::where('license_key_hash', $hash)
+                ->orderByDesc('created_at')
+                ->get(['id', 'email', 'timezone', 'deliver_at', 'active', 'last_delivered_at', 'created_at'])
+            : collect();
+
+        return Inertia::render('Console/Schedules', [
+            'schedules'  => $schedules,
+            'hasLicense' => $user->is_owner || $hash !== null,
+            'timezones'  => \DateTimeZone::listIdentifiers(),
+        ]);
+    }
+
+    private function hashForUser(\App\Models\User $user): ?string
+    {
         if ($user->is_owner) {
-            return Inertia::render('Console/Schedules', [
-                'schedules'  => [],
-                'hasLicense' => true,
-                'timezones'  => \DateTimeZone::listIdentifiers(),
-            ]);
+            return DigestSchedule::hashKey('owner:' . $user->id);
         }
 
         $license = License::where('user_id', $user->id)->first();
 
-        if (! $license) {
-            return Inertia::render('Console/Schedules', [
-                'schedules'  => [],
-                'hasLicense' => false,
-                'timezones'  => \DateTimeZone::listIdentifiers(),
-            ]);
-        }
-
-        $schedules = DigestSchedule::where('license_key_hash', $license->lemon_key_hash)
-            ->orderByDesc('created_at')
-            ->get(['id', 'email', 'timezone', 'deliver_at', 'active', 'last_delivered_at', 'created_at']);
-
-        return Inertia::render('Console/Schedules', [
-            'schedules'  => $schedules,
-            'hasLicense' => true,
-            'timezones'  => \DateTimeZone::listIdentifiers(),
-        ]);
+        return $license?->lemon_key_hash;
     }
 }

@@ -32,10 +32,24 @@ function formatDate(iso) {
     <div class="tl-page">
 
         <!-- Page header -->
-        <div class="mb-8">
+        <div class="mb-6">
             <h1 class="tl-heading">Compliance History</h1>
-            <p class="tl-subtext">
-                Ticket compliance checks via <code class="tl-kbd tl-kbd--brand">ticketlens --check</code>
+            <p class="tl-subtext">Ticket requirements checked against your local VCS diff</p>
+        </div>
+
+        <!-- Feature description -->
+        <div class="mb-8 rounded-xl border border-slate-800 bg-slate-900/60 p-5 space-y-3">
+            <p class="text-sm text-slate-300 leading-relaxed">
+                <strong class="text-slate-100">What it does:</strong>
+                Compares the acceptance criteria in a Jira ticket against your current VCS diff (git, SVN, or Mercurial). It flags missing requirements, partial implementations, and files touched that aren't mentioned in the ticket — giving you a pre-commit confidence check before code review.
+            </p>
+            <p class="text-sm text-slate-400 leading-relaxed">
+                <strong class="text-slate-300">CLI command:</strong>
+                <code class="tl-kbd tl-kbd--brand">ticketlens --check PROJ-123</code>
+            </p>
+            <p class="text-sm text-slate-400 leading-relaxed">
+                <strong class="text-slate-300">Expected result:</strong>
+                A pass/warn/fail report printed to your terminal listing each acceptance criterion with a status. Free tier: 3 checks per month. Pro: unlimited. Each check is logged here with the ticket key and token cost.
             </p>
         </div>
 

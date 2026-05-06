@@ -29,10 +29,26 @@ function formatDate(iso) {
     <div class="tl-page">
 
         <!-- Page header -->
-        <div class="mb-8">
+        <div class="mb-6">
             <h1 class="tl-heading">Summarize History</h1>
-            <p class="tl-subtext">
-                Cloud summarize calls via <code class="tl-kbd tl-kbd--brand">ticketlens --summarize --cloud</code>
+            <p class="tl-subtext">Cloud AI summarize calls for your Jira tickets</p>
+        </div>
+
+        <!-- Feature description -->
+        <div class="mb-8 rounded-xl border border-slate-800 bg-slate-900/60 p-5 space-y-3">
+            <p class="text-sm text-slate-300 leading-relaxed">
+                <strong class="text-slate-100">What it does:</strong>
+                Generates a concise, AI-written plain-English summary of a Jira ticket — stripping noise, linking blockers, and surfacing the actual acceptance criteria. In BYOK mode your key is used locally. In cloud mode, TicketLens compresses the brief first (reducing tokens by 60–80%) then calls the AI on your behalf.
+            </p>
+            <p class="text-sm text-slate-400 leading-relaxed">
+                <strong class="text-slate-300">CLI commands:</strong>
+                <code class="tl-kbd tl-kbd--brand">ticketlens --summarize PROJ-123</code>
+                <span class="mx-1 text-slate-600">·</span>
+                <code class="tl-kbd tl-kbd--brand">ticketlens --summarize --cloud PROJ-123</code>
+            </p>
+            <p class="text-sm text-slate-400 leading-relaxed">
+                <strong class="text-slate-300">Expected result:</strong>
+                A 3–5 sentence summary printed to your terminal (and optionally piped to your AI tool). Cloud calls are logged here with token counts so you can track usage and savings over time.
             </p>
         </div>
 

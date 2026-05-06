@@ -29,10 +29,24 @@ function formatDate(iso) {
     <div class="tl-page">
 
         <!-- Page header -->
-        <div class="mb-8">
+        <div class="mb-6">
             <h1 class="tl-heading">Digest History</h1>
-            <p class="tl-subtext">
-                Past digest deliveries sent via <code class="tl-kbd tl-kbd--brand">ticketlens --digest</code>
+            <p class="tl-subtext">Past digest deliveries sent to your inbox</p>
+        </div>
+
+        <!-- Feature description -->
+        <div class="mb-8 rounded-xl border border-slate-800 bg-slate-900/60 p-5 space-y-3">
+            <p class="text-sm text-slate-300 leading-relaxed">
+                <strong class="text-slate-100">What it does:</strong>
+                Pushes a scored triage digest to the TicketLens backend, which queues an email delivery to your registered address. Each digest summarises your Jira backlog with urgency scores, age warnings, and direct ticket links — delivered on demand or on your configured schedule.
+            </p>
+            <p class="text-sm text-slate-400 leading-relaxed">
+                <strong class="text-slate-300">CLI command:</strong>
+                <code class="tl-kbd tl-kbd--brand">ticketlens triage --digest</code>
+            </p>
+            <p class="text-sm text-slate-400 leading-relaxed">
+                <strong class="text-slate-300">Expected result:</strong>
+                An email arrives within seconds containing your ranked backlog. This page records every delivery — date, ticket count, and tokens saved vs. sending raw Jira data to an AI.
             </p>
         </div>
 

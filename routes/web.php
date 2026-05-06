@@ -49,6 +49,8 @@ Route::prefix('console')->name('console.')->group(function () {
         // Workflow modules (permission-gated)
         Route::get('/schedules', [\App\Http\Controllers\Console\SchedulesController::class, 'index'])
             ->middleware('permission:Schedules')->name('schedules');
+        Route::post('/schedules', [\App\Http\Controllers\Console\SchedulesController::class, 'store'])
+            ->middleware('permission:Schedules');
         Route::get('/digests', [\App\Http\Controllers\Console\DigestsController::class, 'index'])
             ->middleware('permission:Digests')->name('digests');
         Route::get('/summarize', [\App\Http\Controllers\Console\SummarizeController::class, 'index'])

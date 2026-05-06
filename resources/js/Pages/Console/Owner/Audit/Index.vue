@@ -4,6 +4,7 @@ import TlIcon from '@/Components/TlIcon.vue'
 import TlPagination from '@/Components/TlPagination.vue'
 import { useTableFilters } from '@/composables/useTableFilters'
 import { Link } from '@inertiajs/vue3'
+import { formatDateTime } from '@/composables/useDateFormat'
 
 defineOptions({ layout: ConsoleLayout })
 
@@ -27,12 +28,15 @@ const { filters, loading, navigate } = useTableFilters({
 
         <!-- Filter -->
         <div class="mb-5">
-            <input
-                v-model="filters.action"
-                type="text"
-                placeholder="Filter by action (e.g. user.suspended)…"
-                class="tl-input w-full max-w-sm"
-            />
+            <div class="relative w-full max-w-sm">
+                <TlIcon name="search" class="absolute left-2.5 top-2.5 w-3.5 h-3.5 text-slate-500 pointer-events-none" />
+                <input
+                    v-model="filters.action"
+                    type="text"
+                    placeholder="Filter by action (e.g. user.suspended)…"
+                    class="tl-input w-full pl-8"
+                />
+            </div>
         </div>
 
         <!-- Table with loading overlay -->
@@ -57,7 +61,7 @@ const { filters, loading, navigate } = useTableFilters({
                     </thead>
                     <tbody class="tl-divide">
                         <tr v-for="log in logs.data" :key="log.id" class="tl-tr">
-                            <td class="px-4 py-3 font-mono text-slate-500 text-xs whitespace-nowrap">{{ log.created_at }}</td>
+                            <td class="px-4 py-3 text-slate-500 text-xs whitespace-nowrap">{{ formatDateTime(log.created_at) }}</td>
                             <td class="px-4 py-3 text-slate-300 text-xs">{{ log.actor?.name ?? '—' }}</td>
                             <td class="px-5 py-3">
                                 <span class="tl-kbd">{{ log.action }}</span>

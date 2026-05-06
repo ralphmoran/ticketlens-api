@@ -1,18 +1,13 @@
 <script setup>
 import ConsoleLayout from '@/Layouts/ConsoleLayout.vue'
 import { Link } from '@inertiajs/vue3'
+import { formatDate } from '@/composables/useDateFormat'
 
 defineOptions({ layout: ConsoleLayout })
 
 defineProps({
     teams: Array,
 })
-
-const dateFmt = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-function formatDate(dateStr) {
-    if (!dateStr) return '—'
-    return dateFmt.format(new Date(dateStr))
-}
 </script>
 
 <template>

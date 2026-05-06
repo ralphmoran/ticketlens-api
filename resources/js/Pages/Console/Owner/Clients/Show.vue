@@ -4,6 +4,7 @@ import TlIcon from '@/components/TlIcon.vue'
 import TlPagination from '@/Components/TlPagination.vue'
 import { Link, router, useForm } from '@inertiajs/vue3'
 import { ref, reactive, computed } from 'vue'
+import { formatDate, formatDateTime } from '@/composables/useDateFormat'
 
 defineOptions({ layout: ConsoleLayout })
 
@@ -13,25 +14,6 @@ const props = defineProps({
     grants:   Array,
     logs:     Object,
 })
-
-// ── Date formatting ────────────────────────────────────────────────────────────
-const dateFmt = new Intl.DateTimeFormat('en-US', {
-    month: 'short', day: 'numeric', year: 'numeric',
-    hour: 'numeric', minute: '2-digit',
-})
-const dateFmtShort = new Intl.DateTimeFormat('en-US', {
-    month: 'short', day: 'numeric', year: 'numeric',
-})
-
-function formatDate(dateStr) {
-    if (!dateStr) return '—'
-    return dateFmt.format(new Date(dateStr))
-}
-
-function formatDateShort(dateStr) {
-    if (!dateStr) return '—'
-    return dateFmtShort.format(new Date(dateStr))
-}
 
 // ── Toast ─────────────────────────────────────────────────────────────────────
 const toast = ref('')
@@ -314,7 +296,7 @@ const TIER_LABELS = { free: 'Free', pro: 'Pro', team: 'Team', enterprise: 'Enter
                                         class="tl-badge tl-badge--brand text-[10px]"
                                     >
                                         <TlIcon name="clock" :strokeWidth="2" class="w-3 h-3" />
-                                        expires {{ formatDateShort(activeGrant(feature).expires_at) }}
+                                        expires {{ formatDate(activeGrant(feature).expires_at) }}
                                     </span>
                                     <span v-else class="tl-badge tl-badge--brand text-[10px]">Permanent</span>
                                 </template>
@@ -408,11 +390,11 @@ const TIER_LABELS = { free: 'Free', pro: 'Pro', team: 'Team', enterprise: 'Enter
             </div>
             <ul v-if="logs.data?.length" class="tl-divide">
                 <li v-for="log in logs.data" :key="log.id" class="px-5 py-3 text-xs flex items-center gap-3 flex-wrap">
-                    <span class="font-mono text-slate-500 w-44 shrink-0">{{ formatDate(log.created_at) }}</span>
+                    <span class="text-slate-500 w-44 shrink-0">{{ formatDateTime(log.created_at) }}</span>
                     <span class="tl-kbd">{{ log.action }}</span>
                     <span v-if="log.action === 'grant.created' && log.new_value?.feature_label" class="text-slate-400">
                         {{ log.new_value.feature_label }}
-                        <span v-if="log.new_value.expires_at" class="text-slate-500">until {{ formatDateShort(log.new_value.expires_at) }}</span>
+                        <span v-if="log.new_value.expires_at" class="text-slate-500">until {{ formatDate(log.new_value.expires_at) }}</span>
                         <span v-else class="text-slate-500">(permanent)</span>
                         <span v-if="log.new_value.note" class="text-slate-600"> — {{ log.new_value.note }}</span>
                     </span>

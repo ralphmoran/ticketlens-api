@@ -4,6 +4,7 @@ import TlIcon from '@/Components/TlIcon.vue'
 import TlPagination from '@/Components/TlPagination.vue'
 import { useTableFilters } from '@/composables/useTableFilters'
 import { Link, router } from '@inertiajs/vue3'
+import { formatDate, expiryWarning } from '@/composables/useDateFormat'
 
 defineOptions({ layout: ConsoleLayout })
 
@@ -38,6 +39,7 @@ const STATUS_COLORS = {
     paused:    'bg-amber-900/40 text-amber-300',
     expired:   'bg-slate-800 text-slate-500',
 }
+
 </script>
 
 <template>
@@ -113,7 +115,15 @@ const STATUS_COLORS = {
                             <td class="px-4 py-3">
                                 <span :class="['capitalize text-xs font-medium px-2 py-0.5 rounded', STATUS_COLORS[license.status] ?? 'bg-slate-700 text-slate-300']">{{ license.status }}</span>
                             </td>
-                            <td class="px-4 py-3 text-slate-500 text-xs font-mono">{{ license.expires_at?.slice(0, 10) ?? 'never' }}</td>
+                            <td class="px-4 py-3 text-xs">
+                                <span :class="license.expires_at ? 'text-slate-300' : 'text-slate-500'">
+                                    {{ license.expires_at ? formatDate(license.expires_at) : 'Never' }}
+                                </span>
+                                <span
+                                    v-if="license.expires_at && expiryWarning(license.expires_at)"
+                                    :class="['ml-1.5 px-1.5 py-0.5 rounded font-medium', expiryWarning(license.expires_at).classes]"
+                                >{{ expiryWarning(license.expires_at).label }}</span>
+                            </td>
                             <td class="px-4 py-3 text-right">
                                 <button
                                     v-if="license.status === 'active'"

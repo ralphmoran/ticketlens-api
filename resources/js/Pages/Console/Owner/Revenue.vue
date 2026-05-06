@@ -1,6 +1,7 @@
 <script setup>
 import ConsoleLayout from '@/Layouts/ConsoleLayout.vue'
 import { computed } from 'vue'
+import { formatDate } from '@/composables/useDateFormat'
 
 defineOptions({ layout: ConsoleLayout })
 
@@ -32,9 +33,6 @@ const statusBadge = {
 
 function tierClass(tier)     { return tierBadge[tier]    ?? tierBadge.free }
 function statusClass(status) { return statusBadge[status] ?? 'bg-slate-800 text-slate-400 border-slate-700' }
-function formatDate(date) {
-    return new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-}
 </script>
 
 <template>

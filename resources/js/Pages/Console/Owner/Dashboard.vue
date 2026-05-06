@@ -1,6 +1,7 @@
 <script setup>
 import ConsoleLayout from '@/Layouts/ConsoleLayout.vue'
 import { Link } from '@inertiajs/vue3'
+import { formatDateTime } from '@/composables/useDateFormat'
 
 defineOptions({ layout: ConsoleLayout })
 
@@ -45,7 +46,7 @@ defineProps({
             </div>
             <ul class="divide-y divide-slate-800">
                 <li v-for="log in stats.recent_actions" :key="log.id" class="px-5 py-3 text-sm flex items-center gap-3">
-                    <span class="font-mono text-xs text-slate-500 w-36 shrink-0">{{ log.created_at }}</span>
+                    <span class="text-xs text-slate-500 w-36 shrink-0">{{ formatDateTime(log.created_at) }}</span>
                     <span class="text-slate-400">{{ log.actor?.name ?? '—' }}</span>
                     <span class="tl-kbd">{{ log.action }}</span>
                     <span v-if="log.target_user" class="text-slate-500 text-xs">→ {{ log.target_user?.email }}</span>

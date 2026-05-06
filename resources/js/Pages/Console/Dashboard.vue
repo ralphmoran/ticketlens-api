@@ -2,6 +2,7 @@
 import ConsoleLayout from '@/Layouts/ConsoleLayout.vue'
 import TlIcon from '@/components/TlIcon.vue'
 import { usePermissions } from '@/composables/usePermissions'
+import { formatDate } from '@/composables/useDateFormat'
 import { usePage } from '@inertiajs/vue3'
 import { computed } from 'vue'
 import { Permission } from '@/permissions'
@@ -33,7 +34,7 @@ const activeGrants = computed(() => page.props.auth?.activeGrants ?? [])
                     <TlIcon name="clock" class="w-4 h-4 text-amber-400 shrink-0" />
                     <span class="text-amber-300 font-medium">{{ grant.label }}</span>
                     <span v-if="grant.expires_at" class="text-amber-500/80 text-xs">
-                        trial access until {{ grant.expires_at.slice(0, 10) }}
+                        trial access until {{ formatDate(grant.expires_at) }}
                     </span>
                     <span v-else class="text-amber-500/80 text-xs">trial access (no expiry)</span>
                 </div>

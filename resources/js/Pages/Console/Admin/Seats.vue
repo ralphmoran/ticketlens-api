@@ -1,6 +1,7 @@
 <script setup>
 import ConsoleLayout from '@/Layouts/ConsoleLayout.vue'
 import { computed } from 'vue'
+import { formatDate } from '@/composables/useDateFormat'
 
 defineOptions({ layout: ConsoleLayout })
 
@@ -58,7 +59,7 @@ const barClass = computed(() => {
                 </div>
                 <div>
                     <dt class="text-xs text-slate-500 uppercase tracking-wider mb-1">Expires</dt>
-                    <dd class="text-slate-200 font-mono">{{ license.expires_at?.slice(0, 10) ?? 'never' }}</dd>
+                    <dd class="text-slate-200">{{ license.expires_at ? formatDate(license.expires_at) : 'Never' }}</dd>
                 </div>
             </dl>
         </div>

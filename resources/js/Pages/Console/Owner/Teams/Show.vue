@@ -1,6 +1,7 @@
 <script setup>
 import ConsoleLayout from '@/Layouts/ConsoleLayout.vue'
 import { Link, router } from '@inertiajs/vue3'
+import { formatDate } from '@/composables/useDateFormat'
 
 defineOptions({ layout: ConsoleLayout })
 
@@ -8,12 +9,6 @@ const props = defineProps({
     team:    Object,
     members: Array,
 })
-
-const dateFmt = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-function formatDate(dateStr) {
-    if (!dateStr) return '—'
-    return dateFmt.format(new Date(dateStr))
-}
 
 function removeMember(member) {
     if (!confirm(`Remove ${member.name} from this team?`)) return

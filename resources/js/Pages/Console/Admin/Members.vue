@@ -1,6 +1,7 @@
 <script setup>
 import ConsoleLayout from '@/Layouts/ConsoleLayout.vue'
 import { router, useForm } from '@inertiajs/vue3'
+import { formatDate } from '@/composables/useDateFormat'
 
 defineOptions({ layout: ConsoleLayout })
 
@@ -95,7 +96,7 @@ const atLimit = () => props.seats_used >= props.seats_total
                             <span v-if="member.id === is_owner_of" class="text-xs font-medium px-2 py-0.5 rounded bg-amber-900/40 text-amber-300">Manager</span>
                             <span v-else class="text-xs font-medium px-2 py-0.5 rounded bg-slate-700 text-slate-300">Member</span>
                         </td>
-                        <td class="px-4 py-3 text-slate-500 text-xs font-mono">{{ member.created_at?.slice(0, 10) }}</td>
+                        <td class="px-4 py-3 text-slate-500 text-xs">{{ formatDate(member.created_at) }}</td>
                         <td class="px-4 py-3 text-right">
                             <div class="flex items-center justify-end gap-3">
                                 <button v-if="member.id !== is_owner_of" @click="promote(member.id)" class="tl-btn-ghost tl-btn-ghost--warn">

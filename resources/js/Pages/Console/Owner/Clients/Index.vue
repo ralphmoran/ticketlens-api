@@ -4,6 +4,7 @@ import TlIcon from '@/Components/TlIcon.vue'
 import TlPagination from '@/Components/TlPagination.vue'
 import { useTableFilters } from '@/composables/useTableFilters'
 import { Link, router } from '@inertiajs/vue3'
+import { formatDate } from '@/composables/useDateFormat'
 
 defineOptions({ layout: ConsoleLayout })
 
@@ -56,12 +57,15 @@ const TIER_COLORS = {
 
         <!-- Filters -->
         <div class="flex gap-3 mb-5">
-            <input
-                v-model="filters.search"
-                type="text"
-                placeholder="Search by email or name…"
-                class="tl-input flex-1"
-            />
+            <div class="relative flex-1">
+                <TlIcon name="search" class="absolute left-2.5 top-2.5 w-3.5 h-3.5 text-slate-500 pointer-events-none" />
+                <input
+                    v-model="filters.search"
+                    type="text"
+                    placeholder="Search by email or name…"
+                    class="tl-input w-full pl-8"
+                />
+            </div>
             <select v-model="filters.tier" class="tl-select">
                 <option value="">All tiers</option>
                 <option value="free">Free</option>
@@ -109,7 +113,7 @@ const TIER_COLORS = {
                                 <span v-else-if="client.suspended_at" class="text-xs text-red-400">Suspended</span>
                                 <span v-else class="text-xs text-emerald-400">Active</span>
                             </td>
-                            <td class="px-4 py-3 text-slate-500 text-xs">{{ client.created_at?.slice(0, 10) }}</td>
+                            <td class="px-4 py-3 text-slate-500 text-xs">{{ formatDate(client.created_at) }}</td>
                             <td class="px-4 py-3 text-right">
                                 <div class="flex items-center justify-end gap-2">
                                     <!-- View -->

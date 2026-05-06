@@ -2,6 +2,7 @@
 import ConsoleLayout from '@/Layouts/ConsoleLayout.vue'
 import { Link, useForm } from '@inertiajs/vue3'
 import { computed, ref } from 'vue'
+import { formatDate } from '@/composables/useDateFormat'
 
 defineOptions({ layout: ConsoleLayout })
 
@@ -122,7 +123,7 @@ const licenseBadge = (status) => licenseStatusStyles[status?.toLowerCase()] ?? l
                     <div class="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4">
                         <span class="text-xs text-slate-500 sm:w-24 shrink-0">Expires</span>
                         <span class="text-sm font-mono text-slate-300">
-                            {{ account.license.expires_at ?? 'Never expires' }}
+                            {{ account.license.expires_at ? formatDate(account.license.expires_at) : 'Never expires' }}
                         </span>
                     </div>
                 </div>

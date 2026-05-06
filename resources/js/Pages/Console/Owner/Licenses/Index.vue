@@ -4,6 +4,7 @@ import TlIcon from '@/Components/TlIcon.vue'
 import TlPagination from '@/Components/TlPagination.vue'
 import { useTableFilters } from '@/composables/useTableFilters'
 import { Link, router } from '@inertiajs/vue3'
+import { ref } from 'vue'
 import { formatDate, expiryWarning } from '@/composables/useDateFormat'
 
 defineOptions({ layout: ConsoleLayout })
@@ -24,6 +25,35 @@ function revoke(id) {
     if (confirm('Revoke this license? The client will lose access. This is soft — the record is preserved.')) {
         router.delete(`/console/owner/licenses/${id}`, { preserveScroll: true })
     }
+}
+
+const editing    = ref(null)
+const editDate   = ref('')
+const editSaving = ref(false)
+
+function openEdit(license) {
+    editing.value  = license
+    editDate.value = license.expires_at ? license.expires_at.substring(0, 10) : ''
+}
+
+function closeEdit() {
+    editing.value  = null
+    editDate.value = ''
+    editSaving.value = false
+}
+
+function submitEdit() {
+    if (!editing.value) return
+    editSaving.value = true
+    router.patch(
+        `/console/owner/licenses/${editing.value.id}`,
+        { expires_at: editDate.value || null },
+        {
+            preserveScroll: true,
+            onSuccess: () => closeEdit(),
+            onError:   () => { editSaving.value = false },
+        },
+    )
 }
 
 const TIER_COLORS = {
@@ -125,15 +155,24 @@ const STATUS_COLORS = {
                                 >{{ expiryWarning(license.expires_at).label }}</span>
                             </td>
                             <td class="px-4 py-3 text-right">
-                                <button
-                                    v-if="license.status === 'active'"
-                                    @click="revoke(license.id)"
-                                    class="flex items-center gap-1 tl-btn-ghost tl-btn-ghost--danger"
-                                    title="Revoke license"
-                                >
-                                    <TlIcon name="x-circle" class="w-3.5 h-3.5 shrink-0" />
-                                    Revoke
-                                </button>
+                                <div v-if="license.status === 'active'" class="flex items-center justify-end gap-2">
+                                    <button
+                                        @click="openEdit(license)"
+                                        class="flex items-center gap-1 tl-btn-ghost"
+                                        title="Edit expiry date"
+                                    >
+                                        <TlIcon name="pencil" class="w-3.5 h-3.5 shrink-0" />
+                                        Edit
+                                    </button>
+                                    <button
+                                        @click="revoke(license.id)"
+                                        class="flex items-center gap-1 tl-btn-ghost tl-btn-ghost--danger"
+                                        title="Revoke license"
+                                    >
+                                        <TlIcon name="x-circle" class="w-3.5 h-3.5 shrink-0" />
+                                        Revoke
+                                    </button>
+                                </div>
                             </td>
                         </tr>
                         <tr v-if="!licenses.data?.length">
@@ -151,4 +190,37 @@ const STATUS_COLORS = {
             @page="n => navigate({ page: n })"
         />
     </div>
+
+    <!-- Edit expiry modal -->
+    <Teleport to="body">
+        <div
+            v-if="editing"
+            class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70"
+            @click.self="closeEdit"
+        >
+            <div class="w-full max-w-sm rounded-xl bg-slate-900 border border-slate-700 shadow-2xl p-6">
+                <h2 class="text-slate-100 font-semibold text-base mb-1">Edit expiry date</h2>
+                <p class="text-slate-500 text-sm mb-5">
+                    {{ editing.user?.name ?? editing.user?.email }} — {{ editing.tier }} license
+                </p>
+
+                <label class="block text-xs font-medium text-slate-400 mb-1">Expiry date</label>
+                <input
+                    v-model="editDate"
+                    type="date"
+                    class="tl-input w-full mb-1"
+                    :min="new Date(Date.now() + 86400000).toISOString().substring(0, 10)"
+                />
+                <p class="text-xs text-slate-500 mb-5">Leave blank to set "Never expires".</p>
+
+                <div class="flex justify-end gap-3">
+                    <button @click="closeEdit" class="tl-btn tl-btn--ghost" :disabled="editSaving">Cancel</button>
+                    <button @click="submitEdit" class="tl-btn tl-btn--primary" :disabled="editSaving">
+                        <TlIcon v-if="editSaving" name="spinner" class="w-3.5 h-3.5 animate-spin" />
+                        {{ editSaving ? 'Saving…' : 'Save' }}
+                    </button>
+                </div>
+            </div>
+        </div>
+    </Teleport>
 </template>

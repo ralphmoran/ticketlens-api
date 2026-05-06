@@ -47,10 +47,14 @@ Route::prefix('console')->name('console.')->group(function () {
         Route::get('/upgrade', [\App\Http\Controllers\Console\UpgradeController::class, 'index'])->name('upgrade');
 
         // Workflow modules (permission-gated)
-        Route::get('/schedules', [\App\Http\Controllers\Console\SchedulesController::class, 'index'])
-            ->middleware('permission:Schedules')->name('schedules');
-        Route::post('/schedules', [\App\Http\Controllers\Console\SchedulesController::class, 'store'])
-            ->middleware('permission:Schedules');
+        Route::middleware('permission:Schedules')->group(function () {
+            $ctrl = \App\Http\Controllers\Console\SchedulesController::class;
+            Route::get('/schedules',                    [$ctrl, 'index'])->name('schedules');
+            Route::post('/schedules',                   [$ctrl, 'store']);
+            Route::patch('/schedules/{schedule}',       [$ctrl, 'update']);
+            Route::patch('/schedules/{schedule}/toggle',[$ctrl, 'toggle']);
+            Route::delete('/schedules/{schedule}',      [$ctrl, 'destroy']);
+        });
         Route::get('/digests', [\App\Http\Controllers\Console\DigestsController::class, 'index'])
             ->middleware('permission:Digests')->name('digests');
         Route::get('/summarize', [\App\Http\Controllers\Console\SummarizeController::class, 'index'])
@@ -98,6 +102,7 @@ Route::prefix('console')->name('console.')->group(function () {
             Route::get('/licenses/create',          [\App\Http\Controllers\Owner\LicenseController::class, 'create'])->name('licenses.create');
             Route::post('/licenses',                [\App\Http\Controllers\Owner\LicenseController::class, 'store'])->name('licenses.store');
             Route::get('/licenses/{license}/created', [\App\Http\Controllers\Owner\LicenseController::class, 'created'])->name('licenses.created');
+            Route::patch('/licenses/{license}',     [\App\Http\Controllers\Owner\LicenseController::class, 'update'])->name('licenses.update');
             Route::delete('/licenses/{license}',    [\App\Http\Controllers\Owner\LicenseController::class, 'destroy'])->name('licenses.destroy');
 
             // Audit log

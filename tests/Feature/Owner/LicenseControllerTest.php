@@ -241,6 +241,100 @@ class LicenseControllerTest extends TestCase
         $response->assertStatus(410);
     }
 
+    // --- Update (edit expiry) ---
+
+    public function test_owner_can_update_expiry_to_future_date(): void
+    {
+        $owner     = $this->makeOwner();
+        $recipient = User::factory()->create();
+        $license   = License::create([
+            'user_id' => $recipient->id, 'issued_by_user_id' => $owner->id,
+            'lemon_key_hash' => str_repeat('a', 64), 'status' => 'active', 'tier' => 'pro', 'seats' => 1,
+        ]);
+
+        $newExpiry = now()->addMonths(3)->toDateString();
+        $response  = $this->actingAs($owner)->patch("/console/owner/licenses/{$license->id}", [
+            'expires_at' => $newExpiry,
+        ]);
+
+        $response->assertRedirect();
+        $this->assertSame($newExpiry, $license->fresh()->expires_at->toDateString());
+    }
+
+    public function test_owner_can_clear_expiry_to_never(): void
+    {
+        $owner     = $this->makeOwner();
+        $recipient = User::factory()->create();
+        $license   = License::create([
+            'user_id' => $recipient->id, 'issued_by_user_id' => $owner->id,
+            'lemon_key_hash' => str_repeat('b', 64), 'status' => 'active', 'tier' => 'pro', 'seats' => 1,
+            'expires_at' => now()->addMonth(),
+        ]);
+
+        $response = $this->actingAs($owner)->patch("/console/owner/licenses/{$license->id}", [
+            'expires_at' => null,
+        ]);
+
+        $response->assertRedirect();
+        $this->assertNull($license->fresh()->expires_at);
+    }
+
+    public function test_update_rejects_past_expiry_date(): void
+    {
+        $owner     = $this->makeOwner();
+        $recipient = User::factory()->create();
+        $license   = License::create([
+            'user_id' => $recipient->id, 'issued_by_user_id' => $owner->id,
+            'lemon_key_hash' => str_repeat('c', 64), 'status' => 'active', 'tier' => 'pro', 'seats' => 1,
+        ]);
+
+        $response = $this->actingAs($owner)->patch("/console/owner/licenses/{$license->id}", [
+            'expires_at' => now()->subDay()->toDateString(),
+        ]);
+
+        $response->assertSessionHasErrors('expires_at');
+        $this->assertNull($license->fresh()->expires_at);
+    }
+
+    public function test_update_logs_audit_event(): void
+    {
+        $owner     = $this->makeOwner();
+        $recipient = User::factory()->create();
+        $license   = License::create([
+            'user_id' => $recipient->id, 'issued_by_user_id' => $owner->id,
+            'lemon_key_hash' => str_repeat('d', 64), 'status' => 'active', 'tier' => 'pro', 'seats' => 1,
+        ]);
+
+        $newExpiry = now()->addYear()->toDateString();
+        $this->actingAs($owner)->patch("/console/owner/licenses/{$license->id}", [
+            'expires_at' => $newExpiry,
+        ]);
+
+        $this->assertDatabaseHas('audit_logs', [
+            'actor_id'      => $owner->id,
+            'target_user_id' => $recipient->id,
+            'action'        => 'license.expiry_updated',
+        ]);
+    }
+
+    public function test_non_owner_cannot_update_license(): void
+    {
+        $owner     = $this->makeOwner();
+        $nonOwner  = User::factory()->create(['permissions' => 1023]);
+        $recipient = User::factory()->create();
+        $license   = License::create([
+            'user_id' => $recipient->id, 'issued_by_user_id' => $owner->id,
+            'lemon_key_hash' => str_repeat('e', 64), 'status' => 'active', 'tier' => 'pro', 'seats' => 1,
+        ]);
+
+        $response = $this->actingAs($nonOwner)->patch("/console/owner/licenses/{$license->id}", [
+            'expires_at' => now()->addMonth()->toDateString(),
+        ]);
+
+        $response->assertRedirect('/console/dashboard');
+        $this->assertNull($license->fresh()->expires_at);
+    }
+
     // --- Destroy (revoke) ---
 
     public function test_owner_can_revoke_license(): void

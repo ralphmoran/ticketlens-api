@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Owner;
 use App\Http\Controllers\Controller;
 use App\Models\License;
 use App\Models\User;
+use App\Services\AuditService;
 use App\Services\LicenseIssuanceService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -16,7 +17,10 @@ class LicenseController extends Controller
 {
     private const VALID_TIERS = ['pro', 'team', 'enterprise'];
 
-    public function __construct(private readonly LicenseIssuanceService $issuance) {}
+    public function __construct(
+        private readonly LicenseIssuanceService $issuance,
+        private readonly AuditService $audit,
+    ) {}
 
     public function index(Request $request): Response
     {
@@ -105,6 +109,29 @@ class LicenseController extends Controller
             'raw_key'  => $rawKey,
             'emailed'  => $emailed,
         ]);
+    }
+
+    public function update(Request $request, License $license): RedirectResponse
+    {
+        $validated = $request->validate([
+            'expires_at' => ['nullable', 'date', 'after:today'],
+        ]);
+
+        $expiresAt = isset($validated['expires_at']) ? Carbon::parse($validated['expires_at']) : null;
+
+        $license->update(['expires_at' => $expiresAt]);
+
+        $this->audit->log(
+            actor: $request->user(),
+            action: 'license.expiry_updated',
+            target: $license->user,
+            metadata: [
+                'license_id' => $license->id,
+                'expires_at' => $expiresAt?->toDateString(),
+            ],
+        );
+
+        return back();
     }
 
     public function destroy(Request $request, License $license): RedirectResponse

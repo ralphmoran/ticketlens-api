@@ -1,5 +1,6 @@
 <script setup>
 import ConsoleLayout from '@/Layouts/ConsoleLayout.vue'
+import TlIcon from '@/components/TlIcon.vue'
 import { Link, useForm } from '@inertiajs/vue3'
 import { computed, ref } from 'vue'
 import { formatDate } from '@/composables/useDateFormat'
@@ -107,7 +108,10 @@ const licenseBadge = (status) => licenseStatusStyles[status?.toLowerCase()] ?? l
                 <Link
                     href="/console/upgrade"
                     class="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg border border-indigo-500 text-indigo-400 text-sm font-medium hover:bg-indigo-500/10 transition-colors duration-150"
-                >Get a license →</Link>
+                >
+                    <TlIcon name="key" class="w-3.5 h-3.5" />
+                    Get a license
+                </Link>
             </template>
 
             <template v-else>
@@ -192,8 +196,11 @@ const licenseBadge = (status) => licenseStatusStyles[status?.toLowerCase()] ?? l
                         type="submit"
                         :disabled="keyForm.processing || bothFieldsEmpty"
                         data-testid="save-keys-button"
-                        class="self-start px-4 py-2 rounded-lg bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150"
-                    >Save Keys</button>
+                        class="self-start inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150"
+                    >
+                        <TlIcon name="key" class="w-3.5 h-3.5" />
+                        Save Keys
+                    </button>
                     <p
                         v-if="inlineError"
                         role="alert"
@@ -219,7 +226,10 @@ const licenseBadge = (status) => licenseStatusStyles[status?.toLowerCase()] ?? l
             <Link
                 href="/console/upgrade"
                 class="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-white text-indigo-600 text-sm font-semibold hover:bg-indigo-50 transition-colors duration-150 shrink-0"
-            >Upgrade →</Link>
+            >
+                Upgrade
+                <TlIcon name="arrow-right" class="w-3.5 h-3.5" />
+            </Link>
         </div>
 
     </div>

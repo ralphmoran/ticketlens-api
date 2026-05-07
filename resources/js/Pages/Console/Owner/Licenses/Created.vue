@@ -68,6 +68,7 @@ function dismiss() {
                     @click="copyKey"
                     class="tl-btn tl-btn--primary min-w-24"
                 >
+                    <TlIcon :name="copied ? 'check' : 'copy'" class="w-3.5 h-3.5" />
                     {{ copied ? 'Copied' : 'Copy' }}
                 </button>
             </div>
@@ -84,6 +85,7 @@ function dismiss() {
         <!-- Dismiss -->
         <div class="flex justify-end">
             <button @click="dismiss" class="tl-btn tl-btn--neutral">
+                <TlIcon name="check" class="w-3.5 h-3.5" />
                 Done
             </button>
         </div>

@@ -1,5 +1,6 @@
 <script setup>
 import ConsoleLayout from '@/Layouts/ConsoleLayout.vue'
+import TlIcon from '@/components/TlIcon.vue'
 import { Link } from '@inertiajs/vue3'
 import { formatDateTime } from '@/composables/useDateFormat'
 
@@ -29,13 +30,16 @@ defineProps({
         </div>
 
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
-            <Link href="/console/owner/clients" class="block bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg p-4 text-sm font-medium text-slate-200 transition">
+            <Link href="/console/owner/clients" class="flex items-center gap-2.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg p-4 text-sm font-medium text-slate-200 transition">
+                <TlIcon name="users" class="w-4 h-4 text-slate-400 shrink-0" />
                 Clients
             </Link>
-            <Link href="/console/owner/tiers" class="block bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg p-4 text-sm font-medium text-slate-200 transition">
+            <Link href="/console/owner/tiers" class="flex items-center gap-2.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg p-4 text-sm font-medium text-slate-200 transition">
+                <TlIcon name="layers" class="w-4 h-4 text-slate-400 shrink-0" />
                 Tiers &amp; Features
             </Link>
-            <Link href="/console/owner/audit" class="block bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg p-4 text-sm font-medium text-slate-200 transition">
+            <Link href="/console/owner/audit" class="flex items-center gap-2.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg p-4 text-sm font-medium text-slate-200 transition">
+                <TlIcon name="history" class="w-4 h-4 text-slate-400 shrink-0" />
                 Audit Log
             </Link>
         </div>

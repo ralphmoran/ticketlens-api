@@ -185,10 +185,19 @@ const TIER_LABELS = { free: 'Free', pro: 'Pro', team: 'Team', enterprise: 'Enter
                         v-if="!client.suspended_at"
                         @click="impersonate"
                         data-testid="impersonate-button"
-                        class="text-xs px-3 py-1.5 rounded bg-indigo-900/30 text-indigo-300 border border-indigo-800 hover:bg-indigo-900/60 transition cursor-pointer"
-                    >Impersonate</button>
-                    <button v-if="!client.suspended_at" @click="suspend" class="tl-chip-btn tl-chip-btn--warn">Suspend</button>
-                    <button v-else @click="restore" class="tl-chip-btn tl-chip-btn--success">Restore</button>
+                        class="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded bg-indigo-900/30 text-indigo-300 border border-indigo-800 hover:bg-indigo-900/60 transition cursor-pointer"
+                    >
+                        <TlIcon name="user-circle" class="w-3.5 h-3.5 shrink-0" />
+                        Impersonate
+                    </button>
+                    <button v-if="!client.suspended_at" @click="suspend" class="inline-flex items-center gap-1.5 tl-chip-btn tl-chip-btn--warn">
+                        <TlIcon name="ban" class="w-3.5 h-3.5 shrink-0" />
+                        Suspend
+                    </button>
+                    <button v-else @click="restore" class="inline-flex items-center gap-1.5 tl-chip-btn tl-chip-btn--success">
+                        <TlIcon name="refresh" class="w-3.5 h-3.5 shrink-0" />
+                        Restore
+                    </button>
                 </div>
             </div>
 
@@ -204,8 +213,11 @@ const TIER_LABELS = { free: 'Free', pro: 'Pro', team: 'Team', enterprise: 'Enter
                 <button
                     @click="saveTier"
                     :disabled="form.processing || form.tier === client.tier"
-                    class="tl-btn tl-btn--secondary tl-btn--sm disabled:opacity-40"
-                >Save</button>
+                    class="inline-flex items-center gap-1 tl-btn tl-btn--secondary tl-btn--sm disabled:opacity-40"
+                >
+                    <TlIcon name="check" class="w-3.5 h-3.5" />
+                    Save
+                </button>
                 <p v-if="form.errors.tier" class="text-red-400 text-xs">{{ form.errors.tier }}</p>
             </div>
             <p v-else class="text-xs text-slate-500 italic">
@@ -364,12 +376,16 @@ const TIER_LABELS = { free: 'Free', pro: 'Pro', team: 'Team', enterprise: 'Enter
                                     class="tl-btn tl-btn--primary tl-btn--sm disabled:opacity-40"
                                 >
                                     <TlIcon v-if="expandForm.submitting" name="spinner" class="w-3.5 h-3.5 animate-spin" />
+                                    <TlIcon v-else name="check" class="w-3.5 h-3.5" />
                                     <span>{{ expandForm.submitting ? 'Granting…' : 'Grant' }}</span>
                                 </button>
                                 <button
                                     @click="cancelGrantForm"
-                                    class="tl-btn tl-btn--secondary tl-btn--sm"
-                                >Cancel</button>
+                                    class="inline-flex items-center gap-1 tl-btn tl-btn--secondary tl-btn--sm"
+                                >
+                                    <TlIcon name="close" class="w-3.5 h-3.5" />
+                                    Cancel
+                                </button>
                             </div>
                         </div>
                     </div>

@@ -80,6 +80,7 @@ const STATUS_COLORS = {
                 <p class="tl-subtext">{{ licenses.total }} issued</p>
             </div>
             <Link href="/console/owner/licenses/create" class="tl-btn tl-btn--primary">
+                <TlIcon name="plus" class="w-3.5 h-3.5" />
                 Issue license
             </Link>
         </div>
@@ -214,9 +215,13 @@ const STATUS_COLORS = {
                 <p class="text-xs text-slate-500 mb-5">Leave blank to set "Never expires".</p>
 
                 <div class="flex justify-end gap-3">
-                    <button @click="closeEdit" class="tl-btn tl-btn--ghost" :disabled="editSaving">Cancel</button>
+                    <button @click="closeEdit" class="tl-btn tl-btn--ghost" :disabled="editSaving">
+                        <TlIcon name="close" class="w-3.5 h-3.5" />
+                        Cancel
+                    </button>
                     <button @click="submitEdit" class="tl-btn tl-btn--primary" :disabled="editSaving">
                         <TlIcon v-if="editSaving" name="spinner" class="w-3.5 h-3.5 animate-spin" />
+                        <TlIcon v-else name="check" class="w-3.5 h-3.5" />
                         {{ editSaving ? 'Saving…' : 'Save' }}
                     </button>
                 </div>

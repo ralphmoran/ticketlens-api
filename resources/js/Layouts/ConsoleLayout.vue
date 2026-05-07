@@ -98,6 +98,13 @@ function logout() {
 function closeSidebar() {
     sidebarOpen.value = false
 }
+
+function handleNavClick(event, href) {
+    if (page.url.startsWith(href)) {
+        event.preventDefault()
+    }
+    closeSidebar()
+}
 </script>
 
 <template>
@@ -210,7 +217,7 @@ function closeSidebar() {
                             <a
                                 :href="item.href"
                                 :title="effectiveCollapsed ? item.label : undefined"
-                                @click="closeSidebar"
+                                @click="handleNavClick($event, item.href)"
                                 class="tl-nav-link"
                                 :class="[
                                     page.url.startsWith(item.href) ? 'tl-nav-link--active' : 'tl-nav-link--inactive',
@@ -233,7 +240,7 @@ function closeSidebar() {
                             <a
                                 :href="item.href"
                                 :title="effectiveCollapsed ? item.label : undefined"
-                                @click="closeSidebar"
+                                @click="handleNavClick($event, item.href)"
                                 class="tl-nav-link"
                                 :class="[
                                     page.url.startsWith(item.href) ? 'tl-nav-link--owner-active' : 'tl-nav-link--owner-inactive',

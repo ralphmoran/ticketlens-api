@@ -10,6 +10,11 @@
 @import './components/layout.css';
 @import './components/tabs.css';
 
+@layer base {
+    button { cursor: pointer; }
+    button:disabled { cursor: not-allowed; }
+}
+
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../storage/framework/views/*.php';
 @source '../**/*.blade.php';

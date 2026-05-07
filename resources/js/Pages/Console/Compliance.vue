@@ -63,8 +63,9 @@ function formatDate(iso) {
                 <span class="text-sm font-medium" :class="atLimit ? 'text-amber-400' : 'text-slate-300'">
                     {{ monthlyCount }} of {{ monthlyLimit }} checks used this month
                 </span>
-                <a v-if="atLimit" href="/console/account" class="tl-btn-ghost tl-btn-ghost--warn font-medium">
-                    Upgrade for unlimited checks →
+                <a v-if="atLimit" href="/console/account" class="inline-flex items-center gap-1.5 tl-btn-ghost tl-btn-ghost--warn font-medium">
+                    Upgrade for unlimited checks
+                    <TlIcon name="arrow-right" class="w-3.5 h-3.5" />
                 </a>
             </div>
             <div class="h-1.5 rounded-full bg-slate-800 overflow-hidden">

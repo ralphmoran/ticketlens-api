@@ -1,5 +1,6 @@
 <script setup>
 import ConsoleLayout from '@/Layouts/ConsoleLayout.vue'
+import TlIcon from '@/Components/TlIcon.vue'
 import { Link, useForm } from '@inertiajs/vue3'
 import { computed, ref } from 'vue'
 
@@ -39,6 +40,11 @@ function selectClient(client) {
 }
 
 function submit() {
+    form.clearErrors()
+    if (!form.user_id) {
+        form.setError('user_id', 'Please select a recipient.')
+        return
+    }
     form.post('/console/owner/licenses')
 }
 </script>
@@ -56,12 +62,15 @@ function submit() {
             <!-- Client picker -->
             <div>
                 <label class="tl-label block mb-1.5">Recipient</label>
-                <input
-                    v-model="search"
-                    type="text"
-                    placeholder="Search by email or name…"
-                    class="tl-input tl-input--full"
-                />
+                <div class="relative">
+                    <TlIcon name="search" class="absolute left-2.5 top-2.5 w-3.5 h-3.5 text-slate-500 pointer-events-none" />
+                    <input
+                        v-model="search"
+                        type="text"
+                        placeholder="Search by email or name…"
+                        class="tl-input tl-input--full pl-8"
+                    />
+                </div>
                 <div v-if="search && !form.user_id" class="mt-1.5 bg-slate-800 border border-slate-700 rounded-lg max-h-48 overflow-y-auto">
                     <button v-for="c in filteredClients" :key="c.id" type="button" @click="selectClient(c)" class="w-full text-left px-3 py-2 text-sm text-slate-300 hover:bg-slate-700 transition">
                         {{ c.name }}
@@ -125,10 +134,13 @@ function submit() {
             <!-- Submit -->
             <div class="flex gap-3 justify-end">
                 <Link href="/console/owner/licenses" class="tl-btn tl-btn--neutral">
+                    <TlIcon name="close" class="w-3.5 h-3.5" />
                     Cancel
                 </Link>
                 <button type="submit" :disabled="!form.user_id || form.processing" class="tl-btn tl-btn--primary">
-                    Generate key
+                    <TlIcon v-if="form.processing" name="spinner" class="w-3.5 h-3.5 animate-spin" />
+                    <TlIcon v-else name="key" class="w-3.5 h-3.5" />
+                    {{ form.processing ? 'Generating…' : 'Generate key' }}
                 </button>
             </div>
         </form>

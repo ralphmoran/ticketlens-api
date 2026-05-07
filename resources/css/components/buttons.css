@@ -7,12 +7,20 @@
 
 @layer components {
   .tl-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
     cursor: pointer;
     user-select: none;
   }
 
+  .tl-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
   .tl-btn--primary {
-    @apply px-4 py-2 rounded-lg bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-500 disabled:opacity-40 transition;
+    @apply px-4 py-2 rounded-lg bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-500 transition;
   }
 
   .tl-btn--secondary {
@@ -32,7 +40,7 @@
   }
 
   .tl-btn-ghost {
-    @apply text-xs transition;
+    @apply text-xs transition cursor-pointer;
   }
 
   .tl-btn-ghost--danger {

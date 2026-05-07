@@ -15,7 +15,7 @@ const props = defineProps({
 
 const { filters, loading, navigate } = useTableFilters({
     action:   props.filters?.action   ?? '',
-    per_page: props.filters?.per_page ?? 20,
+    per_page: props.filters?.per_page ?? 10,
 }, '/console/owner/audit')
 </script>
 

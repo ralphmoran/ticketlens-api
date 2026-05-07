@@ -1,5 +1,6 @@
 <script setup>
 import ConsoleLayout from '@/Layouts/ConsoleLayout.vue'
+import TlIcon from '@/components/TlIcon.vue'
 import { router, useForm } from '@inertiajs/vue3'
 import { formatDate } from '@/composables/useDateFormat'
 
@@ -16,6 +17,11 @@ const props = defineProps({
 const inviteForm = useForm({ email: '', name: '' })
 
 function invite() {
+    inviteForm.clearErrors()
+    if (!inviteForm.email.trim()) {
+        inviteForm.setError('email', 'Email is required.')
+        return
+    }
     inviteForm.post('/console/admin/members', {
         preserveScroll: true,
         onSuccess: () => inviteForm.reset(),
@@ -62,14 +68,15 @@ const atLimit = () => props.seats_used >= props.seats_total
             <form @submit.prevent="invite" class="flex flex-wrap items-end gap-3">
                 <div class="flex-1 min-w-48">
                     <label class="block text-[10px] uppercase tracking-wider text-slate-500 mb-1">Email</label>
-                    <input v-model="inviteForm.email" type="email" required placeholder="teammate@example.com" class="tl-input tl-input--sm tl-input--full" />
+                    <input v-model="inviteForm.email" type="email" required placeholder="teammate@example.com" class="tl-input tl-input--sm tl-input--full" :class="{ 'border-red-600': inviteForm.errors.email }" />
                     <p v-if="inviteForm.errors.email" class="text-red-400 text-xs mt-1">{{ inviteForm.errors.email }}</p>
                 </div>
                 <div class="flex-1 min-w-40">
                     <label class="block text-[10px] uppercase tracking-wider text-slate-500 mb-1">Name (optional)</label>
                     <input v-model="inviteForm.name" type="text" maxlength="255" class="tl-input tl-input--sm tl-input--full" />
                 </div>
-                <button type="submit" :disabled="!inviteForm.email || inviteForm.processing || atLimit()" class="tl-btn tl-btn--primary shrink-0">
+                <button type="submit" :disabled="!inviteForm.email || inviteForm.processing || atLimit()" class="inline-flex items-center gap-1.5 tl-btn tl-btn--primary shrink-0">
+                    <TlIcon name="plus" class="w-3.5 h-3.5" />
                     Invite
                 </button>
             </form>
@@ -99,10 +106,12 @@ const atLimit = () => props.seats_used >= props.seats_total
                         <td class="px-4 py-3 text-slate-500 text-xs">{{ formatDate(member.created_at) }}</td>
                         <td class="px-4 py-3 text-right">
                             <div class="flex items-center justify-end gap-3">
-                                <button v-if="member.id !== is_owner_of" @click="promote(member.id)" class="tl-btn-ghost tl-btn-ghost--warn">
+                                <button v-if="member.id !== is_owner_of" @click="promote(member.id)" class="flex items-center gap-1 tl-btn-ghost tl-btn-ghost--warn">
+                                    <TlIcon name="badge-check" class="w-3.5 h-3.5 shrink-0" />
                                     Make manager
                                 </button>
-                                <button v-if="member.id !== is_owner_of" @click="remove(member.id)" class="tl-btn-ghost tl-btn-ghost--danger">
+                                <button v-if="member.id !== is_owner_of" @click="remove(member.id)" class="flex items-center gap-1 tl-btn-ghost tl-btn-ghost--danger">
+                                    <TlIcon name="x-circle" class="w-3.5 h-3.5 shrink-0" />
                                     Remove
                                 </button>
                             </div>

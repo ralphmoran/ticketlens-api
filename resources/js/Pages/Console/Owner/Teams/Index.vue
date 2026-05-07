@@ -1,5 +1,6 @@
 <script setup>
 import ConsoleLayout from '@/Layouts/ConsoleLayout.vue'
+import TlIcon from '@/components/TlIcon.vue'
 import { Link } from '@inertiajs/vue3'
 import { formatDate } from '@/composables/useDateFormat'
 
@@ -50,8 +51,11 @@ defineProps({
                         <td class="px-4 py-3 text-right">
                             <Link
                                 :href="`/console/owner/teams/${team.id}`"
-                                class="text-xs text-slate-400 hover:text-white transition"
-                            >View →</Link>
+                                class="inline-flex items-center gap-1 text-xs text-slate-400 hover:text-white transition"
+                            >
+                                <TlIcon name="eye" class="w-3.5 h-3.5 shrink-0" />
+                                View
+                            </Link>
                         </td>
                     </tr>
                     <tr v-if="!teams.length">

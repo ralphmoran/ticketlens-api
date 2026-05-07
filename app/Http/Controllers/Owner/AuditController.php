@@ -26,7 +26,7 @@ class AuditController extends Controller
             $query->where('target_user_id', $targetId);
         }
 
-        $perPage = min(max(1, (int) $request->input('per_page', 20)), 100);
+        $perPage = min(max(1, (int) $request->input('per_page', 10)), 100);
 
         return Inertia::render('Console/Owner/Audit/Index', [
             'logs'    => $query->paginate($perPage)->withQueryString(),

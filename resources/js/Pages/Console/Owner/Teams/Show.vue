@@ -1,5 +1,6 @@
 <script setup>
 import ConsoleLayout from '@/Layouts/ConsoleLayout.vue'
+import TlIcon from '@/components/TlIcon.vue'
 import { Link, router } from '@inertiajs/vue3'
 import { formatDate } from '@/composables/useDateFormat'
 
@@ -92,8 +93,11 @@ function removeMember(member) {
                             <button
                                 v-if="team.owner?.id !== member.id"
                                 @click="removeMember(member)"
-                                class="text-xs text-red-400/60 hover:text-red-400 transition"
-                            >Remove</button>
+                                class="inline-flex items-center gap-1 text-xs text-red-400/60 hover:text-red-400 transition"
+                            >
+                                <TlIcon name="x-circle" class="w-3.5 h-3.5 shrink-0" />
+                                Remove
+                            </button>
                             <span v-else class="text-xs text-slate-700">—</span>
                         </td>
                     </tr>

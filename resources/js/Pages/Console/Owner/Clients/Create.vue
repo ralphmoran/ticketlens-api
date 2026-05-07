@@ -1,5 +1,6 @@
 <script setup>
 import ConsoleLayout from '@/Layouts/ConsoleLayout.vue'
+import TlIcon from '@/components/TlIcon.vue'
 import { Link, useForm } from '@inertiajs/vue3'
 
 defineOptions({ layout: ConsoleLayout })
@@ -12,6 +13,21 @@ const form = useForm({
 })
 
 function submit() {
+    form.clearErrors()
+    let invalid = false
+    if (!form.name.trim()) {
+        form.setError('name', 'Name is required.')
+        invalid = true
+    }
+    if (!form.email.trim()) {
+        form.setError('email', 'Email is required.')
+        invalid = true
+    }
+    if (!form.password) {
+        form.setError('password', 'Password is required.')
+        invalid = true
+    }
+    if (invalid) return
     form.post('/console/owner/clients')
 }
 </script>
@@ -98,9 +114,14 @@ function submit() {
                         :disabled="form.processing"
                         class="tl-btn tl-btn--primary disabled:opacity-40"
                     >
+                        <TlIcon v-if="form.processing" name="spinner" class="w-3.5 h-3.5 animate-spin" />
+                        <TlIcon v-else name="plus" class="w-3.5 h-3.5" />
                         {{ form.processing ? 'Creating…' : 'Register client' }}
                     </button>
-                    <Link href="/console/owner/clients" class="tl-btn tl-btn--secondary">Cancel</Link>
+                    <Link href="/console/owner/clients" class="tl-btn tl-btn--secondary">
+                        <TlIcon name="close" class="w-3.5 h-3.5" />
+                        Cancel
+                    </Link>
                 </div>
 
             </form>

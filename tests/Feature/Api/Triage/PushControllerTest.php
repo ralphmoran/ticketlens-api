@@ -1,0 +1,180 @@
+<?php
+
+namespace Tests\Feature\Api\Triage;
+
+use App\Enums\Permission;
+use App\Models\License;
+use App\Models\TriageSnapshot;
+use App\Models\User;
+use App\Services\LicenseValidationService;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
+
+class PushControllerTest extends TestCase
+{
+    use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->mock(LicenseValidationService::class, fn ($m) => $m->shouldReceive('isValid')->andReturn(true));
+    }
+
+    private function makeUserWithLicense(string $key = 'valid-key', string $tier = 'team', array $licenseOverrides = []): User
+    {
+        $permissions = match ($tier) {
+            'team', 'enterprise' => Permission::team(),
+            'pro'                => Permission::pro(),
+            default              => Permission::free(),
+        };
+        $user = User::factory()->create(['tier' => $tier, 'permissions' => $permissions]);
+        License::create(array_merge([
+            'user_id'         => $user->id,
+            'lemon_key_hash'  => hash('sha256', $key),
+            'status'          => 'active',
+            'tier'            => $tier,
+            'seats'           => 1,
+        ], $licenseOverrides));
+        return $user;
+    }
+
+    private function validPayload(array $overrides = []): array
+    {
+        return array_merge([
+            'profile'     => 'production',
+            'captured_at' => '2026-05-11T10:00:00Z',
+            'tickets'     => [
+                [
+                    'key'                 => 'PROJ-123',
+                    'summary'             => 'Fix login page',
+                    'status'              => 'Code Review',
+                    'assignee'            => 'John Doe',
+                    'attention_score'     => 8.5,
+                    'flags'               => ['needs-response'],
+                    'compliance_coverage' => null,
+                    'compliance_status'   => 'unknown',
+                    'url'                 => 'https://jira.example.com/browse/PROJ-123',
+                    'last_updated'        => '2026-05-10T09:00:00Z',
+                ],
+            ],
+        ], $overrides);
+    }
+
+    public function test_valid_push_stores_snapshot(): void
+    {
+        $this->makeUserWithLicense();
+
+        $response = $this->withToken('valid-key')
+            ->postJson('/v1/triage/push', $this->validPayload());
+
+        $response->assertStatus(200);
+        $response->assertJson(['pushed' => true, 'ticket_count' => 1]);
+        $this->assertDatabaseHas('triage_snapshots', [
+            'license_key_hash' => hash('sha256', 'valid-key'),
+            'profile'          => 'production',
+            'ticket_count'     => 1,
+        ]);
+    }
+
+    public function test_second_push_upserts_not_duplicates(): void
+    {
+        $this->makeUserWithLicense();
+        $this->withToken('valid-key')->postJson('/v1/triage/push', $this->validPayload());
+
+        $updatedPayload = $this->validPayload(['tickets' => [
+            ['key' => 'PROJ-456', 'summary' => 'New ticket', 'status' => 'In Progress',
+             'assignee' => 'Jane', 'attention_score' => 3.0, 'flags' => [],
+             'compliance_coverage' => null, 'compliance_status' => 'unknown',
+             'url' => 'https://jira.example.com/browse/PROJ-456', 'last_updated' => '2026-05-11T08:00:00Z'],
+        ]]);
+        $this->withToken('valid-key')->postJson('/v1/triage/push', $updatedPayload);
+
+        $this->assertSame(1, TriageSnapshot::count());
+        $this->assertSame(1, TriageSnapshot::first()->ticket_count);
+    }
+
+    public function test_different_profiles_stored_separately(): void
+    {
+        $this->makeUserWithLicense();
+        $this->withToken('valid-key')->postJson('/v1/triage/push', $this->validPayload(['profile' => 'staging']));
+        $this->withToken('valid-key')->postJson('/v1/triage/push', $this->validPayload(['profile' => 'production']));
+
+        $this->assertSame(2, TriageSnapshot::count());
+    }
+
+    public function test_missing_token_returns_401(): void
+    {
+        $response = $this->postJson('/v1/triage/push', $this->validPayload());
+        $response->assertStatus(401);
+    }
+
+    public function test_invalid_token_returns_401(): void
+    {
+        $this->mock(LicenseValidationService::class, fn ($m) => $m->shouldReceive('isValid')->andReturn(false));
+
+        $response = $this->withToken('bad-key')->postJson('/v1/triage/push', $this->validPayload());
+        $response->assertStatus(401);
+    }
+
+    public function test_missing_profile_returns_422(): void
+    {
+        $this->makeUserWithLicense();
+        $payload = $this->validPayload();
+        unset($payload['profile']);
+
+        $response = $this->withToken('valid-key')->postJson('/v1/triage/push', $payload);
+        $response->assertStatus(422);
+        $response->assertJsonValidationErrors(['profile']);
+    }
+
+    public function test_missing_tickets_returns_422(): void
+    {
+        $this->makeUserWithLicense();
+        $payload = $this->validPayload();
+        unset($payload['tickets']);
+
+        $response = $this->withToken('valid-key')->postJson('/v1/triage/push', $payload);
+        $response->assertStatus(422);
+        $response->assertJsonValidationErrors(['tickets']);
+    }
+
+    public function test_snapshot_linked_to_user_when_license_found(): void
+    {
+        $user = $this->makeUserWithLicense();
+
+        $this->withToken('valid-key')->postJson('/v1/triage/push', $this->validPayload());
+
+        $this->assertSame($user->id, TriageSnapshot::first()->user_id);
+    }
+
+    public function test_snapshot_stored_without_user_when_no_license_in_db(): void
+    {
+        // License is valid (LemonSqueezy external) but not in local DB.
+        $this->withToken('external-key')->postJson('/v1/triage/push', $this->validPayload());
+
+        $this->assertSame(1, TriageSnapshot::count());
+        $this->assertNull(TriageSnapshot::first()->user_id);
+    }
+
+    public function test_push_from_user_without_attention_queue_permission_returns_403(): void
+    {
+        // Free-tier user: valid license key but no AttentionQueue bit.
+        $this->makeUserWithLicense('free-key', 'free');
+
+        $response = $this->withToken('free-key')->postJson('/v1/triage/push', $this->validPayload());
+
+        $response->assertStatus(403);
+        $this->assertSame(0, TriageSnapshot::count());
+    }
+
+    public function test_expired_license_stores_snapshot_without_user_id(): void
+    {
+        // License exists but is expired — user_id must not be resolved.
+        $this->makeUserWithLicense('expired-key', 'team', ['expires_at' => now()->subDay()]);
+
+        $response = $this->withToken('expired-key')->postJson('/v1/triage/push', $this->validPayload());
+
+        $response->assertStatus(200);
+        $this->assertNull(TriageSnapshot::first()->user_id);
+    }
+}

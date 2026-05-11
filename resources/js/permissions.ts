@@ -8,6 +8,7 @@ export const Permission = {
     SavingsAnalytics: 64,
     TeamManageMembers: 128,
     TeamManageSeats:   256,
+    AttentionQueue:    512,
 } as const
 
 export type PermissionKey = keyof typeof Permission
@@ -16,8 +17,8 @@ export type PermissionValue = typeof Permission[PermissionKey]
 export const Tiers = {
     Free:       Permission.SavingsAnalytics,
     Pro:        Permission.Schedules | Permission.Digests | Permission.Summarize | Permission.SavingsAnalytics,
-    Team:       Permission.Schedules | Permission.Digests | Permission.Summarize | Permission.SavingsAnalytics | Permission.Compliance | Permission.Export | Permission.MultiAccount,
-    Enterprise: Permission.Schedules | Permission.Digests | Permission.Summarize | Permission.SavingsAnalytics | Permission.Compliance | Permission.Export | Permission.MultiAccount,
+    Team:       Permission.Schedules | Permission.Digests | Permission.Summarize | Permission.SavingsAnalytics | Permission.Compliance | Permission.Export | Permission.MultiAccount | Permission.AttentionQueue,
+    Enterprise: Permission.Schedules | Permission.Digests | Permission.Summarize | Permission.SavingsAnalytics | Permission.Compliance | Permission.Export | Permission.MultiAccount | Permission.AttentionQueue,
     TeamManagerMask: Permission.TeamManageMembers | Permission.TeamManageSeats,
 } as const
 

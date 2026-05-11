@@ -60,6 +60,15 @@ class LicenseIssuanceService
             // Invariant: every Team-tier license has exactly one manager at issuance time.
             if (in_array($tier, ['team', 'enterprise'], true)) {
                 $this->bootstrapTeamGroup($recipient, $tier);
+            } else {
+                // Free/Pro: sync tier and permission bits from the enum preset.
+                $preset = match ($tier) {
+                    'pro'  => Permission::pro(),
+                    default => Permission::free(),
+                };
+                if ($recipient->tier !== $tier || $recipient->permissions !== $preset) {
+                    $recipient->update(['tier' => $tier, 'permissions' => $preset]);
+                }
             }
 
             return $license;

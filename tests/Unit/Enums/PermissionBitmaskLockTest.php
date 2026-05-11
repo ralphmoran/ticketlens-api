@@ -30,10 +30,10 @@ class PermissionBitmaskLockTest extends TestCase
         $this->assertSame(71, Permission::pro());
     }
 
-    public function test_team_tier_equals_127(): void
+    public function test_team_tier_equals_639(): void
     {
-        // pro (71) | 8 (Compliance) | 16 (Export) | 32 (MultiAccount) = 127
-        $this->assertSame(127, Permission::team());
+        // pro (71) | 8 (Compliance) | 16 (Export) | 32 (MultiAccount) | 512 (AttentionQueue) = 639
+        $this->assertSame(639, Permission::team());
     }
 
     public function test_enterprise_tier_equals_team(): void
@@ -88,6 +88,11 @@ class PermissionBitmaskLockTest extends TestCase
     {
         // Renamed from AdminLicenses — bit VALUE unchanged at 256 (stability invariant).
         $this->assertSame(256, Permission::TeamManageSeats->value);
+    }
+
+    public function test_attention_queue_is_bit_9(): void
+    {
+        $this->assertSame(512, Permission::AttentionQueue->value);
     }
 
     public function test_team_manager_mask_is_384(): void

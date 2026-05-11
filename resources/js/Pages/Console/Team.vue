@@ -12,9 +12,6 @@ function initials(name) {
     return name.split(' ').slice(0, 2).map(w => w[0]?.toUpperCase() ?? '').join('')
 }
 
-function hexPermissions(bitmask) {
-    return '0x' + bitmask.toString(16).toUpperCase()
-}
 </script>
 
 <template>
@@ -59,10 +56,6 @@ function hexPermissions(bitmask) {
                 </div>
                 <div v-else class="text-xs text-slate-600 mb-4">No members in this group.</div>
 
-                <!-- Permissions -->
-                <div class="border-t border-slate-800 pt-3">
-                    <span class="font-mono text-xs text-slate-500">Permissions: {{ hexPermissions(group.permissions) }}</span>
-                </div>
             </div>
         </div>
 

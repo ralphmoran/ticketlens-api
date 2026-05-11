@@ -42,9 +42,9 @@ class InviteFlowIntegrationTest extends TestCase
 
         $recipient->refresh();
 
-        // Recipient is now team-tier with manager bits (127 | 384 = 511)
+        // Recipient is now team-tier with manager bits (639 | 384 = 1023)
         $this->assertSame('team', $recipient->tier);
-        $this->assertSame(511, $recipient->permissions);
+        $this->assertSame(1023, $recipient->permissions);
 
         // Group was created with recipient as owner and member
         $group = $recipient->ownedGroup;

@@ -61,6 +61,12 @@ Route::prefix('console')->name('console.')->group(function () {
             ->middleware('permission:Summarize')->name('summarize');
         Route::get('/compliance', [\App\Http\Controllers\Console\ComplianceController::class, 'index'])
             ->middleware('permission:Compliance')->name('compliance');
+        Route::get('/export', [\App\Http\Controllers\Console\ExportController::class, 'index'])
+            ->middleware('permission:Export')->name('export');
+
+        // Dev Attention Queue (Team tier)
+        Route::get('/queue', [\App\Http\Controllers\Console\QueueController::class, 'index'])
+            ->middleware('permission:AttentionQueue')->name('queue');
 
         // Team management
         Route::get('/team', [\App\Http\Controllers\Console\TeamController::class, 'index'])

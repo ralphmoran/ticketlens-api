@@ -52,12 +52,14 @@ const navGroups = computed(() => [
             { label: 'Digests',     href: '/console/digests',   permission: Permission.Digests,         icon: 'inbox' },
             { label: 'Summarize',   href: '/console/summarize', permission: Permission.Summarize,       icon: 'document-text' },
             { label: 'Compliance',  href: '/console/compliance',permission: Permission.Compliance,      icon: 'shield-check' },
+            { label: 'Export',      href: '/console/export',    permission: Permission.Export,           icon: 'arrow-down-tray' },
         ]
     },
     {
         label: 'Team',
         requiresTeamManager: false,
         items: [
+            { label: 'Queue',       href: '/console/queue',     permission: Permission.AttentionQueue,  icon: 'layers' },
             { label: 'Team',        href: '/console/team',      permission: Permission.MultiAccount,    icon: 'users' },
         ]
     },

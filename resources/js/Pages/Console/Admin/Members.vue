@@ -40,7 +40,8 @@ function promote(memberId) {
     }
 }
 
-const atLimit = () => props.seats_used >= props.seats_total
+const hasLicense = () => props.seats_total !== null && props.seats_total !== undefined
+const atLimit    = () => hasLicense() && props.seats_used >= props.seats_total
 </script>
 
 <template>
@@ -53,16 +54,20 @@ const atLimit = () => props.seats_used >= props.seats_total
             </div>
             <div class="text-right">
                 <p class="text-xs text-slate-500 uppercase tracking-wider">Seats</p>
-                <p :class="['text-lg font-mono font-semibold', atLimit() ? 'text-amber-400' : 'text-white']">
+                <p v-if="hasLicense()" :class="['text-lg font-mono font-semibold', atLimit() ? 'text-amber-400' : 'text-white']">
                     {{ seats_used }} / {{ seats_total }}
                 </p>
+                <p v-else class="text-sm text-amber-400 font-medium">No active license</p>
             </div>
         </div>
 
         <!-- Invite form -->
         <div class="tl-card mb-5">
             <h2 class="text-sm font-medium text-slate-300 mb-3">Invite a member</h2>
-            <div v-if="atLimit()" class="bg-amber-900/20 border border-amber-800/50 rounded-lg p-3 text-xs text-amber-200 mb-3">
+            <div v-if="!hasLicense()" class="bg-red-900/20 border border-red-800/50 rounded-lg p-3 text-xs text-red-200 mb-3">
+                No active license found. Contact your platform administrator.
+            </div>
+            <div v-else-if="atLimit()" class="bg-amber-900/20 border border-amber-800/50 rounded-lg p-3 text-xs text-amber-200 mb-3">
                 Seat limit reached. Upgrade your plan or remove a member to invite more.
             </div>
             <form @submit.prevent="invite" class="flex flex-wrap items-end gap-3">
@@ -75,7 +80,7 @@ const atLimit = () => props.seats_used >= props.seats_total
                     <label class="block text-[10px] uppercase tracking-wider text-slate-500 mb-1">Name (optional)</label>
                     <input v-model="inviteForm.name" type="text" maxlength="255" class="tl-input tl-input--sm tl-input--full" />
                 </div>
-                <button type="submit" :disabled="!inviteForm.email || inviteForm.processing || atLimit()" class="inline-flex items-center gap-1.5 tl-btn tl-btn--primary shrink-0">
+                <button type="submit" :disabled="!inviteForm.email || inviteForm.processing || atLimit() || !hasLicense()" class="inline-flex items-center gap-1.5 tl-btn tl-btn--primary shrink-0">
                     <TlIcon name="plus" class="w-3.5 h-3.5" />
                     Invite
                 </button>

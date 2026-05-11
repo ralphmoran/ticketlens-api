@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Enums\Permission;
 use App\Models\UserFeatureGrant;
 use App\Services\ImpersonationService;
 use Illuminate\Http\Request;
@@ -69,6 +70,13 @@ class HandleInertiaRequests extends Middleware
             $impersonating = $user->only('name', 'email');
         }
 
+        $can = [];
+        if ($user !== null && $effectivePermissions !== null) {
+            foreach (Permission::cases() as $p) {
+                $can[$p->name] = ($effectivePermissions & $p->value) !== 0;
+            }
+        }
+
         return array_merge(parent::share($request), [
             'auth' => [
                 'user'                 => $user ? $user->only('id', 'name', 'email', 'tier', 'permissions') : null,
@@ -77,6 +85,7 @@ class HandleInertiaRequests extends Middleware
                 'is_team_manager'      => $isTeamManager,
                 'activeGrants'         => $activeGrants,
                 'impersonating'        => $impersonating,
+                'can'                  => $can,
             ],
         ]);
     }

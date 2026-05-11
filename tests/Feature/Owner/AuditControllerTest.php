@@ -62,7 +62,7 @@ class AuditControllerTest extends TestCase
         $response = $this->actingAs($owner)->get('/console/owner/audit');
 
         $response->assertInertia(fn ($page) => $page
-            ->has('logs.data', 20) // default 20 per page
+            ->has('logs.data', 10) // default 10 per page
         );
     }
 

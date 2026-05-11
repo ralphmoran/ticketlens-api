@@ -397,7 +397,7 @@ function nextRunLabel(iso) {
 
                 <!-- Idle state (owner, no search typed yet) -->
                 <div v-if="isOwner && !scheduleSearch.trim()" class="tl-card py-10 flex flex-col items-center">
-                    <TlIcon name="search" class="w-10 h-10 text-slate-700 mb-4" />
+                    <TlIcon name="calendar" class="w-10 h-10 text-slate-700 mb-4" />
                     <p class="text-slate-300 font-medium mb-1">Search to view schedules</p>
                     <p class="text-slate-500 text-sm text-center max-w-xs">
                         Type a client email or name in the search box above to find schedules.

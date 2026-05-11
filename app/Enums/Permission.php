@@ -13,12 +13,13 @@ enum Permission: int
     case SavingsAnalytics = 64;   // 2^6 — Free tier
     case TeamManageMembers = 128;  // 2^7 — Team-admin: invite/remove members in own team
     case TeamManageSeats   = 256;  // 2^8 — Team-admin: allocate seats, rotate per-seat keys
+    case AttentionQueue    = 512;  // 2^9 — Team: dev attention queue in Console
 
     /** Composite tier presets */
     public static function free(): int       { return self::SavingsAnalytics->value; }                                                                                              // 64
     public static function pro(): int        { return self::Schedules->value | self::Digests->value | self::Summarize->value | self::SavingsAnalytics->value; }                     // 71
-    public static function team(): int       { return self::pro() | self::Compliance->value | self::Export->value | self::MultiAccount->value; }                                    // 127
-    public static function enterprise(): int { return self::team(); }                                                                                                               // 127
+    public static function team(): int       { return self::pro() | self::Compliance->value | self::Export->value | self::MultiAccount->value | self::AttentionQueue->value; }      // 639
+    public static function enterprise(): int { return self::team(); }                                                                                                               // 639
     /** Team-manager bits OR'd onto the group owner's permissions (not in TIER_TEAM — rank-and-file seats don't get these). */
     public static function teamManagerMask(): int { return self::TeamManageMembers->value | self::TeamManageSeats->value; }                                                         // 384
     /** @deprecated use teamManagerMask() — kept for LemonSqueezyWebhookController preservation on tier change */
@@ -36,6 +37,7 @@ enum Permission: int
             self::SavingsAnalytics => 'Savings Analytics',
             self::TeamManageMembers => 'Team: Manage Members',
             self::TeamManageSeats   => 'Team: Manage Seats',
+            self::AttentionQueue    => 'Attention Queue',
         };
     }
 

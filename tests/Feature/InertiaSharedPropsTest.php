@@ -24,6 +24,7 @@ class InertiaSharedPropsTest extends TestCase
         'is_team_manager',
         'activeGrants',
         'impersonating',
+        'can',
     ];
 
     public function test_auth_shared_props_expose_the_locked_key_set(): void

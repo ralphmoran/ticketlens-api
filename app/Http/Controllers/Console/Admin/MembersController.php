@@ -60,7 +60,7 @@ class MembersController extends Controller
             'group'       => ['id' => $group->id, 'name' => $group->name],
             'members'     => $members,
             'seats_used'  => $members->count(),
-            'seats_total' => $license?->seats ?? 1,
+            'seats_total' => $license?->seats,
             'is_owner_of' => $group->owner_id,
         ]);
     }

@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\ComplianceController;
 use App\Http\Controllers\Api\DigestController;
 use App\Http\Controllers\Api\ScheduleController;
 use App\Http\Controllers\Api\SummarizeController;
+use App\Http\Controllers\Api\Triage\PushController;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
@@ -15,6 +16,7 @@ RateLimiter::for('summarize',  fn(Request $r) => Limit::perMinute(10)->by($r->be
 RateLimiter::for('schedule',   fn(Request $r) => Limit::perMinute(5)->by($r->bearerToken() ?: $r->ip()));
 RateLimiter::for('digest',      fn(Request $r) => Limit::perMinute(20)->by($r->bearerToken() ?: $r->ip()));
 RateLimiter::for('compliance',  fn(Request $r) => Limit::perMinute(10)->by($r->bearerToken() ?: $r->ip()));
+RateLimiter::for('triage',      fn(Request $r) => Limit::perMinute(30)->by($r->bearerToken() ?: $r->ip()));
 
 Route::middleware(['throttle:api-global', 'auth.license'])->group(function () {
     Route::post('/v1/summarize',      [SummarizeController::class, 'handle'])->middleware('throttle:summarize');
@@ -23,4 +25,5 @@ Route::middleware(['throttle:api-global', 'auth.license'])->group(function () {
     Route::delete('/v1/schedule',     [ScheduleController::class, 'destroy'])->middleware('throttle:schedule');
     Route::post('/v1/digest/deliver', [DigestController::class, 'deliver'])->middleware('throttle:digest');
     Route::post('/v1/compliance',     [ComplianceController::class, 'handle'])->middleware('throttle:compliance');
+    Route::post('/v1/triage/push',    PushController::class)->middleware('throttle:triage');
 });

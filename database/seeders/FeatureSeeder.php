@@ -29,12 +29,12 @@ class FeatureSeeder extends Seeder
     ];
 
     // Default tier→feature preset (mirrors Permission enum presets)
-    // free=64, pro=71 (64|4|2|1), team=127 (64|32|16|8|4|2|1)
+    // free=64, pro=71 (64|4|2|1), team=enterprise=127 (64|32|16|8|4|2|1)
     private const TIER_PRESETS = [
         'free' => [64],
         'pro'  => [64, 4, 2, 1],
         'team' => [64, 32, 16, 8, 4, 2, 1],
-        'enterprise' => [], // placeholder — owner configures
+        'enterprise' => [64, 32, 16, 8, 4, 2, 1],
     ];
 
     public function run(): void

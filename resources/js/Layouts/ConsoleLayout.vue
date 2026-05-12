@@ -355,40 +355,50 @@ function handleNavClick(event, href) {
             <aside
                 v-if="isOwner && ownerSubOpen"
                 :class="[
-                    'hidden lg:flex flex-col fixed bottom-0 z-[49] w-56 bg-slate-900 border-r border-slate-800',
+                    'hidden lg:flex flex-col fixed bottom-0 z-[49] bg-slate-900 border-r border-slate-800',
                     impersonating ? 'top-9' : 'top-0',
-                    effectiveCollapsed ? 'left-16' : 'left-64',
+                    effectiveCollapsed ? 'left-16 w-16' : 'left-64 w-56',
                 ]"
                 @mouseenter="showOwnerSub"
                 @mouseleave="hideOwnerSub"
             >
-                <nav class="flex-1 overflow-y-auto py-4 px-3">
-                    <p class="tl-nav-group-label tl-nav-group-label--owner">Owner Panel</p>
+                <nav class="flex-1 overflow-y-auto py-4" :class="effectiveCollapsed ? 'px-2' : 'px-3'">
+                    <hr v-if="effectiveCollapsed" class="border-slate-700/60 mb-2" />
+                    <p v-else class="tl-nav-group-label tl-nav-group-label--owner">Owner Panel</p>
                     <ul class="mb-5 space-y-0.5">
                         <li v-for="item in ownerPanelItems" :key="item.href">
                             <a
                                 :href="item.href"
+                                :title="effectiveCollapsed ? item.label : undefined"
                                 @click="handleNavClick($event, item.href)"
                                 class="tl-nav-link"
-                                :class="page.url.startsWith(item.href) ? 'tl-nav-link--owner-active' : 'tl-nav-link--owner-inactive'"
+                                :class="[
+                                    page.url.startsWith(item.href) ? 'tl-nav-link--owner-active' : 'tl-nav-link--owner-inactive',
+                                    effectiveCollapsed ? 'justify-center px-0' : '',
+                                ]"
                             >
                                 <TlIcon :name="item.icon" class="w-4 h-4 shrink-0" />
-                                <span>{{ item.label }}</span>
+                                <span v-show="!effectiveCollapsed">{{ item.label }}</span>
                             </a>
                         </li>
                     </ul>
 
-                    <p class="tl-nav-group-label tl-nav-group-label--owner">Team Admin</p>
+                    <hr v-if="effectiveCollapsed" class="border-slate-700/60 mb-2" />
+                    <p v-else class="tl-nav-group-label tl-nav-group-label--owner">Team Admin</p>
                     <ul class="mb-5 space-y-0.5">
                         <li v-for="item in teamAdminItems" :key="item.href">
                             <a
                                 :href="item.href"
+                                :title="effectiveCollapsed ? item.label : undefined"
                                 @click="handleNavClick($event, item.href)"
                                 class="tl-nav-link"
-                                :class="page.url.startsWith(item.href) ? 'tl-nav-link--owner-active' : 'tl-nav-link--owner-inactive'"
+                                :class="[
+                                    page.url.startsWith(item.href) ? 'tl-nav-link--owner-active' : 'tl-nav-link--owner-inactive',
+                                    effectiveCollapsed ? 'justify-center px-0' : '',
+                                ]"
                             >
                                 <TlIcon :name="item.icon" class="w-4 h-4 shrink-0" />
-                                <span>{{ item.label }}</span>
+                                <span v-show="!effectiveCollapsed">{{ item.label }}</span>
                             </a>
                         </li>
                     </ul>

@@ -79,6 +79,7 @@ Route::prefix('console')->name('console.')->group(function () {
             Route::delete('/members/{user}',        [\App\Http\Controllers\Console\Admin\MembersController::class, 'destroy'])->name('members.destroy');
             Route::post('/members/{user}/promote',  [\App\Http\Controllers\Console\Admin\MembersController::class, 'promote'])->name('members.promote');
             Route::get('/seats',                    [\App\Http\Controllers\Console\Admin\SeatsController::class, 'index'])->name('seats.index');
+            Route::get('/team-health',              [\App\Http\Controllers\Console\Admin\TeamHealthController::class, 'index'])->name('team-health');
         });
 
         // Owner-only panel

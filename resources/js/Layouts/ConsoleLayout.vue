@@ -67,8 +67,9 @@ const navGroups = computed(() => [
         label: 'Admin',
         requiresTeamManager: true,
         items: [
-            { label: 'Members',     href: '/console/admin/members', permission: Permission.TeamManageMembers, icon: 'user-group' },
-            { label: 'Seats',       href: '/console/admin/seats',   permission: Permission.TeamManageSeats,   icon: 'key' },
+            { label: 'Members',     href: '/console/admin/members',      permission: Permission.TeamManageMembers, icon: 'user-group' },
+            { label: 'Team Health', href: '/console/admin/team-health', permission: Permission.TeamManageMembers, icon: 'chart-bar'  },
+            { label: 'Seats',       href: '/console/admin/seats',        permission: Permission.TeamManageSeats,   icon: 'key'        },
         ]
     },
 ])

@@ -28,6 +28,10 @@ class EnsureTeamManager
             return redirect('/console/login');
         }
 
+        if ($user->is_owner) {
+            return $next($request);
+        }
+
         $permissions    = app(\App\Services\PermissionService::class)->effective($user);
         $hasBit         = ($permissions & Permission::TeamManageMembers->value) !== 0;
         $ownsGroup      = $user->ownedGroup()->exists();

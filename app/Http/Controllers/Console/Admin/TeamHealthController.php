@@ -12,11 +12,13 @@ class TeamHealthController
     public function index(Request $request): Response
     {
         $manager = $request->user();
-        $group   = $manager->ownedGroup;
+        $group   = $manager->is_owner ? null : $manager->ownedGroup;
 
-        $members = $group->members()
-            ->orderBy('users.name')
-            ->get(['users.id', 'users.name', 'users.email']);
+        $members = $group
+            ? $group->members()->orderBy('users.name')->get(['users.id', 'users.name', 'users.email'])
+            : \App\Models\User::whereHas('groups')->orderBy('name')->get(['id', 'name', 'email']);
+
+        $groupName = $group?->name ?? 'All Teams';
 
         $snapshots = TriageSnapshot::whereIn('user_id', $members->pluck('id'))
             ->orderByDesc('captured_at')
@@ -67,7 +69,7 @@ class TeamHealthController
         })->sortBy([['ticket_count', 'desc'], ['member_name', 'asc']])->values();
 
         return Inertia::render('Console/Admin/TeamHealth', [
-            'group_name'    => $group->name,
+            'group_name'    => $groupName,
             'needs_response'=> $needsResponse,
             'bottlenecks'   => $bottlenecks,
             'workload'      => $workload,

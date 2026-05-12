@@ -67,7 +67,7 @@ const navGroups = computed(() => [
             { label: 'Digests',     href: '/console/digests',   permission: Permission.Digests,         icon: 'inbox' },
             { label: 'Summarize',   href: '/console/summarize', permission: Permission.Summarize,       icon: 'document-text' },
             { label: 'Compliance',  href: '/console/compliance',permission: Permission.Compliance,      icon: 'shield-check' },
-            { label: 'Export',      href: '/console/export',    permission: Permission.Export,           icon: 'arrow-down-tray' },
+            { label: 'Export',      href: '/console/export',    permission: Permission.Export,           icon: 'download' },
         ]
     },
     {
@@ -103,6 +103,14 @@ const teamAdminItems = [
     { label: 'Team Health',      href: '/console/admin/team-health',     icon: 'chart-bar' },
     { label: 'Process Metrics',  href: '/console/admin/process-metrics', icon: 'trending-up' },
 ]
+
+const ownerPanelOpen   = ref(false)
+const teamAdminOpen    = ref(false)
+const ownerPanelActive = computed(() => ownerPanelItems.some(item => page.url.startsWith(item.href)))
+const teamAdminActive  = computed(() => teamAdminItems.some(item => page.url.startsWith(item.href)))
+const subSidebarPersistent = computed(() =>
+    effectiveCollapsed.value && isOwner.value && (ownerPanelActive.value || teamAdminActive.value)
+)
 
 const visibleGroups = computed(() =>
     navGroups.value
@@ -272,7 +280,7 @@ function handleNavClick(event, href) {
                                     type="button"
                                     title="Owner Panel"
                                     class="tl-nav-link w-full justify-center px-0"
-                                    :class="ownerSubOpen ? 'tl-nav-link--owner-active' : 'tl-nav-link--owner-inactive'"
+                                    :class="(ownerSubOpen || subSidebarPersistent) ? 'tl-nav-link--owner-active' : 'tl-nav-link--owner-inactive'"
                                 >
                                     <TlIcon name="building" class="w-4 h-4 shrink-0" />
                                 </button>
@@ -280,10 +288,17 @@ function handleNavClick(event, href) {
                         </ul>
                     </div>
 
-                    <!-- Desktop expanded: all items inline (no sub-sidebar) -->
+                    <!-- Desktop expanded: accordion sections -->
                     <div v-else class="hidden lg:block">
-                        <p class="tl-nav-group-label tl-nav-group-label--owner">Owner Panel</p>
-                        <ul class="mb-3 space-y-0.5">
+                        <button
+                            type="button"
+                            @click="ownerPanelOpen = !ownerPanelOpen"
+                            class="tl-nav-group-label tl-nav-group-label--owner w-full flex items-center justify-between cursor-pointer hover:text-amber-300 transition-colors"
+                        >
+                            <span>Owner Panel</span>
+                            <TlIcon name="chevron-right" class="w-3.5 h-3.5 shrink-0 transition-transform" :class="(ownerPanelOpen || ownerPanelActive) ? 'rotate-90' : ''" />
+                        </button>
+                        <ul v-show="ownerPanelOpen || ownerPanelActive" class="mb-5 space-y-0.5">
                             <li v-for="item in ownerPanelItems" :key="item.href">
                                 <a
                                     :href="item.href"
@@ -296,8 +311,15 @@ function handleNavClick(event, href) {
                                 </a>
                             </li>
                         </ul>
-                        <p class="tl-nav-group-label tl-nav-group-label--owner">Team Admin</p>
-                        <ul class="mb-5 space-y-0.5">
+                        <button
+                            type="button"
+                            @click="teamAdminOpen = !teamAdminOpen"
+                            class="tl-nav-group-label tl-nav-group-label--owner w-full flex items-center justify-between cursor-pointer hover:text-amber-300 transition-colors mt-5"
+                        >
+                            <span>Team Admin</span>
+                            <TlIcon name="chevron-right" class="w-3.5 h-3.5 shrink-0 transition-transform" :class="(teamAdminOpen || teamAdminActive) ? 'rotate-90' : ''" />
+                        </button>
+                        <ul v-show="teamAdminOpen || teamAdminActive" class="mb-5 space-y-0.5">
                             <li v-for="item in teamAdminItems" :key="item.href">
                                 <a
                                     :href="item.href"
@@ -312,10 +334,17 @@ function handleNavClick(event, href) {
                         </ul>
                     </div>
 
-                    <!-- Mobile: all items inline in drawer -->
+                    <!-- Mobile: accordion sections in drawer -->
                     <div class="lg:hidden">
-                        <p class="tl-nav-group-label tl-nav-group-label--owner">Owner Panel</p>
-                        <ul class="mb-3 space-y-0.5">
+                        <button
+                            type="button"
+                            @click="ownerPanelOpen = !ownerPanelOpen"
+                            class="tl-nav-group-label tl-nav-group-label--owner w-full flex items-center justify-between cursor-pointer hover:text-amber-300 transition-colors"
+                        >
+                            <span>Owner Panel</span>
+                            <TlIcon name="chevron-right" class="w-3.5 h-3.5 shrink-0 transition-transform" :class="(ownerPanelOpen || ownerPanelActive) ? 'rotate-90' : ''" />
+                        </button>
+                        <ul v-show="ownerPanelOpen || ownerPanelActive" class="mb-5 space-y-0.5">
                             <li v-for="item in ownerPanelItems" :key="item.href">
                                 <a
                                     :href="item.href"
@@ -328,8 +357,15 @@ function handleNavClick(event, href) {
                                 </a>
                             </li>
                         </ul>
-                        <p class="tl-nav-group-label tl-nav-group-label--owner">Team Admin</p>
-                        <ul class="mb-5 space-y-0.5">
+                        <button
+                            type="button"
+                            @click="teamAdminOpen = !teamAdminOpen"
+                            class="tl-nav-group-label tl-nav-group-label--owner w-full flex items-center justify-between cursor-pointer hover:text-amber-300 transition-colors mt-5"
+                        >
+                            <span>Team Admin</span>
+                            <TlIcon name="chevron-right" class="w-3.5 h-3.5 shrink-0 transition-transform" :class="(teamAdminOpen || teamAdminActive) ? 'rotate-90' : ''" />
+                        </button>
+                        <ul v-show="teamAdminOpen || teamAdminActive" class="mb-5 space-y-0.5">
                             <li v-for="item in teamAdminItems" :key="item.href">
                                 <a
                                     :href="item.href"
@@ -380,41 +416,39 @@ function handleNavClick(event, href) {
             leave-to-class="-translate-x-full"
         >
             <aside
-                v-if="isOwner && ownerSubOpen && effectiveCollapsed"
+                v-if="isOwner && (ownerSubOpen || subSidebarPersistent) && effectiveCollapsed"
                 :class="[
-                    'hidden lg:flex flex-col fixed bottom-0 left-16 w-56 z-[49] bg-slate-900 border-r border-slate-800',
+                    'hidden lg:flex flex-col fixed bottom-0 left-16 w-16 z-[49] bg-slate-900 border-r border-slate-800',
                     impersonating ? 'top-9' : 'top-0',
                 ]"
                 @mouseenter="showOwnerSub"
                 @mouseleave="hideOwnerSub"
             >
-                <nav class="flex-1 overflow-y-auto py-4 px-3">
-                    <p class="tl-nav-group-label tl-nav-group-label--owner">Owner Panel</p>
-                    <ul class="mb-5 space-y-0.5">
+                <nav class="flex-1 overflow-y-auto py-4 px-2">
+                    <ul class="mb-2 space-y-0.5">
                         <li v-for="item in ownerPanelItems" :key="item.href">
                             <a
                                 :href="item.href"
+                                :title="item.label"
                                 @click="handleNavClick($event, item.href)"
-                                class="tl-nav-link"
+                                class="tl-nav-link justify-center px-0"
                                 :class="page.url.startsWith(item.href) ? 'tl-nav-link--owner-active' : 'tl-nav-link--owner-inactive'"
                             >
                                 <TlIcon :name="item.icon" class="w-4 h-4 shrink-0" />
-                                <span>{{ item.label }}</span>
                             </a>
                         </li>
                     </ul>
-
-                    <p class="tl-nav-group-label tl-nav-group-label--owner">Team Admin</p>
-                    <ul class="mb-5 space-y-0.5">
+                    <hr class="border-slate-700/60 my-2" />
+                    <ul class="space-y-0.5">
                         <li v-for="item in teamAdminItems" :key="item.href">
                             <a
                                 :href="item.href"
+                                :title="item.label"
                                 @click="handleNavClick($event, item.href)"
-                                class="tl-nav-link"
+                                class="tl-nav-link justify-center px-0"
                                 :class="page.url.startsWith(item.href) ? 'tl-nav-link--owner-active' : 'tl-nav-link--owner-inactive'"
                             >
                                 <TlIcon :name="item.icon" class="w-4 h-4 shrink-0" />
-                                <span>{{ item.label }}</span>
                             </a>
                         </li>
                     </ul>
@@ -423,7 +457,7 @@ function handleNavClick(event, href) {
         </Transition>
 
         <!-- Main content wrapper -->
-        <div :class="[effectiveCollapsed ? 'lg:pl-16' : 'lg:pl-64', { 'pt-9 lg:pt-9': impersonating }]" class="transition-all duration-200">
+        <div :class="[effectiveCollapsed ? (subSidebarPersistent ? 'lg:pl-32' : 'lg:pl-16') : 'lg:pl-64', { 'pt-9 lg:pt-9': impersonating }]" class="transition-all duration-200">
             <main class="min-w-0 pt-14 lg:pt-0">
                 <slot />
             </main>

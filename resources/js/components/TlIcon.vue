@@ -14,7 +14,7 @@ import {
   Users, UsersRound, Key, DollarSign,
   Menu, X, LogOut, TriangleAlert,
   ArrowRight, BadgeCheck, Ban, Check, CircleCheck, CircleX,
-  Building2, ChevronLeft, ChevronRight, Clock, CodeXml, Copy, Eye, EyeOff, FlaskConical,
+  Building2, ChevronLeft, ChevronRight, Clock, CodeXml, Copy, Download, Eye, EyeOff, FlaskConical,
   History, Layers, LoaderCircle, Lock, LockOpen, Mail, Pause, Pencil, Play, Plus,
   RefreshCw, Search, Sparkles, Trash2, TrendingUp,
 } from '@lucide/vue'
@@ -39,6 +39,7 @@ const ICONS = {
   'warning-triangle': TriangleAlert,
   // Feature icons (alphabetical)
   'arrow-right': ArrowRight,
+  'download': Download,
   'badge-check': BadgeCheck,
   'ban': Ban,
   'building': Building2,

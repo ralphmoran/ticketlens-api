@@ -16,7 +16,22 @@ const lgMql    = window.matchMedia('(min-width: 1024px)')
 const isDesktop = ref(lgMql.matches)
 const onMqlChange = (e) => { isDesktop.value = e.matches }
 onMounted(()   => lgMql.addEventListener('change', onMqlChange))
-onUnmounted(() => lgMql.removeEventListener('change', onMqlChange))
+onUnmounted(() => {
+    lgMql.removeEventListener('change', onMqlChange)
+    clearTimeout(ownerSubTimer)
+})
+
+const ownerSubOpen = ref(false)
+let ownerSubTimer = null
+
+function showOwnerSub() {
+    clearTimeout(ownerSubTimer)
+    ownerSubOpen.value = true
+}
+
+function hideOwnerSub() {
+    ownerSubTimer = setTimeout(() => { ownerSubOpen.value = false }, 150)
+}
 
 const effectiveCollapsed = computed(() => sidebarCollapsed.value && isDesktop.value)
 
@@ -75,13 +90,18 @@ const navGroups = computed(() => [
     },
 ])
 
-const ownerNavItems = [
+const ownerPanelItems = [
     { label: 'Clients',           href: '/console/owner/clients',   icon: 'building' },
     { label: 'Teams',             href: '/console/owner/teams',     icon: 'users' },
     { label: 'Licenses',          href: '/console/owner/licenses',  icon: 'badge-check' },
     { label: 'Tiers & Features',  href: '/console/owner/tiers',     icon: 'layers' },
     { label: 'Revenue',           href: '/console/owner/revenue',   icon: 'currency-dollar' },
     { label: 'Audit Log',         href: '/console/owner/audit',     icon: 'history' },
+]
+
+const teamAdminItems = [
+    { label: 'Team Health',      href: '/console/admin/team-health',     icon: 'chart-bar' },
+    { label: 'Process Metrics',  href: '/console/admin/process-metrics', icon: 'trending-up' },
 ]
 
 const visibleGroups = computed(() =>
@@ -108,6 +128,7 @@ function handleNavClick(event, href) {
         event.preventDefault()
     }
     closeSidebar()
+    ownerSubOpen.value = false
 }
 </script>
 
@@ -237,25 +258,64 @@ function handleNavClick(event, href) {
 
                 <!-- Owner section (only shown when is_owner = true) -->
                 <template v-if="isOwner">
-                    <hr v-if="effectiveCollapsed" class="border-slate-700/60 my-2" />
-                    <p v-show="!effectiveCollapsed" class="tl-nav-group-label tl-nav-group-label--owner">Owner</p>
-                    <ul class="mb-5 space-y-0.5">
-                        <li v-for="item in ownerNavItems" :key="item.href">
-                            <a
-                                :href="item.href"
-                                :title="effectiveCollapsed ? item.label : undefined"
-                                @click="handleNavClick($event, item.href)"
-                                class="tl-nav-link"
-                                :class="[
-                                    page.url.startsWith(item.href) ? 'tl-nav-link--owner-active' : 'tl-nav-link--owner-inactive',
-                                    effectiveCollapsed ? 'justify-center px-0' : '',
-                                ]"
-                            >
-                                <TlIcon :name="item.icon" class="w-4 h-4 shrink-0" />
-                                <span v-show="!effectiveCollapsed">{{ item.label }}</span>
-                            </a>
-                        </li>
-                    </ul>
+                    <!-- Desktop: single hover-trigger row -->
+                    <div
+                        class="hidden lg:block"
+                        @mouseenter="showOwnerSub"
+                        @mouseleave="hideOwnerSub"
+                    >
+                        <hr v-if="effectiveCollapsed" class="border-slate-700/60 my-2" />
+                        <p v-show="!effectiveCollapsed" class="tl-nav-group-label tl-nav-group-label--owner">Owner</p>
+                        <ul class="mb-5 space-y-0.5">
+                            <li>
+                                <button
+                                    type="button"
+                                    :title="effectiveCollapsed ? 'Owner Panel' : undefined"
+                                    class="tl-nav-link w-full"
+                                    :class="[
+                                        ownerSubOpen ? 'tl-nav-link--owner-active' : 'tl-nav-link--owner-inactive',
+                                        effectiveCollapsed ? 'justify-center px-0' : '',
+                                    ]"
+                                >
+                                    <TlIcon name="building" class="w-4 h-4 shrink-0" />
+                                    <span v-show="!effectiveCollapsed" class="flex-1 text-left">Owner Panel</span>
+                                    <TlIcon v-show="!effectiveCollapsed" name="chevron-right" class="w-3 h-3 shrink-0 opacity-50" />
+                                </button>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <!-- Mobile: all items inline in drawer -->
+                    <div class="lg:hidden">
+                        <p class="tl-nav-group-label tl-nav-group-label--owner">Owner Panel</p>
+                        <ul class="mb-3 space-y-0.5">
+                            <li v-for="item in ownerPanelItems" :key="item.href">
+                                <a
+                                    :href="item.href"
+                                    @click="handleNavClick($event, item.href)"
+                                    class="tl-nav-link"
+                                    :class="page.url.startsWith(item.href) ? 'tl-nav-link--owner-active' : 'tl-nav-link--owner-inactive'"
+                                >
+                                    <TlIcon :name="item.icon" class="w-4 h-4 shrink-0" />
+                                    <span>{{ item.label }}</span>
+                                </a>
+                            </li>
+                        </ul>
+                        <p class="tl-nav-group-label tl-nav-group-label--owner">Team Admin</p>
+                        <ul class="mb-5 space-y-0.5">
+                            <li v-for="item in teamAdminItems" :key="item.href">
+                                <a
+                                    :href="item.href"
+                                    @click="handleNavClick($event, item.href)"
+                                    class="tl-nav-link"
+                                    :class="page.url.startsWith(item.href) ? 'tl-nav-link--owner-active' : 'tl-nav-link--owner-inactive'"
+                                >
+                                    <TlIcon :name="item.icon" class="w-4 h-4 shrink-0" />
+                                    <span>{{ item.label }}</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
                 </template>
             </nav>
 
@@ -282,6 +342,59 @@ function handleNavClick(event, href) {
                 </button>
             </div>
         </aside>
+
+        <!-- Owner sub-sidebar (desktop only, slides out from behind main sidebar) -->
+        <Transition
+            enter-active-class="transition-transform duration-200"
+            enter-from-class="-translate-x-full"
+            enter-to-class="translate-x-0"
+            leave-active-class="transition-transform duration-200"
+            leave-from-class="translate-x-0"
+            leave-to-class="-translate-x-full"
+        >
+            <aside
+                v-if="isOwner && ownerSubOpen"
+                :class="[
+                    'hidden lg:flex flex-col fixed bottom-0 z-[49] w-56 bg-slate-900 border-r border-slate-800',
+                    impersonating ? 'top-9' : 'top-0',
+                    effectiveCollapsed ? 'left-16' : 'left-64',
+                ]"
+                @mouseenter="showOwnerSub"
+                @mouseleave="hideOwnerSub"
+            >
+                <nav class="flex-1 overflow-y-auto py-4 px-3">
+                    <p class="tl-nav-group-label tl-nav-group-label--owner">Owner Panel</p>
+                    <ul class="mb-5 space-y-0.5">
+                        <li v-for="item in ownerPanelItems" :key="item.href">
+                            <a
+                                :href="item.href"
+                                @click="handleNavClick($event, item.href)"
+                                class="tl-nav-link"
+                                :class="page.url.startsWith(item.href) ? 'tl-nav-link--owner-active' : 'tl-nav-link--owner-inactive'"
+                            >
+                                <TlIcon :name="item.icon" class="w-4 h-4 shrink-0" />
+                                <span>{{ item.label }}</span>
+                            </a>
+                        </li>
+                    </ul>
+
+                    <p class="tl-nav-group-label tl-nav-group-label--owner">Team Admin</p>
+                    <ul class="mb-5 space-y-0.5">
+                        <li v-for="item in teamAdminItems" :key="item.href">
+                            <a
+                                :href="item.href"
+                                @click="handleNavClick($event, item.href)"
+                                class="tl-nav-link"
+                                :class="page.url.startsWith(item.href) ? 'tl-nav-link--owner-active' : 'tl-nav-link--owner-inactive'"
+                            >
+                                <TlIcon :name="item.icon" class="w-4 h-4 shrink-0" />
+                                <span>{{ item.label }}</span>
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+            </aside>
+        </Transition>
 
         <!-- Main content wrapper -->
         <div :class="[effectiveCollapsed ? 'lg:pl-16' : 'lg:pl-64', { 'pt-9 lg:pt-9': impersonating }]" class="transition-all duration-200">

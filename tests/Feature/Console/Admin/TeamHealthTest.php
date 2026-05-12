@@ -226,6 +226,51 @@ class TeamHealthTest extends TestCase
             );
     }
 
+    // --- Owner access ---
+
+    public function test_owner_sees_search_state_without_manager_id(): void
+    {
+        $owner   = User::factory()->create(['is_owner' => true, 'permissions' => 0]);
+        $manager = $this->makeManager('Carol');
+
+        $this->actingAs($owner)
+            ->get('/console/admin/team-health')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('Console/Admin/TeamHealth')
+                ->where('owner_mode', true)
+                ->where('selected_manager', null)
+                ->where('workload', [])
+                ->has('clients', 1)
+                ->where('clients.0.name', 'Carol')
+            );
+    }
+
+    public function test_owner_with_valid_manager_id_sees_that_teams_data(): void
+    {
+        $owner   = User::factory()->create(['is_owner' => true, 'permissions' => 0]);
+        $manager = $this->makeManager('Dave');
+        $this->pushSnapshot($manager, [$this->ticket('P-1', flags: ['needs-response'])]);
+
+        $this->actingAs($owner)
+            ->get("/console/admin/team-health?manager_id={$manager->id}")
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('owner_mode', true)
+                ->where('selected_manager.name', 'Dave')
+                ->has('needs_response', 1)
+            );
+    }
+
+    public function test_owner_with_invalid_manager_id_redirects_to_team_health(): void
+    {
+        $owner = User::factory()->create(['is_owner' => true, 'permissions' => 0]);
+
+        $this->actingAs($owner)
+            ->get('/console/admin/team-health?manager_id=99999')
+            ->assertRedirect('/console/admin/team-health');
+    }
+
     // --- Empty state ---
 
     public function test_empty_page_when_no_member_has_pushed(): void

@@ -2,23 +2,74 @@
 
 namespace App\Http\Controllers\Console\Admin;
 
+use App\Models\Group;
 use App\Models\TriageSnapshot;
+use App\Models\User;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class TeamHealthController
 {
-    public function index(Request $request): Response
+    public function index(Request $request): Response|RedirectResponse
     {
-        $manager = $request->user();
-        $group   = $manager->is_owner ? null : $manager->ownedGroup;
+        $user = $request->user();
 
-        $members = $group
-            ? $group->members()->orderBy('users.name')->get(['users.id', 'users.name', 'users.email'])
-            : \App\Models\User::whereHas('groups')->orderBy('name')->get(['id', 'name', 'email']);
+        if ($user->is_owner) {
+            return $this->ownerIndex($request);
+        }
 
-        $groupName = $group?->name ?? 'All Teams';
+        return Inertia::render('Console/Admin/TeamHealth', array_merge(
+            $this->computeData($user->ownedGroup),
+            ['owner_mode' => false, 'clients' => [], 'selected_manager' => null],
+        ));
+    }
+
+    private function ownerIndex(Request $request): Response|RedirectResponse
+    {
+        $clients = User::whereHas('ownedGroup')
+            ->orderBy('name')
+            ->get(['id', 'name', 'email'])
+            ->map(fn ($u) => ['id' => $u->id, 'name' => $u->name, 'email' => $u->email])
+            ->values();
+
+        $managerId = $request->query('manager_id');
+
+        if (! $managerId) {
+            return Inertia::render('Console/Admin/TeamHealth', [
+                'owner_mode'       => true,
+                'clients'          => $clients,
+                'selected_manager' => null,
+                'group_name'       => '',
+                'needs_response'   => [],
+                'bottlenecks'      => [],
+                'workload'         => [],
+                'last_updated'     => null,
+            ]);
+        }
+
+        $manager = User::whereHas('ownedGroup')->find($managerId);
+
+        if (! $manager) {
+            return redirect('/console/admin/team-health');
+        }
+
+        return Inertia::render('Console/Admin/TeamHealth', array_merge(
+            $this->computeData($manager->ownedGroup),
+            [
+                'owner_mode'       => true,
+                'clients'          => $clients,
+                'selected_manager' => ['id' => $manager->id, 'name' => $manager->name, 'email' => $manager->email],
+            ],
+        ));
+    }
+
+    private function computeData(Group $group): array
+    {
+        $members = $group->members()
+            ->orderBy('users.name')
+            ->get(['users.id', 'users.name', 'users.email']);
 
         $snapshots = TriageSnapshot::whereIn('user_id', $members->pluck('id'))
             ->orderByDesc('captured_at')
@@ -51,29 +102,27 @@ class TeamHealthController
             ->values();
 
         $workload = $members->map(function ($member) use ($snapshotsByUser) {
-            $memberSnaps        = $snapshotsByUser->get($member->id, collect());
-            $allMemberTickets   = $memberSnaps->flatMap(fn ($s) => $s->tickets ?? []);
-            $needsResponseCount = $allMemberTickets
-                ->filter(fn ($t) => in_array('needs-response', $t['flags'] ?? []))
-                ->count();
-            $lastPush = $memberSnaps->max('captured_at');
+            $memberSnaps      = $snapshotsByUser->get($member->id, collect());
+            $memberTickets    = $memberSnaps->flatMap(fn ($s) => $s->tickets ?? []);
+            $needsRespCount   = $memberTickets->filter(fn ($t) => in_array('needs-response', $t['flags'] ?? []))->count();
+            $lastPush         = $memberSnaps->max('captured_at');
 
             return [
                 'member_id'            => $member->id,
                 'member_name'          => $member->name,
                 'member_email'         => $member->email,
-                'ticket_count'         => $allMemberTickets->count(),
-                'needs_response_count' => $needsResponseCount,
+                'ticket_count'         => $memberTickets->count(),
+                'needs_response_count' => $needsRespCount,
                 'last_push'            => $lastPush?->toIso8601String(),
             ];
         })->sortBy([['ticket_count', 'desc'], ['member_name', 'asc']])->values();
 
-        return Inertia::render('Console/Admin/TeamHealth', [
-            'group_name'    => $groupName,
-            'needs_response'=> $needsResponse,
-            'bottlenecks'   => $bottlenecks,
-            'workload'      => $workload,
-            'last_updated'  => $snapshots->max('captured_at')?->toIso8601String(),
-        ]);
+        return [
+            'group_name'     => $group->name,
+            'needs_response' => $needsResponse,
+            'bottlenecks'    => $bottlenecks,
+            'workload'       => $workload,
+            'last_updated'   => $snapshots->max('captured_at')?->toIso8601String(),
+        ];
     }
 }

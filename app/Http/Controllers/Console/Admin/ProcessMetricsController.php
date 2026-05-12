@@ -2,26 +2,77 @@
 
 namespace App\Http\Controllers\Console\Admin;
 
+use App\Models\Group;
 use App\Models\TriageSnapshot;
+use App\Models\User;
 use Carbon\Carbon;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class ProcessMetricsController
 {
-    public function index(Request $request): Response
+    public function index(Request $request): Response|RedirectResponse
     {
-        $user  = $request->user();
-        $group = $user->is_owner ? null : $user->ownedGroup;
+        $user = $request->user();
 
-        $members = $group
-            ? $group->members()->orderBy('users.name')->get(['users.id', 'users.name', 'users.email'])
-            : \App\Models\User::whereHas('groups')->orderBy('name')->get(['id', 'name', 'email']);
+        if ($user->is_owner) {
+            return $this->ownerIndex($request);
+        }
 
-        $groupName = $group?->name ?? 'All Teams';
+        return Inertia::render('Console/Admin/ProcessMetrics', array_merge(
+            $this->computeData($user->ownedGroup),
+            ['owner_mode' => false, 'clients' => [], 'selected_manager' => null],
+        ));
+    }
 
-        // One latest snapshot per member — avoid double-counting multi-profile users
+    private function ownerIndex(Request $request): Response|RedirectResponse
+    {
+        $clients = User::whereHas('ownedGroup')
+            ->orderBy('name')
+            ->get(['id', 'name', 'email'])
+            ->map(fn ($u) => ['id' => $u->id, 'name' => $u->name, 'email' => $u->email])
+            ->values();
+
+        $managerId = $request->query('manager_id');
+
+        if (! $managerId) {
+            return Inertia::render('Console/Admin/ProcessMetrics', [
+                'owner_mode'       => true,
+                'clients'          => $clients,
+                'selected_manager' => null,
+                'group_name'       => '',
+                'velocity'         => [],
+                'status_flow'      => [],
+                'response_latency' => ['fresh' => 0, 'active' => 0, 'slowing' => 0, 'stale' => 0, 'abandoned' => 0, 'total' => 0],
+                'compliance'       => [],
+                'last_updated'     => null,
+            ]);
+        }
+
+        $manager = User::whereHas('ownedGroup')->find($managerId);
+
+        if (! $manager) {
+            return redirect('/console/admin/process-metrics');
+        }
+
+        return Inertia::render('Console/Admin/ProcessMetrics', array_merge(
+            $this->computeData($manager->ownedGroup),
+            [
+                'owner_mode'       => true,
+                'clients'          => $clients,
+                'selected_manager' => ['id' => $manager->id, 'name' => $manager->name, 'email' => $manager->email],
+            ],
+        ));
+    }
+
+    private function computeData(Group $group): array
+    {
+        $members = $group->members()
+            ->orderBy('users.name')
+            ->get(['users.id', 'users.name', 'users.email']);
+
         $snapshots = TriageSnapshot::whereIn('user_id', $members->pluck('id'))
             ->orderByDesc('captured_at')
             ->get(['user_id', 'tickets', 'captured_at'])
@@ -29,14 +80,13 @@ class ProcessMetricsController
 
         $snapshotsByUser = $snapshots->groupBy('user_id');
 
-        // Single pass — both velocity and compliance consume this
         $ticketsByMember = $members->mapWithKeys(fn ($m) => [
             $m->id => $snapshotsByUser->get($m->id, collect())->flatMap(fn ($s) => $s->tickets ?? []),
         ]);
 
-        $allTickets = $ticketsByMember
-            ->mapWithKeys(fn ($tickets, $memberId) => [$memberId => $tickets])
-            ->flatMap(fn ($tickets, $memberId) => $tickets->map(fn ($t) => array_merge($t, ['_member_id' => $memberId])));
+        $allTickets = $ticketsByMember->flatMap(
+            fn ($tickets, $memberId) => $tickets->map(fn ($t) => array_merge($t, ['_member_id' => $memberId]))
+        );
 
         $velocity = $members->map(function ($member) use ($ticketsByMember) {
             $memberTickets = $ticketsByMember->get($member->id, collect());
@@ -62,7 +112,7 @@ class ProcessMetricsController
             ->sortByDesc('total')
             ->values();
 
-        $needsResponse = $allTickets->filter(fn ($t) => in_array('needs-response', $t['flags'] ?? []));
+        $needsResponse   = $allTickets->filter(fn ($t) => in_array('needs-response', $t['flags'] ?? []));
         $responseBuckets = ['fresh' => 0, 'active' => 0, 'slowing' => 0, 'stale' => 0, 'abandoned' => 0];
         foreach ($needsResponse as $ticket) {
             $responseBuckets[self::ageBucket($ticket['last_updated'] ?? null)]++;
@@ -84,14 +134,14 @@ class ProcessMetricsController
             ];
         })->sortBy('coverage_pct')->values();
 
-        return Inertia::render('Console/Admin/ProcessMetrics', [
-            'group_name'       => $groupName,
+        return [
+            'group_name'       => $group->name,
             'velocity'         => $velocity,
             'status_flow'      => $statusFlow,
             'response_latency' => $responseLatency,
             'compliance'       => $compliance,
             'last_updated'     => $snapshots->max('captured_at')?->toIso8601String(),
-        ]);
+        ];
     }
 
     private static function ageBucket(?string $lastUpdated): string

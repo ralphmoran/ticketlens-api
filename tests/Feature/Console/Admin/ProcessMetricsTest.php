@@ -73,17 +73,52 @@ class ProcessMetricsTest extends TestCase
 
     // --- Lock tests (gate + empty state must remain stable) ---
 
-    public function test_owner_can_access_without_team_manager_flag(): void
+    public function test_owner_sees_search_state_without_manager_id(): void
     {
-        $owner = User::factory()->create(['is_owner' => true, 'permissions' => 0]);
+        $owner   = User::factory()->create(['is_owner' => true, 'permissions' => 0]);
+        $manager = $this->makeManager('Alice');
 
         $this->actingAs($owner)
             ->get('/console/admin/process-metrics')
             ->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->component('Console/Admin/ProcessMetrics')
-                ->where('group_name', 'All Teams')
+                ->where('owner_mode', true)
+                ->where('selected_manager', null)
+                ->where('velocity', [])
+                ->where('compliance', [])
+                ->has('clients', 1)
+                ->where('clients.0.name', 'Alice')
             );
+    }
+
+    public function test_owner_with_valid_manager_id_sees_that_teams_data(): void
+    {
+        $this->freezeTime();
+        $owner   = User::factory()->create(['is_owner' => true, 'permissions' => 0]);
+        $manager = $this->makeManager('Bob');
+        $this->pushSnapshot($manager, [
+            $this->ticket('P-1', lastUpdated: now()->subHours(6)->toIso8601String()),
+        ]);
+
+        $this->actingAs($owner)
+            ->get("/console/admin/process-metrics?manager_id={$manager->id}")
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('owner_mode', true)
+                ->where('selected_manager.name', 'Bob')
+                ->has('velocity', 1)
+                ->where('velocity.0.fresh', 1)
+            );
+    }
+
+    public function test_owner_with_invalid_manager_id_redirects_to_process_metrics(): void
+    {
+        $owner = User::factory()->create(['is_owner' => true, 'permissions' => 0]);
+
+        $this->actingAs($owner)
+            ->get('/console/admin/process-metrics?manager_id=99999')
+            ->assertRedirect('/console/admin/process-metrics');
     }
 
     public function test_unauthenticated_redirects_to_console_login(): void

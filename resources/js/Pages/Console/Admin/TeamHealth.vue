@@ -7,15 +7,30 @@ import { computed, onMounted, onUnmounted, ref } from 'vue'
 defineOptions({ layout: ConsoleLayout })
 
 const props = defineProps({
-    group_name:     { type: String,  default: '' },
-    needs_response: { type: Array,   default: () => [] },
-    bottlenecks:    { type: Array,   default: () => [] },
-    workload:       { type: Array,   default: () => [] },
-    last_updated:   { type: String,  default: null },
+    group_name:       { type: String,  default: '' },
+    needs_response:   { type: Array,   default: () => [] },
+    bottlenecks:      { type: Array,   default: () => [] },
+    workload:         { type: Array,   default: () => [] },
+    last_updated:     { type: String,  default: null },
+    owner_mode:       { type: Boolean, default: false },
+    clients:          { type: Array,   default: () => [] },
+    selected_manager: { type: Object,  default: null },
 })
 
-const refreshing = ref(false)
+const refreshing   = ref(false)
+const clientSearch = ref('')
 let timer = null
+
+const filteredClients = computed(() => {
+    const q = clientSearch.value.toLowerCase()
+    return q ? props.clients.filter(c =>
+        c.name.toLowerCase().includes(q) || c.email.toLowerCase().includes(q)
+    ) : props.clients
+})
+
+function selectManager(id) {
+    router.get('/console/admin/team-health', { manager_id: id })
+}
 
 const totalTickets   = computed(() => props.workload.reduce((s, m) => s + m.ticket_count, 0))
 const totalNeedsResp = computed(() => props.workload.reduce((s, m) => s + m.needs_response_count, 0))
@@ -53,6 +68,62 @@ onUnmounted(() => clearInterval(timer))
 
 <template>
     <div class="tl-page">
+
+        <!-- Owner: no manager selected — client search UI -->
+        <div v-if="owner_mode && !selected_manager">
+            <div class="mb-6">
+                <h1 class="tl-heading">Team Health</h1>
+                <p class="tl-subtext">Select a team to inspect their workload and response queue.</p>
+            </div>
+            <div class="max-w-md">
+                <input
+                    v-model="clientSearch"
+                    type="search"
+                    placeholder="Search by name or email…"
+                    class="tl-input w-full mb-4"
+                />
+                <div v-if="filteredClients.length === 0" class="tl-empty-state">
+                    <TlIcon name="users" class="w-8 h-8 text-slate-700 mb-3" />
+                    <p class="tl-hint">No matching clients found.</p>
+                </div>
+                <ul v-else class="space-y-2">
+                    <li v-for="client in filteredClients" :key="client.id">
+                        <button
+                            type="button"
+                            @click="selectManager(client.id)"
+                            class="w-full text-left tl-card hover:border-amber-500/40 hover:bg-slate-800/60 transition-colors cursor-pointer"
+                        >
+                            <p class="text-sm font-medium text-slate-200">{{ client.name }}</p>
+                            <p class="tl-hint text-xs font-mono">{{ client.email }}</p>
+                        </button>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Normal page (manager selected or not in owner mode) -->
+        <template v-else>
+
+        <!-- Owner: manager selected — action banner -->
+        <div v-if="owner_mode && selected_manager"
+             class="flex flex-wrap items-center gap-3 mb-6 px-4 py-3 rounded-lg bg-amber-500/10 border border-amber-500/30 text-sm">
+            <TlIcon name="building" class="w-4 h-4 text-amber-400 shrink-0" />
+            <span class="text-amber-300 font-medium flex-1 min-w-0 truncate">
+                {{ selected_manager.name }}
+                <span class="text-amber-400/60 font-mono text-xs ml-1">{{ selected_manager.email }}</span>
+            </span>
+            <div class="flex items-center gap-2 shrink-0">
+                <a :href="`/console/owner/clients/${selected_manager.id}`" class="tl-btn tl-btn--secondary tl-btn--sm">Manage</a>
+                <button type="button" class="tl-btn tl-btn--secondary tl-btn--sm"
+                        @click="router.post(`/console/owner/impersonate/${selected_manager.id}`)">
+                    Impersonate
+                </button>
+                <button type="button" class="tl-btn tl-btn--secondary tl-btn--sm"
+                        @click="router.get('/console/admin/team-health')">
+                    ← Back
+                </button>
+            </div>
+        </div>
 
         <!-- Page header -->
         <div class="flex items-start justify-between gap-4 mb-6">
@@ -194,5 +265,6 @@ onUnmounted(() => clearInterval(timer))
 
         </template>
 
+        </template><!-- end v-else (normal page) -->
     </div>
 </template>

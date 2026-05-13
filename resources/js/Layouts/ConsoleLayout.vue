@@ -306,7 +306,7 @@ onUnmounted(() => {
             class="hidden lg:flex fixed inset-x-0 z-30 items-center justify-between px-6 h-14 bg-slate-900 border-b border-slate-800 transition-all duration-200"
             :class="[
                 impersonating ? 'top-9' : 'top-0',
-                effectiveCollapsed ? (subSidebarPersistent ? 'lg:pl-[8.5rem]' : 'lg:pl-20') : 'lg:pl-[17rem]',
+                effectiveCollapsed ? 'lg:pl-16' : 'lg:pl-64',
             ]"
         >
             <span class="text-sm font-medium text-slate-300">{{ currentPageTitle }}</span>
@@ -576,53 +576,51 @@ onUnmounted(() => {
             </div>
         </aside>
 
-        <!-- Owner sub-sidebar (desktop only, slides out from behind main sidebar) -->
-        <!-- Icon group is vertically centered on the owner icon that triggered it. -->
+        <!-- Owner floating popover (desktop collapsed only, hover-triggered) -->
         <Transition
-            enter-active-class="transition-transform duration-200"
-            enter-from-class="-translate-x-full"
-            enter-to-class="translate-x-0"
-            leave-active-class="transition-transform duration-200"
-            leave-from-class="translate-x-0"
-            leave-to-class="-translate-x-full"
+            enter-active-class="transition-all duration-150 origin-left"
+            enter-from-class="opacity-0 -translate-x-1"
+            enter-to-class="opacity-100 translate-x-0"
+            leave-active-class="transition-all duration-100 origin-left"
+            leave-from-class="opacity-100 translate-x-0"
+            leave-to-class="opacity-0 -translate-x-1"
         >
-            <aside
-                v-if="isOwner && (ownerSubOpen || subSidebarPersistent) && effectiveCollapsed"
-                :class="[
-                    'hidden lg:block fixed bottom-0 left-16 w-16 z-[49] bg-slate-900 border-r border-slate-800',
-                    impersonating ? 'top-9' : 'top-0',
-                ]"
+            <div
+                v-if="isOwner && ownerSubOpen && effectiveCollapsed"
+                class="hidden lg:block fixed z-[49] w-48"
+                :style="{
+                    left: '4.5rem',
+                    top: ownerIconMid > 0
+                        ? (ownerIconMid - (impersonating ? 36 : 0)) + 'px'
+                        : '50%',
+                    transform: 'translateY(-50%)',
+                }"
                 @mouseenter="showOwnerSub"
                 @mouseleave="hideOwnerSub"
             >
-                <nav
-                    class="absolute inset-x-0 px-2 py-2"
-                    :style="{
-                        top: ownerIconMid > 0
-                            ? (ownerIconMid - (impersonating ? 36 : 0)) + 'px'
-                            : '50%',
-                        transform: 'translateY(-50%)',
-                    }"
-                >
-                    <ul class="space-y-0.5">
+                <div class="bg-slate-800 border border-slate-700 rounded-lg shadow-2xl overflow-hidden">
+                    <p class="px-3 pt-2.5 pb-1 text-[10px] font-semibold tracking-widest text-slate-500 uppercase">Owner Panel</p>
+                    <ul class="pb-1.5">
                         <li v-for="item in ownerPanelItems" :key="item.href">
                             <a
                                 :href="item.href"
-                                :title="item.label"
                                 @click="handleNavClick($event, item.href)"
-                                class="tl-nav-link justify-center px-0"
-                                :class="page.url.startsWith(item.href) ? 'tl-nav-link--owner-active' : 'tl-nav-link--owner-inactive'"
+                                class="flex items-center gap-2.5 px-3 py-2 text-sm transition-colors duration-100"
+                                :class="page.url.startsWith(item.href)
+                                    ? 'text-amber-400 bg-amber-500/10'
+                                    : 'text-slate-300 hover:text-white hover:bg-slate-700'"
                             >
                                 <TlIcon :name="item.icon" class="w-4 h-4 shrink-0" />
+                                <span>{{ item.label }}</span>
                             </a>
                         </li>
                     </ul>
-                </nav>
-            </aside>
+                </div>
+            </div>
         </Transition>
 
         <!-- Main content wrapper -->
-        <div :class="[effectiveCollapsed ? (subSidebarPersistent ? 'lg:pl-32' : 'lg:pl-16') : 'lg:pl-64', { 'pt-9 lg:pt-9': impersonating }]" class="transition-all duration-200">
+        <div :class="[effectiveCollapsed ? 'lg:pl-16' : 'lg:pl-64', { 'pt-9 lg:pt-9': impersonating }]" class="transition-all duration-200">
             <main class="min-w-0 pt-14">
                 <slot />
             </main>

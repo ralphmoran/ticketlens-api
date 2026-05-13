@@ -10,9 +10,9 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->singleton(SlackService::class, fn () => new SlackService(
-            clientId:     config('services.slack.client_id'),
-            clientSecret: config('services.slack.client_secret'),
-            redirectUri:  config('services.slack.redirect_uri'),
+            clientId:     (string) config('services.slack.client_id'),
+            clientSecret: (string) config('services.slack.client_secret'),
+            redirectUri:  (string) config('services.slack.redirect_uri'),
         ));
     }
 

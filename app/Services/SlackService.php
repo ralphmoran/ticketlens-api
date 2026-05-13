@@ -18,11 +18,17 @@ class SlackService
         private readonly string $redirectUri,
     ) {}
 
-    /** Build the Slack OAuth redirect URL. State encodes group_id + CSRF nonce. */
-    public function buildAuthUrl(int $groupId): string
+    /**
+     * Build the Slack OAuth redirect URL.
+     * State encodes group_id + user_id + is_owner + CSRF nonce so the callback
+     * works without a session (cross-domain from ngrok / production redirect).
+     */
+    public function buildAuthUrl(int $groupId, int $userId, bool $isOwner = false): string
     {
         $state = encrypt(json_encode([
             'group_id' => $groupId,
+            'user_id'  => $userId,
+            'is_owner' => $isOwner,
             'nonce'    => Str::random(32),
         ]));
 
@@ -48,7 +54,7 @@ class SlackService
             throw new \RuntimeException('Invalid OAuth state.', previous: $e);
         }
 
-        if (! isset($payload['group_id'], $payload['nonce'])) {
+        if (! isset($payload['group_id'], $payload['user_id'], $payload['nonce'])) {
             throw new \RuntimeException('Malformed OAuth state payload.');
         }
 

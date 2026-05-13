@@ -192,6 +192,120 @@ class IntegrationsControllerTest extends TestCase
             ->assertJsonPath('channels.0.name', 'general');
     }
 
+    // --- sendTest() ---
+
+    public function test_manager_can_send_test_message_to_configured_channel(): void
+    {
+        $this->mock(SlackService::class, function ($mock) {
+            $mock->shouldReceive('buildAuthUrl')->andReturn('https://slack.com/oauth');
+            $mock->shouldReceive('postMessage')
+                ->once()
+                ->with('xoxb-test', 'C001', \Mockery::type('string'));
+        });
+
+        $manager = $this->makeManager();
+        $group   = $manager->ownedGroup;
+
+        SlackIntegration::create([
+            'group_id'       => $group->id,
+            'connected_by'   => $manager->id,
+            'workspace_id'   => 'T123',
+            'workspace_name' => 'Acme',
+            'bot_token'      => 'xoxb-test',
+            'channel_id'     => 'C001',
+            'channel_name'   => 'alerts',
+        ]);
+
+        $this->actingAs($manager)
+            ->postJson('/console/admin/integrations/test')
+            ->assertOk()
+            ->assertJsonPath('ok', true);
+    }
+
+    public function test_send_test_returns_502_when_slack_errors(): void
+    {
+        $this->mock(SlackService::class, function ($mock) {
+            $mock->shouldReceive('buildAuthUrl')->andReturn('https://slack.com/oauth');
+            $mock->shouldReceive('postMessage')
+                ->once()
+                ->andThrow(new \RuntimeException('channel_not_found'));
+        });
+
+        $manager = $this->makeManager();
+        $group   = $manager->ownedGroup;
+
+        SlackIntegration::create([
+            'group_id'       => $group->id,
+            'connected_by'   => $manager->id,
+            'workspace_id'   => 'T123',
+            'workspace_name' => 'Acme',
+            'bot_token'      => 'xoxb-test',
+            'channel_id'     => 'C001',
+            'channel_name'   => 'alerts',
+        ]);
+
+        $this->actingAs($manager)
+            ->postJson('/console/admin/integrations/test')
+            ->assertStatus(502)
+            ->assertJsonPath('error', 'channel_not_found');
+    }
+
+    public function test_send_test_returns_422_when_no_channel_configured(): void
+    {
+        $manager = $this->makeManager();
+        $group   = $manager->ownedGroup;
+
+        SlackIntegration::create([
+            'group_id'       => $group->id,
+            'connected_by'   => $manager->id,
+            'workspace_id'   => 'T123',
+            'workspace_name' => 'Acme',
+            'bot_token'      => 'xoxb-test',
+            'channel_id'     => null,
+            'channel_name'   => null,
+        ]);
+
+        $this->actingAs($manager)
+            ->postJson('/console/admin/integrations/test')
+            ->assertStatus(422);
+    }
+
+    public function test_plain_member_cannot_send_test_message(): void
+    {
+        $member = User::factory()->create(['tier' => 'team', 'permissions' => 127]);
+        $this->actingAs($member)
+            ->postJson('/console/admin/integrations/test')
+            ->assertForbidden();
+    }
+
+    public function test_owner_can_send_test_message_for_any_group(): void
+    {
+        $this->mock(SlackService::class, function ($mock) {
+            $mock->shouldReceive('buildAuthUrl')->andReturn('https://slack.com/oauth');
+            $mock->shouldReceive('postMessage')
+                ->once()
+                ->with('xoxb-client', 'C999', \Mockery::type('string'));
+        });
+
+        $owner = $this->makeOwner();
+        $group = $this->makeStandaloneGroup();
+
+        SlackIntegration::create([
+            'group_id'       => $group->id,
+            'connected_by'   => $owner->id,
+            'workspace_id'   => 'T999',
+            'workspace_name' => 'ClientCo',
+            'bot_token'      => 'xoxb-client',
+            'channel_id'     => 'C999',
+            'channel_name'   => 'engineering',
+        ]);
+
+        $this->actingAs($owner)
+            ->postJson('/console/owner/integrations/test?group_id=' . $group->id)
+            ->assertOk()
+            ->assertJsonPath('ok', true);
+    }
+
     // --- Helpers ---
 
     private function makeStandaloneGroup(): Group

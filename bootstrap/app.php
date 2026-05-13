@@ -13,6 +13,10 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // Trust all reverse-proxy headers (ngrok, load balancers, CDNs).
+        // Without this Laravel generates http:// asset URLs even when the client
+        // connected over HTTPS, breaking the CSP 'self' directive.
+        $middleware->trustProxies(at: '*');
         $middleware->append(\App\Http\Middleware\SecurityHeaders::class);
         $middleware->web(append: [\App\Http\Middleware\HandleInertiaRequests::class]);
         $middleware->redirectGuestsTo(fn () => route('console.login'));

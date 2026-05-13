@@ -20,7 +20,6 @@ class SlackOAuthControllerTest extends TestCase
         $this->mock(SlackService::class, function ($mock) {
             $mock->shouldReceive('buildAuthUrl')
                 ->once()
-                ->with(1)
                 ->andReturn('https://slack.com/oauth/v2/authorize?state=xyz');
         });
 
@@ -74,10 +73,10 @@ class SlackOAuthControllerTest extends TestCase
         $manager = $this->makeManager();
         $group   = $manager->ownedGroup;
 
-        $this->mock(SlackService::class, function ($mock) use ($group) {
+        $this->mock(SlackService::class, function ($mock) use ($group, $manager) {
             $mock->shouldReceive('decodeState')
                 ->once()
-                ->andReturn(['group_id' => $group->id, 'nonce' => 'abc']);
+                ->andReturn(['group_id' => $group->id, 'user_id' => $manager->id, 'is_owner' => false, 'nonce' => 'abc']);
 
             $mock->shouldReceive('exchangeCode')
                 ->once()
@@ -140,8 +139,8 @@ class SlackOAuthControllerTest extends TestCase
             'bot_token'      => 'xoxb-old',
         ]);
 
-        $this->mock(SlackService::class, function ($mock) use ($group) {
-            $mock->shouldReceive('decodeState')->andReturn(['group_id' => $group->id, 'nonce' => 'x']);
+        $this->mock(SlackService::class, function ($mock) use ($group, $manager) {
+            $mock->shouldReceive('decodeState')->andReturn(['group_id' => $group->id, 'user_id' => $manager->id, 'is_owner' => false, 'nonce' => 'x']);
             $mock->shouldReceive('exchangeCode')->andReturn([
                 'workspace_id'   => 'T_NEW',
                 'workspace_name' => 'New Workspace',

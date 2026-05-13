@@ -25,10 +25,16 @@ class SlackOAuthController extends Controller
             abort_unless($user->ownedGroup?->id === $groupId, 403);
         }
 
-        return redirect($this->slack->buildAuthUrl($groupId));
+        return redirect($this->slack->buildAuthUrl($groupId, $user->id, (bool) $user->is_owner));
     }
 
-    /** Handle Slack's OAuth callback. */
+    /**
+     * Handle Slack's OAuth callback.
+     *
+     * This route runs WITHOUT an auth session — Slack redirects back via a different
+     * domain (ngrok / production) so the browser won't carry the session cookie.
+     * All necessary context (user_id, group_id, is_owner) lives in the encrypted state.
+     */
     public function callback(Request $request): RedirectResponse
     {
         if ($request->filled('error')) {
@@ -37,20 +43,20 @@ class SlackOAuthController extends Controller
         }
 
         try {
-            $state   = $this->slack->decodeState($request->string('state'));
-            $tokens  = $this->slack->exchangeCode($request->string('code'));
+            $state  = $this->slack->decodeState($request->string('state'));
+            $tokens = $this->slack->exchangeCode($request->string('code'));
         } catch (\RuntimeException $e) {
             return redirect('/console/admin/integrations')
                 ->with('error', $e->getMessage());
         }
 
         $groupId = $state['group_id'];
-        $group   = Group::findOrFail($groupId);
+        Group::findOrFail($groupId);
 
         SlackIntegration::updateOrCreate(
             ['group_id' => $groupId],
             [
-                'connected_by'   => $request->user()->id,
+                'connected_by'   => $state['user_id'],
                 'workspace_id'   => $tokens['workspace_id'],
                 'workspace_name' => $tokens['workspace_name'],
                 'bot_token'      => $tokens['bot_token'],
@@ -59,7 +65,7 @@ class SlackOAuthController extends Controller
             ]
         );
 
-        $returnUrl = $request->user()->is_owner
+        $returnUrl = $state['is_owner']
             ? '/console/admin/integrations?group_id=' . $groupId
             : '/console/admin/integrations';
 

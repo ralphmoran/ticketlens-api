@@ -16,7 +16,7 @@ import {
   ArrowRight, ArrowUpCircle, ArrowDownCircle, BadgeCheck, Ban, Check, CircleCheck, CircleX,
   Building2, ChevronLeft, ChevronRight, Clock, CodeXml, Copy, Download, Eye, EyeOff, FlaskConical,
   History, Layers, LoaderCircle, Lock, LockOpen, Mail, Pause, Pencil, Play, Plus,
-  RefreshCw, Search, Settings, Sparkles, Trash2, TrendingUp,
+  RefreshCw, Search, Send, Settings, Sparkles, Trash2, TrendingUp, Plug,
 } from '@lucide/vue'
 
 const ICONS = {
@@ -72,6 +72,8 @@ const ICONS = {
   'spinner': LoaderCircle,
   'trending-up': TrendingUp,
   'x-circle': CircleX,
+  'plug': Plug,
+  'send': Send,
 }
 
 const props = defineProps({

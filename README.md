@@ -93,6 +93,7 @@ All console routes require session authentication. The owner panel requires `is_
 /console/admin/members              Member management (team manager)
 /console/admin/process-metrics      Process metrics (team manager)
 /console/admin/seats                Seat management (team manager)
+/console/admin/integrations         Slack integration — connect workspace, select channel, test (team manager / owner)
 
 # Owner panel
 /console/owner/dashboard            Owner overview
@@ -178,6 +179,46 @@ Time-limited feature grants let the owner give a user access to a feature outsid
 # Run the hourly expiry job manually
 ./vendor/bin/sail artisan schedule:run
 ```
+
+---
+
+## Slack integration (Feature 36)
+
+Team managers (and the owner on behalf of any team) can connect a Slack workspace and route alert notifications to a specific channel.
+
+### Flow
+
+1. Manager visits `/console/admin/integrations` → clicks **Connect to Slack**
+2. Redirected to Slack OAuth; on approval Slack calls back to `/slack/callback` (public route — no session needed, context carried in encrypted state)
+3. Bot token + workspace metadata stored in `slack_integrations` (one row per group)
+4. Manager picks a channel from the bot-visible list; saved to `channel_id` / `channel_name`
+5. **Test connection** button (`POST /console/admin/integrations/test`) posts a verification message to confirm the bot has channel access
+
+### Key files
+
+| File | Purpose |
+|------|---------|
+| `app/Services/SlackService.php` | `buildAuthUrl`, `exchangeCode`, `fetchChannels`, `postMessage` |
+| `app/Models/SlackIntegration.php` | One row per team group |
+| `app/Http/Controllers/Console/SlackOAuthController.php` | OAuth redirect + stateless callback |
+| `app/Http/Controllers/Console/Admin/IntegrationsController.php` | index, channels, saveChannel, sendTest, disconnect |
+| `database/migrations/*_create_slack_integrations_table.php` | Schema |
+
+### Slack app scopes required
+
+`channels:read`, `groups:read`, `chat:write`
+
+### Local setup
+
+Add to `.env`:
+
+```env
+SLACK_CLIENT_ID=your_client_id
+SLACK_CLIENT_SECRET=your_client_secret
+SLACK_REDIRECT_URI=https://your-ngrok-url.ngrok-free.app/slack/callback
+```
+
+> The bot must be **invited to the target channel** (`/invite @YourApp` in Slack) before `postMessage` will succeed.
 
 ---
 

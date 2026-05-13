@@ -32,7 +32,7 @@ class IntegrationsController extends Controller
                 'channel_name'   => $integration->channel_name,
             ] : null,
             'connect_url' => $group
-                ? $this->slack->buildAuthUrl($group->id)
+                ? $this->slack->buildAuthUrl($group->id, $request->user()->id, (bool) $request->user()->is_owner)
                 : null,
         ]);
     }
@@ -70,6 +70,27 @@ class IntegrationsController extends Controller
             ]);
 
         return back();
+    }
+
+    public function sendTest(Request $request): JsonResponse
+    {
+        $group = $this->resolveGroup($request);
+        abort_unless($group !== null, 404);
+
+        $integration = SlackIntegration::where('group_id', $group->id)->firstOrFail();
+        abort_unless($integration->channel_id !== null, 422);
+
+        try {
+            $this->slack->postMessage(
+                $integration->bot_token,
+                $integration->channel_id,
+                ':white_check_mark: TicketLens is connected to *#' . $integration->channel_name . '*. Alert notifications are active.',
+            );
+        } catch (\RuntimeException $e) {
+            return response()->json(['error' => $e->getMessage()], 502);
+        }
+
+        return response()->json(['ok' => true]);
     }
 
     public function disconnect(Request $request): RedirectResponse

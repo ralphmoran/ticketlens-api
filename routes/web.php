@@ -22,6 +22,12 @@ Route::prefix('console')->name('console.')->group(function () {
     // Suspended account page (public — user is logged out before redirect)
     Route::get('/suspended', fn () => inertia('Console/Suspended'))->name('suspended');
 
+    // Slack OAuth callback — intentionally public: Slack redirects here from a different
+    // domain (ngrok / production), so no session cookie is present. Auth context is
+    // carried in the encrypted `state` parameter instead.
+    Route::get('/slack/callback', [\App\Http\Controllers\Console\SlackOAuthController::class, 'callback'])
+        ->name('slack.callback');
+
     // Console root → redirect to dashboard
     Route::get('/', fn () => redirect()->route('console.dashboard'))->name('index');
 
@@ -89,14 +95,13 @@ Route::prefix('console')->name('console.')->group(function () {
             Route::get('/integrations',             [\App\Http\Controllers\Console\Admin\IntegrationsController::class, 'index'])->name('integrations');
             Route::get('/integrations/channels',    [\App\Http\Controllers\Console\Admin\IntegrationsController::class, 'channels'])->name('integrations.channels');
             Route::post('/integrations/channel',    [\App\Http\Controllers\Console\Admin\IntegrationsController::class, 'saveChannel'])->name('integrations.channel');
+            Route::post('/integrations/test',       [\App\Http\Controllers\Console\Admin\IntegrationsController::class, 'sendTest'])->name('integrations.test');
             Route::delete('/integrations',          [\App\Http\Controllers\Console\Admin\IntegrationsController::class, 'disconnect'])->name('integrations.disconnect');
         });
 
-        // Slack OAuth — auth-only (no manager gate: callback is called by Slack before group context is available)
-        Route::prefix('slack')->name('slack.')->group(function () {
-            Route::get('/redirect',  [\App\Http\Controllers\Console\SlackOAuthController::class, 'redirect'])->name('redirect');
-            Route::get('/callback',  [\App\Http\Controllers\Console\SlackOAuthController::class, 'callback'])->name('callback');
-        });
+        // Slack OAuth redirect — requires auth to know who's initiating the flow
+        Route::get('/slack/redirect', [\App\Http\Controllers\Console\SlackOAuthController::class, 'redirect'])
+            ->name('slack.redirect');
 
         // Owner-only panel
         Route::prefix('owner')->name('owner.')->middleware('owner')->group(function () {
@@ -147,6 +152,7 @@ Route::prefix('console')->name('console.')->group(function () {
             Route::get('/integrations',          [\App\Http\Controllers\Console\Admin\IntegrationsController::class, 'index'])->name('integrations');
             Route::get('/integrations/channels', [\App\Http\Controllers\Console\Admin\IntegrationsController::class, 'channels'])->name('integrations.channels');
             Route::post('/integrations/channel', [\App\Http\Controllers\Console\Admin\IntegrationsController::class, 'saveChannel'])->name('integrations.channel');
+            Route::post('/integrations/test',    [\App\Http\Controllers\Console\Admin\IntegrationsController::class, 'sendTest'])->name('integrations.test');
             Route::delete('/integrations',       [\App\Http\Controllers\Console\Admin\IntegrationsController::class, 'disconnect'])->name('integrations.disconnect');
         });
     });

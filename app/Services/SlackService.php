@@ -1,0 +1,131 @@
+<?php
+
+namespace App\Services;
+
+use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Http;
+
+class SlackService
+{
+    private const AUTH_URL     = 'https://slack.com/oauth/v2/authorize';
+    private const TOKEN_URL    = 'https://slack.com/api/oauth.v2.access';
+    private const CHANNELS_URL = 'https://slack.com/api/conversations.list';
+    private const POST_URL     = 'https://slack.com/api/chat.postMessage';
+
+    public function __construct(
+        private readonly string $clientId,
+        private readonly string $clientSecret,
+        private readonly string $redirectUri,
+    ) {}
+
+    /** Build the Slack OAuth redirect URL. State encodes group_id + CSRF nonce. */
+    public function buildAuthUrl(int $groupId): string
+    {
+        $state = encrypt(json_encode([
+            'group_id' => $groupId,
+            'nonce'    => Str::random(32),
+        ]));
+
+        return self::AUTH_URL . '?' . http_build_query([
+            'client_id'    => $this->clientId,
+            'scope'        => 'channels:read,groups:read,chat:write',
+            'redirect_uri' => $this->redirectUri,
+            'state'        => $state,
+        ]);
+    }
+
+    /**
+     * Decode and validate the OAuth state parameter.
+     *
+     * @return array{group_id: int, nonce: string}
+     * @throws \RuntimeException on tampered or malformed state
+     */
+    public function decodeState(string $state): array
+    {
+        try {
+            $payload = json_decode(decrypt($state), associative: true, flags: JSON_THROW_ON_ERROR);
+        } catch (\Throwable $e) {
+            throw new \RuntimeException('Invalid OAuth state.', previous: $e);
+        }
+
+        if (! isset($payload['group_id'], $payload['nonce'])) {
+            throw new \RuntimeException('Malformed OAuth state payload.');
+        }
+
+        return $payload;
+    }
+
+    /**
+     * Exchange the Slack authorization code for a bot token.
+     *
+     * @return array{workspace_id: string, workspace_name: string, bot_token: string}
+     * @throws \RuntimeException on Slack API error
+     */
+    public function exchangeCode(string $code): array
+    {
+        $response = Http::asForm()->post(self::TOKEN_URL, [
+            'client_id'     => $this->clientId,
+            'client_secret' => $this->clientSecret,
+            'code'          => $code,
+            'redirect_uri'  => $this->redirectUri,
+        ]);
+
+        $body = $response->json();
+
+        if (! ($body['ok'] ?? false)) {
+            throw new \RuntimeException('Slack token exchange failed: ' . ($body['error'] ?? 'unknown'));
+        }
+
+        return [
+            'workspace_id'   => $body['team']['id'],
+            'workspace_name' => $body['team']['name'],
+            'bot_token'      => $body['access_token'],
+        ];
+    }
+
+    /**
+     * Fetch public + private channels the bot can see.
+     *
+     * @return list<array{id: string, name: string, is_private: bool}>
+     * @throws \RuntimeException on Slack API error
+     */
+    public function fetchChannels(string $botToken): array
+    {
+        $response = Http::withToken($botToken)->get(self::CHANNELS_URL, [
+            'types'            => 'public_channel,private_channel',
+            'exclude_archived' => true,
+            'limit'            => 200,
+        ]);
+
+        $body = $response->json();
+
+        if (! ($body['ok'] ?? false)) {
+            throw new \RuntimeException('Slack channels fetch failed: ' . ($body['error'] ?? 'unknown'));
+        }
+
+        return array_map(fn ($ch) => [
+            'id'         => $ch['id'],
+            'name'       => $ch['name'],
+            'is_private' => $ch['is_private'] ?? false,
+        ], $body['channels'] ?? []);
+    }
+
+    /**
+     * Post a message to a channel. Used by alert features (37-40).
+     *
+     * @throws \RuntimeException on Slack API error
+     */
+    public function postMessage(string $botToken, string $channelId, string $text): void
+    {
+        $response = Http::withToken($botToken)->post(self::POST_URL, [
+            'channel' => $channelId,
+            'text'    => $text,
+        ]);
+
+        $body = $response->json();
+
+        if (! ($body['ok'] ?? false)) {
+            throw new \RuntimeException('Slack postMessage failed: ' . ($body['error'] ?? 'unknown'));
+        }
+    }
+}

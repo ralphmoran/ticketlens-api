@@ -86,6 +86,16 @@ Route::prefix('console')->name('console.')->group(function () {
             Route::post('/members/{user}/role',     [\App\Http\Controllers\Console\Admin\MembersController::class, 'assignRole'])->name('members.role');
             Route::get('/seats',                    [\App\Http\Controllers\Console\Admin\SeatsController::class, 'index'])->name('seats.index');
             Route::get('/process-metrics',          [\App\Http\Controllers\Console\Admin\ProcessMetricsController::class, 'index'])->name('process-metrics');
+            Route::get('/integrations',             [\App\Http\Controllers\Console\Admin\IntegrationsController::class, 'index'])->name('integrations');
+            Route::get('/integrations/channels',    [\App\Http\Controllers\Console\Admin\IntegrationsController::class, 'channels'])->name('integrations.channels');
+            Route::post('/integrations/channel',    [\App\Http\Controllers\Console\Admin\IntegrationsController::class, 'saveChannel'])->name('integrations.channel');
+            Route::delete('/integrations',          [\App\Http\Controllers\Console\Admin\IntegrationsController::class, 'disconnect'])->name('integrations.disconnect');
+        });
+
+        // Slack OAuth — auth-only (no manager gate: callback is called by Slack before group context is available)
+        Route::prefix('slack')->name('slack.')->group(function () {
+            Route::get('/redirect',  [\App\Http\Controllers\Console\SlackOAuthController::class, 'redirect'])->name('redirect');
+            Route::get('/callback',  [\App\Http\Controllers\Console\SlackOAuthController::class, 'callback'])->name('callback');
         });
 
         // Owner-only panel
@@ -132,6 +142,12 @@ Route::prefix('console')->name('console.')->group(function () {
 
             // Impersonation — start only (stop lives outside this group, see above)
             Route::post('/impersonate/{user}', [\App\Http\Controllers\Owner\ImpersonationController::class, 'store'])->name('impersonate.start');
+
+            // Integrations — owner manages Slack on behalf of any group via ?group_id=X
+            Route::get('/integrations',          [\App\Http\Controllers\Console\Admin\IntegrationsController::class, 'index'])->name('integrations');
+            Route::get('/integrations/channels', [\App\Http\Controllers\Console\Admin\IntegrationsController::class, 'channels'])->name('integrations.channels');
+            Route::post('/integrations/channel', [\App\Http\Controllers\Console\Admin\IntegrationsController::class, 'saveChannel'])->name('integrations.channel');
+            Route::delete('/integrations',       [\App\Http\Controllers\Console\Admin\IntegrationsController::class, 'disconnect'])->name('integrations.disconnect');
         });
     });
 });

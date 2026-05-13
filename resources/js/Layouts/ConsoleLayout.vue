@@ -97,6 +97,7 @@ const navGroups = computed(() => [
             { label: 'Members',         href: '/console/admin/members',         icon: 'user-group',  managerOnly: true,  ownerExcluded: true,  permission: Permission.TeamManageMembers },
             { label: 'Process Metrics', href: '/console/admin/process-metrics', icon: 'trending-up', managerOnly: true,  ownerExcluded: false, permission: Permission.TeamManageMembers },
             { label: 'Seats',           href: '/console/admin/seats',           icon: 'key',         managerOnly: true,  ownerExcluded: true,  permission: Permission.TeamManageSeats   },
+            { label: 'Integrations',    href: '/console/admin/integrations',    icon: 'external-link', managerOnly: true, ownerExcluded: false, permission: null },
         ]
     },
 ])

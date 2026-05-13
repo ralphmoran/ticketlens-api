@@ -48,4 +48,11 @@ return [
         'validate_url' => env('LEMONSQUEEZY_VALIDATE_URL', 'https://api.lemonsqueezy.com/v1/licenses/validate'),
     ],
 
+    'slack' => [
+        'client_id'      => env('SLACK_CLIENT_ID'),
+        'client_secret'  => env('SLACK_CLIENT_SECRET'),
+        'signing_secret' => env('SLACK_SIGNING_SECRET'),
+        'redirect_uri'   => env('SLACK_REDIRECT_URI'),
+    ],
+
 ];

@@ -72,15 +72,20 @@ Route::prefix('console')->name('console.')->group(function () {
         Route::get('/team', [\App\Http\Controllers\Console\TeamController::class, 'index'])
             ->middleware('permission:MultiAccount')->name('team');
 
-        // Admin section (Team manager scoped to their own group)
+        // Admin — team-lead routes (leads + managers)
+        Route::prefix('admin')->name('admin.')->middleware('team.lead')->group(function () {
+            Route::get('/team-health', [\App\Http\Controllers\Console\Admin\TeamHealthController::class, 'index'])->name('team-health');
+        });
+
+        // Admin — manager-only routes
         Route::prefix('admin')->name('admin.')->middleware('team.manager')->group(function () {
             Route::get('/members',                  [\App\Http\Controllers\Console\Admin\MembersController::class, 'index'])->name('members.index');
             Route::post('/members',                 [\App\Http\Controllers\Console\Admin\MembersController::class, 'store'])->name('members.store');
             Route::delete('/members/{user}',        [\App\Http\Controllers\Console\Admin\MembersController::class, 'destroy'])->name('members.destroy');
             Route::post('/members/{user}/promote',  [\App\Http\Controllers\Console\Admin\MembersController::class, 'promote'])->name('members.promote');
+            Route::post('/members/{user}/role',     [\App\Http\Controllers\Console\Admin\MembersController::class, 'assignRole'])->name('members.role');
             Route::get('/seats',                    [\App\Http\Controllers\Console\Admin\SeatsController::class, 'index'])->name('seats.index');
-            Route::get('/team-health',       [\App\Http\Controllers\Console\Admin\TeamHealthController::class,    'index'])->name('team-health');
-            Route::get('/process-metrics',   [\App\Http\Controllers\Console\Admin\ProcessMetricsController::class, 'index'])->name('process-metrics');
+            Route::get('/process-metrics',          [\App\Http\Controllers\Console\Admin\ProcessMetricsController::class, 'index'])->name('process-metrics');
         });
 
         // Owner-only panel

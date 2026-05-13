@@ -55,6 +55,14 @@
     @apply text-emerald-400 hover:text-emerald-300;
   }
 
+  .tl-btn-ghost--neutral {
+    @apply text-slate-400 hover:text-slate-300;
+  }
+
+  .tl-btn-ghost--info {
+    @apply text-sky-400 hover:text-sky-300;
+  }
+
   .tl-chip-btn {
     @apply text-xs px-3 py-1.5 rounded border transition;
   }

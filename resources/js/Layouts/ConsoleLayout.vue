@@ -43,6 +43,7 @@ function toggleCollapsed() {
 const user          = computed(() => page.props.auth?.user)
 const isOwner       = computed(() => page.props.auth?.is_owner ?? false)
 const isTeamManager = computed(() => page.props.auth?.is_team_manager ?? false)
+const isTeamLead    = computed(() => page.props.auth?.is_team_lead    ?? false)
 const impersonating = computed(() => page.props.auth?.impersonating ?? null)
 
 function stopImpersonating() {
@@ -80,12 +81,13 @@ const navGroups = computed(() => [
     },
     {
         label: 'Admin',
-        requiresTeamManager: true,
+        requiresTeamManager: false,
+        requiresTeamOrLead: true,
         items: [
-            { label: 'Members',     href: '/console/admin/members',      permission: Permission.TeamManageMembers, icon: 'user-group' },
-            { label: 'Team Health',      href: '/console/admin/team-health',      permission: Permission.TeamManageMembers, icon: 'chart-bar'    },
-            { label: 'Process Metrics',  href: '/console/admin/process-metrics',  permission: Permission.TeamManageMembers, icon: 'trending-up'  },
-            { label: 'Seats',       href: '/console/admin/seats',        permission: Permission.TeamManageSeats,   icon: 'key'        },
+            { label: 'Team Health',     href: '/console/admin/team-health',     icon: 'chart-bar',   managerOnly: false, permission: null },
+            { label: 'Members',         href: '/console/admin/members',         icon: 'user-group',  managerOnly: true,  permission: Permission.TeamManageMembers },
+            { label: 'Process Metrics', href: '/console/admin/process-metrics', icon: 'trending-up', managerOnly: true,  permission: Permission.TeamManageMembers },
+            { label: 'Seats',           href: '/console/admin/seats',           icon: 'key',         managerOnly: true,  permission: Permission.TeamManageSeats   },
         ]
     },
 ])
@@ -114,10 +116,17 @@ const subSidebarPersistent = computed(() =>
 
 const visibleGroups = computed(() =>
     navGroups.value
-        .filter(g => ! g.requiresTeamManager || isTeamManager.value)
+        .filter(g => {
+            if (g.requiresTeamManager) return isTeamManager.value
+            if (g.requiresTeamOrLead)  return isTeamManager.value || isTeamLead.value
+            return true
+        })
         .map(g => ({
             ...g,
-            items: g.items.filter(item => item.permission === null || can(item.permission))
+            items: g.items.filter(item => {
+                if (item.managerOnly && !isTeamManager.value) return false
+                return item.permission === null || can(item.permission)
+            })
         }))
         .filter(g => g.items.length > 0)
 )

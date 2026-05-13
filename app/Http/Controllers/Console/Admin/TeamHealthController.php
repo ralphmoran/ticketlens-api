@@ -20,8 +20,13 @@ class TeamHealthController
             return $this->ownerIndex($request);
         }
 
+        // Managers own their group; leads are members of their group.
+        $group = $user->ownedGroup ?? $user->groups()->first();
+
+        abort_unless($group !== null, 403, 'No team found.');
+
         return Inertia::render('Console/Admin/TeamHealth', array_merge(
-            $this->computeData($user->ownedGroup),
+            $this->computeData($group),
             ['owner_mode' => false, 'clients' => [], 'selected_manager' => null],
         ));
     }

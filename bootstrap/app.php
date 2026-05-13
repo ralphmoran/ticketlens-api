@@ -22,6 +22,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'permission'       => \App\Http\Middleware\HasPermission::class,
             'owner'            => \App\Http\Middleware\IsOwner::class,
             'team.manager'     => \App\Http\Middleware\EnsureTeamManager::class,
+            'team.lead'        => \App\Http\Middleware\EnsureTeamLead::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

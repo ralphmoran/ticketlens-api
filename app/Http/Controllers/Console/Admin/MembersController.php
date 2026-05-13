@@ -47,9 +47,20 @@ class MembersController extends Controller
         $group = $request->user()->ownedGroup;
 
         $members = $group->members()
-            ->withPivot([])
             ->orderBy('users.email')
-            ->get(['users.id', 'users.name', 'users.email', 'users.tier', 'users.created_at']);
+            ->get(['users.id', 'users.name', 'users.email', 'users.tier', 'users.created_at', 'users.permissions'])
+            ->map(fn ($m) => [
+                'id'         => $m->id,
+                'name'       => $m->name,
+                'email'      => $m->email,
+                'tier'       => $m->tier,
+                'created_at' => $m->created_at,
+                'role'       => match (true) {
+                    $m->id === $group->owner_id => 'manager',
+                    (bool) ($m->permissions & Permission::TeamViewHealth->value) => 'lead',
+                    default => 'dev',
+                },
+            ]);
 
         $license = License::where('user_id', $request->user()->id)
             ->where('status', 'active')
@@ -63,6 +74,34 @@ class MembersController extends Controller
             'seats_total' => $license?->seats,
             'is_owner_of' => $group->owner_id,
         ]);
+    }
+
+    public function assignRole(Request $request, User $user): RedirectResponse
+    {
+        $validated = $request->validate(['role' => ['required', 'in:lead,dev']]);
+
+        $group = $request->user()->ownedGroup;
+
+        abort_unless($group->members()->where('users.id', $user->id)->exists(), 404);
+        abort_if($user->id === $request->user()->id, 422, 'Cannot change your own role.');
+        abort_if($group->owner_id === $user->id, 422, 'Manager role cannot be changed here.');
+
+        $leadBit = Permission::TeamViewHealth->value;
+
+        if ($validated['role'] === 'lead') {
+            $user->update(['permissions' => $user->permissions | $leadBit]);
+        } else {
+            $user->update(['permissions' => $user->permissions & ~$leadBit]);
+        }
+
+        $this->audit->log(
+            actor: $request->user(),
+            action: 'team.role_assigned',
+            target: $user,
+            metadata: ['group_id' => $group->id, 'role' => $validated['role']],
+        );
+
+        return back();
     }
 
     public function destroy(Request $request, User $user): RedirectResponse
@@ -82,7 +121,11 @@ class MembersController extends Controller
         // given we just excluded self, but defense-in-depth for a future promoted member).
         abort_if($group->owner_id === $user->id, 422, 'Cannot remove the team manager. Transfer ownership first.');
 
-        $group->members()->detach($user->id);
+        \DB::transaction(function () use ($group, $user): void {
+            $group->members()->detach($user->id);
+            // Clear lead bit so a re-invited member doesn't inherit stale elevation.
+            $user->update(['permissions' => $user->permissions & ~Permission::TeamViewHealth->value]);
+        });
 
         $this->audit->log(
             actor: $request->user(),

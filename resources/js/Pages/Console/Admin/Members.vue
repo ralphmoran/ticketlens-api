@@ -40,6 +40,10 @@ function promote(memberId) {
     }
 }
 
+function setRole(memberId, role) {
+    router.post(`/console/admin/members/${memberId}/role`, { role }, { preserveScroll: true })
+}
+
 const hasLicense = () => props.seats_total !== null && props.seats_total !== undefined
 const atLimit    = () => hasLicense() && props.seats_used >= props.seats_total
 </script>
@@ -105,20 +109,32 @@ const atLimit    = () => hasLicense() && props.seats_used >= props.seats_total
                             <p class="text-xs text-slate-500 font-mono">{{ member.email }}</p>
                         </td>
                         <td class="px-4 py-3">
-                            <span v-if="member.id === is_owner_of" class="text-xs font-medium px-2 py-0.5 rounded bg-amber-900/40 text-amber-300">Manager</span>
-                            <span v-else class="text-xs font-medium px-2 py-0.5 rounded bg-slate-700 text-slate-300">Member</span>
+                            <span v-if="member.role === 'manager'" class="tl-badge tl-badge--warn">Manager</span>
+                            <span v-else-if="member.role === 'lead'" class="tl-badge tl-badge--info">Lead</span>
+                            <span v-else class="tl-badge tl-badge--neutral">Dev</span>
                         </td>
                         <td class="px-4 py-3 text-slate-500 text-xs">{{ formatDate(member.created_at) }}</td>
                         <td class="px-4 py-3 text-right">
                             <div class="flex items-center justify-end gap-3">
-                                <button v-if="member.id !== is_owner_of" @click="promote(member.id)" class="flex items-center gap-1 tl-btn-ghost tl-btn-ghost--warn">
-                                    <TlIcon name="badge-check" class="w-3.5 h-3.5 shrink-0" />
-                                    Make manager
-                                </button>
-                                <button v-if="member.id !== is_owner_of" @click="remove(member.id)" class="flex items-center gap-1 tl-btn-ghost tl-btn-ghost--danger">
-                                    <TlIcon name="x-circle" class="w-3.5 h-3.5 shrink-0" />
-                                    Remove
-                                </button>
+                                <template v-if="member.role !== 'manager'">
+                                    <button v-if="member.role === 'dev'" @click="setRole(member.id, 'lead')" class="flex items-center gap-1 tl-btn-ghost tl-btn-ghost--info">
+                                        <TlIcon name="arrow-up-circle" class="w-3.5 h-3.5 shrink-0" />
+                                        Make lead
+                                    </button>
+                                    <button v-else @click="setRole(member.id, 'dev')" class="flex items-center gap-1 tl-btn-ghost tl-btn-ghost--neutral">
+                                        <TlIcon name="arrow-down-circle" class="w-3.5 h-3.5 shrink-0" />
+                                        Remove lead
+                                    </button>
+                                    <button @click="promote(member.id)" class="flex items-center gap-1 tl-btn-ghost tl-btn-ghost--warn">
+                                        <TlIcon name="badge-check" class="w-3.5 h-3.5 shrink-0" />
+                                        Make manager
+                                    </button>
+                                    <button @click="remove(member.id)" class="flex items-center gap-1 tl-btn-ghost tl-btn-ghost--danger">
+                                        <TlIcon name="x-circle" class="w-3.5 h-3.5 shrink-0" />
+                                        Remove
+                                    </button>
+                                </template>
+                                <span v-else class="text-xs text-slate-700">—</span>
                             </div>
                         </td>
                     </tr>

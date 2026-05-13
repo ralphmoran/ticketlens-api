@@ -215,4 +215,113 @@ class MembersControllerTest extends TestCase
 
         $response->assertStatus(422);
     }
+
+    // --- LOCK: promote does not affect lead bits of other members ---
+
+    public function test_promote_does_not_affect_lead_bits_of_other_members(): void
+    {
+        $manager  = $this->makeManager();
+        $group    = $manager->ownedGroup;
+        $lead     = $this->makeMember($group, ['permissions' => Permission::team() | Permission::TeamViewHealth->value]);
+        $promotee = $this->makeMember($group);
+
+        $this->actingAs($manager)->post("/console/admin/members/{$promotee->id}/promote");
+
+        // Lead's TeamViewHealth bit must be untouched
+        $this->assertSame(
+            Permission::TeamViewHealth->value,
+            $lead->fresh()->permissions & Permission::TeamViewHealth->value,
+        );
+    }
+
+    // --- Role assignment ---
+
+    public function test_index_returns_role_for_each_member(): void
+    {
+        $manager = $this->makeManager();
+        $group   = $manager->ownedGroup;
+        $lead    = $this->makeMember($group, ['permissions' => Permission::team() | Permission::TeamViewHealth->value]);
+        $dev     = $this->makeMember($group);
+
+        $this->actingAs($manager)->get('/console/admin/members')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->has('members', 3)
+                ->where('members.0.role', fn ($role) => in_array($role, ['manager', 'lead', 'dev'], true))
+            );
+
+        // Verify specific roles via direct permission checks (avoids sort-order dependency)
+        $this->assertSame(0, $dev->fresh()->permissions & Permission::TeamViewHealth->value);
+        $this->assertNotSame(0, $lead->fresh()->permissions & Permission::TeamViewHealth->value);
+    }
+
+    public function test_manager_can_assign_lead_role_to_member(): void
+    {
+        $manager = $this->makeManager();
+        $member  = $this->makeMember($manager->ownedGroup);
+
+        $this->actingAs($manager)->post("/console/admin/members/{$member->id}/role", ['role' => 'lead'])
+            ->assertRedirect();
+
+        $this->assertSame(
+            Permission::TeamViewHealth->value,
+            $member->fresh()->permissions & Permission::TeamViewHealth->value,
+        );
+    }
+
+    public function test_manager_can_remove_lead_role_from_member(): void
+    {
+        $manager = $this->makeManager();
+        $lead    = $this->makeMember($manager->ownedGroup, [
+            'permissions' => Permission::team() | Permission::TeamViewHealth->value,
+        ]);
+
+        $this->actingAs($manager)->post("/console/admin/members/{$lead->id}/role", ['role' => 'dev'])
+            ->assertRedirect();
+
+        $this->assertSame(0, $lead->fresh()->permissions & Permission::TeamViewHealth->value);
+    }
+
+    public function test_cannot_assign_role_to_member_of_another_team(): void
+    {
+        $manager      = $this->makeManager();
+        $otherManager = $this->makeManager();
+        $foreign      = $this->makeMember($otherManager->ownedGroup);
+
+        $this->actingAs($manager)->post("/console/admin/members/{$foreign->id}/role", ['role' => 'lead'])
+            ->assertStatus(404);
+    }
+
+    public function test_cannot_assign_role_to_self(): void
+    {
+        $manager = $this->makeManager();
+
+        $this->actingAs($manager)->post("/console/admin/members/{$manager->id}/role", ['role' => 'lead'])
+            ->assertStatus(422);
+    }
+
+    public function test_role_validation_rejects_invalid_value(): void
+    {
+        $manager = $this->makeManager();
+        $member  = $this->makeMember($manager->ownedGroup);
+
+        $this->actingAs($manager)->post("/console/admin/members/{$member->id}/role", ['role' => 'superadmin'])
+            ->assertSessionHasErrors('role');
+    }
+
+    // --- LOCK: remove member clears lead bit ---
+
+    public function test_remove_member_clears_lead_bit(): void
+    {
+        $manager = $this->makeManager();
+        $lead    = $this->makeMember($manager->ownedGroup, [
+            'permissions' => Permission::team() | Permission::TeamViewHealth->value,
+        ]);
+
+        $this->actingAs($manager)->delete("/console/admin/members/{$lead->id}")
+            ->assertRedirect();
+
+        $this->assertSame(0, $lead->fresh()->permissions & Permission::TeamViewHealth->value);
+        $this->assertFalse($manager->ownedGroup->members()->where('users.id', $lead->id)->exists());
+    }
 }

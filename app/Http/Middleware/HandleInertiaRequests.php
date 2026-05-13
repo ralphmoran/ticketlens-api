@@ -53,6 +53,11 @@ class HandleInertiaRequests extends Middleware
             $hasManagerBit = ($effectivePermissions & \App\Enums\Permission::TeamManageMembers->value) !== 0;
             $isTeamManager = $hasManagerBit && $user->isTeamManager();
 
+            // Lead: has TeamViewHealth bit but is not the manager.
+            // The bit is only assigned by managers to their own group members.
+            $isTeamLead = !$isTeamManager
+                && ($effectivePermissions & \App\Enums\Permission::TeamViewHealth->value) !== 0;
+
             $activeGrants = UserFeatureGrant::where('user_id', $user->id)
                 ->active()
                 ->with('feature')
@@ -83,6 +88,7 @@ class HandleInertiaRequests extends Middleware
                 'effectivePermissions' => $effectivePermissions,
                 'is_owner'             => $user?->is_owner ?? false,
                 'is_team_manager'      => $isTeamManager,
+                'is_team_lead'         => $isTeamLead ?? false,
                 'activeGrants'         => $activeGrants,
                 'impersonating'        => $impersonating,
                 'can'                  => $can,

@@ -80,12 +80,13 @@ class TeamHealthTest extends TestCase
             ->assertRedirect('/console/dashboard');
     }
 
-    public function test_user_with_manager_bit_but_no_owned_group_redirected_to_dashboard(): void
+    public function test_user_with_manager_bit_but_no_group_at_all_gets_403(): void
     {
+        // Middleware passes (has manager bit), controller aborts — no group to show.
         $user = User::factory()->create(['tier' => 'team', 'permissions' => 511]);
 
         $this->actingAs($user)->get('/console/admin/team-health')
-            ->assertRedirect('/console/dashboard');
+            ->assertStatus(403);
     }
 
     public function test_manager_can_access_team_health_page(): void

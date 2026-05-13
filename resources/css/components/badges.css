@@ -1,6 +1,6 @@
 /*
  * Badge / status primitives — AUDIT §3.6
- * tl-badge + --brand / --success / --neutral color modifiers
+ * tl-badge + --brand / --success / --neutral / --warn / --info color modifiers
  * tl-dot + --brand / --success / --neutral color modifiers
  * tl-kbd (code/keyboard chip) + --brand modifier
  */
@@ -20,6 +20,14 @@
 
   .tl-badge--neutral {
     @apply text-slate-400 bg-slate-500/10 border-slate-500/20;
+  }
+
+  .tl-badge--warn {
+    @apply text-amber-400 bg-amber-400/10 border-amber-400/20;
+  }
+
+  .tl-badge--info {
+    @apply text-sky-400 bg-sky-400/10 border-sky-400/20;
   }
 
   .tl-dot {

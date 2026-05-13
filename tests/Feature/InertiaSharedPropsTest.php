@@ -10,8 +10,8 @@ use Tests\TestCase;
 
 /**
  * Pins the shape of the Inertia `auth` shared props and the semantics of
- * `is_team_manager` — the boolean the sidebar uses to hide Admin nav items
- * that would otherwise redirect through `team.manager` middleware.
+ * `is_team_manager` / `is_team_lead` — booleans the sidebar uses to show/hide
+ * Admin nav items gated by team.manager / team.lead middleware.
  */
 class InertiaSharedPropsTest extends TestCase
 {
@@ -22,6 +22,7 @@ class InertiaSharedPropsTest extends TestCase
         'effectivePermissions',
         'is_owner',
         'is_team_manager',
+        'is_team_lead',
         'activeGrants',
         'impersonating',
         'can',
@@ -85,5 +86,46 @@ class InertiaSharedPropsTest extends TestCase
 
         $this->assertFalse($auth['is_team_manager']);
         $this->assertNull($auth['user']);
+    }
+
+    public function test_is_team_lead_is_true_for_user_with_team_view_health_bit(): void
+    {
+        $user = User::factory()->create([
+            'permissions' => Permission::team() | Permission::TeamViewHealth->value,
+        ]);
+
+        $auth = $this->actingAs($user)
+            ->get('/console/dashboard')
+            ->viewData('page')['props']['auth'];
+
+        $this->assertTrue($auth['is_team_lead']);
+        $this->assertFalse($auth['is_team_manager']);
+    }
+
+    public function test_is_team_lead_is_false_for_plain_team_member(): void
+    {
+        $user = User::factory()->create(['permissions' => Permission::team()]);
+
+        $auth = $this->actingAs($user)
+            ->get('/console/dashboard')
+            ->viewData('page')['props']['auth'];
+
+        $this->assertFalse($auth['is_team_lead']);
+    }
+
+    public function test_is_team_lead_is_false_for_managers_even_with_lead_bit(): void
+    {
+        // Managers are managers, not leads — is_team_lead is mutually exclusive with is_team_manager.
+        $user = User::factory()->create([
+            'permissions' => Permission::team() | Permission::teamManagerMask() | Permission::TeamViewHealth->value,
+        ]);
+        Group::create(['name' => 'Managed', 'owner_id' => $user->id]);
+
+        $auth = $this->actingAs($user)
+            ->get('/console/dashboard')
+            ->viewData('page')['props']['auth'];
+
+        $this->assertTrue($auth['is_team_manager']);
+        $this->assertFalse($auth['is_team_lead']);
     }
 }

@@ -13,7 +13,7 @@ import {
   LayoutDashboard, BarChart3, CircleUser, Calendar, Inbox, FileText, ShieldCheck,
   Users, UsersRound, Key, DollarSign,
   Menu, X, LogOut, TriangleAlert,
-  ArrowRight, BadgeCheck, Ban, Check, CircleCheck, CircleX,
+  ArrowRight, ArrowUpCircle, ArrowDownCircle, BadgeCheck, Ban, Check, CircleCheck, CircleX,
   Building2, ChevronLeft, ChevronRight, Clock, CodeXml, Copy, Download, Eye, EyeOff, FlaskConical,
   History, Layers, LoaderCircle, Lock, LockOpen, Mail, Pause, Pencil, Play, Plus,
   RefreshCw, Search, Sparkles, Trash2, TrendingUp,
@@ -39,6 +39,8 @@ const ICONS = {
   'warning-triangle': TriangleAlert,
   // Feature icons (alphabetical)
   'arrow-right': ArrowRight,
+  'arrow-up-circle': ArrowUpCircle,
+  'arrow-down-circle': ArrowDownCircle,
   'download': Download,
   'badge-check': BadgeCheck,
   'ban': Ban,

@@ -141,6 +141,33 @@ function handleNavClick(event, href) {
     closeSidebar()
     ownerSubOpen.value = false
 }
+
+function slideEnter(el) {
+    el.style.height = '0'
+    el.style.overflow = 'hidden'
+    requestAnimationFrame(() => {
+        el.style.transition = 'height 0.2s ease'
+        el.style.height = el.scrollHeight + 'px'
+    })
+}
+function slideAfterEnter(el) {
+    el.style.height = ''
+    el.style.overflow = ''
+    el.style.transition = ''
+}
+function slideLeave(el) {
+    el.style.height = el.scrollHeight + 'px'
+    el.style.overflow = 'hidden'
+    requestAnimationFrame(() => {
+        el.style.transition = 'height 0.2s ease'
+        el.style.height = '0'
+    })
+}
+function slideAfterLeave(el) {
+    el.style.height = ''
+    el.style.overflow = ''
+    el.style.transition = ''
+}
 </script>
 
 <template>
@@ -301,19 +328,26 @@ function handleNavClick(event, href) {
                             <span>Owner Panel</span>
                             <TlIcon name="chevron-right" class="w-3.5 h-3.5 shrink-0 transition-transform" :class="(ownerPanelOpen || ownerPanelActive) ? 'rotate-90' : ''" />
                         </button>
-                        <ul v-show="ownerPanelOpen || ownerPanelActive" class="mb-5 space-y-0.5">
-                            <li v-for="item in ownerPanelItems" :key="item.href">
-                                <a
-                                    :href="item.href"
-                                    @click="handleNavClick($event, item.href)"
-                                    class="tl-nav-link"
-                                    :class="page.url.startsWith(item.href) ? 'tl-nav-link--owner-active' : 'tl-nav-link--owner-inactive'"
-                                >
-                                    <TlIcon :name="item.icon" class="w-4 h-4 shrink-0" />
-                                    <span>{{ item.label }}</span>
-                                </a>
-                            </li>
-                        </ul>
+                        <Transition
+                            @enter="slideEnter"
+                            @after-enter="slideAfterEnter"
+                            @leave="slideLeave"
+                            @after-leave="slideAfterLeave"
+                        >
+                            <ul v-if="ownerPanelOpen || ownerPanelActive" class="mb-5 space-y-0.5">
+                                <li v-for="item in ownerPanelItems" :key="item.href">
+                                    <a
+                                        :href="item.href"
+                                        @click="handleNavClick($event, item.href)"
+                                        class="tl-nav-link"
+                                        :class="page.url.startsWith(item.href) ? 'tl-nav-link--owner-active' : 'tl-nav-link--owner-inactive'"
+                                    >
+                                        <TlIcon :name="item.icon" class="w-4 h-4 shrink-0" />
+                                        <span>{{ item.label }}</span>
+                                    </a>
+                                </li>
+                            </ul>
+                        </Transition>
                     </div>
 
                     <!-- Mobile: accordion sections in drawer -->
@@ -326,19 +360,26 @@ function handleNavClick(event, href) {
                             <span>Owner Panel</span>
                             <TlIcon name="chevron-right" class="w-3.5 h-3.5 shrink-0 transition-transform" :class="(ownerPanelOpen || ownerPanelActive) ? 'rotate-90' : ''" />
                         </button>
-                        <ul v-show="ownerPanelOpen || ownerPanelActive" class="mb-5 space-y-0.5">
-                            <li v-for="item in ownerPanelItems" :key="item.href">
-                                <a
-                                    :href="item.href"
-                                    @click="handleNavClick($event, item.href)"
-                                    class="tl-nav-link"
-                                    :class="page.url.startsWith(item.href) ? 'tl-nav-link--owner-active' : 'tl-nav-link--owner-inactive'"
-                                >
-                                    <TlIcon :name="item.icon" class="w-4 h-4 shrink-0" />
-                                    <span>{{ item.label }}</span>
-                                </a>
-                            </li>
-                        </ul>
+                        <Transition
+                            @enter="slideEnter"
+                            @after-enter="slideAfterEnter"
+                            @leave="slideLeave"
+                            @after-leave="slideAfterLeave"
+                        >
+                            <ul v-if="ownerPanelOpen || ownerPanelActive" class="mb-5 space-y-0.5">
+                                <li v-for="item in ownerPanelItems" :key="item.href">
+                                    <a
+                                        :href="item.href"
+                                        @click="handleNavClick($event, item.href)"
+                                        class="tl-nav-link"
+                                        :class="page.url.startsWith(item.href) ? 'tl-nav-link--owner-active' : 'tl-nav-link--owner-inactive'"
+                                    >
+                                        <TlIcon :name="item.icon" class="w-4 h-4 shrink-0" />
+                                        <span>{{ item.label }}</span>
+                                    </a>
+                                </li>
+                            </ul>
+                        </Transition>
                     </div>
                 </template>
             </nav>

@@ -134,13 +134,17 @@ const visibleGroups = computed(() =>
         .filter(g => g.items.length > 0)
 )
 
-// Derives the current section title for the desktop header from the active nav item.
-const currentPageTitle = computed(() => {
-    const all = [
-        ...visibleGroups.value.flatMap(g => g.items),
-        ...ownerPanelItems,
-    ]
-    return all.find(item => page.url.startsWith(item.href))?.label ?? 'Console'
+// Breadcrumb segments for the desktop header: { group, page }
+// Owner panel pages get group='Owner Panel'; regular nav items get group=null.
+const currentBreadcrumb = computed(() => {
+    const ownerMatch = ownerPanelItems.find(item => page.url.startsWith(item.href))
+    if (ownerMatch) return { group: 'Owner Panel', page: ownerMatch.label }
+
+    for (const group of visibleGroups.value) {
+        const item = group.items.find(i => page.url.startsWith(i.href))
+        if (item) return { group: null, page: item.label }
+    }
+    return { group: null, page: 'Console' }
 })
 
 // Command palette — all accessible nav items, filtered by query.
@@ -309,7 +313,17 @@ onUnmounted(() => {
                 effectiveCollapsed ? 'lg:pl-16' : 'lg:pl-64',
             ]"
         >
-            <span class="text-sm font-medium text-slate-300">{{ currentPageTitle }}</span>
+            <!-- Breadcrumb: TicketLens [Console] > (Owner Panel >) Page -->
+            <nav class="flex items-center gap-1.5 text-sm min-w-0" aria-label="Breadcrumb">
+                <span class="font-mono font-semibold text-indigo-400 shrink-0">TicketLens</span>
+                <span class="text-[10px] font-mono bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded border border-slate-700 leading-none shrink-0">Console</span>
+                <TlIcon name="chevron-right" class="w-3 h-3 text-slate-600 shrink-0" :stroke-width="2.5" />
+                <template v-if="currentBreadcrumb.group">
+                    <span class="text-slate-400 shrink-0">{{ currentBreadcrumb.group }}</span>
+                    <TlIcon name="chevron-right" class="w-3 h-3 text-slate-600 shrink-0" :stroke-width="2.5" />
+                </template>
+                <span class="font-medium text-white truncate">{{ currentBreadcrumb.page }}</span>
+            </nav>
 
             <div class="flex items-center gap-2">
                 <!-- Search trigger (⌘K) -->

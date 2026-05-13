@@ -307,17 +307,17 @@ onUnmounted(() => {
 
         <!-- Desktop top header -->
         <header
-            class="hidden lg:flex fixed inset-x-0 z-30 items-center justify-between px-6 h-14 bg-slate-900 border-b border-slate-800 transition-all duration-200"
+            class="hidden lg:flex fixed inset-x-0 z-30 items-center h-14 bg-slate-900 border-b border-slate-800 transition-all duration-200"
             :class="[
                 impersonating ? 'top-9' : 'top-0',
                 effectiveCollapsed ? 'lg:pl-16' : 'lg:pl-64',
             ]"
         >
-            <!-- Breadcrumb: TicketLens [Console] > (Owner Panel >) Page -->
+            <!-- Inner wrapper mirrors tl-page (max-w-6xl mx-auto px-8) so breadcrumb aligns with content -->
+            <div class="flex items-center justify-between w-full max-w-6xl mx-auto px-8">
+
+            <!-- Breadcrumb: (Owner Panel >) Page -->
             <nav class="flex items-center gap-1.5 text-sm min-w-0" aria-label="Breadcrumb">
-                <span class="font-mono font-semibold text-indigo-400 shrink-0">TicketLens</span>
-                <span class="text-[10px] font-mono bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded border border-slate-700 leading-none shrink-0">Console</span>
-                <TlIcon name="chevron-right" class="w-3 h-3 text-slate-600 shrink-0" :stroke-width="2.5" />
                 <template v-if="currentBreadcrumb.group">
                     <span class="text-slate-400 shrink-0">{{ currentBreadcrumb.group }}</span>
                     <TlIcon name="chevron-right" class="w-3 h-3 text-slate-600 shrink-0" :stroke-width="2.5" />
@@ -394,6 +394,8 @@ onUnmounted(() => {
                     </Transition>
                 </div>
             </div>
+
+            </div><!-- end inner max-w-6xl wrapper -->
         </header>
 
         <!-- Sidebar backdrop (mobile) -->

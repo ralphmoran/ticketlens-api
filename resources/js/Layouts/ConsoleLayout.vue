@@ -19,6 +19,7 @@ onMounted(()   => lgMql.addEventListener('change', onMqlChange))
 onUnmounted(() => {
     lgMql.removeEventListener('change', onMqlChange)
     clearTimeout(ownerSubTimer)
+    clearTimeout(groupTimer)
 })
 
 const ownerSubOpen = ref(false)
@@ -31,6 +32,18 @@ function showOwnerSub() {
 
 function hideOwnerSub() {
     ownerSubTimer = setTimeout(() => { ownerSubOpen.value = false }, 150)
+}
+
+const openGroupIndex = ref(null)
+let groupTimer = null
+
+function showGroup(index) {
+    clearTimeout(groupTimer)
+    openGroupIndex.value = index
+}
+
+function hideGroup() {
+    groupTimer = setTimeout(() => { openGroupIndex.value = null }, 150)
 }
 
 const effectiveCollapsed = computed(() => sidebarCollapsed.value && isDesktop.value)
@@ -53,6 +66,7 @@ function stopImpersonating() {
 const navGroups = computed(() => [
     {
         label: 'Overview',
+        collapsedIcon: 'dashboard',
         requiresTeamManager: false,
         items: [
             { label: 'Dashboard',   href: '/console/dashboard', permission: null,                       icon: 'dashboard' },
@@ -62,6 +76,7 @@ const navGroups = computed(() => [
     },
     {
         label: 'Workflow',
+        collapsedIcon: 'calendar',
         requiresTeamManager: false,
         items: [
             { label: 'Schedules',   href: '/console/schedules', permission: Permission.Schedules,       icon: 'calendar' },
@@ -73,6 +88,7 @@ const navGroups = computed(() => [
     },
     {
         label: 'Team',
+        collapsedIcon: 'users',
         requiresTeamManager: false,
         items: [
             { label: 'Queue',       href: '/console/queue',     permission: Permission.AttentionQueue,  icon: 'layers' },
@@ -81,6 +97,7 @@ const navGroups = computed(() => [
     },
     {
         label: 'Admin',
+        collapsedIcon: 'user-group',
         requiresTeamManager: false,
         requiresTeamOrLead: true,
         items: [
@@ -101,31 +118,24 @@ const ownerPanelItems = [
     { label: 'Audit Log',         href: '/console/owner/audit',     icon: 'history' },
 ]
 
-const teamAdminItems = [
-    { label: 'Team Health',      href: '/console/admin/team-health',     icon: 'chart-bar' },
-    { label: 'Process Metrics',  href: '/console/admin/process-metrics', icon: 'trending-up' },
-]
-
 const ownerPanelOpen   = ref(false)
-const teamAdminOpen    = ref(false)
 const ownerPanelActive = computed(() => ownerPanelItems.some(item => page.url.startsWith(item.href)))
-const teamAdminActive  = computed(() => teamAdminItems.some(item => page.url.startsWith(item.href)))
 const subSidebarPersistent = computed(() =>
-    effectiveCollapsed.value && isOwner.value && (ownerPanelActive.value || teamAdminActive.value)
+    effectiveCollapsed.value && isOwner.value && ownerPanelActive.value
 )
 
 const visibleGroups = computed(() =>
     navGroups.value
         .filter(g => {
             if (g.requiresTeamManager) return isTeamManager.value
-            if (g.requiresTeamOrLead)  return isTeamManager.value || isTeamLead.value
+            if (g.requiresTeamOrLead)  return isOwner.value || isTeamManager.value || isTeamLead.value
             return true
         })
         .map(g => ({
             ...g,
             items: g.items.filter(item => {
-                if (item.managerOnly && !isTeamManager.value) return false
-                return item.permission === null || can(item.permission)
+                if (item.managerOnly && !isOwner.value && !isTeamManager.value) return false
+                return item.permission === null || isOwner.value || can(item.permission)
             })
         }))
         .filter(g => g.items.length > 0)
@@ -251,26 +261,61 @@ function handleNavClick(event, href) {
 
             <!-- Nav groups -->
             <nav class="flex-1 overflow-y-auto py-4" :class="effectiveCollapsed ? 'px-2' : 'px-3'">
-                <template v-for="(group, index) in visibleGroups" :key="group.label">
-                    <hr v-if="effectiveCollapsed && index > 0" class="border-slate-700/60 my-2" />
-                    <p v-show="!effectiveCollapsed" class="tl-nav-group-label">{{ group.label }}</p>
-                    <ul class="mb-5 space-y-0.5">
-                        <li v-for="item in group.items" :key="item.href">
-                            <a
-                                :href="item.href"
-                                :title="effectiveCollapsed ? item.label : undefined"
-                                @click="handleNavClick($event, item.href)"
-                                class="tl-nav-link"
-                                :class="[
-                                    page.url.startsWith(item.href) ? 'tl-nav-link--active' : 'tl-nav-link--inactive',
-                                    effectiveCollapsed ? 'justify-center px-0' : '',
-                                ]"
+                <template v-for="(group, gIndex) in visibleGroups" :key="group.label">
+                    <!-- Collapsed mode: one group trigger icon + flyout panel next to it -->
+                    <template v-if="effectiveCollapsed">
+                        <hr v-if="gIndex > 0" class="border-slate-700/60 my-2" />
+                        <div
+                            class="relative mb-1"
+                            @mouseenter="showGroup(gIndex)"
+                            @mouseleave="hideGroup()"
+                        >
+                            <button
+                                type="button"
+                                :title="group.label"
+                                class="tl-nav-link w-full justify-center px-0"
+                                :class="group.items.some(i => page.url.startsWith(i.href)) ? 'tl-nav-link--active' : 'tl-nav-link--inactive'"
                             >
-                                <TlIcon :name="item.icon" class="w-4 h-4 shrink-0" />
-                                <span v-show="!effectiveCollapsed">{{ item.label }}</span>
-                            </a>
-                        </li>
-                    </ul>
+                                <TlIcon :name="group.collapsedIcon" class="w-4 h-4 shrink-0" />
+                            </button>
+                            <div
+                                v-if="openGroupIndex === gIndex"
+                                class="absolute left-full top-0 ml-2 bg-slate-900 border border-slate-700 rounded-lg shadow-xl py-1.5 min-w-[200px] z-50"
+                                @mouseenter="showGroup(gIndex)"
+                                @mouseleave="hideGroup()"
+                            >
+                                <div class="px-3 py-1 text-[10px] font-semibold text-slate-500 uppercase tracking-widest">{{ group.label }}</div>
+                                <a
+                                    v-for="item in group.items"
+                                    :key="item.href"
+                                    :href="item.href"
+                                    @click="handleNavClick($event, item.href)"
+                                    class="tl-nav-link mx-1.5 rounded-md"
+                                    :class="page.url.startsWith(item.href) ? 'tl-nav-link--active' : 'tl-nav-link--inactive'"
+                                >
+                                    <TlIcon :name="item.icon" class="w-4 h-4 shrink-0" />
+                                    <span>{{ item.label }}</span>
+                                </a>
+                            </div>
+                        </div>
+                    </template>
+                    <!-- Expanded mode: group label + items list -->
+                    <template v-else>
+                        <p class="tl-nav-group-label">{{ group.label }}</p>
+                        <ul class="mb-5 space-y-0.5">
+                            <li v-for="item in group.items" :key="item.href">
+                                <a
+                                    :href="item.href"
+                                    @click="handleNavClick($event, item.href)"
+                                    class="tl-nav-link"
+                                    :class="page.url.startsWith(item.href) ? 'tl-nav-link--active' : 'tl-nav-link--inactive'"
+                                >
+                                    <TlIcon :name="item.icon" class="w-4 h-4 shrink-0" />
+                                    <span>{{ item.label }}</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </template>
                 </template>
 
                 <!-- Owner section (only shown when is_owner = true) -->
@@ -320,27 +365,6 @@ function handleNavClick(event, href) {
                                 </a>
                             </li>
                         </ul>
-                        <button
-                            type="button"
-                            @click="teamAdminOpen = !teamAdminOpen"
-                            class="tl-nav-group-label tl-nav-group-label--owner w-full flex items-center justify-between cursor-pointer hover:text-amber-300 transition-colors mt-5"
-                        >
-                            <span>Team Admin</span>
-                            <TlIcon name="chevron-right" class="w-3.5 h-3.5 shrink-0 transition-transform" :class="(teamAdminOpen || teamAdminActive) ? 'rotate-90' : ''" />
-                        </button>
-                        <ul v-show="teamAdminOpen || teamAdminActive" class="mb-5 space-y-0.5">
-                            <li v-for="item in teamAdminItems" :key="item.href">
-                                <a
-                                    :href="item.href"
-                                    @click="handleNavClick($event, item.href)"
-                                    class="tl-nav-link"
-                                    :class="page.url.startsWith(item.href) ? 'tl-nav-link--owner-active' : 'tl-nav-link--owner-inactive'"
-                                >
-                                    <TlIcon :name="item.icon" class="w-4 h-4 shrink-0" />
-                                    <span>{{ item.label }}</span>
-                                </a>
-                            </li>
-                        </ul>
                     </div>
 
                     <!-- Mobile: accordion sections in drawer -->
@@ -355,27 +379,6 @@ function handleNavClick(event, href) {
                         </button>
                         <ul v-show="ownerPanelOpen || ownerPanelActive" class="mb-5 space-y-0.5">
                             <li v-for="item in ownerPanelItems" :key="item.href">
-                                <a
-                                    :href="item.href"
-                                    @click="handleNavClick($event, item.href)"
-                                    class="tl-nav-link"
-                                    :class="page.url.startsWith(item.href) ? 'tl-nav-link--owner-active' : 'tl-nav-link--owner-inactive'"
-                                >
-                                    <TlIcon :name="item.icon" class="w-4 h-4 shrink-0" />
-                                    <span>{{ item.label }}</span>
-                                </a>
-                            </li>
-                        </ul>
-                        <button
-                            type="button"
-                            @click="teamAdminOpen = !teamAdminOpen"
-                            class="tl-nav-group-label tl-nav-group-label--owner w-full flex items-center justify-between cursor-pointer hover:text-amber-300 transition-colors mt-5"
-                        >
-                            <span>Team Admin</span>
-                            <TlIcon name="chevron-right" class="w-3.5 h-3.5 shrink-0 transition-transform" :class="(teamAdminOpen || teamAdminActive) ? 'rotate-90' : ''" />
-                        </button>
-                        <ul v-show="teamAdminOpen || teamAdminActive" class="mb-5 space-y-0.5">
-                            <li v-for="item in teamAdminItems" :key="item.href">
                                 <a
                                     :href="item.href"
                                     @click="handleNavClick($event, item.href)"
@@ -434,22 +437,8 @@ function handleNavClick(event, href) {
                 @mouseleave="hideOwnerSub"
             >
                 <nav class="flex-1 overflow-y-auto py-4 px-2">
-                    <ul class="mb-2 space-y-0.5">
-                        <li v-for="item in ownerPanelItems" :key="item.href">
-                            <a
-                                :href="item.href"
-                                :title="item.label"
-                                @click="handleNavClick($event, item.href)"
-                                class="tl-nav-link justify-center px-0"
-                                :class="page.url.startsWith(item.href) ? 'tl-nav-link--owner-active' : 'tl-nav-link--owner-inactive'"
-                            >
-                                <TlIcon :name="item.icon" class="w-4 h-4 shrink-0" />
-                            </a>
-                        </li>
-                    </ul>
-                    <hr class="border-slate-700/60 my-2" />
                     <ul class="space-y-0.5">
-                        <li v-for="item in teamAdminItems" :key="item.href">
+                        <li v-for="item in ownerPanelItems" :key="item.href">
                             <a
                                 :href="item.href"
                                 :title="item.label"

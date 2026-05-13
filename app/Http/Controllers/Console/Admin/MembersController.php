@@ -42,9 +42,13 @@ class MembersController extends Controller
         return back();
     }
 
-    public function index(Request $request): Response
+    public function index(Request $request): Response|RedirectResponse
     {
         $group = $request->user()->ownedGroup;
+
+        if ($group === null) {
+            return redirect('/console/owner/teams');
+        }
 
         $members = $group->members()
             ->orderBy('users.email')
@@ -82,6 +86,7 @@ class MembersController extends Controller
 
         $group = $request->user()->ownedGroup;
 
+        abort_unless($group !== null, 403);
         abort_unless($group->members()->where('users.id', $user->id)->exists(), 404);
         abort_if($user->id === $request->user()->id, 422, 'Cannot change your own role.');
         abort_if($group->owner_id === $user->id, 422, 'Manager role cannot be changed here.');
@@ -108,6 +113,7 @@ class MembersController extends Controller
     {
         $group = $request->user()->ownedGroup;
 
+        abort_unless($group !== null, 403);
         // Tenant isolation — the target must be a member of this manager's group.
         // Using 404 not 403: don't leak that the user exists elsewhere.
         abort_unless($group->members()->where('users.id', $user->id)->exists(), 404);
@@ -147,6 +153,7 @@ class MembersController extends Controller
         $manager = $request->user();
         $group   = $manager->ownedGroup;
 
+        abort_unless($group !== null, 403);
         abort_unless($group->members()->where('users.id', $user->id)->exists(), 404);
         abort_if($user->id === $manager->id, 422, 'You are already the manager.');
 

@@ -16,7 +16,7 @@ import {
   ArrowRight, ArrowUpCircle, ArrowDownCircle, BadgeCheck, Ban, Check, CircleCheck, CircleX,
   Building2, ChevronLeft, ChevronRight, Clock, CodeXml, Copy, Download, Eye, EyeOff, FlaskConical,
   History, Layers, LoaderCircle, Lock, LockOpen, Mail, Pause, Pencil, Play, Plus,
-  RefreshCw, Search, Sparkles, Trash2, TrendingUp,
+  RefreshCw, Search, Settings, Sparkles, Trash2, TrendingUp,
 } from '@lucide/vue'
 
 const ICONS = {
@@ -66,6 +66,7 @@ const ICONS = {
   'plus': Plus,
   'refresh': RefreshCw,
   'search': Search,
+  'settings': Settings,
   'trash': Trash2,
   'sparkles': Sparkles,
   'spinner': LoaderCircle,

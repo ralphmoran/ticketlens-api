@@ -19,7 +19,6 @@ onMounted(()   => lgMql.addEventListener('change', onMqlChange))
 onUnmounted(() => {
     lgMql.removeEventListener('change', onMqlChange)
     clearTimeout(ownerSubTimer)
-    clearTimeout(groupTimer)
 })
 
 const ownerSubOpen = ref(false)
@@ -32,18 +31,6 @@ function showOwnerSub() {
 
 function hideOwnerSub() {
     ownerSubTimer = setTimeout(() => { ownerSubOpen.value = false }, 150)
-}
-
-const openGroupIndex = ref(null)
-let groupTimer = null
-
-function showGroup(index) {
-    clearTimeout(groupTimer)
-    openGroupIndex.value = index
-}
-
-function hideGroup() {
-    groupTimer = setTimeout(() => { openGroupIndex.value = null }, 150)
 }
 
 const effectiveCollapsed = computed(() => sidebarCollapsed.value && isDesktop.value)
@@ -66,7 +53,6 @@ function stopImpersonating() {
 const navGroups = computed(() => [
     {
         label: 'Overview',
-        collapsedIcon: 'dashboard',
         requiresTeamManager: false,
         items: [
             { label: 'Dashboard',   href: '/console/dashboard', permission: null,                       icon: 'dashboard' },
@@ -76,7 +62,6 @@ const navGroups = computed(() => [
     },
     {
         label: 'Workflow',
-        collapsedIcon: 'calendar',
         requiresTeamManager: false,
         items: [
             { label: 'Schedules',   href: '/console/schedules', permission: Permission.Schedules,       icon: 'calendar' },
@@ -88,7 +73,6 @@ const navGroups = computed(() => [
     },
     {
         label: 'Team',
-        collapsedIcon: 'users',
         requiresTeamManager: false,
         items: [
             { label: 'Queue',       href: '/console/queue',     permission: Permission.AttentionQueue,  icon: 'layers' },
@@ -97,7 +81,6 @@ const navGroups = computed(() => [
     },
     {
         label: 'Admin',
-        collapsedIcon: 'user-group',
         requiresTeamManager: false,
         requiresTeamOrLead: true,
         items: [
@@ -263,60 +246,25 @@ function handleNavClick(event, href) {
             <!-- Nav groups -->
             <nav class="flex-1 overflow-y-auto py-4" :class="effectiveCollapsed ? 'px-2' : 'px-3'">
                 <template v-for="(group, gIndex) in visibleGroups" :key="group.label">
-                    <!-- Collapsed mode: one group trigger icon + flyout panel next to it -->
-                    <template v-if="effectiveCollapsed">
-                        <hr v-if="gIndex > 0" class="border-slate-700/60 my-2" />
-                        <div
-                            class="relative mb-1"
-                            @mouseenter="showGroup(gIndex)"
-                            @mouseleave="hideGroup()"
-                        >
-                            <button
-                                type="button"
-                                :title="group.label"
-                                class="tl-nav-link w-full justify-center px-0"
-                                :class="group.items.some(i => page.url.startsWith(i.href)) ? 'tl-nav-link--active' : 'tl-nav-link--inactive'"
+                    <hr v-if="effectiveCollapsed && gIndex > 0" class="border-slate-700/60 my-2" />
+                    <p v-show="!effectiveCollapsed" class="tl-nav-group-label">{{ group.label }}</p>
+                    <ul class="mb-5 space-y-0.5">
+                        <li v-for="item in group.items" :key="item.href">
+                            <a
+                                :href="item.href"
+                                :title="effectiveCollapsed ? item.label : undefined"
+                                @click="handleNavClick($event, item.href)"
+                                class="tl-nav-link"
+                                :class="[
+                                    page.url.startsWith(item.href) ? 'tl-nav-link--active' : 'tl-nav-link--inactive',
+                                    effectiveCollapsed ? 'justify-center px-0' : '',
+                                ]"
                             >
-                                <TlIcon :name="group.collapsedIcon" class="w-4 h-4 shrink-0" />
-                            </button>
-                            <div
-                                v-if="openGroupIndex === gIndex"
-                                class="absolute left-full top-0 ml-2 bg-slate-900 border border-slate-700 rounded-lg shadow-xl py-1.5 min-w-[200px] z-50"
-                                @mouseenter="showGroup(gIndex)"
-                                @mouseleave="hideGroup()"
-                            >
-                                <div class="px-3 py-1 text-[10px] font-semibold text-slate-500 uppercase tracking-widest">{{ group.label }}</div>
-                                <a
-                                    v-for="item in group.items"
-                                    :key="item.href"
-                                    :href="item.href"
-                                    @click="handleNavClick($event, item.href)"
-                                    class="tl-nav-link mx-1.5 rounded-md"
-                                    :class="page.url.startsWith(item.href) ? 'tl-nav-link--active' : 'tl-nav-link--inactive'"
-                                >
-                                    <TlIcon :name="item.icon" class="w-4 h-4 shrink-0" />
-                                    <span>{{ item.label }}</span>
-                                </a>
-                            </div>
-                        </div>
-                    </template>
-                    <!-- Expanded mode: group label + items list -->
-                    <template v-else>
-                        <p class="tl-nav-group-label">{{ group.label }}</p>
-                        <ul class="mb-5 space-y-0.5">
-                            <li v-for="item in group.items" :key="item.href">
-                                <a
-                                    :href="item.href"
-                                    @click="handleNavClick($event, item.href)"
-                                    class="tl-nav-link"
-                                    :class="page.url.startsWith(item.href) ? 'tl-nav-link--active' : 'tl-nav-link--inactive'"
-                                >
-                                    <TlIcon :name="item.icon" class="w-4 h-4 shrink-0" />
-                                    <span>{{ item.label }}</span>
-                                </a>
-                            </li>
-                        </ul>
-                    </template>
+                                <TlIcon :name="item.icon" class="w-4 h-4 shrink-0" />
+                                <span v-show="!effectiveCollapsed">{{ item.label }}</span>
+                            </a>
+                        </li>
+                    </ul>
                 </template>
 
                 <!-- Owner section (only shown when is_owner = true) -->

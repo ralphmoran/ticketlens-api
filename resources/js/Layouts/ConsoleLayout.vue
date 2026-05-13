@@ -424,7 +424,7 @@ onUnmounted(() => {
         >
             <!-- Logo -->
             <div
-                class="flex items-center border-b border-slate-800 px-4 py-5"
+                class="flex items-center border-b border-slate-800 px-4 h-16 shrink-0"
                 :class="effectiveCollapsed ? 'justify-center' : 'justify-between px-5'"
             >
                 <div v-show="!effectiveCollapsed" class="flex items-center gap-2 overflow-hidden">

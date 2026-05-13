@@ -135,14 +135,13 @@ const visibleGroups = computed(() =>
 )
 
 // Breadcrumb segments for the desktop header: { group, page }
-// Owner panel pages get group='Owner Panel'; regular nav items get group=null.
 const currentBreadcrumb = computed(() => {
     const ownerMatch = ownerPanelItems.find(item => page.url.startsWith(item.href))
     if (ownerMatch) return { group: 'Owner Panel', page: ownerMatch.label }
 
     for (const group of visibleGroups.value) {
         const item = group.items.find(i => page.url.startsWith(i.href))
-        if (item) return { group: null, page: item.label }
+        if (item) return { group: group.label, page: item.label }
     }
     return { group: null, page: 'Console' }
 })
@@ -286,7 +285,7 @@ onUnmounted(() => {
 
         <!-- Mobile/Tablet top header -->
         <header
-            class="lg:hidden fixed inset-x-0 z-30 flex items-center justify-between px-4 h-14 bg-slate-900 border-b border-slate-800"
+            class="lg:hidden fixed inset-x-0 z-30 flex items-center justify-between px-4 h-16 bg-slate-900 border-b border-slate-800"
             :class="impersonating ? 'top-9' : 'top-0'"
         >
             <button
@@ -307,7 +306,7 @@ onUnmounted(() => {
 
         <!-- Desktop top header -->
         <header
-            class="hidden lg:flex fixed inset-x-0 z-30 items-center h-14 bg-slate-900 border-b border-slate-800 transition-all duration-200"
+            class="hidden lg:flex fixed inset-x-0 z-30 items-center h-16 bg-slate-900 border-b border-slate-800 transition-all duration-200"
             :class="[
                 impersonating ? 'top-9' : 'top-0',
                 effectiveCollapsed ? 'lg:pl-16' : 'lg:pl-64',
@@ -637,7 +636,7 @@ onUnmounted(() => {
 
         <!-- Main content wrapper -->
         <div :class="[effectiveCollapsed ? 'lg:pl-16' : 'lg:pl-64', { 'pt-9 lg:pt-9': impersonating }]" class="transition-all duration-200">
-            <main class="min-w-0 pt-14">
+            <main class="min-w-0 pt-16">
                 <slot />
             </main>
         </div>

@@ -8,7 +8,6 @@ use App\Models\SlackIntegration;
 use App\Services\SlackService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Http\Response;
 
 class SlackOAuthController extends Controller
 {
@@ -30,7 +29,8 @@ class SlackOAuthController extends Controller
             $groupId,
             $user->id,
             (bool) $user->is_owner,
-            popup: $request->boolean('popup'),
+            popup:        $request->boolean('popup'),
+            popupOrigin:  $this->safePopupOrigin($request->string('popup_origin')),
         ));
     }
 
@@ -41,12 +41,13 @@ class SlackOAuthController extends Controller
      * domain (ngrok / production) so the browser won't carry the session cookie.
      * All necessary context (user_id, group_id, is_owner) lives in the encrypted state.
      */
-    public function callback(Request $request): RedirectResponse|Response
+    public function callback(Request $request): RedirectResponse
     {
         if ($request->filled('error')) {
-            $state = $this->tryDecodeState($request->string('state'));
-            if ($state['popup'] ?? false) {
-                return $this->popupError('Slack authorization was denied.');
+            $state  = $this->tryDecodeState($request->string('state'));
+            $origin = $this->safePopupOrigin($state['popup_origin'] ?? '');
+            if (($state['popup'] ?? false) && $origin) {
+                return redirect($origin . '/console/oauth-close?integration=slack&status=error&message=' . urlencode('Slack authorization was denied.'));
             }
             return redirect('/console/admin/integrations')
                 ->with('error', 'Slack authorization was denied.');
@@ -75,8 +76,9 @@ class SlackOAuthController extends Controller
             ]
         );
 
-        if ($state['popup'] ?? false) {
-            return $this->popupSuccess('slack');
+        $origin = $this->safePopupOrigin($state['popup_origin'] ?? '');
+        if (($state['popup'] ?? false) && $origin) {
+            return redirect($origin . '/console/oauth-close?integration=slack&status=success');
         }
 
         $returnUrl = $state['is_owner']
@@ -84,24 +86,6 @@ class SlackOAuthController extends Controller
             : '/console/admin/integrations';
 
         return redirect($returnUrl)->with('success', 'Slack connected to ' . $tokens['workspace_name'] . '.');
-    }
-
-    private function popupSuccess(string $integration): Response
-    {
-        return response()->view('oauth-popup', [
-            'success'     => true,
-            'integration' => $integration,
-            'message'     => null,
-        ]);
-    }
-
-    private function popupError(string $message): Response
-    {
-        return response()->view('oauth-popup', [
-            'success'     => false,
-            'integration' => 'slack',
-            'message'     => $message,
-        ]);
     }
 
     /** Best-effort state decode for the error path (state may be absent/tampered). */
@@ -112,5 +96,14 @@ class SlackOAuthController extends Controller
         } catch (\Throwable) {
             return [];
         }
+    }
+
+    /**
+     * Validate that an origin is http(s) — prevents javascript: injection.
+     * Returns the origin unchanged, or '' if invalid.
+     */
+    private function safePopupOrigin(string $origin): string
+    {
+        return preg_match('#^https?://[^/]+$#', $origin) ? $origin : '';
     }
 }

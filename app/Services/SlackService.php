@@ -25,14 +25,20 @@ class SlackService
      * State encodes group_id + user_id + is_owner + CSRF nonce so the callback
      * works without a session (cross-domain from ngrok / production redirect).
      */
-    public function buildAuthUrl(int $groupId, int $userId, bool $isOwner = false, bool $popup = false): string
-    {
+    public function buildAuthUrl(
+        int    $groupId,
+        int    $userId,
+        bool   $isOwner = false,
+        bool   $popup = false,
+        string $popupOrigin = '',
+    ): string {
         $state = encrypt(json_encode([
-            'group_id' => $groupId,
-            'user_id'  => $userId,
-            'is_owner' => $isOwner,
-            'popup'    => $popup,
-            'nonce'    => Str::random(32),
+            'group_id'     => $groupId,
+            'user_id'      => $userId,
+            'is_owner'     => $isOwner,
+            'popup'        => $popup,
+            'popup_origin' => $popupOrigin,
+            'nonce'        => Str::random(32),
         ]));
 
         return self::AUTH_URL . '?' . http_build_query([

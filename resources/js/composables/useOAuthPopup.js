@@ -74,7 +74,8 @@ export function useOAuthPopup() {
 }
 
 function appendPopupFlag(url) {
-    return url + (url.includes('?') ? '&' : '?') + 'popup=1'
+    const origin = encodeURIComponent(window.location.origin)
+    return url + (url.includes('?') ? '&' : '?') + `popup=1&popup_origin=${origin}`
 }
 
 function popupFeatures() {

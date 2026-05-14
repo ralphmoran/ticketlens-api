@@ -158,7 +158,7 @@ class SlackOAuthControllerTest extends TestCase
 
     // --- popup flow ---
 
-    public function test_redirect_passes_popup_flag_when_requested(): void
+    public function test_redirect_passes_popup_flag_and_origin_when_requested(): void
     {
         $manager = $this->makeManager();
         $group   = $manager->ownedGroup;
@@ -166,16 +166,33 @@ class SlackOAuthControllerTest extends TestCase
         $this->mock(SlackService::class, function ($mock) use ($group, $manager) {
             $mock->shouldReceive('buildAuthUrl')
                 ->once()
-                ->with($group->id, $manager->id, false, true) // popup = true
+                ->with($group->id, $manager->id, false, true, 'http://ticketlens.test')
                 ->andReturn('https://slack.com/auth');
         });
 
         $this->actingAs($manager)
-            ->get('/console/slack/redirect?group_id=' . $group->id . '&popup=1')
+            ->get('/console/slack/redirect?group_id=' . $group->id . '&popup=1&popup_origin=' . urlencode('http://ticketlens.test'))
             ->assertRedirect('https://slack.com/auth');
     }
 
-    public function test_callback_returns_popup_view_on_success(): void
+    public function test_redirect_strips_invalid_popup_origin(): void
+    {
+        $manager = $this->makeManager();
+        $group   = $manager->ownedGroup;
+
+        $this->mock(SlackService::class, function ($mock) use ($group, $manager) {
+            $mock->shouldReceive('buildAuthUrl')
+                ->once()
+                ->with($group->id, $manager->id, false, true, '') // invalid origin stripped
+                ->andReturn('https://slack.com/auth');
+        });
+
+        $this->actingAs($manager)
+            ->get('/console/slack/redirect?group_id=' . $group->id . '&popup=1&popup_origin=' . urlencode('javascript:alert(1)'))
+            ->assertRedirect('https://slack.com/auth');
+    }
+
+    public function test_callback_redirects_popup_to_oauth_close_on_success(): void
     {
         $manager = $this->makeManager();
         $group   = $manager->ownedGroup;
@@ -183,7 +200,14 @@ class SlackOAuthControllerTest extends TestCase
         $this->mock(SlackService::class, function ($mock) use ($group, $manager) {
             $mock->shouldReceive('decodeState')
                 ->once()
-                ->andReturn(['group_id' => $group->id, 'user_id' => $manager->id, 'is_owner' => false, 'popup' => true, 'nonce' => 'abc']);
+                ->andReturn([
+                    'group_id'     => $group->id,
+                    'user_id'      => $manager->id,
+                    'is_owner'     => false,
+                    'popup'        => true,
+                    'popup_origin' => 'http://ticketlens.test',
+                    'nonce'        => 'abc',
+                ]);
 
             $mock->shouldReceive('exchangeCode')
                 ->once()
@@ -194,16 +218,12 @@ class SlackOAuthControllerTest extends TestCase
                 ]);
         });
 
-        $response = $this->actingAs($manager)
-            ->get('/console/slack/callback?code=authcode&state=enc');
-
-        $response->assertOk();
-        $response->assertSee('oauth-success', escape: false);
-        $response->assertSee('slack', escape: false);
-        $response->assertDontSee('Location', false); // not a redirect
+        $this->actingAs($manager)
+            ->get('/console/slack/callback?code=authcode&state=enc')
+            ->assertRedirect('http://ticketlens.test/console/oauth-close?integration=slack&status=success');
     }
 
-    public function test_callback_returns_popup_error_view_when_slack_denies_in_popup_mode(): void
+    public function test_callback_redirects_popup_to_oauth_close_on_error(): void
     {
         $manager = $this->makeManager();
         $group   = $manager->ownedGroup;
@@ -211,14 +231,50 @@ class SlackOAuthControllerTest extends TestCase
         $this->mock(SlackService::class, function ($mock) use ($group, $manager) {
             $mock->shouldReceive('decodeState')
                 ->once()
-                ->andReturn(['group_id' => $group->id, 'user_id' => $manager->id, 'is_owner' => false, 'popup' => true, 'nonce' => 'abc']);
+                ->andReturn([
+                    'group_id'     => $group->id,
+                    'user_id'      => $manager->id,
+                    'is_owner'     => false,
+                    'popup'        => true,
+                    'popup_origin' => 'http://ticketlens.test',
+                    'nonce'        => 'abc',
+                ]);
         });
 
-        $response = $this->actingAs($manager)
-            ->get('/console/slack/callback?error=access_denied&state=enc');
+        $this->actingAs($manager)
+            ->get('/console/slack/callback?error=access_denied&state=enc')
+            ->assertRedirect('http://ticketlens.test/console/oauth-close?integration=slack&status=error&message=' . urlencode('Slack authorization was denied.'));
+    }
 
-        $response->assertOk();
-        $response->assertSee('oauth-error', escape: false);
+    public function test_callback_falls_back_to_normal_redirect_when_no_popup_origin(): void
+    {
+        $manager = $this->makeManager();
+        $group   = $manager->ownedGroup;
+
+        $this->mock(SlackService::class, function ($mock) use ($group, $manager) {
+            $mock->shouldReceive('decodeState')
+                ->once()
+                ->andReturn([
+                    'group_id'     => $group->id,
+                    'user_id'      => $manager->id,
+                    'is_owner'     => false,
+                    'popup'        => true,
+                    'popup_origin' => '', // no valid origin
+                    'nonce'        => 'abc',
+                ]);
+
+            $mock->shouldReceive('exchangeCode')
+                ->once()
+                ->andReturn([
+                    'workspace_id'   => 'T123',
+                    'workspace_name' => 'Acme',
+                    'bot_token'      => 'xoxb-secret',
+                ]);
+        });
+
+        $this->actingAs($manager)
+            ->get('/console/slack/callback?code=authcode&state=enc')
+            ->assertRedirect('/console/admin/integrations');
     }
 
     // --- Helpers ---

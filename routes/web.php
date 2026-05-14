@@ -28,6 +28,19 @@ Route::prefix('console')->name('console.')->group(function () {
     Route::get('/slack/callback', [\App\Http\Controllers\Console\SlackOAuthController::class, 'callback'])
         ->name('slack.callback');
 
+    // OAuth popup close page — public, same-origin as the opener (ticketlens.test).
+    // The callback (on ngrok) redirects here so window.close() works cross-origin.
+    Route::get('/oauth-close', function () {
+        $integration = request()->string('integration')->value();
+        $status      = request()->string('status')->value();
+        $message     = request()->string('message')->value();
+        return response()->view('oauth-popup', [
+            'success'     => $status === 'success',
+            'integration' => $integration,
+            'message'     => $message ?: null,
+        ]);
+    })->name('oauth.close');
+
     // Console root → redirect to dashboard
     Route::get('/', fn () => redirect()->route('console.dashboard'))->name('index');
 

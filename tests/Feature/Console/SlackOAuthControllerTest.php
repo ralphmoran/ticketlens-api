@@ -156,6 +156,71 @@ class SlackOAuthControllerTest extends TestCase
         $this->assertDatabaseHas('slack_integrations', ['workspace_name' => 'New Workspace']);
     }
 
+    // --- popup flow ---
+
+    public function test_redirect_passes_popup_flag_when_requested(): void
+    {
+        $manager = $this->makeManager();
+        $group   = $manager->ownedGroup;
+
+        $this->mock(SlackService::class, function ($mock) use ($group, $manager) {
+            $mock->shouldReceive('buildAuthUrl')
+                ->once()
+                ->with($group->id, $manager->id, false, true) // popup = true
+                ->andReturn('https://slack.com/auth');
+        });
+
+        $this->actingAs($manager)
+            ->get('/console/slack/redirect?group_id=' . $group->id . '&popup=1')
+            ->assertRedirect('https://slack.com/auth');
+    }
+
+    public function test_callback_returns_popup_view_on_success(): void
+    {
+        $manager = $this->makeManager();
+        $group   = $manager->ownedGroup;
+
+        $this->mock(SlackService::class, function ($mock) use ($group, $manager) {
+            $mock->shouldReceive('decodeState')
+                ->once()
+                ->andReturn(['group_id' => $group->id, 'user_id' => $manager->id, 'is_owner' => false, 'popup' => true, 'nonce' => 'abc']);
+
+            $mock->shouldReceive('exchangeCode')
+                ->once()
+                ->andReturn([
+                    'workspace_id'   => 'T123',
+                    'workspace_name' => 'Acme',
+                    'bot_token'      => 'xoxb-secret',
+                ]);
+        });
+
+        $response = $this->actingAs($manager)
+            ->get('/console/slack/callback?code=authcode&state=enc');
+
+        $response->assertOk();
+        $response->assertSee('oauth-success', escape: false);
+        $response->assertSee('slack', escape: false);
+        $response->assertDontSee('Location', false); // not a redirect
+    }
+
+    public function test_callback_returns_popup_error_view_when_slack_denies_in_popup_mode(): void
+    {
+        $manager = $this->makeManager();
+        $group   = $manager->ownedGroup;
+
+        $this->mock(SlackService::class, function ($mock) use ($group, $manager) {
+            $mock->shouldReceive('decodeState')
+                ->once()
+                ->andReturn(['group_id' => $group->id, 'user_id' => $manager->id, 'is_owner' => false, 'popup' => true, 'nonce' => 'abc']);
+        });
+
+        $response = $this->actingAs($manager)
+            ->get('/console/slack/callback?error=access_denied&state=enc');
+
+        $response->assertOk();
+        $response->assertSee('oauth-error', escape: false);
+    }
+
     // --- Helpers ---
 
     private function makeManager(): User

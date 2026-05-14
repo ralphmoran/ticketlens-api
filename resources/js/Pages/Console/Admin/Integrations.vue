@@ -3,6 +3,7 @@ import { ref } from 'vue'
 import { router } from '@inertiajs/vue3'
 import ConsoleLayout from '@/Layouts/ConsoleLayout.vue'
 import TlIcon from '@/components/TlIcon.vue'
+import { useOAuthPopup } from '@/composables/useOAuthPopup.js'
 
 defineOptions({ layout: ConsoleLayout })
 
@@ -11,6 +12,8 @@ const props = defineProps({
     integration: { type: Object, default: null },
     connect_url: { type: String, default: null },
 })
+
+const { open: openOAuth } = useOAuthPopup()
 
 const channels         = ref([])
 const fetchingChannels = ref(false)
@@ -218,10 +221,14 @@ function disconnect() {
                 <p class="text-sm text-slate-400">
                     Connect Slack to enable alert notifications for this team — needs-response alerts, aging ticket alerts, and weekly digests.
                 </p>
-                <a :href="connect_url" class="tl-btn tl-btn--primary inline-flex gap-2 text-sm">
+                <button
+                    type="button"
+                    class="tl-btn tl-btn--primary text-sm"
+                    @click="openOAuth(connect_url, { reloadOnly: ['integration'] })"
+                >
                     <TlIcon name="plug" class="w-3.5 h-3.5" />
                     Connect to Slack
-                </a>
+                </button>
             </template>
         </div>
     </div>

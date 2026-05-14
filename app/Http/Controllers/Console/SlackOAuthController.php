@@ -8,6 +8,7 @@ use App\Models\SlackIntegration;
 use App\Services\SlackService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 
 class SlackOAuthController extends Controller
 {
@@ -25,7 +26,12 @@ class SlackOAuthController extends Controller
             abort_unless($user->ownedGroup?->id === $groupId, 403);
         }
 
-        return redirect($this->slack->buildAuthUrl($groupId, $user->id, (bool) $user->is_owner));
+        return redirect($this->slack->buildAuthUrl(
+            $groupId,
+            $user->id,
+            (bool) $user->is_owner,
+            popup: $request->boolean('popup'),
+        ));
     }
 
     /**
@@ -35,9 +41,13 @@ class SlackOAuthController extends Controller
      * domain (ngrok / production) so the browser won't carry the session cookie.
      * All necessary context (user_id, group_id, is_owner) lives in the encrypted state.
      */
-    public function callback(Request $request): RedirectResponse
+    public function callback(Request $request): RedirectResponse|Response
     {
         if ($request->filled('error')) {
+            $state = $this->tryDecodeState($request->string('state'));
+            if ($state['popup'] ?? false) {
+                return $this->popupError('Slack authorization was denied.');
+            }
             return redirect('/console/admin/integrations')
                 ->with('error', 'Slack authorization was denied.');
         }
@@ -65,10 +75,42 @@ class SlackOAuthController extends Controller
             ]
         );
 
+        if ($state['popup'] ?? false) {
+            return $this->popupSuccess('slack');
+        }
+
         $returnUrl = $state['is_owner']
             ? '/console/admin/integrations?group_id=' . $groupId
             : '/console/admin/integrations';
 
         return redirect($returnUrl)->with('success', 'Slack connected to ' . $tokens['workspace_name'] . '.');
+    }
+
+    private function popupSuccess(string $integration): Response
+    {
+        return response()->view('oauth-popup', [
+            'success'     => true,
+            'integration' => $integration,
+            'message'     => null,
+        ]);
+    }
+
+    private function popupError(string $message): Response
+    {
+        return response()->view('oauth-popup', [
+            'success'     => false,
+            'integration' => 'slack',
+            'message'     => $message,
+        ]);
+    }
+
+    /** Best-effort state decode for the error path (state may be absent/tampered). */
+    private function tryDecodeState(string $state): array
+    {
+        try {
+            return $this->slack->decodeState($state);
+        } catch (\Throwable) {
+            return [];
+        }
     }
 }

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\Triage;
 
 use App\Enums\Permission;
 use App\Http\Requests\Triage\PushRequest;
+use App\Jobs\EvaluateAlertsJob;
 use App\Models\License;
 use App\Models\TriageSnapshot;
 use App\Models\User;
@@ -28,7 +29,7 @@ class PushController
             }
         }
 
-        TriageSnapshot::updateOrCreate(
+        $snapshot = TriageSnapshot::updateOrCreate(
             ['license_key_hash' => $keyHash, 'profile' => $request->validated('profile')],
             [
                 'user_id'      => $userId,
@@ -37,6 +38,10 @@ class PushController
                 'captured_at'  => $request->validated('captured_at'),
             ],
         );
+
+        if ($userId !== null) {
+            EvaluateAlertsJob::dispatch($userId, $snapshot->id);
+        }
 
         return response()->json(['pushed' => true, 'ticket_count' => count($tickets)]);
     }

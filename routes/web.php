@@ -97,6 +97,8 @@ Route::prefix('console')->name('console.')->group(function () {
             Route::post('/integrations/channel',    [\App\Http\Controllers\Console\Admin\IntegrationsController::class, 'saveChannel'])->name('integrations.channel');
             Route::post('/integrations/test',       [\App\Http\Controllers\Console\Admin\IntegrationsController::class, 'sendTest'])->name('integrations.test');
             Route::delete('/integrations',          [\App\Http\Controllers\Console\Admin\IntegrationsController::class, 'disconnect'])->name('integrations.disconnect');
+            Route::get('/alerts',                   [\App\Http\Controllers\Console\Admin\AlertsController::class, 'index'])->name('alerts');
+            Route::post('/alerts',                  [\App\Http\Controllers\Console\Admin\AlertsController::class, 'save'])->name('alerts.save');
         });
 
         // Slack OAuth redirect — requires auth to know who's initiating the flow
@@ -154,6 +156,9 @@ Route::prefix('console')->name('console.')->group(function () {
             Route::post('/integrations/channel', [\App\Http\Controllers\Console\Admin\IntegrationsController::class, 'saveChannel'])->name('integrations.channel');
             Route::post('/integrations/test',    [\App\Http\Controllers\Console\Admin\IntegrationsController::class, 'sendTest'])->name('integrations.test');
             Route::delete('/integrations',       [\App\Http\Controllers\Console\Admin\IntegrationsController::class, 'disconnect'])->name('integrations.disconnect');
+            // Alert settings — owner manages on behalf of any group via ?group_id=X
+            Route::get('/alerts',                [\App\Http\Controllers\Console\Admin\AlertsController::class, 'index'])->name('alerts');
+            Route::post('/alerts',               [\App\Http\Controllers\Console\Admin\AlertsController::class, 'save'])->name('alerts.save');
         });
     });
 });

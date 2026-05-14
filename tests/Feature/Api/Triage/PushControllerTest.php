@@ -3,11 +3,14 @@
 namespace Tests\Feature\Api\Triage;
 
 use App\Enums\Permission;
+use App\Jobs\EvaluateAlertsJob;
+use App\Models\Group;
 use App\Models\License;
 use App\Models\TriageSnapshot;
 use App\Models\User;
 use App\Services\LicenseValidationService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
 
 class PushControllerTest extends TestCase
@@ -17,6 +20,7 @@ class PushControllerTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        Queue::fake();
         $this->mock(LicenseValidationService::class, fn ($m) => $m->shouldReceive('isValid')->andReturn(true));
     }
 
@@ -176,5 +180,35 @@ class PushControllerTest extends TestCase
 
         $response->assertStatus(200);
         $this->assertNull(TriageSnapshot::first()->user_id);
+    }
+
+    // ── Job dispatch (lock tests for PushController → EvaluateAlertsJob contract) ──
+
+    public function test_evaluate_alerts_job_dispatched_when_user_resolved(): void
+    {
+        $user = $this->makeUserWithLicense();
+
+        $this->withToken('valid-key')->postJson('/v1/triage/push', $this->validPayload());
+
+        Queue::assertPushed(EvaluateAlertsJob::class, fn ($job) =>
+            $job->getUserId() === $user->id
+        );
+    }
+
+    public function test_evaluate_alerts_job_not_dispatched_when_no_user_resolved(): void
+    {
+        // External license — no local user_id
+        $this->withToken('external-key')->postJson('/v1/triage/push', $this->validPayload());
+
+        Queue::assertNotPushed(EvaluateAlertsJob::class);
+    }
+
+    public function test_evaluate_alerts_job_not_dispatched_on_403(): void
+    {
+        $this->makeUserWithLicense('free-key', 'free');
+
+        $this->withToken('free-key')->postJson('/v1/triage/push', $this->validPayload());
+
+        Queue::assertNotPushed(EvaluateAlertsJob::class);
     }
 }

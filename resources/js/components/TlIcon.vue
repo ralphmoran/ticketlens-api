@@ -13,7 +13,7 @@ import {
   LayoutDashboard, BarChart3, CircleUser, Calendar, Inbox, FileText, ShieldCheck,
   Users, UsersRound, Key, DollarSign,
   Menu, X, LogOut, TriangleAlert,
-  ArrowRight, ArrowUpCircle, ArrowDownCircle, BadgeCheck, Ban, Check, CircleCheck, CircleX,
+  ArrowRight, ArrowUpCircle, ArrowDownCircle, BadgeCheck, Ban, Bell, Check, CircleCheck, CircleX,
   Building2, ChevronLeft, ChevronRight, Clock, CodeXml, Copy, Download, Eye, EyeOff, FlaskConical,
   History, Layers, LoaderCircle, Lock, LockOpen, Mail, Pause, Pencil, Play, Plus,
   RefreshCw, Search, Send, Settings, Sparkles, Trash2, TrendingUp, Plug,
@@ -72,6 +72,7 @@ const ICONS = {
   'spinner': LoaderCircle,
   'trending-up': TrendingUp,
   'x-circle': CircleX,
+  'bell': Bell,
   'plug': Plug,
   'send': Send,
 }

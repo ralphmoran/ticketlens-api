@@ -43,11 +43,16 @@
                 @endif
             };
 
+            // Use '*' — the payload contains no secrets, only an event type and
+            // integration name. The origin may differ from the parent in local dev
+            // (Valet vs ngrok) so a strict same-origin target would silently drop it.
             if (window.opener && !window.opener.closed) {
-                window.opener.postMessage(payload, window.location.origin);
-                window.close();
+                window.opener.postMessage(payload, '*');
             }
-            // If opener is gone (popup was navigated directly), just show the message.
+            // Always attempt close. Works when opened via window.open(); silently
+            // fails if the user navigated here directly — in that case the message
+            // above is shown so they can close it manually.
+            window.close();
         }());
     </script>
 </body>

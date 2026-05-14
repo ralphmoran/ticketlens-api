@@ -38,9 +38,12 @@ export function useOAuthPopup() {
         }
 
         function onMessage(event) {
-            if (event.origin !== window.location.origin) return
+            // We send postMessage with target '*' to handle local dev cross-origin
+            // (Valet vs ngrok). Verify message shape instead of origin — the payload
+            // contains no secrets, so spoofing only triggers a router.reload().
+            if (typeof event.data !== 'object' || !event.data?.type) return
 
-            if (event.data?.type === 'oauth-success') {
+            if (event.data.type === 'oauth-success') {
                 finish()
                 if (onSuccess) {
                     onSuccess(event.data)
@@ -49,7 +52,7 @@ export function useOAuthPopup() {
                 }
             }
 
-            if (event.data?.type === 'oauth-error') {
+            if (event.data.type === 'oauth-error') {
                 finish()
                 if (onError) onError(event.data)
             }

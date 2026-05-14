@@ -10,6 +10,8 @@ class SlackService
     private const AUTH_URL     = 'https://slack.com/oauth/v2/authorize';
     private const TOKEN_URL    = 'https://slack.com/api/oauth.v2.access';
     private const CHANNELS_URL = 'https://slack.com/api/conversations.list';
+    private const MEMBERS_URL  = 'https://slack.com/api/users.list';
+    private const OPEN_DM_URL  = 'https://slack.com/api/conversations.open';
     private const POST_URL     = 'https://slack.com/api/chat.postMessage';
 
     public function __construct(
@@ -34,7 +36,7 @@ class SlackService
 
         return self::AUTH_URL . '?' . http_build_query([
             'client_id'    => $this->clientId,
-            'scope'        => 'channels:read,groups:read,chat:write',
+            'scope'        => 'channels:read,groups:read,chat:write,users:read,im:write',
             'redirect_uri' => $this->redirectUri,
             'state'        => $state,
         ]);
@@ -117,6 +119,36 @@ class SlackService
     }
 
     /**
+     * Fetch active, non-bot workspace members.
+     *
+     * @return list<array{id: string, name: string, real_name: string, avatar: string|null}>
+     * @throws \RuntimeException on Slack API error
+     */
+    public function fetchMembers(string $botToken): array
+    {
+        $response = Http::withToken($botToken)->get(self::MEMBERS_URL, ['limit' => 200]);
+        $body     = $response->json();
+
+        if (! ($body['ok'] ?? false)) {
+            throw new \RuntimeException('Slack members fetch failed: ' . ($body['error'] ?? 'unknown'));
+        }
+
+        $members = array_filter(
+            $body['members'] ?? [],
+            fn ($m) => ! ($m['is_bot'] ?? false)
+                    && ! ($m['deleted'] ?? false)
+                    && $m['id'] !== 'USLACKBOT'
+        );
+
+        return array_values(array_map(fn ($m) => [
+            'id'        => $m['id'],
+            'name'      => ($m['profile']['display_name'] ?? '') ?: ($m['profile']['real_name'] ?? $m['name'] ?? ''),
+            'real_name' => $m['profile']['real_name'] ?? '',
+            'avatar'    => $m['profile']['image_48'] ?? null,
+        ], $members));
+    }
+
+    /**
      * Post a message to a channel. Used by alert features (37-40).
      *
      * @throws \RuntimeException on Slack API error
@@ -133,5 +165,22 @@ class SlackService
         if (! ($body['ok'] ?? false)) {
             throw new \RuntimeException('Slack postMessage failed: ' . ($body['error'] ?? 'unknown'));
         }
+    }
+
+    /**
+     * Open a DM channel with a user and post a message.
+     *
+     * @throws \RuntimeException on Slack API error
+     */
+    public function postDm(string $botToken, string $userId, string $text): void
+    {
+        $response = Http::withToken($botToken)->post(self::OPEN_DM_URL, ['users' => $userId]);
+        $body     = $response->json();
+
+        if (! ($body['ok'] ?? false)) {
+            throw new \RuntimeException('Slack openDm failed: ' . ($body['error'] ?? 'unknown'));
+        }
+
+        $this->postMessage($botToken, $body['channel']['id'], $text);
     }
 }

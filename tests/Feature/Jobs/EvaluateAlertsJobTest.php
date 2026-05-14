@@ -4,6 +4,7 @@ namespace Tests\Feature\Jobs;
 
 use App\Jobs\EvaluateAlertsJob;
 use App\Models\AlertSetting;
+use App\Models\CustomAlertRule;
 use App\Models\Group;
 use App\Models\License;
 use App\Models\SentAlertLog;
@@ -75,6 +76,18 @@ class EvaluateAlertsJobTest extends TestCase
             'url'              => "https://jira.example.com/browse/{$key}",
             'last_updated'     => now()->toISOString(),
         ];
+    }
+
+    private function makeRule(Group $group, array $overrides = []): CustomAlertRule
+    {
+        return CustomAlertRule::create(array_merge([
+            'group_id'     => $group->id,
+            'alert_type'   => 'needs_response',
+            'integration'  => 'slack',
+            'target_id'    => 'U999',
+            'target_label' => 'On-Call',
+            'enabled'      => true,
+        ], $overrides));
     }
 
     private function mockSlack(): SlackService
@@ -295,6 +308,140 @@ class EvaluateAlertsJobTest extends TestCase
         ]);
         $slack = $this->mockSlack();
         $slack->shouldReceive('postMessage')->twice();
+
+        (new EvaluateAlertsJob($user->id, $snapshot->id))->handle($slack);
+
+        $this->assertSame(2, SentAlertLog::count());
+    }
+
+    // ── Custom cooldown hours ─────────────────────────────────────────────────
+
+    public function test_cooldown_hours_read_from_settings(): void
+    {
+        $user  = $this->makeTeamUser();
+        $group = $user->groups()->first();
+        $this->makeSlack($group);
+        $this->makeAlertSettings($group, ['needs_response_cooldown_hours' => 12]);
+
+        // Log is 8h old — within the custom 12h cooldown, should be suppressed
+        SentAlertLog::create([
+            'group_id'     => $group->id,
+            'alert_type'   => 'needs_response',
+            'ticket_key'   => 'P-1',
+            'triggered_at' => now()->subHours(8),
+        ]);
+
+        $snapshot = $this->makeSnapshot($user, [$this->ticket('P-1', ['needs-response'])]);
+        $slack    = $this->mockSlack();
+        $slack->shouldNotReceive('postMessage');
+
+        (new EvaluateAlertsJob($user->id, $snapshot->id))->handle($slack);
+    }
+
+    // ── Custom rule DMs ───────────────────────────────────────────────────────
+
+    public function test_custom_rule_dm_fires_for_matching_flag(): void
+    {
+        $user  = $this->makeTeamUser();
+        $group = $user->groups()->first();
+        $this->makeSlack($group);
+        $this->makeAlertSettings($group, ['needs_response_enabled' => false]);
+        $this->makeRule($group); // alert_type = needs_response, target_id = U999
+        $snapshot = $this->makeSnapshot($user, [$this->ticket('P-1', ['needs-response'])]);
+
+        $slack = $this->mockSlack();
+        $slack->shouldNotReceive('postMessage'); // channel alert is disabled
+        $slack->shouldReceive('postDm')->once()->with('xoxb-test', 'U999', Mockery::on(
+            fn ($text) => str_contains($text, 'P-1')
+        ));
+
+        (new EvaluateAlertsJob($user->id, $snapshot->id))->handle($slack);
+
+        $this->assertDatabaseHas('sent_alert_logs', [
+            'alert_type' => 'needs_response',
+            'ticket_key' => 'P-1',
+        ]);
+    }
+
+    public function test_custom_rule_dm_suppressed_within_cooldown(): void
+    {
+        $user  = $this->makeTeamUser();
+        $group = $user->groups()->first();
+        $this->makeSlack($group);
+        $this->makeAlertSettings($group, ['needs_response_enabled' => false]);
+        $rule = $this->makeRule($group);
+
+        // Pre-seed a rule-scoped log within cooldown
+        SentAlertLog::create([
+            'group_id'     => $group->id,
+            'alert_type'   => 'needs_response',
+            'ticket_key'   => 'P-1',
+            'rule_id'      => $rule->id,
+            'triggered_at' => now()->subHour(),
+        ]);
+
+        $snapshot = $this->makeSnapshot($user, [$this->ticket('P-1', ['needs-response'])]);
+        $slack    = $this->mockSlack();
+        $slack->shouldNotReceive('postMessage');
+        $slack->shouldNotReceive('postDm');
+
+        (new EvaluateAlertsJob($user->id, $snapshot->id))->handle($slack);
+    }
+
+    public function test_custom_rule_cooldown_independent_from_channel_alert(): void
+    {
+        $user  = $this->makeTeamUser();
+        $group = $user->groups()->first();
+        $this->makeSlack($group);
+        $this->makeAlertSettings($group); // both enabled
+        $rule = $this->makeRule($group);
+
+        // Channel alert is recently logged (rule_id = NULL) — blocks channel alert only
+        SentAlertLog::create([
+            'group_id'     => $group->id,
+            'alert_type'   => 'needs_response',
+            'ticket_key'   => 'P-1',
+            'rule_id'      => null,
+            'triggered_at' => now()->subHour(),
+        ]);
+
+        $snapshot = $this->makeSnapshot($user, [$this->ticket('P-1', ['needs-response'])]);
+        $slack    = $this->mockSlack();
+        $slack->shouldNotReceive('postMessage'); // channel alert blocked by its own log
+        $slack->shouldReceive('postDm')->once(); // rule DM has no matching rule-scoped log → fires
+
+        (new EvaluateAlertsJob($user->id, $snapshot->id))->handle($slack);
+    }
+
+    public function test_disabled_custom_rule_is_skipped(): void
+    {
+        $user  = $this->makeTeamUser();
+        $group = $user->groups()->first();
+        $this->makeSlack($group);
+        $this->makeAlertSettings($group, ['needs_response_enabled' => false]);
+        $this->makeRule($group, ['enabled' => false]);
+
+        $snapshot = $this->makeSnapshot($user, [$this->ticket('P-1', ['needs-response'])]);
+        $slack    = $this->mockSlack();
+        $slack->shouldNotReceive('postMessage');
+        $slack->shouldNotReceive('postDm');
+
+        (new EvaluateAlertsJob($user->id, $snapshot->id))->handle($slack);
+    }
+
+    public function test_multiple_custom_rules_each_receive_dm(): void
+    {
+        $user  = $this->makeTeamUser();
+        $group = $user->groups()->first();
+        $this->makeSlack($group);
+        $this->makeAlertSettings($group, ['needs_response_enabled' => false]);
+        $this->makeRule($group, ['target_id' => 'U001', 'target_label' => 'Alice']);
+        $this->makeRule($group, ['target_id' => 'U002', 'target_label' => 'Bob']);
+
+        $snapshot = $this->makeSnapshot($user, [$this->ticket('P-1', ['needs-response'])]);
+        $slack    = $this->mockSlack();
+        $slack->shouldNotReceive('postMessage');
+        $slack->shouldReceive('postDm')->twice();
 
         (new EvaluateAlertsJob($user->id, $snapshot->id))->handle($slack);
 

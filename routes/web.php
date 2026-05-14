@@ -97,8 +97,13 @@ Route::prefix('console')->name('console.')->group(function () {
             Route::post('/integrations/channel',    [\App\Http\Controllers\Console\Admin\IntegrationsController::class, 'saveChannel'])->name('integrations.channel');
             Route::post('/integrations/test',       [\App\Http\Controllers\Console\Admin\IntegrationsController::class, 'sendTest'])->name('integrations.test');
             Route::delete('/integrations',          [\App\Http\Controllers\Console\Admin\IntegrationsController::class, 'disconnect'])->name('integrations.disconnect');
-            Route::get('/alerts',                   [\App\Http\Controllers\Console\Admin\AlertsController::class, 'index'])->name('alerts');
-            Route::post('/alerts',                  [\App\Http\Controllers\Console\Admin\AlertsController::class, 'save'])->name('alerts.save');
+            Route::get('/alerts',                         [\App\Http\Controllers\Console\Admin\AlertsController::class, 'index'])->name('alerts');
+            Route::patch('/alerts/needs-response',        [\App\Http\Controllers\Console\Admin\AlertsController::class, 'saveNeedsResponse'])->name('alerts.needs-response');
+            Route::patch('/alerts/aging',                 [\App\Http\Controllers\Console\Admin\AlertsController::class, 'saveAging'])->name('alerts.aging');
+            Route::get('/alerts/members',                 [\App\Http\Controllers\Console\Admin\AlertsController::class, 'fetchMembers'])->name('alerts.members');
+            Route::post('/alerts/rules',                  [\App\Http\Controllers\Console\Admin\AlertsController::class, 'storeRule'])->name('alerts.rules.store');
+            Route::patch('/alerts/rules/{rule}',          [\App\Http\Controllers\Console\Admin\AlertsController::class, 'toggleRule'])->name('alerts.rules.toggle');
+            Route::delete('/alerts/rules/{rule}',         [\App\Http\Controllers\Console\Admin\AlertsController::class, 'destroyRule'])->name('alerts.rules.destroy');
         });
 
         // Slack OAuth redirect — requires auth to know who's initiating the flow
@@ -157,8 +162,13 @@ Route::prefix('console')->name('console.')->group(function () {
             Route::post('/integrations/test',    [\App\Http\Controllers\Console\Admin\IntegrationsController::class, 'sendTest'])->name('integrations.test');
             Route::delete('/integrations',       [\App\Http\Controllers\Console\Admin\IntegrationsController::class, 'disconnect'])->name('integrations.disconnect');
             // Alert settings — owner manages on behalf of any group via ?group_id=X
-            Route::get('/alerts',                [\App\Http\Controllers\Console\Admin\AlertsController::class, 'index'])->name('alerts');
-            Route::post('/alerts',               [\App\Http\Controllers\Console\Admin\AlertsController::class, 'save'])->name('alerts.save');
+            Route::get('/alerts',                         [\App\Http\Controllers\Console\Admin\AlertsController::class, 'index'])->name('alerts');
+            Route::patch('/alerts/needs-response',        [\App\Http\Controllers\Console\Admin\AlertsController::class, 'saveNeedsResponse'])->name('alerts.needs-response');
+            Route::patch('/alerts/aging',                 [\App\Http\Controllers\Console\Admin\AlertsController::class, 'saveAging'])->name('alerts.aging');
+            Route::get('/alerts/members',                 [\App\Http\Controllers\Console\Admin\AlertsController::class, 'fetchMembers'])->name('alerts.members');
+            Route::post('/alerts/rules',                  [\App\Http\Controllers\Console\Admin\AlertsController::class, 'storeRule'])->name('alerts.rules.store');
+            Route::patch('/alerts/rules/{rule}',          [\App\Http\Controllers\Console\Admin\AlertsController::class, 'toggleRule'])->name('alerts.rules.toggle');
+            Route::delete('/alerts/rules/{rule}',         [\App\Http\Controllers\Console\Admin\AlertsController::class, 'destroyRule'])->name('alerts.rules.destroy');
         });
     });
 });

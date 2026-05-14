@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Models\AlertSetting;
+use App\Models\CustomAlertRule;
 use App\Models\SentAlertLog;
 use App\Models\SlackIntegration;
 use App\Models\TriageSnapshot;
@@ -20,11 +21,6 @@ class EvaluateAlertsJob implements ShouldQueue
 
     public int $tries = 3;
     public array $backoff = [10, 60, 300];
-
-    private const COOLDOWN_HOURS = [
-        'needs_response' => 4,
-        'aging'          => 24,
-    ];
 
     private const FLAG_TO_TYPE = [
         'needs-response' => 'needs_response',
@@ -68,36 +64,68 @@ class EvaluateAlertsJob implements ShouldQueue
             return;
         }
 
+        $rules = CustomAlertRule::where('group_id', $group->id)->where('enabled', true)->get();
+
         foreach ($snapshot->tickets as $ticket) {
+            $key = $ticket['key'] ?? null;
+            if (! $key) {
+                continue;
+            }
+
             foreach ($ticket['flags'] ?? [] as $flag) {
                 $type = self::FLAG_TO_TYPE[$flag] ?? null;
-                if (! $type || ! $this->isEnabled($settings, $type)) {
+                if (! $type) {
                     continue;
                 }
 
-                $key = $ticket['key'] ?? null;
-                if (! $key) {
-                    continue;
+                $cooldown = $this->cooldownHours($settings, $type);
+
+                // Channel alert
+                if ($this->isEnabled($settings, $type)) {
+                    if (! SentAlertLog::recentlySent($group->id, $type, $key, $cooldown)) {
+                        $slack->postMessage(
+                            $integration->bot_token,
+                            $integration->channel_id,
+                            $this->formatMessage($type, $ticket),
+                        );
+                        SentAlertLog::create([
+                            'group_id'     => $group->id,
+                            'alert_type'   => $type,
+                            'ticket_key'   => $key,
+                            'triggered_at' => now(),
+                        ]);
+                    }
                 }
 
-                if (SentAlertLog::recentlySent($group->id, $type, $key, self::COOLDOWN_HOURS[$type])) {
-                    continue;
+                // Custom rule DMs
+                foreach ($rules->where('alert_type', $type) as $rule) {
+                    if (SentAlertLog::recentlySent($group->id, $type, $key, $cooldown, $rule->id)) {
+                        continue;
+                    }
+                    $slack->postDm(
+                        $integration->bot_token,
+                        $rule->target_id,
+                        $this->formatMessage($type, $ticket),
+                    );
+                    SentAlertLog::create([
+                        'group_id'     => $group->id,
+                        'alert_type'   => $type,
+                        'ticket_key'   => $key,
+                        'rule_id'      => $rule->id,
+                        'triggered_at' => now(),
+                    ]);
                 }
-
-                $slack->postMessage(
-                    $integration->bot_token,
-                    $integration->channel_id,
-                    $this->formatMessage($type, $ticket),
-                );
-
-                SentAlertLog::create([
-                    'group_id'     => $group->id,
-                    'alert_type'   => $type,
-                    'ticket_key'   => $key,
-                    'triggered_at' => now(),
-                ]);
             }
         }
+    }
+
+    private function cooldownHours(AlertSetting $settings, string $type): int
+    {
+        return match ($type) {
+            'needs_response' => $settings->needs_response_cooldown_hours,
+            'aging'          => $settings->aging_cooldown_hours,
+            default          => 4,
+        };
     }
 
     private function isEnabled(AlertSetting $settings, string $type): bool

@@ -9,7 +9,7 @@ class SentAlertLog extends Model
 {
     public $timestamps = false;
 
-    protected $fillable = ['group_id', 'alert_type', 'ticket_key', 'triggered_at'];
+    protected $fillable = ['group_id', 'alert_type', 'ticket_key', 'triggered_at', 'rule_id'];
 
     protected function casts(): array
     {
@@ -21,11 +21,17 @@ class SentAlertLog extends Model
         return $this->belongsTo(Group::class);
     }
 
-    public static function recentlySent(int $groupId, string $alertType, string $ticketKey, int $cooldownHours): bool
-    {
+    public static function recentlySent(
+        int $groupId,
+        string $alertType,
+        string $ticketKey,
+        int $cooldownHours,
+        ?int $ruleId = null,
+    ): bool {
         return self::where('group_id', $groupId)
             ->where('alert_type', $alertType)
             ->where('ticket_key', $ticketKey)
+            ->where('rule_id', $ruleId)
             ->where('triggered_at', '>=', now()->subHours($cooldownHours))
             ->exists();
     }

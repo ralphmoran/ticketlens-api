@@ -164,10 +164,22 @@ class IntegrationsControllerTest extends TestCase
 
     // --- channels() mocks Slack API ---
 
+    public function test_index_connect_url_is_local_redirect_not_slack_url(): void
+    {
+        $manager = $this->makeManager();
+
+        $response = $this->actingAs($manager)->get('/console/admin/integrations');
+
+        $response->assertInertia(fn ($page) => $page
+            ->where('connect_url', '/console/slack/redirect?group_id=' . $manager->ownedGroup->id)
+        );
+    }
+
+    // --- channels() mocks Slack API ---
+
     public function test_channels_endpoint_returns_channel_list(): void
     {
         $this->mock(SlackService::class, function ($mock) {
-            $mock->shouldReceive('buildAuthUrl')->andReturn('https://slack.com/oauth');
             $mock->shouldReceive('fetchChannels')->andReturn([
                 ['id' => 'C001', 'name' => 'general', 'is_private' => false],
                 ['id' => 'C002', 'name' => 'alerts',  'is_private' => false],
@@ -197,7 +209,6 @@ class IntegrationsControllerTest extends TestCase
     public function test_manager_can_send_test_message_to_configured_channel(): void
     {
         $this->mock(SlackService::class, function ($mock) {
-            $mock->shouldReceive('buildAuthUrl')->andReturn('https://slack.com/oauth');
             $mock->shouldReceive('postMessage')
                 ->once()
                 ->with('xoxb-test', 'C001', \Mockery::type('string'));
@@ -225,7 +236,6 @@ class IntegrationsControllerTest extends TestCase
     public function test_send_test_returns_502_when_slack_errors(): void
     {
         $this->mock(SlackService::class, function ($mock) {
-            $mock->shouldReceive('buildAuthUrl')->andReturn('https://slack.com/oauth');
             $mock->shouldReceive('postMessage')
                 ->once()
                 ->andThrow(new \RuntimeException('channel_not_found'));
@@ -281,7 +291,6 @@ class IntegrationsControllerTest extends TestCase
     public function test_owner_can_send_test_message_for_any_group(): void
     {
         $this->mock(SlackService::class, function ($mock) {
-            $mock->shouldReceive('buildAuthUrl')->andReturn('https://slack.com/oauth');
             $mock->shouldReceive('postMessage')
                 ->once()
                 ->with('xoxb-client', 'C999', \Mockery::type('string'));

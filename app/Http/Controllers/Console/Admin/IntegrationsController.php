@@ -32,7 +32,7 @@ class IntegrationsController extends Controller
                 'channel_name'   => $integration->channel_name,
             ] : null,
             'connect_url' => $group
-                ? $this->slack->buildAuthUrl($group->id, $request->user()->id, (bool) $request->user()->is_owner)
+                ? '/console/slack/redirect?group_id=' . $group->id
                 : null,
         ]);
     }

@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { router } from '@inertiajs/vue3'
 import ConsoleLayout from '@/Layouts/ConsoleLayout.vue'
 import TlIcon from '@/components/TlIcon.vue'
@@ -23,6 +23,20 @@ const savingChannel    = ref(false)
 const disconnecting    = ref(false)
 const testStatus       = ref(null)   // null | 'sending' | 'ok' | 'error'
 const testError        = ref(null)
+
+const SLACK_ERRORS = {
+    not_in_channel:    "The TicketLens app isn't in this channel. Invite it by typing /invite @TicketLens in the channel.",
+    channel_not_found: 'Channel not found — it may have been deleted or archived.',
+    is_archived:       'This channel is archived.',
+    rate_limited:      'Slack rate limit hit — wait a moment and try again.',
+    invalid_auth:      'Bot token is invalid — reconnect Slack to refresh it.',
+    token_revoked:     'Bot token was revoked — reconnect Slack.',
+    missing_scope:     'The app is missing a required Slack permission. Reconnect Slack to re-authorize.',
+}
+
+const friendlyTestError = computed(() =>
+    SLACK_ERRORS[testError.value] ?? testError.value ?? 'Failed to send test message.'
+)
 
 async function fetchChannels() {
     fetchingChannels.value = true
@@ -60,7 +74,7 @@ function saveChannel() {
         channel_id:   selectedChannel.value.id,
         channel_name: selectedChannel.value.name,
     }, {
-        onFinish: () => { savingChannel.value = false; channels.value = [] },
+        onFinish: () => { savingChannel.value = false },
     })
 }
 
@@ -167,10 +181,19 @@ function disconnect() {
                                 {{ testStatus === 'sending' ? 'Sending…' : 'Test connection' }}
                             </button>
                             <TlIcon v-if="testStatus === 'ok'" name="check-circle" class="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                            <TlIcon v-if="testStatus === 'error'" name="x-circle" class="w-3.5 h-3.5 text-red-400 shrink-0 cursor-help" :title="testError" />
+                            <TlIcon v-if="testStatus === 'error'" name="x-circle" class="w-3.5 h-3.5 text-red-400 shrink-0" />
                         </dd>
                     </div>
                 </dl>
+
+                <div v-if="testStatus === 'ok'" class="flex items-center gap-1.5 text-xs text-emerald-400">
+                    <TlIcon name="check-circle" class="w-3.5 h-3.5 shrink-0" />
+                    Message sent successfully.
+                </div>
+                <div v-if="testStatus === 'error'" class="flex items-start gap-1.5 text-xs text-red-400 bg-red-900/20 border border-red-800/40 rounded-md p-3">
+                    <TlIcon name="x-circle" class="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                    <span>{{ friendlyTestError }}</span>
+                </div>
 
                 <!-- Channel picker -->
                 <div class="space-y-3">

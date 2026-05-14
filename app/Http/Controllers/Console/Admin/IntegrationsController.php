@@ -69,7 +69,7 @@ class IntegrationsController extends Controller
                 'channel_name' => $validated['channel_name'],
             ]);
 
-        return back();
+        return $this->integrationsRedirect($request, $group);
     }
 
     public function sendTest(Request $request): JsonResponse
@@ -100,7 +100,21 @@ class IntegrationsController extends Controller
 
         SlackIntegration::where('group_id', $group->id)->delete();
 
-        return back();
+        return $this->integrationsRedirect($request, $group);
+    }
+
+    /**
+     * Redirect to the integrations page after a mutating action.
+     * Uses an explicit URL to avoid back() picking up the OAuth popup close page
+     * from the session (the popup shares the same PHP session as the parent window).
+     */
+    private function integrationsRedirect(Request $request, Group $group): RedirectResponse
+    {
+        $user = $request->user();
+
+        return $user->is_owner
+            ? redirect('/console/owner/integrations?group_id=' . $group->id)
+            : redirect('/console/admin/integrations');
     }
 
     /**

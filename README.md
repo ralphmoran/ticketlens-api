@@ -94,6 +94,7 @@ All console routes require session authentication. The owner panel requires `is_
 /console/admin/process-metrics      Process metrics (team manager)
 /console/admin/seats                Seat management (team manager)
 /console/admin/integrations         Slack integration — connect workspace, select channel, test (team manager / owner)
+/console/admin/alerts               Alert rules — needs-response + aging thresholds, custom Slack DM rules (team manager / owner)
 
 # Owner panel
 /console/owner/dashboard            Owner overview
@@ -182,31 +183,49 @@ Time-limited feature grants let the owner give a user access to a feature outsid
 
 ---
 
-## Slack integration (Feature 36)
+## Slack integration (Features 36–38)
 
-Team managers (and the owner on behalf of any team) can connect a Slack workspace and route alert notifications to a specific channel.
+Team managers (and the owner on behalf of any team) can connect a Slack workspace, route alert notifications to a specific channel, and configure needs-response / aging alert rules.
 
-### Flow
+### OAuth flow
 
 1. Manager visits `/console/admin/integrations` → clicks **Connect to Slack**
-2. Redirected to Slack OAuth; on approval Slack calls back to `/slack/callback` (public route — no session needed, context carried in encrypted state)
-3. Bot token + workspace metadata stored in `slack_integrations` (one row per group)
-4. Manager picks a channel from the bot-visible list; saved to `channel_id` / `channel_name`
-5. **Test connection** button (`POST /console/admin/integrations/test`) posts a verification message to confirm the bot has channel access
+2. A popup window opens (`useOAuthPopup` composable) so the manager stays in the console
+3. Slack OAuth completes in the popup; the callback (`/console/slack/callback`, public — no session needed, context in encrypted state) redirects the popup to `/console/oauth-close` (same origin as the opener) so `window.close()` works cross-origin
+4. The popup posts a `postMessage` to the parent, which reloads the `integration` prop via Inertia partial reload — no full page navigation
+5. Bot token + workspace metadata stored in `slack_integrations` (one row per group, bot token encrypted at rest)
+6. Manager picks a channel from the bot-visible list; saved to `channel_id` / `channel_name`
+7. **Test connection** button (`POST /console/admin/integrations/test`) posts a verification message; on failure an inline error banner explains the cause with actionable text (e.g. "invite @TicketLens to the channel")
+
+> **Important:** The redirect actions (`saveChannel`, `disconnect`) use explicit redirects instead of `back()`. Laravel's `back()` reads from the PHP session's previous URL, which the popup window can poison by visiting `/console/oauth-close` in the shared session — explicit redirects prevent the oauth-popup Blade view from appearing in an Inertia modal.
+
+### Alert rules (Features 37–38)
+
+Configured at `/console/admin/alerts`:
+
+- **Needs-response alert** — fires when a triage snapshot has unacknowledged tickets; configurable cooldown (default 4 h)
+- **Aging ticket alert** — fires when tickets pass the aging threshold; configurable cooldown (default 24 h)
+- **Custom rules** — per-rule DMs to individual Slack workspace members; scoped cooldown per rule
 
 ### Key files
 
 | File | Purpose |
 |------|---------|
-| `app/Services/SlackService.php` | `buildAuthUrl`, `exchangeCode`, `fetchChannels`, `postMessage` |
+| `app/Services/SlackService.php` | `buildAuthUrl`, `exchangeCode`, `fetchChannels`, `postMessage`, `postDm`, `fetchMembers` |
 | `app/Models/SlackIntegration.php` | One row per team group |
-| `app/Http/Controllers/Console/SlackOAuthController.php` | OAuth redirect + stateless callback |
+| `app/Models/AlertSetting.php` | Per-group alert toggles + cooldowns |
+| `app/Models/CustomAlertRule.php` | Per-rule Slack DM configuration |
+| `app/Jobs/EvaluateAlertsJob.php` | Evaluates needs-response + aging flags, fires Slack messages |
+| `app/Http/Controllers/Console/SlackOAuthController.php` | OAuth redirect + stateless callback + popup close redirect |
 | `app/Http/Controllers/Console/Admin/IntegrationsController.php` | index, channels, saveChannel, sendTest, disconnect |
+| `app/Http/Controllers/Console/Admin/AlertsController.php` | Alert settings + custom rule CRUD |
+| `resources/js/composables/useOAuthPopup.js` | Reusable popup OAuth flow with postMessage + poll fallback |
+| `resources/views/oauth-popup.blade.php` | Popup close page — sends postMessage then calls `window.close()` |
 | `database/migrations/*_create_slack_integrations_table.php` | Schema |
 
 ### Slack app scopes required
 
-`channels:read`, `groups:read`, `chat:write`
+`channels:read`, `groups:read`, `chat:write`, `users:read`, `im:write`
 
 ### Local setup
 
@@ -215,10 +234,10 @@ Add to `.env`:
 ```env
 SLACK_CLIENT_ID=your_client_id
 SLACK_CLIENT_SECRET=your_client_secret
-SLACK_REDIRECT_URI=https://your-ngrok-url.ngrok-free.app/slack/callback
+SLACK_REDIRECT_URI=https://your-ngrok-url.ngrok-free.app/console/slack/callback
 ```
 
-> The bot must be **invited to the target channel** (`/invite @YourApp` in Slack) before `postMessage` will succeed.
+> The bot must be **invited to the target channel** (`/invite @YourApp` in Slack) before `postMessage` will succeed. The Test connection button will show an actionable error message if the bot lacks channel access.
 
 ---
 

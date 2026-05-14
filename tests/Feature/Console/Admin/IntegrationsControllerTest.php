@@ -162,6 +162,52 @@ class IntegrationsControllerTest extends TestCase
         ]);
     }
 
+    // --- Explicit redirect after mutating actions (guards against back() session poisoning) ---
+
+    public function test_save_channel_redirects_to_integrations_not_back(): void
+    {
+        $manager = $this->makeManager();
+        $group   = $manager->ownedGroup;
+
+        SlackIntegration::create([
+            'group_id'       => $group->id,
+            'connected_by'   => $manager->id,
+            'workspace_id'   => 'T123',
+            'workspace_name' => 'Acme',
+            'bot_token'      => 'xoxb-test',
+        ]);
+
+        // Simulate session poisoning: popup visited /console/oauth-close last
+        session()->setPreviousUrl('/console/oauth-close?integration=slack&status=success');
+
+        $this->actingAs($manager)
+            ->post('/console/admin/integrations/channel', [
+                'channel_id'   => 'C001',
+                'channel_name' => 'general',
+            ])
+            ->assertRedirect('/console/admin/integrations');
+    }
+
+    public function test_disconnect_redirects_to_integrations_not_back(): void
+    {
+        $manager = $this->makeManager();
+        $group   = $manager->ownedGroup;
+
+        SlackIntegration::create([
+            'group_id'       => $group->id,
+            'connected_by'   => $manager->id,
+            'workspace_id'   => 'T123',
+            'workspace_name' => 'Acme',
+            'bot_token'      => 'xoxb-test',
+        ]);
+
+        session()->setPreviousUrl('/console/oauth-close?integration=slack&status=success');
+
+        $this->actingAs($manager)
+            ->delete('/console/admin/integrations')
+            ->assertRedirect('/console/admin/integrations');
+    }
+
     // --- channels() mocks Slack API ---
 
     public function test_index_connect_url_is_local_redirect_not_slack_url(): void

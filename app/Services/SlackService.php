@@ -99,49 +99,38 @@ class SlackService
     }
 
     /**
-     * Fetch public + private channels the bot can see.
+     * Fetch public + private channels the bot can see (follows cursor pagination).
      *
      * @return list<array{id: string, name: string, is_private: bool}>
      * @throws \RuntimeException on Slack API error
      */
     public function fetchChannels(string $botToken): array
     {
-        $response = Http::withToken($botToken)->get(self::CHANNELS_URL, [
+        $raw = $this->paginatedGet($botToken, self::CHANNELS_URL, [
             'types'            => 'public_channel,private_channel',
             'exclude_archived' => true,
             'limit'            => 200,
-        ]);
-
-        $body = $response->json();
-
-        if (! ($body['ok'] ?? false)) {
-            throw new \RuntimeException('Slack channels fetch failed: ' . ($body['error'] ?? 'unknown'));
-        }
+        ], 'channels');
 
         return array_map(fn ($ch) => [
             'id'         => $ch['id'],
             'name'       => $ch['name'],
             'is_private' => $ch['is_private'] ?? false,
-        ], $body['channels'] ?? []);
+        ], $raw);
     }
 
     /**
-     * Fetch active, non-bot workspace members.
+     * Fetch active, non-bot workspace members (follows cursor pagination).
      *
      * @return list<array{id: string, name: string, real_name: string, avatar: string|null}>
      * @throws \RuntimeException on Slack API error
      */
     public function fetchMembers(string $botToken): array
     {
-        $response = Http::withToken($botToken)->get(self::MEMBERS_URL, ['limit' => 200]);
-        $body     = $response->json();
+        $raw = $this->paginatedGet($botToken, self::MEMBERS_URL, ['limit' => 200], 'members');
 
-        if (! ($body['ok'] ?? false)) {
-            throw new \RuntimeException('Slack members fetch failed: ' . ($body['error'] ?? 'unknown'));
-        }
-
-        $members = array_filter(
-            $body['members'] ?? [],
+        $raw = array_filter(
+            $raw,
             fn ($m) => ! ($m['is_bot'] ?? false)
                     && ! ($m['deleted'] ?? false)
                     && $m['id'] !== 'USLACKBOT'
@@ -152,7 +141,38 @@ class SlackService
             'name'      => ($m['profile']['display_name'] ?? '') ?: ($m['profile']['real_name'] ?? $m['name'] ?? ''),
             'real_name' => $m['profile']['real_name'] ?? '',
             'avatar'    => $m['profile']['image_48'] ?? null,
-        ], $members));
+        ], $raw));
+    }
+
+    /**
+     * Follow Slack's cursor-based pagination and accumulate all items from $key.
+     *
+     * @throws \RuntimeException on Slack API error
+     */
+    private function paginatedGet(string $token, string $url, array $params, string $key): array
+    {
+        $results = [];
+        $cursor  = null;
+
+        do {
+            if ($cursor) {
+                $params['cursor'] = $cursor;
+            }
+
+            $body = Http::withToken($token)->get($url, $params)->json();
+
+            if (! ($body['ok'] ?? false)) {
+                throw new \RuntimeException('Slack API error: ' . ($body['error'] ?? 'unknown'));
+            }
+
+            foreach ($body[$key] ?? [] as $item) {
+                $results[] = $item;
+            }
+
+            $cursor = $body['response_metadata']['next_cursor'] ?? null;
+        } while ($cursor);
+
+        return $results;
     }
 
     /**

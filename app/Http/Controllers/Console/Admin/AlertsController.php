@@ -12,6 +12,7 @@ use App\Services\SlackService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -22,9 +23,10 @@ class AlertsController extends Controller
     {
         $group    = $this->resolveGroup($request);
         $settings = $group ? AlertSetting::where('group_id', $group->id)->first() : null;
-        $rules    = $group
-            ? CustomAlertRule::where('group_id', $group->id)->orderBy('created_at')->get()
-                ->map(fn ($r) => [
+        $rules = $group
+            ? CustomAlertRule::where('group_id', $group->id)->orderBy('created_at')
+                ->paginate(25, ['*'], 'rules_page')
+                ->through(fn ($r) => [
                     'id'           => $r->id,
                     'alert_type'   => $r->alert_type,
                     'integration'  => $r->integration,
@@ -32,11 +34,12 @@ class AlertsController extends Controller
                     'target_label' => $r->target_label,
                     'enabled'      => $r->enabled,
                 ])
-            : [];
+            : new LengthAwarePaginator([], 0, 25, 1);
 
         $digestSchedules = $group
-            ? SlackDigestSchedule::where('group_id', $group->id)->orderBy('day_of_week')->orderBy('deliver_at')->get()
-                ->map(fn ($s) => [
+            ? SlackDigestSchedule::where('group_id', $group->id)->orderBy('day_of_week')->orderBy('deliver_at')
+                ->paginate(25, ['*'], 'schedules_page')
+                ->through(fn ($s) => [
                     'id'               => $s->id,
                     'day_of_week'      => $s->day_of_week,
                     'deliver_at'       => $s->deliver_at,
@@ -47,7 +50,7 @@ class AlertsController extends Controller
                     'active'           => $s->active,
                     'last_delivered_at'=> $s->last_delivered_at?->toIso8601String(),
                 ])
-            : [];
+            : new LengthAwarePaginator([], 0, 25, 1);
 
         $integration = $group
             ? SlackIntegration::where('group_id', $group->id)->whereNotNull('channel_id')->first()

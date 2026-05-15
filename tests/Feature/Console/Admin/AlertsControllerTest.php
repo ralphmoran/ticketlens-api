@@ -140,9 +140,9 @@ class AlertsControllerTest extends TestCase
 
         $this->actingAs($manager)->get('/console/admin/alerts')
             ->assertInertia(fn ($page) => $page
-                ->has('rules', 1)
-                ->where('rules.0.alert_type', 'aging')
-                ->where('rules.0.target_id', 'U123')
+                ->has('rules.data', 1)
+                ->where('rules.data.0.alert_type', 'aging')
+                ->where('rules.data.0.target_id', 'U123')
             );
     }
 
@@ -431,8 +431,8 @@ class AlertsControllerTest extends TestCase
 
         $this->actingAs($manager)->get('/console/admin/alerts')
             ->assertInertia(fn ($page) => $page
-                ->has('digestSchedules', 1)
-                ->where('digestSchedules.0.deliver_at', '09:00')
+                ->has('digestSchedules.data', 1)
+                ->where('digestSchedules.data.0.deliver_at', '09:00')
             );
     }
 

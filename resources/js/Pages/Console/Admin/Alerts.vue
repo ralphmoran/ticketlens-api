@@ -14,8 +14,8 @@ const props = defineProps({
         aging_enabled: false,          aging_cooldown_hours: 24,
         compliance_gap_enabled: false, compliance_gap_cooldown_hours: 24,
     }) },
-    rules:           { type: Array,   default: () => [] },
-    digestSchedules: { type: Array,   default: () => [] },
+    rules:           { type: Object, default: () => ({ data: [], current_page: 1, last_page: 1, total: 0 }) },
+    digestSchedules: { type: Object, default: () => ({ data: [], current_page: 1, last_page: 1, total: 0 }) },
 })
 
 // ── Standard alert state ──────────────────────────────────────────────────────
@@ -112,11 +112,13 @@ const savingChannel         = ref(false)
 
 watch(() => props.slackChannel, v => { localChannel.value = v })
 
-const filteredAlertChannels = computed(() => {
+const _allFilteredAlertChannels = computed(() => {
     if (! alertChannelSearch.value) return alertChannels.value
     const q = alertChannelSearch.value.toLowerCase()
     return alertChannels.value.filter(c => c.name.toLowerCase().includes(q))
 })
+const filteredAlertChannels = computed(() => _allFilteredAlertChannels.value.slice(0, 50))
+const alertChannelsOverflow = computed(() => Math.max(0, _allFilteredAlertChannels.value.length - 50))
 
 async function openChannelPicker() {
     showChannelPicker.value  = true
@@ -308,11 +310,13 @@ const channelsError       = ref(null)
 const channelSearch       = ref('')
 const selectedChannelIds  = ref([])
 
-const filteredChannels = computed(() => {
+const _allFilteredChannels = computed(() => {
     if (! channelSearch.value) return channels.value
     const q = channelSearch.value.toLowerCase()
     return channels.value.filter(c => c.name.toLowerCase().includes(q))
 })
+const filteredChannels  = computed(() => _allFilteredChannels.value.slice(0, 50))
+const channelsOverflow  = computed(() => Math.max(0, _allFilteredChannels.value.length - 50))
 
 const selectedChannelCount = computed(() => selectedChannelIds.value.length)
 
@@ -449,6 +453,16 @@ function destroyDigestSchedule(schedule) {
 function formatDigestSchedule(s) {
     return `${DAY_NAMES[s.day_of_week]} at ${s.deliver_at} (${s.timezone})`
 }
+
+// ── Pagination ────────────────────────────────────────────────────────────────
+
+function goRulesPage(page) {
+    router.get(alertUrl('/alerts'), { rules_page: page }, { preserveState: true, preserveScroll: true })
+}
+
+function goSchedulesPage(page) {
+    router.get(alertUrl('/alerts'), { schedules_page: page }, { preserveState: true, preserveScroll: true })
+}
 </script>
 
 <template>
@@ -533,6 +547,9 @@ function formatDigestSchedule(s) {
                                     </button>
                                     <p v-if="filteredAlertChannels.length === 0" class="px-3 py-2 text-xs text-slate-500 text-center">
                                         No channels match "{{ alertChannelSearch }}"
+                                    </p>
+                                    <p v-else-if="alertChannelsOverflow > 0" class="px-3 py-1.5 text-xs text-slate-500 text-center border-t border-slate-700/50">
+                                        {{ alertChannelsOverflow }} more — type to narrow
                                     </p>
                                 </div>
                             </div>
@@ -731,9 +748,9 @@ function formatDigestSchedule(s) {
                 </div>
 
                 <!-- Existing rules list -->
-                <div v-if="rules.length" class="divide-y divide-slate-700/50">
+                <div v-if="rules.data.length" class="divide-y divide-slate-700/50">
                     <div
-                        v-for="rule in rules"
+                        v-for="rule in rules.data"
                         :key="rule.id"
                         class="flex items-center gap-3 py-3"
                     >
@@ -780,7 +797,25 @@ function formatDigestSchedule(s) {
                         </button>
                     </div>
                 </div>
-                <p v-else-if="!showAddForm" class="text-xs text-slate-500 py-2">
+
+                <!-- Rules pagination -->
+                <div v-if="rules.last_page > 1" class="flex items-center justify-between pt-3 border-t border-slate-700/50">
+                    <button
+                        type="button"
+                        :disabled="rules.current_page === 1"
+                        @click="goRulesPage(rules.current_page - 1)"
+                        class="tl-btn tl-btn--ghost text-xs disabled:opacity-40"
+                    >← Prev</button>
+                    <span class="text-xs text-slate-400">Page {{ rules.current_page }} of {{ rules.last_page }}</span>
+                    <button
+                        type="button"
+                        :disabled="rules.current_page === rules.last_page"
+                        @click="goRulesPage(rules.current_page + 1)"
+                        class="tl-btn tl-btn--ghost text-xs disabled:opacity-40"
+                    >Next →</button>
+                </div>
+
+                <p v-else-if="!showAddForm && !rules.data.length" class="text-xs text-slate-500 py-2">
                     No custom alerts yet. Add one to DM team members directly when their tickets flag.
                 </p>
 
@@ -916,9 +951,9 @@ function formatDigestSchedule(s) {
                 </div>
 
                 <!-- Existing schedules list -->
-                <div v-if="digestSchedules.length" class="divide-y divide-slate-700/50">
+                <div v-if="digestSchedules.data.length" class="divide-y divide-slate-700/50">
                     <div
-                        v-for="s in digestSchedules"
+                        v-for="s in digestSchedules.data"
                         :key="s.id"
                         class="flex items-center gap-3 py-3"
                     >
@@ -963,7 +998,25 @@ function formatDigestSchedule(s) {
                         </button>
                     </div>
                 </div>
-                <p v-else-if="!showDigestForm" class="text-xs text-slate-500 py-2">
+
+                <!-- Schedules pagination -->
+                <div v-if="digestSchedules.last_page > 1" class="flex items-center justify-between pt-3 border-t border-slate-700/50">
+                    <button
+                        type="button"
+                        :disabled="digestSchedules.current_page === 1"
+                        @click="goSchedulesPage(digestSchedules.current_page - 1)"
+                        class="tl-btn tl-btn--ghost text-xs disabled:opacity-40"
+                    >← Prev</button>
+                    <span class="text-xs text-slate-400">Page {{ digestSchedules.current_page }} of {{ digestSchedules.last_page }}</span>
+                    <button
+                        type="button"
+                        :disabled="digestSchedules.current_page === digestSchedules.last_page"
+                        @click="goSchedulesPage(digestSchedules.current_page + 1)"
+                        class="tl-btn tl-btn--ghost text-xs disabled:opacity-40"
+                    >Next →</button>
+                </div>
+
+                <p v-else-if="!showDigestForm && !digestSchedules.data.length" class="text-xs text-slate-500 py-2">
                     No digest schedules yet. Add one to receive a weekly summary in Slack.
                 </p>
 
@@ -1041,6 +1094,9 @@ function formatDigestSchedule(s) {
                                 </div>
                                 <p v-if="filteredChannels.length === 0" class="px-3 py-3 text-xs text-slate-500 text-center">
                                     No channels match "{{ channelSearch }}"
+                                </p>
+                                <p v-else-if="channelsOverflow > 0" class="px-3 py-1.5 text-xs text-slate-500 text-center border-t border-slate-700/50">
+                                    {{ channelsOverflow }} more — type to narrow
                                 </p>
                             </div>
                         </div>

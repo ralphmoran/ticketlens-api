@@ -64,9 +64,10 @@ const navGroups = computed(() => [
         label: 'Overview',
         requiresTeamManager: false,
         items: [
-            { label: 'Dashboard',  href: '/console/dashboard', permission: null,                      icon: 'dashboard' },
-            { label: 'Analytics',  href: '/console/analytics', permission: null,                      icon: 'chart-bar' },
-            { label: 'Settings',   href: '/console/account',   permission: null,                      icon: 'settings' },
+            { label: 'Dashboard',   href: '/console/dashboard',   permission: null, icon: 'dashboard' },
+            { label: 'Analytics',   href: '/console/analytics',  permission: null, icon: 'chart-bar' },
+            { label: 'Connections', href: '/console/connections', permission: null, icon: 'link' },
+            { label: 'Settings',    href: '/console/account',     permission: null, icon: 'settings' },
         ]
     },
     {

@@ -7,6 +7,7 @@ use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -69,6 +70,16 @@ class User extends Authenticatable
     public function license(): HasOne
     {
         return $this->hasOne(License::class)->latestOfMany();
+    }
+
+    public function cliTokens(): HasMany
+    {
+        return $this->hasMany(CliToken::class);
+    }
+
+    public function trackerProfiles(): HasMany
+    {
+        return $this->hasMany(TrackerProfile::class);
     }
 
     /**

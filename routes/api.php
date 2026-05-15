@@ -18,6 +18,14 @@ RateLimiter::for('digest',      fn(Request $r) => Limit::perMinute(20)->by($r->b
 RateLimiter::for('compliance',  fn(Request $r) => Limit::perMinute(10)->by($r->bearerToken() ?: $r->ip()));
 RateLimiter::for('triage',      fn(Request $r) => Limit::perMinute(30)->by($r->bearerToken() ?: $r->ip()));
 
+// CLI sync — auth via CLI token (all tiers, no license required)
+RateLimiter::for('profiles', fn(Request $r) => Limit::perMinute(30)->by($r->bearerToken() ?: $r->ip()));
+Route::middleware(['throttle:api-global', 'auth.cli'])->group(function () {
+    Route::get('/v1/profiles', \App\Http\Controllers\Api\ProfileSyncController::class)
+        ->middleware('throttle:profiles')
+        ->name('api.profiles');
+});
+
 Route::middleware(['throttle:api-global', 'auth.license'])->group(function () {
     Route::post('/v1/summarize',      [SummarizeController::class, 'handle'])->middleware('throttle:summarize');
     Route::post('/v1/schedule',       [ScheduleController::class, 'store'])->middleware('throttle:schedule');

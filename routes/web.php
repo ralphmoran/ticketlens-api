@@ -115,9 +115,16 @@ Route::prefix('console')->name('console.')->group(function () {
             Route::patch('/alerts/aging',                 [\App\Http\Controllers\Console\Admin\AlertsController::class, 'saveAging'])->name('alerts.aging');
             Route::patch('/alerts/compliance-gap',        [\App\Http\Controllers\Console\Admin\AlertsController::class, 'saveComplianceGap'])->name('alerts.compliance-gap');
             Route::get('/alerts/members',                 [\App\Http\Controllers\Console\Admin\AlertsController::class, 'fetchMembers'])->name('alerts.members');
-            Route::post('/alerts/rules',                  [\App\Http\Controllers\Console\Admin\AlertsController::class, 'storeRule'])->name('alerts.rules.store');
-            Route::patch('/alerts/rules/{rule}',          [\App\Http\Controllers\Console\Admin\AlertsController::class, 'toggleRule'])->name('alerts.rules.toggle');
-            Route::delete('/alerts/rules/{rule}',         [\App\Http\Controllers\Console\Admin\AlertsController::class, 'destroyRule'])->name('alerts.rules.destroy');
+            Route::get('/alerts/channels',                [\App\Http\Controllers\Console\Admin\AlertsController::class, 'fetchChannels'])->name('alerts.channels');
+            Route::post('/alerts/{alertType}/test',       [\App\Http\Controllers\Console\Admin\AlertsController::class, 'testAlert'])->name('alerts.type.test')->where('alertType', 'needs-response|aging|compliance-gap');
+            Route::post('/alerts/rules',                                        [\App\Http\Controllers\Console\Admin\AlertsController::class, 'storeRule'])->name('alerts.rules.store');
+            Route::patch('/alerts/rules/{rule}',                                [\App\Http\Controllers\Console\Admin\AlertsController::class, 'toggleRule'])->name('alerts.rules.toggle');
+            Route::delete('/alerts/rules/{rule}',                               [\App\Http\Controllers\Console\Admin\AlertsController::class, 'destroyRule'])->name('alerts.rules.destroy');
+            Route::post('/alerts/rules/{rule}/test',                            [\App\Http\Controllers\Console\Admin\AlertsController::class, 'testRule'])->name('alerts.rules.test');
+            Route::post('/alerts/digest-schedules',                             [\App\Http\Controllers\Console\Admin\AlertsController::class, 'storeDigestSchedule'])->name('alerts.digest-schedules.store');
+            Route::patch('/alerts/digest-schedules/{digestSchedule}',           [\App\Http\Controllers\Console\Admin\AlertsController::class, 'toggleDigestSchedule'])->name('alerts.digest-schedules.toggle');
+            Route::delete('/alerts/digest-schedules/{digestSchedule}',          [\App\Http\Controllers\Console\Admin\AlertsController::class, 'destroyDigestSchedule'])->name('alerts.digest-schedules.destroy');
+            Route::post('/alerts/digest-schedules/{digestSchedule}/test',       [\App\Http\Controllers\Console\Admin\AlertsController::class, 'testDigestSchedule'])->name('alerts.digest-schedules.test');
         });
 
         // Slack OAuth redirect — requires auth to know who's initiating the flow
@@ -181,9 +188,16 @@ Route::prefix('console')->name('console.')->group(function () {
             Route::patch('/alerts/aging',                 [\App\Http\Controllers\Console\Admin\AlertsController::class, 'saveAging'])->name('alerts.aging');
             Route::patch('/alerts/compliance-gap',        [\App\Http\Controllers\Console\Admin\AlertsController::class, 'saveComplianceGap'])->name('alerts.compliance-gap');
             Route::get('/alerts/members',                 [\App\Http\Controllers\Console\Admin\AlertsController::class, 'fetchMembers'])->name('alerts.members');
-            Route::post('/alerts/rules',                  [\App\Http\Controllers\Console\Admin\AlertsController::class, 'storeRule'])->name('alerts.rules.store');
-            Route::patch('/alerts/rules/{rule}',          [\App\Http\Controllers\Console\Admin\AlertsController::class, 'toggleRule'])->name('alerts.rules.toggle');
-            Route::delete('/alerts/rules/{rule}',         [\App\Http\Controllers\Console\Admin\AlertsController::class, 'destroyRule'])->name('alerts.rules.destroy');
+            Route::get('/alerts/channels',                [\App\Http\Controllers\Console\Admin\AlertsController::class, 'fetchChannels'])->name('alerts.channels');
+            Route::post('/alerts/{alertType}/test',       [\App\Http\Controllers\Console\Admin\AlertsController::class, 'testAlert'])->name('alerts.type.test')->where('alertType', 'needs-response|aging|compliance-gap');
+            Route::post('/alerts/rules',                                        [\App\Http\Controllers\Console\Admin\AlertsController::class, 'storeRule'])->name('alerts.rules.store');
+            Route::patch('/alerts/rules/{rule}',                                [\App\Http\Controllers\Console\Admin\AlertsController::class, 'toggleRule'])->name('alerts.rules.toggle');
+            Route::delete('/alerts/rules/{rule}',                               [\App\Http\Controllers\Console\Admin\AlertsController::class, 'destroyRule'])->name('alerts.rules.destroy');
+            Route::post('/alerts/rules/{rule}/test',                            [\App\Http\Controllers\Console\Admin\AlertsController::class, 'testRule'])->name('alerts.rules.test');
+            Route::post('/alerts/digest-schedules',                             [\App\Http\Controllers\Console\Admin\AlertsController::class, 'storeDigestSchedule'])->name('alerts.digest-schedules.store');
+            Route::patch('/alerts/digest-schedules/{digestSchedule}',           [\App\Http\Controllers\Console\Admin\AlertsController::class, 'toggleDigestSchedule'])->name('alerts.digest-schedules.toggle');
+            Route::delete('/alerts/digest-schedules/{digestSchedule}',          [\App\Http\Controllers\Console\Admin\AlertsController::class, 'destroyDigestSchedule'])->name('alerts.digest-schedules.destroy');
+            Route::post('/alerts/digest-schedules/{digestSchedule}/test',       [\App\Http\Controllers\Console\Admin\AlertsController::class, 'testDigestSchedule'])->name('alerts.digest-schedules.test');
         });
     });
 });

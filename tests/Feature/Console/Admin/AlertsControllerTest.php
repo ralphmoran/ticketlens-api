@@ -6,6 +6,7 @@ use App\Models\AlertSetting;
 use App\Models\CustomAlertRule;
 use App\Models\Group;
 use App\Models\License;
+use App\Models\SlackDigestSchedule;
 use App\Models\SlackIntegration;
 use App\Models\User;
 use App\Services\SlackService;
@@ -409,5 +410,348 @@ class AlertsControllerTest extends TestCase
             'group_id'               => $group->id,
             'compliance_gap_enabled' => true,
         ]);
+    }
+
+    // ── Digest schedules ──────────────────────────────────────────────────────
+
+    public function test_index_returns_digest_schedules_for_group(): void
+    {
+        $manager = $this->makeManager();
+        $group   = $manager->ownedGroup;
+
+        SlackDigestSchedule::create([
+            'group_id'     => $group->id,
+            'day_of_week'  => 1,
+            'deliver_at'   => '09:00',
+            'timezone'     => 'UTC',
+            'target_type'  => 'channel',
+            'target_id'    => 'C001',
+            'target_label' => '#general',
+        ]);
+
+        $this->actingAs($manager)->get('/console/admin/alerts')
+            ->assertInertia(fn ($page) => $page
+                ->has('digestSchedules', 1)
+                ->where('digestSchedules.0.deliver_at', '09:00')
+            );
+    }
+
+    public function test_manager_can_store_digest_schedule(): void
+    {
+        $manager = $this->makeManager();
+
+        $this->actingAs($manager)->post('/console/admin/alerts/digest-schedules', [
+            'day_of_week' => 1,
+            'deliver_at'  => '09:00',
+            'timezone'    => 'America/New_York',
+            'target_type' => 'channel',
+            'targets'     => [['id' => 'C001', 'label' => '#general']],
+        ])->assertRedirect();
+
+        $this->assertDatabaseHas('slack_digest_schedules', [
+            'group_id'     => $manager->ownedGroup->id,
+            'day_of_week'  => 1,
+            'deliver_at'   => '09:00',
+            'timezone'     => 'America/New_York',
+            'target_id'    => 'C001',
+            'target_label' => '#general',
+            'active'       => true,
+        ]);
+    }
+
+    public function test_store_creates_one_row_per_target(): void
+    {
+        $manager = $this->makeManager();
+
+        $this->actingAs($manager)->post('/console/admin/alerts/digest-schedules', [
+            'day_of_week' => 2,
+            'deliver_at'  => '10:00',
+            'timezone'    => 'UTC',
+            'target_type' => 'channel',
+            'targets'     => [
+                ['id' => 'C001', 'label' => '#general'],
+                ['id' => 'C002', 'label' => '#eng'],
+            ],
+        ])->assertRedirect();
+
+        $this->assertDatabaseHas('slack_digest_schedules', ['target_id' => 'C001', 'group_id' => $manager->ownedGroup->id]);
+        $this->assertDatabaseHas('slack_digest_schedules', ['target_id' => 'C002', 'group_id' => $manager->ownedGroup->id]);
+    }
+
+    public function test_store_digest_schedule_validates_required_fields(): void
+    {
+        $manager = $this->makeManager();
+
+        $this->actingAs($manager)->post('/console/admin/alerts/digest-schedules', [])
+            ->assertSessionHasErrors(['day_of_week', 'deliver_at', 'timezone', 'target_type', 'targets']);
+    }
+
+    public function test_store_digest_schedule_validates_day_of_week_range(): void
+    {
+        $manager = $this->makeManager();
+
+        $this->actingAs($manager)->post('/console/admin/alerts/digest-schedules', [
+            'day_of_week' => 7,
+            'deliver_at'  => '09:00',
+            'timezone'    => 'UTC',
+            'target_type' => 'channel',
+            'targets'     => [['id' => 'C001', 'label' => '#general']],
+        ])->assertSessionHasErrors(['day_of_week']);
+    }
+
+    public function test_store_digest_schedule_validates_deliver_at_format(): void
+    {
+        $manager = $this->makeManager();
+
+        $this->actingAs($manager)->post('/console/admin/alerts/digest-schedules', [
+            'day_of_week' => 1,
+            'deliver_at'  => '9am',
+            'timezone'    => 'UTC',
+            'target_type' => 'channel',
+            'targets'     => [['id' => 'C001', 'label' => '#general']],
+        ])->assertSessionHasErrors(['deliver_at']);
+    }
+
+    public function test_manager_can_toggle_digest_schedule(): void
+    {
+        $manager  = $this->makeManager();
+        $schedule = $this->makeDigestSchedule($manager->ownedGroup, ['active' => true]);
+
+        $this->actingAs($manager)
+            ->patch("/console/admin/alerts/digest-schedules/{$schedule->id}", ['active' => false])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('slack_digest_schedules', ['id' => $schedule->id, 'active' => false]);
+    }
+
+    public function test_manager_cannot_toggle_another_groups_schedule(): void
+    {
+        $managerA = $this->makeManager();
+        $managerB = $this->makeManager();
+        $schedule = $this->makeDigestSchedule($managerA->ownedGroup);
+
+        $this->actingAs($managerB)
+            ->patch("/console/admin/alerts/digest-schedules/{$schedule->id}", ['active' => false])
+            ->assertForbidden();
+    }
+
+    public function test_manager_can_delete_digest_schedule(): void
+    {
+        $manager  = $this->makeManager();
+        $schedule = $this->makeDigestSchedule($manager->ownedGroup);
+
+        $this->actingAs($manager)
+            ->delete("/console/admin/alerts/digest-schedules/{$schedule->id}")
+            ->assertRedirect();
+
+        $this->assertDatabaseMissing('slack_digest_schedules', ['id' => $schedule->id]);
+    }
+
+    public function test_manager_cannot_delete_another_groups_schedule(): void
+    {
+        $managerA = $this->makeManager();
+        $managerB = $this->makeManager();
+        $schedule = $this->makeDigestSchedule($managerA->ownedGroup);
+
+        $this->actingAs($managerB)
+            ->delete("/console/admin/alerts/digest-schedules/{$schedule->id}")
+            ->assertForbidden();
+    }
+
+    public function test_owner_can_store_digest_schedule_for_any_group(): void
+    {
+        $owner   = $this->makeOwner();
+        $manager = $this->makeManager();
+        $group   = $manager->ownedGroup;
+
+        $this->actingAs($owner)->post("/console/owner/alerts/digest-schedules?group_id={$group->id}", [
+            'day_of_week' => 5,
+            'deliver_at'  => '08:00',
+            'timezone'    => 'Europe/London',
+            'target_type' => 'user',
+            'targets'     => [['id' => 'U123', 'label' => 'Alice']],
+        ])->assertRedirect();
+
+        $this->assertDatabaseHas('slack_digest_schedules', [
+            'group_id'    => $group->id,
+            'day_of_week' => 5,
+            'target_type' => 'user',
+            'target_id'   => 'U123',
+        ]);
+    }
+
+    // ── Fetch channels ────────────────────────────────────────────────────────
+
+    public function test_fetch_channels_requires_slack_integration(): void
+    {
+        $manager = $this->makeManager();
+
+        $this->actingAs($manager)
+            ->getJson('/console/admin/alerts/channels')
+            ->assertUnprocessable()
+            ->assertJsonFragment(['error' => 'No Slack integration connected for this team.']);
+    }
+
+    public function test_manager_can_fetch_channels(): void
+    {
+        $manager = $this->makeManager();
+        $this->makeSlack($manager->ownedGroup);
+
+        $this->mock(SlackService::class)
+            ->shouldReceive('fetchChannels')
+            ->once()
+            ->andReturn([['id' => 'C001', 'name' => 'general', 'is_private' => false]]);
+
+        $this->actingAs($manager)
+            ->getJson('/console/admin/alerts/channels')
+            ->assertOk()
+            ->assertJsonFragment(['id' => 'C001']);
+    }
+
+    // ── Test alerts ───────────────────────────────────────────────────────────
+
+    public function test_test_alert_requires_slack_integration(): void
+    {
+        $manager = $this->makeManager();
+
+        $this->actingAs($manager)
+            ->postJson('/console/admin/alerts/needs-response/test')
+            ->assertUnprocessable()
+            ->assertJsonFragment(['error' => 'No Slack integration connected for this team.']);
+    }
+
+    public function test_manager_can_test_needs_response_alert(): void
+    {
+        $manager = $this->makeManager();
+        $this->makeSlack($manager->ownedGroup);
+
+        $this->mock(SlackService::class)
+            ->shouldReceive('postMessage')
+            ->once()
+            ->with('xoxb-test', 'C001', \Mockery::on(fn ($t) => str_contains($t, 'Needs Response')));
+
+        $this->actingAs($manager)
+            ->postJson('/console/admin/alerts/needs-response/test')
+            ->assertOk()
+            ->assertJson(['ok' => true]);
+    }
+
+    public function test_manager_can_test_aging_alert(): void
+    {
+        $manager = $this->makeManager();
+        $this->makeSlack($manager->ownedGroup);
+
+        $this->mock(SlackService::class)
+            ->shouldReceive('postMessage')
+            ->once()
+            ->with('xoxb-test', 'C001', \Mockery::on(fn ($t) => str_contains($t, 'Aging')));
+
+        $this->actingAs($manager)
+            ->postJson('/console/admin/alerts/aging/test')
+            ->assertOk()
+            ->assertJson(['ok' => true]);
+    }
+
+    public function test_manager_can_test_compliance_gap_alert(): void
+    {
+        $manager = $this->makeManager();
+        $this->makeSlack($manager->ownedGroup);
+
+        $this->mock(SlackService::class)
+            ->shouldReceive('postMessage')
+            ->once()
+            ->with('xoxb-test', 'C001', \Mockery::on(fn ($t) => str_contains($t, 'Compliance Gap')));
+
+        $this->actingAs($manager)
+            ->postJson('/console/admin/alerts/compliance-gap/test')
+            ->assertOk()
+            ->assertJson(['ok' => true]);
+    }
+
+    public function test_manager_can_test_rule(): void
+    {
+        $manager = $this->makeManager();
+        $this->makeSlack($manager->ownedGroup);
+        $rule = $this->makeRule($manager->ownedGroup, ['alert_type' => 'aging', 'target_id' => 'U123']);
+
+        $this->mock(SlackService::class)
+            ->shouldReceive('postDm')
+            ->once()
+            ->with('xoxb-test', 'U123', \Mockery::type('string'));
+
+        $this->actingAs($manager)
+            ->postJson("/console/admin/alerts/rules/{$rule->id}/test")
+            ->assertOk()
+            ->assertJson(['ok' => true]);
+    }
+
+    public function test_manager_cannot_test_another_groups_rule(): void
+    {
+        $managerA = $this->makeManager();
+        $managerB = $this->makeManager();
+        $rule     = $this->makeRule($managerA->ownedGroup);
+
+        $this->actingAs($managerB)
+            ->postJson("/console/admin/alerts/rules/{$rule->id}/test")
+            ->assertForbidden();
+    }
+
+    public function test_manager_can_test_digest_schedule(): void
+    {
+        $manager  = $this->makeManager();
+        $this->makeSlack($manager->ownedGroup);
+        $schedule = $this->makeDigestSchedule($manager->ownedGroup, ['target_type' => 'channel', 'target_id' => 'C001']);
+
+        $this->mock(SlackService::class)
+            ->shouldReceive('postMessage')
+            ->once()
+            ->with('xoxb-test', 'C001', \Mockery::type('string'));
+
+        $this->actingAs($manager)
+            ->postJson("/console/admin/alerts/digest-schedules/{$schedule->id}/test")
+            ->assertOk()
+            ->assertJson(['ok' => true]);
+    }
+
+    public function test_manager_can_test_digest_schedule_dm(): void
+    {
+        $manager  = $this->makeManager();
+        $this->makeSlack($manager->ownedGroup);
+        $schedule = $this->makeDigestSchedule($manager->ownedGroup, ['target_type' => 'user', 'target_id' => 'U123']);
+
+        $this->mock(SlackService::class)
+            ->shouldReceive('postDm')
+            ->once()
+            ->with('xoxb-test', 'U123', \Mockery::type('string'));
+
+        $this->actingAs($manager)
+            ->postJson("/console/admin/alerts/digest-schedules/{$schedule->id}/test")
+            ->assertOk()
+            ->assertJson(['ok' => true]);
+    }
+
+    public function test_manager_cannot_test_another_groups_digest_schedule(): void
+    {
+        $managerA = $this->makeManager();
+        $managerB = $this->makeManager();
+        $schedule = $this->makeDigestSchedule($managerA->ownedGroup);
+
+        $this->actingAs($managerB)
+            ->postJson("/console/admin/alerts/digest-schedules/{$schedule->id}/test")
+            ->assertForbidden();
+    }
+
+    private function makeDigestSchedule(Group $group, array $overrides = []): SlackDigestSchedule
+    {
+        return SlackDigestSchedule::create(array_merge([
+            'group_id'     => $group->id,
+            'day_of_week'  => 1,
+            'deliver_at'   => '09:00',
+            'timezone'     => 'UTC',
+            'target_type'  => 'channel',
+            'target_id'    => 'C001',
+            'target_label' => '#general',
+            'active'       => true,
+        ], $overrides));
     }
 }

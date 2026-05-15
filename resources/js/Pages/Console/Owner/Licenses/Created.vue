@@ -3,6 +3,7 @@ import ConsoleLayout from '@/Layouts/ConsoleLayout.vue'
 import TlIcon from '@/components/TlIcon.vue'
 import { router } from '@inertiajs/vue3'
 import { ref } from 'vue'
+import { useConfirm } from '@/composables/useConfirm'
 
 defineOptions({ layout: ConsoleLayout })
 
@@ -13,24 +14,32 @@ const props = defineProps({
 })
 
 const copied = ref(false)
+const { confirm } = useConfirm()
 
 async function copyKey() {
     try {
         await navigator.clipboard.writeText(props.raw_key)
-        copied.value = true
-        setTimeout(() => { copied.value = false }, 2000)
-    } catch (e) {
-        // Fallback: select the key text
-        const el = document.getElementById('raw-key')
-        if (el) { el.select() }
+    } catch {
+        const el = document.createElement('textarea')
+        el.value = props.raw_key
+        el.style.cssText = 'position:fixed;opacity:0'
+        document.body.appendChild(el)
+        el.select()
+        document.execCommand('copy')
+        document.body.removeChild(el)
     }
+    copied.value = true
+    setTimeout(() => { copied.value = false }, 2000)
 }
 
-function dismiss() {
+async function dismiss() {
     if (!props.emailed) {
-        if (!confirm('You have not emailed this key. Once you leave, it cannot be shown again. Continue?')) {
-            return
-        }
+        const ok = await confirm({
+            title:        'Leave without emailing?',
+            message:      'This key will not be shown again. Copy it now, or return and issue a new one.',
+            confirmLabel: 'Leave anyway',
+        })
+        if (!ok) return
     }
     router.visit('/console/owner/licenses')
 }

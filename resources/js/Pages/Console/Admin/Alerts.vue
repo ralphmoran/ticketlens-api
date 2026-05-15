@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
 import { router } from '@inertiajs/vue3'
+import { useConfirm } from '@/composables/useConfirm'
 import ConsoleLayout from '@/Layouts/ConsoleLayout.vue'
 import TlIcon from '@/components/TlIcon.vue'
 
@@ -286,8 +287,15 @@ function toggleRule(rule) {
     router.patch(alertUrl(`/alerts/rules/${rule.id}`), { enabled: !rule.enabled }, { preserveScroll: true })
 }
 
-function destroyRule(rule) {
-    if (! confirm(`Remove "${rule.target_label}" from custom alerts?`)) return
+const { confirm } = useConfirm()
+
+async function destroyRule(rule) {
+    const ok = await confirm({
+        title:        'Remove alert rule?',
+        message:      `"${rule.target_label}" will be removed from custom alerts.`,
+        confirmLabel: 'Remove',
+    })
+    if (!ok) return
     router.delete(alertUrl(`/alerts/rules/${rule.id}`), {}, { preserveScroll: true })
 }
 
@@ -445,8 +453,13 @@ function toggleDigestSchedule(schedule) {
     router.patch(alertUrl(`/alerts/digest-schedules/${schedule.id}`), { active: !schedule.active }, { preserveScroll: true })
 }
 
-function destroyDigestSchedule(schedule) {
-    if (! confirm(`Remove this digest schedule?`)) return
+async function destroyDigestSchedule(schedule) {
+    const ok = await confirm({
+        title:        'Remove digest schedule?',
+        message:      `The ${formatDigestSchedule(schedule)} digest will be deleted.`,
+        confirmLabel: 'Remove',
+    })
+    if (!ok) return
     router.delete(alertUrl(`/alerts/digest-schedules/${schedule.id}`), {}, { preserveScroll: true })
 }
 

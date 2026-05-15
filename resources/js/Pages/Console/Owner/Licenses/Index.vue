@@ -6,6 +6,7 @@ import { useTableFilters } from '@/composables/useTableFilters'
 import { Link, router } from '@inertiajs/vue3'
 import { ref } from 'vue'
 import { formatDate, expiryWarning } from '@/composables/useDateFormat'
+import { useConfirm } from '@/composables/useConfirm'
 
 defineOptions({ layout: ConsoleLayout })
 
@@ -21,10 +22,16 @@ const { filters, loading, navigate } = useTableFilters({
     per_page: props.filters?.per_page ?? 25,
 }, '/console/owner/licenses')
 
-function revoke(id) {
-    if (confirm('Revoke this license? The client will lose access. This is soft — the record is preserved.')) {
-        router.delete(`/console/owner/licenses/${id}`, { preserveScroll: true })
-    }
+const { confirm } = useConfirm()
+
+async function revoke(id) {
+    const ok = await confirm({
+        title:        'Revoke license?',
+        message:      'The client will lose access immediately. The record is preserved — this is a soft revoke.',
+        confirmLabel: 'Revoke',
+    })
+    if (!ok) return
+    router.delete(`/console/owner/licenses/${id}`, { preserveScroll: true })
 }
 
 const editing    = ref(null)

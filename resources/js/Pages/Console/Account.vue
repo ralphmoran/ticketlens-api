@@ -4,6 +4,7 @@ import TlIcon from '@/components/TlIcon.vue'
 import { Link, useForm, router, usePage } from '@inertiajs/vue3'
 import { computed, ref } from 'vue'
 import { formatDate } from '@/composables/useDateFormat'
+import { useConfirm } from '@/composables/useConfirm'
 
 defineOptions({ layout: ConsoleLayout })
 
@@ -22,12 +23,35 @@ const props = defineProps({
 const page = usePage()
 const newToken = computed(() => page.props.flash?.cli_token_generated ?? null)
 
+const { confirm } = useConfirm()
+
 const generateToken = () => router.post('/console/account/cli-token', {}, { preserveScroll: true })
-const revokeToken   = () => {
-    if (!confirm('Revoke your CLI access token? You will need to generate a new one to sync.')) return
+const revokeToken   = async () => {
+    const ok = await confirm({
+        title:        'Revoke CLI token?',
+        message:      'You will need to generate a new one to use ticketlens sync.',
+        confirmLabel: 'Revoke',
+    })
+    if (!ok) return
     router.delete('/console/account/cli-token', { preserveScroll: true })
 }
-const copyToken = (val) => navigator.clipboard.writeText(val)
+
+const copied = ref(false)
+const copyToken = async (val) => {
+    try {
+        await navigator.clipboard.writeText(val)
+    } catch {
+        const el = document.createElement('textarea')
+        el.value = val
+        el.style.cssText = 'position:fixed;opacity:0'
+        document.body.appendChild(el)
+        el.select()
+        document.execCommand('copy')
+        document.body.removeChild(el)
+    }
+    copied.value = true
+    setTimeout(() => { copied.value = false }, 2000)
+}
 
 const keyForm = useForm({
     anthropic_key: '',
@@ -231,8 +255,12 @@ const licenseBadge = (status) => licenseStatusStyles[status?.toLowerCase()] ?? l
                 <p class="text-xs font-medium text-green-400 mb-2">Token generated — copy it now, it won't be shown again.</p>
                 <div class="flex items-center gap-2 font-mono text-sm bg-slate-950 rounded-md px-3 py-2 border border-slate-800">
                     <span class="flex-1 text-indigo-300 select-all break-all">{{ newToken }}</span>
-                    <button @click="copyToken(newToken)" class="text-slate-400 hover:text-white transition-colors shrink-0" title="Copy">
-                        <TlIcon name="copy" class="w-4 h-4" />
+                    <button
+                        @click="copyToken(newToken)"
+                        class="text-slate-400 hover:text-white transition-colors shrink-0"
+                        :title="copied ? 'Copied!' : 'Copy'"
+                    >
+                        <TlIcon :name="copied ? 'check' : 'copy'" class="w-4 h-4" :class="copied ? 'text-green-400' : ''" />
                     </button>
                 </div>
                 <p class="text-xs text-slate-500 mt-3">Run <code class="text-indigo-400">ticketlens login</code> and paste this token to connect the CLI.</p>

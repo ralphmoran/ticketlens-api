@@ -3,6 +3,7 @@ import ConsoleLayout from '@/Layouts/ConsoleLayout.vue'
 import TlIcon from '@/components/TlIcon.vue'
 import { router, useForm } from '@inertiajs/vue3'
 import { formatDate } from '@/composables/useDateFormat'
+import { useConfirm } from '@/composables/useConfirm'
 
 defineOptions({ layout: ConsoleLayout })
 
@@ -28,16 +29,27 @@ function invite() {
     })
 }
 
-function remove(memberId) {
-    if (confirm('Remove this member from the team?')) {
-        router.delete(`/console/admin/members/${memberId}`, { preserveScroll: true })
-    }
+const { confirm } = useConfirm()
+
+async function remove(memberId) {
+    const ok = await confirm({
+        title:        'Remove member?',
+        message:      'This member will be removed from the team.',
+        confirmLabel: 'Remove',
+    })
+    if (!ok) return
+    router.delete(`/console/admin/members/${memberId}`, { preserveScroll: true })
 }
 
-function promote(memberId) {
-    if (confirm('Transfer team manager role? You will lose admin access.')) {
-        router.post(`/console/admin/members/${memberId}/promote`)
-    }
+async function promote(memberId) {
+    const ok = await confirm({
+        title:        'Transfer manager role?',
+        message:      'You will lose admin access to this team once the role is transferred.',
+        confirmLabel: 'Transfer',
+        danger:       false,
+    })
+    if (!ok) return
+    router.post(`/console/admin/members/${memberId}/promote`)
 }
 
 function setRole(memberId, role) {

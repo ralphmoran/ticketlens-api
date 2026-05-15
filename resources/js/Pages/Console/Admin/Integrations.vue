@@ -4,6 +4,7 @@ import { router } from '@inertiajs/vue3'
 import ConsoleLayout from '@/Layouts/ConsoleLayout.vue'
 import TlIcon from '@/components/TlIcon.vue'
 import { useOAuthPopup } from '@/composables/useOAuthPopup.js'
+import { useConfirm } from '@/composables/useConfirm'
 
 defineOptions({ layout: ConsoleLayout })
 
@@ -106,8 +107,15 @@ async function sendTest() {
     }
 }
 
-function disconnect() {
-    if (! confirm('Disconnect Slack from this team? Alert features will stop working.')) return
+const { confirm } = useConfirm()
+
+async function disconnect() {
+    const ok = await confirm({
+        title:        'Disconnect Slack?',
+        message:      'Alert features will stop working immediately for this team.',
+        confirmLabel: 'Disconnect',
+    })
+    if (!ok) return
     disconnecting.value = true
 
     const params  = new URLSearchParams(window.location.search)

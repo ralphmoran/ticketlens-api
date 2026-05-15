@@ -3,6 +3,7 @@ import ConsoleLayout from '@/Layouts/ConsoleLayout.vue'
 import TlIcon from '@/components/TlIcon.vue'
 import { computed, ref, watch } from 'vue'
 import { Link, useForm, router, usePage } from '@inertiajs/vue3'
+import { useConfirm } from '@/composables/useConfirm'
 
 defineOptions({ layout: ConsoleLayout })
 
@@ -134,8 +135,15 @@ function toggle(schedule) {
     })
 }
 
-function remove(schedule) {
-    if (!confirm(`Remove the schedule for ${schedule.email}?`)) return
+const { confirm } = useConfirm()
+
+async function remove(schedule) {
+    const ok = await confirm({
+        title:        'Remove schedule?',
+        message:      `The digest schedule for ${schedule.email} will be deleted.`,
+        confirmLabel: 'Remove',
+    })
+    if (!ok) return
     router.delete(`/console/schedules/${schedule.id}`)
 }
 

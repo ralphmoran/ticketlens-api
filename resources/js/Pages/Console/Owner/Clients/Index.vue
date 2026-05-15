@@ -5,6 +5,7 @@ import TlPagination from '@/Components/TlPagination.vue'
 import { useTableFilters } from '@/composables/useTableFilters'
 import { Link, router } from '@inertiajs/vue3'
 import { formatDate } from '@/composables/useDateFormat'
+import { useConfirm } from '@/composables/useConfirm'
 
 defineOptions({ layout: ConsoleLayout })
 
@@ -27,10 +28,16 @@ function restore(clientId) {
     router.post(`/console/owner/clients/${clientId}/restore`, {}, { preserveScroll: true })
 }
 
-function destroy(clientId) {
-    if (confirm('Soft-delete this client? They will no longer be able to log in.')) {
-        router.delete(`/console/owner/clients/${clientId}`, { preserveScroll: true })
-    }
+const { confirm } = useConfirm()
+
+async function destroy(clientId) {
+    const ok = await confirm({
+        title:        'Delete client?',
+        message:      'They will no longer be able to log in. This is a soft delete — the record is preserved.',
+        confirmLabel: 'Delete',
+    })
+    if (!ok) return
+    router.delete(`/console/owner/clients/${clientId}`, { preserveScroll: true })
 }
 
 function impersonate(clientId) {

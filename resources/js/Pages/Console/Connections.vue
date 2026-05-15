@@ -3,6 +3,7 @@ import ConsoleLayout from '@/Layouts/ConsoleLayout.vue'
 import TlIcon from '@/components/TlIcon.vue'
 import { useForm, router } from '@inertiajs/vue3'
 import { ref, computed } from 'vue'
+import { useConfirm } from '@/composables/useConfirm'
 
 defineOptions({ layout: ConsoleLayout })
 
@@ -114,8 +115,15 @@ const submitForm = () => {
     }
 }
 
-const destroy = (profile) => {
-    if (!confirm(`Remove connection "${profile.name}"?`)) return
+const { confirm } = useConfirm()
+
+const destroy = async (profile) => {
+    const ok = await confirm({
+        title:        'Remove connection?',
+        message:      `"${profile.name}" will be removed. This cannot be undone.`,
+        confirmLabel: 'Remove',
+    })
+    if (!ok) return
     router.delete(`/console/connections/${profile.id}`, { preserveScroll: true })
 }
 </script>

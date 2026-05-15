@@ -4,6 +4,7 @@ import { usePage, router } from '@inertiajs/vue3'
 import { usePermissions } from '../composables/usePermissions'
 import { Permission } from '../permissions'
 import TlIcon from '../components/TlIcon.vue'
+import TlConfirmModal from '../components/TlConfirmModal.vue'
 
 const page = usePage()
 const { can } = usePermissions()
@@ -696,4 +697,6 @@ onUnmounted(() => {
         </Transition>
 
     </div>
+
+    <TlConfirmModal />
 </template>

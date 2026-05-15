@@ -3,6 +3,7 @@ import ConsoleLayout from '@/Layouts/ConsoleLayout.vue'
 import TlIcon from '@/components/TlIcon.vue'
 import { Link, router } from '@inertiajs/vue3'
 import { formatDate } from '@/composables/useDateFormat'
+import { useConfirm } from '@/composables/useConfirm'
 
 defineOptions({ layout: ConsoleLayout })
 
@@ -11,8 +12,15 @@ const props = defineProps({
     members: Array,
 })
 
-function removeMember(member) {
-    if (!confirm(`Remove ${member.name} from this team?`)) return
+const { confirm } = useConfirm()
+
+async function removeMember(member) {
+    const ok = await confirm({
+        title:        'Remove member?',
+        message:      `${member.name} will be removed from this team.`,
+        confirmLabel: 'Remove',
+    })
+    if (!ok) return
     router.delete(`/console/owner/teams/${props.team.id}/members/${member.id}`, {
         preserveScroll: true,
     })

@@ -40,11 +40,15 @@ class AlertsController extends Controller
                 'needs_response_cooldown_hours' => $settings->needs_response_cooldown_hours,
                 'aging_enabled'                 => $settings->aging_enabled,
                 'aging_cooldown_hours'          => $settings->aging_cooldown_hours,
+                'compliance_gap_enabled'        => $settings->compliance_gap_enabled,
+                'compliance_gap_cooldown_hours' => $settings->compliance_gap_cooldown_hours,
             ] : [
                 'needs_response_enabled'        => false,
                 'needs_response_cooldown_hours' => 4,
                 'aging_enabled'                 => false,
                 'aging_cooldown_hours'          => 24,
+                'compliance_gap_enabled'        => false,
+                'compliance_gap_cooldown_hours' => 24,
             ],
             'rules' => $rules,
         ]);
@@ -92,6 +96,27 @@ class AlertsController extends Controller
         return back();
     }
 
+    public function saveComplianceGap(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'enabled'        => ['required', 'boolean'],
+            'cooldown_hours' => ['required', 'integer', 'min:1', 'max:720'],
+        ]);
+
+        $group = $this->resolveGroup($request);
+        abort_unless($group !== null, 404);
+
+        AlertSetting::updateOrCreate(
+            ['group_id' => $group->id],
+            [
+                'compliance_gap_enabled'        => $validated['enabled'],
+                'compliance_gap_cooldown_hours' => $validated['cooldown_hours'],
+            ],
+        );
+
+        return back();
+    }
+
     public function fetchMembers(Request $request): JsonResponse
     {
         $group = $this->resolveGroup($request);
@@ -113,7 +138,7 @@ class AlertsController extends Controller
     public function storeRule(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'alert_type'      => ['required', Rule::in(['needs_response', 'aging'])],
+            'alert_type'      => ['required', Rule::in(['needs_response', 'aging', 'compliance_gap'])],
             'integration'     => ['sometimes', 'string', Rule::in(['slack'])],
             'targets'         => ['required', 'array', 'min:1'],
             'targets.*.id'    => ['required', 'string', 'max:100'],

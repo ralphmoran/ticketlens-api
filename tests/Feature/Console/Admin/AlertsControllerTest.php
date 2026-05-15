@@ -364,4 +364,50 @@ class AlertsControllerTest extends TestCase
             ->assertOk()
             ->assertJsonFragment(['id' => 'U1']);
     }
+
+    // ── Compliance gap settings ───────────────────────────────────────────────
+
+    public function test_index_returns_compliance_gap_defaults(): void
+    {
+        $manager = $this->makeManager();
+
+        $this->actingAs($manager)->get('/console/admin/alerts')
+            ->assertInertia(fn ($page) => $page
+                ->where('settings.compliance_gap_enabled', false)
+                ->where('settings.compliance_gap_cooldown_hours', 24)
+            );
+    }
+
+    public function test_manager_can_save_compliance_gap_settings(): void
+    {
+        $manager = $this->makeManager();
+
+        $this->actingAs($manager)->patch('/console/admin/alerts/compliance-gap', [
+            'enabled'        => true,
+            'cooldown_hours' => 48,
+        ])->assertRedirect();
+
+        $this->assertDatabaseHas('alert_settings', [
+            'group_id'                         => $manager->ownedGroup->id,
+            'compliance_gap_enabled'           => true,
+            'compliance_gap_cooldown_hours'    => 48,
+        ]);
+    }
+
+    public function test_owner_can_save_compliance_gap_for_any_group(): void
+    {
+        $owner   = $this->makeOwner();
+        $manager = $this->makeManager();
+        $group   = $manager->ownedGroup;
+
+        $this->actingAs($owner)->patch("/console/owner/alerts/compliance-gap?group_id={$group->id}", [
+            'enabled'        => true,
+            'cooldown_hours' => 24,
+        ])->assertRedirect();
+
+        $this->assertDatabaseHas('alert_settings', [
+            'group_id'               => $group->id,
+            'compliance_gap_enabled' => true,
+        ]);
+    }
 }

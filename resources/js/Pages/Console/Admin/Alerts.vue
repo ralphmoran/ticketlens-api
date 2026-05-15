@@ -11,6 +11,7 @@ const props = defineProps({
     settings: { type: Object,  default: () => ({
         needs_response_enabled: false, needs_response_cooldown_hours: 4,
         aging_enabled: false,          aging_cooldown_hours: 24,
+        compliance_gap_enabled: false, compliance_gap_cooldown_hours: 24,
     }) },
     rules: { type: Array, default: () => [] },
 })
@@ -25,17 +26,23 @@ const agEnabled  = ref(props.settings.aging_enabled)
 const agCooldown = ref(props.settings.aging_cooldown_hours)
 const agSaving   = ref(false)
 
+const cgEnabled  = ref(props.settings.compliance_gap_enabled)
+const cgCooldown = ref(props.settings.compliance_gap_cooldown_hours)
+const cgSaving   = ref(false)
+
 watch(() => props.settings, (s) => {
     nrEnabled.value  = s.needs_response_enabled
     nrCooldown.value = s.needs_response_cooldown_hours
     agEnabled.value  = s.aging_enabled
     agCooldown.value = s.aging_cooldown_hours
-})
+    cgEnabled.value  = s.compliance_gap_enabled
+    cgCooldown.value = s.compliance_gap_cooldown_hours
+}, { deep: true })
 
 function alertUrl(path) {
-    const groupId = new URLSearchParams(window.location.search).get('group_id')
-    const base    = groupId ? `/console/owner${path}?group_id=${groupId}` : `/console/admin${path}`
-    return base
+    const raw     = new URLSearchParams(window.location.search).get('group_id')
+    const groupId = raw && /^\d+$/.test(raw) ? raw : null
+    return groupId ? `/console/owner${path}?group_id=${groupId}` : `/console/admin${path}`
 }
 
 function saveNeedsResponse() {
@@ -60,6 +67,18 @@ function saveAging() {
 function toggleAging() {
     agEnabled.value = !agEnabled.value
     saveAging()
+}
+
+function saveComplianceGap() {
+    cgSaving.value = true
+    router.patch(alertUrl('/alerts/compliance-gap'), {
+        enabled: cgEnabled.value, cooldown_hours: cgCooldown.value,
+    }, { onFinish: () => { cgSaving.value = false } })
+}
+
+function toggleComplianceGap() {
+    cgEnabled.value = !cgEnabled.value
+    saveComplianceGap()
 }
 
 // ── Custom rules ──────────────────────────────────────────────────────────────
@@ -273,6 +292,50 @@ function destroyRule(rule) {
                         </div>
                     </div>
 
+                    <!-- Compliance gap row -->
+                    <div class="py-4 space-y-3">
+                        <div class="flex items-start justify-between gap-4">
+                            <div>
+                                <p class="text-sm font-medium text-slate-200">Compliance gap alert</p>
+                                <p class="text-xs text-slate-500 mt-0.5">Fires when a ticket is marked Done but has incomplete requirements.</p>
+                            </div>
+                            <button
+                                type="button"
+                                role="switch"
+                                :aria-checked="cgEnabled"
+                                :disabled="cgSaving"
+                                @click="toggleComplianceGap"
+                                class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-slate-900 disabled:opacity-50"
+                                :class="cgEnabled ? 'bg-indigo-600' : 'bg-slate-700'"
+                            >
+                                <span
+                                    class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
+                                    :class="cgEnabled ? 'translate-x-5' : 'translate-x-0'"
+                                />
+                            </button>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <label class="text-xs text-slate-400 shrink-0">Cooldown</label>
+                            <input
+                                v-model.number="cgCooldown"
+                                type="number"
+                                min="1"
+                                max="720"
+                                class="tl-input w-20 text-sm py-1 px-2"
+                            />
+                            <span class="text-xs text-slate-400">hours</span>
+                            <button
+                                type="button"
+                                :disabled="cgSaving"
+                                @click="saveComplianceGap"
+                                class="tl-btn tl-btn--secondary text-xs ml-auto disabled:opacity-50"
+                            >
+                                <TlIcon :name="cgSaving ? 'spinner' : 'check'" class="w-3.5 h-3.5" />
+                                {{ cgSaving ? 'Saving…' : 'Save' }}
+                            </button>
+                        </div>
+                    </div>
+
                 </div>
             </div>
 
@@ -312,7 +375,7 @@ function destroyRule(rule) {
                         </span>
                         <!-- Type badge -->
                         <span class="tl-badge tl-badge--neutral text-xs shrink-0">
-                            {{ rule.alert_type === 'needs_response' ? 'Needs response' : 'Aging' }}
+                            {{ { needs_response: 'Needs response', aging: 'Aging', compliance_gap: 'Compliance gap' }[rule.alert_type] ?? rule.alert_type }}
                         </span>
                         <!-- Label -->
                         <span class="text-sm text-slate-200 flex-1 truncate">{{ rule.target_label }}</span>
@@ -354,6 +417,7 @@ function destroyRule(rule) {
                         <select v-model="newRuleType" class="tl-input flex-1 text-sm">
                             <option value="needs_response">Needs-response</option>
                             <option value="aging">Aging ticket</option>
+                            <option value="compliance_gap">Compliance gap</option>
                         </select>
                     </div>
 

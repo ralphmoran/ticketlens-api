@@ -64,17 +64,21 @@ class EvaluateAlertsJobTest extends TestCase
         ]);
     }
 
-    private function ticket(string $key, array $flags, string $status = 'Code Review'): array
-    {
+    private function ticket(
+        string $key,
+        array  $flags,
+        string $status            = 'Code Review',
+        string $complianceStatus  = 'unknown',
+    ): array {
         return [
-            'key'              => $key,
-            'summary'          => "Summary for {$key}",
-            'status'           => $status,
-            'assignee'         => 'Dev User',
-            'flags'            => $flags,
-            'compliance_status' => 'unknown',
-            'url'              => "https://jira.example.com/browse/{$key}",
-            'last_updated'     => now()->toISOString(),
+            'key'               => $key,
+            'summary'           => "Summary for {$key}",
+            'status'            => $status,
+            'assignee'          => 'Dev User',
+            'flags'             => $flags,
+            'compliance_status' => $complianceStatus,
+            'url'               => "https://jira.example.com/browse/{$key}",
+            'last_updated'      => now()->toISOString(),
         ];
     }
 
@@ -446,5 +450,118 @@ class EvaluateAlertsJobTest extends TestCase
         (new EvaluateAlertsJob($user->id, $snapshot->id))->handle($slack);
 
         $this->assertSame(2, SentAlertLog::count());
+    }
+
+    // ── Compliance gap alert ──────────────────────────────────────────────────
+
+    public function test_fires_compliance_gap_when_status_done_and_compliance_gap(): void
+    {
+        $user  = $this->makeTeamUser();
+        $group = $user->groups()->first();
+        $this->makeSlack($group);
+        $this->makeAlertSettings($group, ['compliance_gap_enabled' => true]);
+        $snapshot = $this->makeSnapshot($user, [
+            $this->ticket('P-5', [], 'Done', 'gap'),
+        ]);
+        $slack = $this->mockSlack();
+        $slack->shouldReceive('postMessage')->once()->with('xoxb-test', 'C001', Mockery::on(
+            fn ($text) => str_contains($text, 'Compliance gap') && str_contains($text, 'P-5')
+        ));
+
+        (new EvaluateAlertsJob($user->id, $snapshot->id))->handle($slack);
+
+        $this->assertDatabaseHas('sent_alert_logs', [
+            'group_id'   => $group->id,
+            'alert_type' => 'compliance_gap',
+            'ticket_key' => 'P-5',
+        ]);
+    }
+
+    public function test_does_not_fire_compliance_gap_when_status_not_done(): void
+    {
+        $user  = $this->makeTeamUser();
+        $group = $user->groups()->first();
+        $this->makeSlack($group);
+        $this->makeAlertSettings($group, ['compliance_gap_enabled' => true]);
+        $snapshot = $this->makeSnapshot($user, [
+            $this->ticket('P-5', [], 'In Progress', 'gap'),
+        ]);
+        $slack = $this->mockSlack();
+        $slack->shouldNotReceive('postMessage');
+
+        (new EvaluateAlertsJob($user->id, $snapshot->id))->handle($slack);
+    }
+
+    public function test_does_not_fire_compliance_gap_when_compliance_is_ok(): void
+    {
+        $user  = $this->makeTeamUser();
+        $group = $user->groups()->first();
+        $this->makeSlack($group);
+        $this->makeAlertSettings($group, ['compliance_gap_enabled' => true]);
+        $snapshot = $this->makeSnapshot($user, [
+            $this->ticket('P-5', [], 'Done', 'ok'),
+        ]);
+        $slack = $this->mockSlack();
+        $slack->shouldNotReceive('postMessage');
+
+        (new EvaluateAlertsJob($user->id, $snapshot->id))->handle($slack);
+    }
+
+    public function test_does_not_fire_compliance_gap_when_disabled(): void
+    {
+        $user  = $this->makeTeamUser();
+        $group = $user->groups()->first();
+        $this->makeSlack($group);
+        $this->makeAlertSettings($group, ['compliance_gap_enabled' => false]);
+        $snapshot = $this->makeSnapshot($user, [
+            $this->ticket('P-5', [], 'Done', 'gap'),
+        ]);
+        $slack = $this->mockSlack();
+        $slack->shouldNotReceive('postMessage');
+
+        (new EvaluateAlertsJob($user->id, $snapshot->id))->handle($slack);
+    }
+
+    public function test_compliance_gap_cooldown_respected(): void
+    {
+        $user  = $this->makeTeamUser();
+        $group = $user->groups()->first();
+        $this->makeSlack($group);
+        $this->makeAlertSettings($group, ['compliance_gap_enabled' => true]);
+
+        SentAlertLog::create([
+            'group_id'     => $group->id,
+            'alert_type'   => 'compliance_gap',
+            'ticket_key'   => 'P-5',
+            'triggered_at' => now()->subHours(2),
+        ]);
+
+        $snapshot = $this->makeSnapshot($user, [
+            $this->ticket('P-5', [], 'Done', 'gap'),
+        ]);
+        $slack = $this->mockSlack();
+        $slack->shouldNotReceive('postMessage');
+
+        (new EvaluateAlertsJob($user->id, $snapshot->id))->handle($slack);
+    }
+
+    public function test_compliance_gap_custom_rule_dm_fires(): void
+    {
+        $user  = $this->makeTeamUser();
+        $group = $user->groups()->first();
+        $this->makeSlack($group);
+        $this->makeAlertSettings($group, ['compliance_gap_enabled' => false]);
+        $this->makeRule($group, ['alert_type' => 'compliance_gap', 'target_id' => 'U777']);
+        $snapshot = $this->makeSnapshot($user, [
+            $this->ticket('P-5', [], 'Done', 'gap'),
+        ]);
+
+        $slack = $this->mockSlack();
+        $slack->shouldNotReceive('postMessage');
+        $slack->shouldReceive('postDm')->once()->with('xoxb-test', 'U777', Mockery::on(
+            fn ($text) => str_contains($text, 'P-5')
+        ));
+
+        (new EvaluateAlertsJob($user->id, $snapshot->id))->handle($slack);
     }
 }

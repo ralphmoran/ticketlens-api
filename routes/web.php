@@ -113,6 +113,7 @@ Route::prefix('console')->name('console.')->group(function () {
             Route::get('/alerts',                         [\App\Http\Controllers\Console\Admin\AlertsController::class, 'index'])->name('alerts');
             Route::patch('/alerts/needs-response',        [\App\Http\Controllers\Console\Admin\AlertsController::class, 'saveNeedsResponse'])->name('alerts.needs-response');
             Route::patch('/alerts/aging',                 [\App\Http\Controllers\Console\Admin\AlertsController::class, 'saveAging'])->name('alerts.aging');
+            Route::patch('/alerts/compliance-gap',        [\App\Http\Controllers\Console\Admin\AlertsController::class, 'saveComplianceGap'])->name('alerts.compliance-gap');
             Route::get('/alerts/members',                 [\App\Http\Controllers\Console\Admin\AlertsController::class, 'fetchMembers'])->name('alerts.members');
             Route::post('/alerts/rules',                  [\App\Http\Controllers\Console\Admin\AlertsController::class, 'storeRule'])->name('alerts.rules.store');
             Route::patch('/alerts/rules/{rule}',          [\App\Http\Controllers\Console\Admin\AlertsController::class, 'toggleRule'])->name('alerts.rules.toggle');
@@ -178,6 +179,7 @@ Route::prefix('console')->name('console.')->group(function () {
             Route::get('/alerts',                         [\App\Http\Controllers\Console\Admin\AlertsController::class, 'index'])->name('alerts');
             Route::patch('/alerts/needs-response',        [\App\Http\Controllers\Console\Admin\AlertsController::class, 'saveNeedsResponse'])->name('alerts.needs-response');
             Route::patch('/alerts/aging',                 [\App\Http\Controllers\Console\Admin\AlertsController::class, 'saveAging'])->name('alerts.aging');
+            Route::patch('/alerts/compliance-gap',        [\App\Http\Controllers\Console\Admin\AlertsController::class, 'saveComplianceGap'])->name('alerts.compliance-gap');
             Route::get('/alerts/members',                 [\App\Http\Controllers\Console\Admin\AlertsController::class, 'fetchMembers'])->name('alerts.members');
             Route::post('/alerts/rules',                  [\App\Http\Controllers\Console\Admin\AlertsController::class, 'storeRule'])->name('alerts.rules.store');
             Route::patch('/alerts/rules/{rule}',          [\App\Http\Controllers\Console\Admin\AlertsController::class, 'toggleRule'])->name('alerts.rules.toggle');

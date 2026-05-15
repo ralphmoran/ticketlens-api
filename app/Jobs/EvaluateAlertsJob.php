@@ -14,6 +14,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Collection;
 
 class EvaluateAlertsJob implements ShouldQueue
 {
@@ -26,6 +27,8 @@ class EvaluateAlertsJob implements ShouldQueue
         'needs-response' => 'needs_response',
         'aging'          => 'aging',
     ];
+
+    private const COMPLIANCE_GAP_TYPE = 'compliance_gap';
 
     public function __construct(
         private readonly int $userId,
@@ -72,50 +75,71 @@ class EvaluateAlertsJob implements ShouldQueue
                 continue;
             }
 
+            // Flag-based alerts (needs_response, aging)
             foreach ($ticket['flags'] ?? [] as $flag) {
                 $type = self::FLAG_TO_TYPE[$flag] ?? null;
                 if (! $type) {
                     continue;
                 }
 
-                $cooldown = $this->cooldownHours($settings, $type);
-
-                // Channel alert
-                if ($this->isEnabled($settings, $type)) {
-                    if (! SentAlertLog::recentlySent($group->id, $type, $key, $cooldown)) {
-                        $slack->postMessage(
-                            $integration->bot_token,
-                            $integration->channel_id,
-                            $this->formatMessage($type, $ticket),
-                        );
-                        SentAlertLog::create([
-                            'group_id'     => $group->id,
-                            'alert_type'   => $type,
-                            'ticket_key'   => $key,
-                            'triggered_at' => now(),
-                        ]);
-                    }
-                }
-
-                // Custom rule DMs
-                foreach ($rules->where('alert_type', $type) as $rule) {
-                    if (SentAlertLog::recentlySent($group->id, $type, $key, $cooldown, $rule->id)) {
-                        continue;
-                    }
-                    $slack->postDm(
-                        $integration->bot_token,
-                        $rule->target_id,
-                        $this->formatMessage($type, $ticket),
-                    );
-                    SentAlertLog::create([
-                        'group_id'     => $group->id,
-                        'alert_type'   => $type,
-                        'ticket_key'   => $key,
-                        'rule_id'      => $rule->id,
-                        'triggered_at' => now(),
-                    ]);
-                }
+                $this->dispatchAlert($slack, $integration, $settings, $rules, $group->id, $type, $key, $ticket);
             }
+
+            // Status-based alert: compliance gap
+            if (strtolower($ticket['status'] ?? '') === 'done'
+                && strtolower($ticket['compliance_status'] ?? '') === 'gap'
+            ) {
+                $this->dispatchAlert($slack, $integration, $settings, $rules, $group->id, self::COMPLIANCE_GAP_TYPE, $key, $ticket);
+            }
+        }
+    }
+
+    private function dispatchAlert(
+        SlackService       $slack,
+        SlackIntegration   $integration,
+        AlertSetting       $settings,
+        Collection         $rules,
+        int                $groupId,
+        string             $type,
+        string             $key,
+        array              $ticket,
+    ): void {
+        // Intentional: channel alert and per-rule DMs share the same cooldown window.
+        // Rules are a complementary notification path, not an independent cadence.
+        $cooldown = $this->cooldownHours($settings, $type);
+
+        if ($this->isEnabled($settings, $type)) {
+            if (! SentAlertLog::recentlySent($groupId, $type, $key, $cooldown)) {
+                $slack->postMessage(
+                    $integration->bot_token,
+                    $integration->channel_id,
+                    $this->formatMessage($type, $ticket),
+                );
+                SentAlertLog::create([
+                    'group_id'     => $groupId,
+                    'alert_type'   => $type,
+                    'ticket_key'   => $key,
+                    'triggered_at' => now(),
+                ]);
+            }
+        }
+
+        foreach ($rules->where('alert_type', $type) as $rule) {
+            if (SentAlertLog::recentlySent($groupId, $type, $key, $cooldown, $rule->id)) {
+                continue;
+            }
+            $slack->postDm(
+                $integration->bot_token,
+                $rule->target_id,
+                $this->formatMessage($type, $ticket),
+            );
+            SentAlertLog::create([
+                'group_id'     => $groupId,
+                'alert_type'   => $type,
+                'ticket_key'   => $key,
+                'rule_id'      => $rule->id,
+                'triggered_at' => now(),
+            ]);
         }
     }
 
@@ -124,6 +148,7 @@ class EvaluateAlertsJob implements ShouldQueue
         return match ($type) {
             'needs_response' => $settings->needs_response_cooldown_hours,
             'aging'          => $settings->aging_cooldown_hours,
+            'compliance_gap' => $settings->compliance_gap_cooldown_hours,
             default          => 4,
         };
     }
@@ -133,6 +158,7 @@ class EvaluateAlertsJob implements ShouldQueue
         return match ($type) {
             'needs_response' => $settings->needs_response_enabled,
             'aging'          => $settings->aging_enabled,
+            'compliance_gap' => $settings->compliance_gap_enabled,
             default          => false,
         };
     }
@@ -141,12 +167,13 @@ class EvaluateAlertsJob implements ShouldQueue
     {
         $key      = $ticket['key'] ?? '?';
         $summary  = $ticket['summary'] ?? '';
-        $assignee = $ticket['assignee'] ? " (assigned to {$ticket['assignee']})" : '';
-        $link     = $ticket['url'] ? "<{$ticket['url']}|{$key}>" : $key;
+        $assignee = ($ticket['assignee'] ?? null) ? " (assigned to {$ticket['assignee']})" : '';
+        $link     = ($ticket['url'] ?? null) ? "<{$ticket['url']}|{$key}>" : $key;
 
         return match ($type) {
             'needs_response' => ":speech_balloon: *Needs response:* {$link} — {$summary}{$assignee}",
             'aging'          => ":hourglass_flowing_sand: *Aging ticket:* {$link} — {$summary}{$assignee}",
+            'compliance_gap' => ":warning: *Compliance gap:* {$link} — Done but requirements incomplete{$assignee}",
             default          => ":bell: Alert on {$link}",
         };
     }

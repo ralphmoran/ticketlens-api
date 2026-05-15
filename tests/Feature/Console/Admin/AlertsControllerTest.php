@@ -776,6 +776,30 @@ class AlertsControllerTest extends TestCase
             ->assertForbidden();
     }
 
+    // ── Redirect target (lock tests — must redirect to alerts, not back()) ────────
+
+    public function test_manager_mutation_redirects_to_admin_alerts(): void
+    {
+        $manager = $this->makeManager();
+
+        $this->actingAs($manager)->patch('/console/admin/alerts/needs-response', [
+            'enabled'        => true,
+            'cooldown_hours' => 4,
+        ])->assertRedirect('/console/admin/alerts');
+    }
+
+    public function test_owner_mutation_redirects_to_owner_alerts_with_group_id(): void
+    {
+        $owner   = $this->makeOwner();
+        $manager = $this->makeManager();
+        $group   = $manager->ownedGroup;
+
+        $this->actingAs($owner)->patch("/console/owner/alerts/needs-response?group_id={$group->id}", [
+            'enabled'        => true,
+            'cooldown_hours' => 4,
+        ])->assertRedirect("/console/owner/alerts?group_id={$group->id}");
+    }
+
     private function makeDigestSchedule(Group $group, array $overrides = []): SlackDigestSchedule
     {
         return SlackDigestSchedule::create(array_merge([

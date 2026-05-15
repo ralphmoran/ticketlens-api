@@ -97,7 +97,7 @@ class AlertsController extends Controller
             ],
         );
 
-        return back();
+        return $this->redirectToAlerts($request);
     }
 
     public function saveAging(Request $request): RedirectResponse
@@ -118,7 +118,7 @@ class AlertsController extends Controller
             ],
         );
 
-        return back();
+        return $this->redirectToAlerts($request);
     }
 
     public function saveComplianceGap(Request $request): RedirectResponse
@@ -139,7 +139,7 @@ class AlertsController extends Controller
             ],
         );
 
-        return back();
+        return $this->redirectToAlerts($request);
     }
 
     public function fetchMembers(Request $request): JsonResponse
@@ -187,7 +187,7 @@ class AlertsController extends Controller
             );
         }
 
-        return back();
+        return $this->redirectToAlerts($request);
     }
 
     public function toggleRule(Request $request, CustomAlertRule $rule): RedirectResponse
@@ -195,14 +195,14 @@ class AlertsController extends Controller
         $this->authorizeRule($request, $rule);
         $validated = $request->validate(['enabled' => ['required', 'boolean']]);
         $rule->update(['enabled' => $validated['enabled']]);
-        return back();
+        return $this->redirectToAlerts($request);
     }
 
     public function destroyRule(Request $request, CustomAlertRule $rule): RedirectResponse
     {
         $this->authorizeRule($request, $rule);
         $rule->delete();
-        return back();
+        return $this->redirectToAlerts($request);
     }
 
     public function saveChannelAlert(Request $request): JsonResponse
@@ -346,7 +346,7 @@ class AlertsController extends Controller
             ]);
         }
 
-        return back();
+        return $this->redirectToAlerts($request);
     }
 
     public function toggleDigestSchedule(Request $request, SlackDigestSchedule $digestSchedule): RedirectResponse
@@ -354,14 +354,14 @@ class AlertsController extends Controller
         $this->authorizeDigestSchedule($request, $digestSchedule);
         $validated = $request->validate(['active' => ['required', 'boolean']]);
         $digestSchedule->update(['active' => $validated['active']]);
-        return back();
+        return $this->redirectToAlerts($request);
     }
 
     public function destroyDigestSchedule(Request $request, SlackDigestSchedule $digestSchedule): RedirectResponse
     {
         $this->authorizeDigestSchedule($request, $digestSchedule);
         $digestSchedule->delete();
-        return back();
+        return $this->redirectToAlerts($request);
     }
 
     private function authorizeDigestSchedule(Request $request, SlackDigestSchedule $digestSchedule): void
@@ -374,6 +374,17 @@ class AlertsController extends Controller
     {
         $group = $this->resolveGroup($request);
         abort_unless($group !== null && $rule->group_id === $group->id, 403);
+    }
+
+    private function redirectToAlerts(Request $request): RedirectResponse
+    {
+        $user = $request->user();
+        if ($user->is_owner) {
+            $groupId = $request->integer('group_id');
+            $base = route('console.owner.alerts');
+            return redirect($groupId ? "{$base}?group_id={$groupId}" : $base);
+        }
+        return redirect()->route('console.admin.alerts');
     }
 
     private function resolveGroup(Request $request): ?Group

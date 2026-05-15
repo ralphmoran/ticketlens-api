@@ -100,13 +100,75 @@ function testClass(state) {
     return 'tl-btn tl-btn--secondary text-xs shrink-0'
 }
 
+// ── Alert channel picker ──────────────────────────────────────────────────────
+
+const localChannel          = ref(props.slackChannel)
+const showChannelPicker     = ref(false)
+const alertChannels         = ref([])
+const alertChannelsLoading  = ref(false)
+const alertChannelsError    = ref(null)
+const alertChannelSearch    = ref('')
+const savingChannel         = ref(false)
+
+watch(() => props.slackChannel, v => { localChannel.value = v })
+
+const filteredAlertChannels = computed(() => {
+    if (! alertChannelSearch.value) return alertChannels.value
+    const q = alertChannelSearch.value.toLowerCase()
+    return alertChannels.value.filter(c => c.name.toLowerCase().includes(q))
+})
+
+async function openChannelPicker() {
+    showChannelPicker.value  = true
+    alertChannelsError.value = null
+    if (alertChannels.value.length) return
+    alertChannelsLoading.value = true
+    try {
+        const res  = await fetch(alertUrl('/alerts/channels'), {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        })
+        const body = await res.json()
+        if (body.error) throw new Error(body.error)
+        alertChannels.value = body.channels
+    } catch (e) {
+        alertChannelsError.value = e.message ?? 'Failed to fetch channels.'
+    } finally {
+        alertChannelsLoading.value = false
+    }
+}
+
+async function selectAlertChannel(channel) {
+    savingChannel.value = true
+    try {
+        const res  = await fetch(alertUrl('/alerts/channel'), {
+            method:  'PATCH',
+            headers: {
+                'Content-Type':      'application/json',
+                'X-Requested-With':  'XMLHttpRequest',
+                'X-XSRF-TOKEN':      csrfToken(),
+            },
+            body: JSON.stringify({ channel_id: channel.id, channel_name: channel.name }),
+        })
+        const body = await res.json()
+        if (body.error) throw new Error(body.error)
+        localChannel.value       = { id: channel.id, name: channel.name }
+        showChannelPicker.value  = false
+        alertChannels.value      = []
+        alertChannelSearch.value = ''
+    } catch (e) {
+        alertChannelsError.value = e.message ?? 'Failed to update channel.'
+    } finally {
+        savingChannel.value = false
+    }
+}
+
 // ── Standard alert actions ────────────────────────────────────────────────────
 
 function saveNeedsResponse() {
     nrSaving.value = true
     router.patch(alertUrl('/alerts/needs-response'), {
         enabled: nrEnabled.value, cooldown_hours: nrCooldown.value,
-    }, { onFinish: () => { nrSaving.value = false } })
+    }, { preserveScroll: true, onFinish: () => { nrSaving.value = false } })
 }
 
 function toggleNeedsResponse() {
@@ -118,7 +180,7 @@ function saveAging() {
     agSaving.value = true
     router.patch(alertUrl('/alerts/aging'), {
         enabled: agEnabled.value, cooldown_hours: agCooldown.value,
-    }, { onFinish: () => { agSaving.value = false } })
+    }, { preserveScroll: true, onFinish: () => { agSaving.value = false } })
 }
 
 function toggleAging() {
@@ -130,7 +192,7 @@ function saveComplianceGap() {
     cgSaving.value = true
     router.patch(alertUrl('/alerts/compliance-gap'), {
         enabled: cgEnabled.value, cooldown_hours: cgCooldown.value,
-    }, { onFinish: () => { cgSaving.value = false } })
+    }, { preserveScroll: true, onFinish: () => { cgSaving.value = false } })
 }
 
 function toggleComplianceGap() {
@@ -199,6 +261,7 @@ function addRules() {
         alert_type: newRuleType.value,
         targets,
     }, {
+        preserveScroll: true,
         onFinish: () => {
             addingRules.value = false
             showAddForm.value = false
@@ -218,12 +281,12 @@ function cancelAdd() {
 }
 
 function toggleRule(rule) {
-    router.patch(alertUrl(`/alerts/rules/${rule.id}`), { enabled: !rule.enabled })
+    router.patch(alertUrl(`/alerts/rules/${rule.id}`), { enabled: !rule.enabled }, { preserveScroll: true })
 }
 
 function destroyRule(rule) {
     if (! confirm(`Remove "${rule.target_label}" from custom alerts?`)) return
-    router.delete(alertUrl(`/alerts/rules/${rule.id}`))
+    router.delete(alertUrl(`/alerts/rules/${rule.id}`), {}, { preserveScroll: true })
 }
 
 // ── Digest schedules ──────────────────────────────────────────────────────────
@@ -348,6 +411,7 @@ function saveDigestSchedule() {
         target_type: digestTargetType.value,
         targets,
     }, {
+        preserveScroll: true,
         onFinish: () => {
             digestSaving.value        = false
             showDigestForm.value      = false
@@ -374,12 +438,12 @@ function cancelDigestForm() {
 }
 
 function toggleDigestSchedule(schedule) {
-    router.patch(alertUrl(`/alerts/digest-schedules/${schedule.id}`), { active: !schedule.active })
+    router.patch(alertUrl(`/alerts/digest-schedules/${schedule.id}`), { active: !schedule.active }, { preserveScroll: true })
 }
 
 function destroyDigestSchedule(schedule) {
     if (! confirm(`Remove this digest schedule?`)) return
-    router.delete(alertUrl(`/alerts/digest-schedules/${schedule.id}`))
+    router.delete(alertUrl(`/alerts/digest-schedules/${schedule.id}`), {}, { preserveScroll: true })
 }
 
 function formatDigestSchedule(s) {
@@ -409,17 +473,70 @@ function formatDigestSchedule(s) {
 
             <!-- ── Standard alerts ─────────────────────────────────────────── -->
             <div class="tl-card p-6 space-y-5">
-                <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-lg bg-indigo-600/30 flex items-center justify-center shrink-0">
+                <div class="flex items-start gap-3">
+                    <div class="w-10 h-10 rounded-lg bg-indigo-600/30 flex items-center justify-center shrink-0 mt-0.5">
                         <TlIcon name="bell" class="w-5 h-5 text-indigo-400" />
                     </div>
-                    <div>
+                    <div class="flex-1 min-w-0">
                         <h2 class="text-sm font-semibold text-white">Channel alerts</h2>
-                        <p class="text-xs text-slate-400">
-                            Posted to
-                            <span v-if="slackChannel" class="text-indigo-300 font-mono">#{{ slackChannel.name }}</span>
-                            <span v-else class="text-slate-500">the connected Slack channel</span>
-                        </p>
+
+                        <!-- Channel + Change button -->
+                        <div v-if="!showChannelPicker" class="flex items-center gap-2 mt-0.5 flex-wrap">
+                            <p class="text-xs text-slate-400">
+                                Posted to
+                                <span v-if="localChannel" class="text-indigo-300 font-mono">#{{ localChannel.name }}</span>
+                                <span v-else class="text-red-400">no channel connected</span>
+                            </p>
+                            <button
+                                type="button"
+                                @click="openChannelPicker"
+                                class="text-xs text-slate-500 hover:text-indigo-400 transition-colors underline underline-offset-2"
+                            >
+                                Change
+                            </button>
+                        </div>
+
+                        <!-- Inline channel picker -->
+                        <div v-else class="mt-2 space-y-2">
+                            <div class="flex items-center gap-3">
+                                <span class="text-xs text-slate-400">Select a channel:</span>
+                                <button
+                                    type="button"
+                                    @click="showChannelPicker = false; alertChannelSearch = ''"
+                                    class="text-xs text-slate-500 hover:text-slate-300 transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                            </div>
+                            <p v-if="alertChannelsError" class="text-xs text-red-400">{{ alertChannelsError }}</p>
+                            <p v-if="alertChannelsLoading" class="text-xs text-slate-500">Loading channels…</p>
+                            <div v-else-if="alertChannels.length" class="space-y-1.5">
+                                <input
+                                    v-model="alertChannelSearch"
+                                    type="text"
+                                    placeholder="Search channels…"
+                                    class="tl-input w-full text-xs"
+                                />
+                                <div class="max-h-44 overflow-y-auto rounded-md border border-slate-700 divide-y divide-slate-700/50">
+                                    <button
+                                        v-for="ch in filteredAlertChannels"
+                                        :key="ch.id"
+                                        type="button"
+                                        :disabled="savingChannel"
+                                        @click="selectAlertChannel(ch)"
+                                        class="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-slate-700/60 transition-colors disabled:opacity-50"
+                                        :class="localChannel?.id === ch.id ? 'bg-slate-700/40' : ''"
+                                    >
+                                        <span class="text-xs text-slate-200 font-mono flex-1">#{{ ch.name }}</span>
+                                        <span v-if="ch.is_private" class="text-xs text-slate-500">private</span>
+                                        <TlIcon v-if="localChannel?.id === ch.id" name="check" class="w-3 h-3 text-indigo-400 shrink-0" />
+                                    </button>
+                                    <p v-if="filteredAlertChannels.length === 0" class="px-3 py-2 text-xs text-slate-500 text-center">
+                                        No channels match "{{ alertChannelSearch }}"
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 

@@ -580,6 +580,41 @@ class AlertsControllerTest extends TestCase
         ]);
     }
 
+    // ── Save alert channel ────────────────────────────────────────────────────
+
+    public function test_manager_can_update_alert_channel(): void
+    {
+        $manager = $this->makeManager();
+        $this->makeSlack($manager->ownedGroup);
+
+        $this->actingAs($manager)
+            ->patchJson('/console/admin/alerts/channel', [
+                'channel_id'   => 'C999',
+                'channel_name' => 'engineering',
+            ])
+            ->assertOk()
+            ->assertJson(['ok' => true]);
+
+        $this->assertDatabaseHas('slack_integrations', [
+            'group_id'     => $manager->ownedGroup->id,
+            'channel_id'   => 'C999',
+            'channel_name' => 'engineering',
+        ]);
+    }
+
+    public function test_save_channel_alert_requires_slack_integration(): void
+    {
+        $manager = $this->makeManager();
+
+        $this->actingAs($manager)
+            ->patchJson('/console/admin/alerts/channel', [
+                'channel_id'   => 'C999',
+                'channel_name' => 'engineering',
+            ])
+            ->assertUnprocessable()
+            ->assertJsonFragment(['error' => 'No Slack integration connected for this team.']);
+    }
+
     // ── Fetch channels ────────────────────────────────────────────────────────
 
     public function test_fetch_channels_requires_slack_integration(): void

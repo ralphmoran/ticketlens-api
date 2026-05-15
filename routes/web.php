@@ -116,6 +116,7 @@ Route::prefix('console')->name('console.')->group(function () {
             Route::patch('/alerts/compliance-gap',        [\App\Http\Controllers\Console\Admin\AlertsController::class, 'saveComplianceGap'])->name('alerts.compliance-gap');
             Route::get('/alerts/members',                 [\App\Http\Controllers\Console\Admin\AlertsController::class, 'fetchMembers'])->name('alerts.members');
             Route::get('/alerts/channels',                [\App\Http\Controllers\Console\Admin\AlertsController::class, 'fetchChannels'])->name('alerts.channels');
+            Route::patch('/alerts/channel',               [\App\Http\Controllers\Console\Admin\AlertsController::class, 'saveChannelAlert'])->name('alerts.channel');
             Route::post('/alerts/{alertType}/test',       [\App\Http\Controllers\Console\Admin\AlertsController::class, 'testAlert'])->name('alerts.type.test')->where('alertType', 'needs-response|aging|compliance-gap');
             Route::post('/alerts/rules',                                        [\App\Http\Controllers\Console\Admin\AlertsController::class, 'storeRule'])->name('alerts.rules.store');
             Route::patch('/alerts/rules/{rule}',                                [\App\Http\Controllers\Console\Admin\AlertsController::class, 'toggleRule'])->name('alerts.rules.toggle');
@@ -189,6 +190,7 @@ Route::prefix('console')->name('console.')->group(function () {
             Route::patch('/alerts/compliance-gap',        [\App\Http\Controllers\Console\Admin\AlertsController::class, 'saveComplianceGap'])->name('alerts.compliance-gap');
             Route::get('/alerts/members',                 [\App\Http\Controllers\Console\Admin\AlertsController::class, 'fetchMembers'])->name('alerts.members');
             Route::get('/alerts/channels',                [\App\Http\Controllers\Console\Admin\AlertsController::class, 'fetchChannels'])->name('alerts.channels');
+            Route::patch('/alerts/channel',               [\App\Http\Controllers\Console\Admin\AlertsController::class, 'saveChannelAlert'])->name('alerts.channel');
             Route::post('/alerts/{alertType}/test',       [\App\Http\Controllers\Console\Admin\AlertsController::class, 'testAlert'])->name('alerts.type.test')->where('alertType', 'needs-response|aging|compliance-gap');
             Route::post('/alerts/rules',                                        [\App\Http\Controllers\Console\Admin\AlertsController::class, 'storeRule'])->name('alerts.rules.store');
             Route::patch('/alerts/rules/{rule}',                                [\App\Http\Controllers\Console\Admin\AlertsController::class, 'toggleRule'])->name('alerts.rules.toggle');

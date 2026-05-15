@@ -202,6 +202,29 @@ class AlertsController extends Controller
         return back();
     }
 
+    public function saveChannelAlert(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'channel_id'   => ['required', 'string', 'max:100'],
+            'channel_name' => ['required', 'string', 'max:100'],
+        ]);
+
+        $group = $this->resolveGroup($request);
+        abort_unless($group !== null, 404);
+
+        $integration = SlackIntegration::where('group_id', $group->id)->first();
+        if (! $integration) {
+            return response()->json(['error' => 'No Slack integration connected for this team.'], 422);
+        }
+
+        $integration->update([
+            'channel_id'   => $validated['channel_id'],
+            'channel_name' => $validated['channel_name'],
+        ]);
+
+        return response()->json(['ok' => true]);
+    }
+
     public function fetchChannels(Request $request): JsonResponse
     {
         $group = $this->resolveGroup($request);

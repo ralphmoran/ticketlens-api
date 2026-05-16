@@ -128,7 +128,7 @@
             <button type="submit" class="btn btn-primary">Authorize TicketLens CLI</button>
         </form>
 
-        <a href="{{ route('console.dashboard') }}" class="btn btn-secondary">Cancel</a>
+        <a href="http://localhost:{{ $port }}/callback?error=access_denied&state={{ $state }}" class="btn btn-secondary">Cancel</a>
 
         <p class="footer">
             Only authorize if you initiated this request from your terminal.<br>

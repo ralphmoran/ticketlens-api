@@ -44,6 +44,12 @@ Route::prefix('console')->name('console.')->group(function () {
     // Console root → redirect to dashboard
     Route::get('/', fn () => redirect()->route('console.dashboard'))->name('index');
 
+    // CLI browser login — user must be authenticated to grant CLI access
+    Route::middleware('auth')->group(function () {
+        Route::get('/auth/cli',  [\App\Http\Controllers\Console\CliAuthController::class, 'show'])->name('auth.cli.show');
+        Route::post('/auth/cli', [\App\Http\Controllers\Console\CliAuthController::class, 'authorize'])->name('auth.cli.authorize');
+    });
+
     // Authenticated console routes
     Route::middleware('auth')->group(function () {
         // Stop impersonation — lives OUTSIDE the `owner` sub-group because during

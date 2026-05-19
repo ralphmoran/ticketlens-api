@@ -1,6 +1,7 @@
 <?php
 namespace App\Services;
 
+use App\Models\License;
 use Illuminate\Support\Facades\Http;
 
 class LicenseValidationService
@@ -10,6 +11,12 @@ class LicenseValidationService
         // Skip flag only works in local environment — never production
         if (config('app.env') !== 'production' && config('ticketlens.skip_license', false)) {
             return true;
+        }
+
+        // Owner-issued keys (TL- prefix) are stored locally — check DB directly
+        if (str_starts_with($key, 'TL-')) {
+            $license = License::where('lemon_key_hash', hash('sha256', $key))->first();
+            return $license && $license->isActive();
         }
 
         try {

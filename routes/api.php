@@ -18,6 +18,13 @@ RateLimiter::for('digest',      fn(Request $r) => Limit::perMinute(20)->by($r->b
 RateLimiter::for('compliance',  fn(Request $r) => Limit::perMinute(10)->by($r->bearerToken() ?: $r->ip()));
 RateLimiter::for('triage',      fn(Request $r) => Limit::perMinute(30)->by($r->bearerToken() ?: $r->ip()));
 
+// Public license activation/validation — no auth, rate-limited by IP
+RateLimiter::for('license-act', fn(Request $r) => Limit::perMinute(10)->by($r->ip()));
+Route::middleware(['throttle:api-global', 'throttle:license-act'])->group(function () {
+    Route::post('/v1/licenses/activate', [\App\Http\Controllers\Api\LicenseActivationController::class, 'activate']);
+    Route::post('/v1/licenses/validate', [\App\Http\Controllers\Api\LicenseActivationController::class, 'validate']);
+});
+
 // CLI sync — auth via CLI token (all tiers, no license required)
 RateLimiter::for('profiles', fn(Request $r) => Limit::perMinute(30)->by($r->bearerToken() ?: $r->ip()));
 Route::middleware(['throttle:api-global', 'auth.cli'])->group(function () {

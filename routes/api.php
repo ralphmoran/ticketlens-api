@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\DigestController;
 use App\Http\Controllers\Api\ScheduleController;
 use App\Http\Controllers\Api\SummarizeController;
 use App\Http\Controllers\Api\Triage\PushController;
+use App\Http\Controllers\Api\Triage\ShareController;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
@@ -41,4 +42,5 @@ Route::middleware(['throttle:api-global', 'auth.license'])->group(function () {
     Route::post('/v1/digest/deliver', [DigestController::class, 'deliver'])->middleware('throttle:digest');
     Route::post('/v1/compliance',     [ComplianceController::class, 'handle'])->middleware('throttle:compliance');
     Route::post('/v1/triage/push',    PushController::class)->middleware('throttle:triage');
+    Route::post('/v1/triage/share',   ShareController::class)->middleware('throttle:triage');
 });

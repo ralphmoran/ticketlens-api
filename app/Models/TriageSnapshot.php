@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Str;
 
 class TriageSnapshot extends Model
 {
@@ -14,12 +15,20 @@ class TriageSnapshot extends Model
         'tickets',
         'ticket_count',
         'captured_at',
+        'share_token',
+        'share_expires_at',
     ];
 
     protected $casts = [
-        'tickets'     => 'array',
-        'captured_at' => 'datetime',
+        'tickets'          => 'array',
+        'captured_at'      => 'datetime',
+        'share_expires_at' => 'datetime',
     ];
+
+    public static function generateToken(): string
+    {
+        return (string) Str::uuid();
+    }
 
     public function user(): BelongsTo
     {

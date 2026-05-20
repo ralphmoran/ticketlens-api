@@ -8,6 +8,9 @@ Route::get('/inertia-test', fn () => inertia('Test'));
 // LemonSqueezy webhook (public, HMAC-verified inside controller)
 Route::post('/webhooks/lemonsqueezy', [\App\Http\Controllers\Console\LemonSqueezyWebhookController::class, 'handle']);
 
+// Public triage share page — no auth, token scoped to 24h TTL
+Route::get('/s/{token}', \App\Http\Controllers\Web\TriageSharePageController::class)->name('triage.share');
+
 Route::prefix('console')->name('console.')->group(function () {
     // Auth (guest only)
     Route::middleware('guest')->group(function () {

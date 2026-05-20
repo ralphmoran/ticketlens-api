@@ -211,4 +211,77 @@ class PushControllerTest extends TestCase
 
         Queue::assertNotPushed(EvaluateAlertsJob::class);
     }
+
+    // ── LOCK: git_branches behaviour ─────────────────────────────────────────
+
+    public function test_push_stores_snapshot_without_git_branches(): void
+    {
+        $this->makeUserWithLicense();
+
+        $response = $this->withToken('valid-key')
+            ->postJson('/v1/triage/push', $this->validPayload());
+
+        $response->assertStatus(200);
+        $response->assertJson(['pushed' => true]);
+        $this->assertDatabaseHas('triage_snapshots', [
+            'license_key_hash' => hash('sha256', 'valid-key'),
+            'git_branches'     => null,
+        ]);
+    }
+
+    // ── git_branches: new behaviour ──────────────────────────────────────────
+
+    public function test_push_stores_git_branches_when_provided(): void
+    {
+        $this->makeUserWithLicense();
+        $branches = [
+            ['branch' => 'feat/PROJ-123', 'base' => 'origin/main', 'tickets' => ['PROJ-123'], 'files' => ['src/a.js']],
+        ];
+
+        $response = $this->withToken('valid-key')
+            ->postJson('/v1/triage/push', $this->validPayload(['git_branches' => $branches]));
+
+        $response->assertStatus(200);
+        $this->assertDatabaseHas('triage_snapshots', [
+            'license_key_hash' => hash('sha256', 'valid-key'),
+        ]);
+        $snapshot = \App\Models\TriageSnapshot::where('license_key_hash', hash('sha256', 'valid-key'))->first();
+        $this->assertEquals($branches, $snapshot->git_branches);
+    }
+
+    public function test_push_accepts_null_git_branches(): void
+    {
+        $this->makeUserWithLicense();
+
+        $response = $this->withToken('valid-key')
+            ->postJson('/v1/triage/push', $this->validPayload(['git_branches' => null]));
+
+        $response->assertStatus(200);
+        $response->assertJson(['pushed' => true]);
+    }
+
+    public function test_push_rejects_git_branches_with_missing_branch_name(): void
+    {
+        $this->makeUserWithLicense();
+        $invalid = [['base' => 'origin/main', 'tickets' => [], 'files' => []]];
+
+        $response = $this->withToken('valid-key')
+            ->postJson('/v1/triage/push', $this->validPayload(['git_branches' => $invalid]));
+
+        $response->assertStatus(422);
+    }
+
+    public function test_push_upsert_updates_git_branches(): void
+    {
+        $this->makeUserWithLicense();
+        $first = [['branch' => 'feat/old', 'base' => 'origin/main', 'tickets' => [], 'files' => ['a.js']]];
+        $second = [['branch' => 'feat/new', 'base' => 'origin/main', 'tickets' => [], 'files' => ['b.js']]];
+
+        $this->withToken('valid-key')->postJson('/v1/triage/push', $this->validPayload(['git_branches' => $first]));
+        $this->withToken('valid-key')->postJson('/v1/triage/push', $this->validPayload(['git_branches' => $second]));
+
+        $snapshot = \App\Models\TriageSnapshot::where('license_key_hash', hash('sha256', 'valid-key'))->first();
+        $this->assertEquals('feat/new', $snapshot->git_branches[0]['branch']);
+        $this->assertCount(1, \App\Models\TriageSnapshot::all());
+    }
 }

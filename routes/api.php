@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\ComplianceController;
 use App\Http\Controllers\Api\DigestController;
 use App\Http\Controllers\Api\ScheduleController;
 use App\Http\Controllers\Api\SummarizeController;
+use App\Http\Controllers\Api\Triage\CollisionsController;
 use App\Http\Controllers\Api\Triage\PushController;
 use App\Http\Controllers\Api\Triage\ShareController;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -41,6 +42,7 @@ Route::middleware(['throttle:api-global', 'auth.license'])->group(function () {
     Route::delete('/v1/schedule',     [ScheduleController::class, 'destroy'])->middleware('throttle:schedule');
     Route::post('/v1/digest/deliver', [DigestController::class, 'deliver'])->middleware('throttle:digest');
     Route::post('/v1/compliance',     [ComplianceController::class, 'handle'])->middleware('throttle:compliance');
-    Route::post('/v1/triage/push',    PushController::class)->middleware('throttle:triage');
-    Route::post('/v1/triage/share',   ShareController::class)->middleware('throttle:triage');
+    Route::post('/v1/triage/push',       PushController::class)->middleware('throttle:triage');
+    Route::post('/v1/triage/share',      ShareController::class)->middleware('throttle:triage');
+    Route::get('/v1/triage/collisions',  CollisionsController::class)->middleware('throttle:triage');
 });

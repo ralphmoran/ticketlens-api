@@ -29,14 +29,20 @@ class PushController
             }
         }
 
+        $data = [
+            'user_id'      => $userId,
+            'tickets'      => $tickets,
+            'ticket_count' => count($tickets),
+            'captured_at'  => $request->validated('captured_at'),
+        ];
+
+        if ($request->has('git_branches')) {
+            $data['git_branches'] = $request->validated('git_branches');
+        }
+
         $snapshot = TriageSnapshot::updateOrCreate(
             ['license_key_hash' => $keyHash, 'profile' => $request->validated('profile')],
-            [
-                'user_id'      => $userId,
-                'tickets'      => $tickets,
-                'ticket_count' => count($tickets),
-                'captured_at'  => $request->validated('captured_at'),
-            ],
+            $data,
         );
 
         if ($userId !== null) {

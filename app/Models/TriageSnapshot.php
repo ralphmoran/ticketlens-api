@@ -13,6 +13,7 @@ class TriageSnapshot extends Model
         'license_key_hash',
         'profile',
         'tickets',
+        'git_branches',
         'ticket_count',
         'captured_at',
         'share_token',
@@ -21,6 +22,7 @@ class TriageSnapshot extends Model
 
     protected $casts = [
         'tickets'          => 'array',
+        'git_branches'     => 'array',
         'captured_at'      => 'datetime',
         'share_expires_at' => 'datetime',
     ];

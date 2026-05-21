@@ -111,7 +111,8 @@ Route::prefix('console')->name('console.')->group(function () {
 
         // Admin — team-lead routes (leads + managers)
         Route::prefix('admin')->name('admin.')->middleware('team.lead')->group(function () {
-            Route::get('/team-health', [\App\Http\Controllers\Console\Admin\TeamHealthController::class, 'index'])->name('team-health');
+            Route::get('/team-health',            [\App\Http\Controllers\Console\Admin\TeamHealthController::class,            'index'])->name('team-health');
+            Route::get('/compliance-analytics',   [\App\Http\Controllers\Console\Admin\ComplianceAnalyticsController::class,   'index'])->name('compliance-analytics');
         });
 
         // Admin — manager-only routes

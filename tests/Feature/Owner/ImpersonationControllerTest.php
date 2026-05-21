@@ -217,7 +217,7 @@ class ImpersonationControllerTest extends TestCase
 
         $this->actingAs($owner)->post("/console/owner/impersonate/{$target->id}");
 
-        $this->get('/console/digests')->assertStatus(200);
+        $this->get('/console/digest-history')->assertStatus(200);
         $this->get('/console/schedules')->assertRedirect('/console/upgrade');
     }
 }

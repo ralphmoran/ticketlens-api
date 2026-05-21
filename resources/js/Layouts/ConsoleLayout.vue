@@ -75,7 +75,7 @@ const navGroups = computed(() => [
         requiresTeamManager: false,
         items: [
             { label: 'Schedules',  href: '/console/schedules', permission: Permission.Schedules,      icon: 'calendar' },
-            { label: 'Digests',    href: '/console/digests',   permission: Permission.Digests,         icon: 'inbox' },
+            { label: 'Digest History', href: '/console/digest-history', permission: Permission.Digests, icon: 'inbox' },
             { label: 'Summarize',  href: '/console/summarize', permission: Permission.Summarize,       icon: 'document-text' },
             { label: 'Compliance', href: '/console/compliance',permission: Permission.Compliance,      icon: 'shield-check' },
             { label: 'Export',     href: '/console/export',    permission: Permission.Export,           icon: 'download' },

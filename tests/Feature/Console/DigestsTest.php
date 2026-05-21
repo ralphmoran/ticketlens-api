@@ -12,7 +12,7 @@ class DigestsTest extends TestCase
 
     public function test_guest_is_redirected_to_login(): void
     {
-        $response = $this->get('/console/digests');
+        $response = $this->get('/console/digest-history');
 
         $response->assertRedirect('/console/login');
     }
@@ -22,7 +22,7 @@ class DigestsTest extends TestCase
         // Free tier (64) has no Digests bit (2)
         $user = User::factory()->create(['tier' => 'free', 'permissions' => 64]);
 
-        $response = $this->actingAs($user)->getJson('/console/digests');
+        $response = $this->actingAs($user)->getJson('/console/digest-history');
 
         $response->assertStatus(403);
     }
@@ -32,7 +32,7 @@ class DigestsTest extends TestCase
         // Pro = 71 (64|1|2|4): has Digests bit
         $user = User::factory()->create(['tier' => 'pro', 'permissions' => 71]);
 
-        $response = $this->actingAs($user)->get('/console/digests');
+        $response = $this->actingAs($user)->get('/console/digest-history');
 
         $response->assertStatus(200);
         $response->assertInertia(fn ($page) => $page
@@ -49,7 +49,7 @@ class DigestsTest extends TestCase
             'is_owner'    => true,
         ]);
 
-        $response = $this->actingAs($owner)->get('/console/digests');
+        $response = $this->actingAs($owner)->get('/console/digest-history');
 
         $response->assertStatus(200);
         $response->assertInertia(fn ($page) => $page

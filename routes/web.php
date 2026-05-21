@@ -92,8 +92,8 @@ Route::prefix('console')->name('console.')->group(function () {
             Route::patch('/schedules/{schedule}/toggle',[$ctrl, 'toggle']);
             Route::delete('/schedules/{schedule}',      [$ctrl, 'destroy']);
         });
-        Route::get('/digests', [\App\Http\Controllers\Console\DigestsController::class, 'index'])
-            ->middleware('permission:Digests')->name('digests');
+        Route::get('/digest-history', [\App\Http\Controllers\Console\DigestsController::class, 'index'])
+            ->middleware('permission:Digests')->name('digest-history');
         Route::get('/summarize', [\App\Http\Controllers\Console\SummarizeController::class, 'index'])
             ->middleware('permission:Summarize')->name('summarize');
         Route::get('/compliance', [\App\Http\Controllers\Console\ComplianceController::class, 'index'])

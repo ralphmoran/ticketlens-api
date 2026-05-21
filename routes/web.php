@@ -145,6 +145,7 @@ Route::prefix('console')->name('console.')->group(function () {
             Route::patch('/alerts/digest-schedules/{digestSchedule}',           [\App\Http\Controllers\Console\Admin\AlertsController::class, 'toggleDigestSchedule'])->name('alerts.digest-schedules.toggle');
             Route::delete('/alerts/digest-schedules/{digestSchedule}',          [\App\Http\Controllers\Console\Admin\AlertsController::class, 'destroyDigestSchedule'])->name('alerts.digest-schedules.destroy');
             Route::post('/alerts/digest-schedules/{digestSchedule}/test',       [\App\Http\Controllers\Console\Admin\AlertsController::class, 'testDigestSchedule'])->name('alerts.digest-schedules.test');
+            Route::get('/digests',                                               [\App\Http\Controllers\Console\Admin\DigestsController::class, 'index'])->name('digests');
         });
 
         // Slack OAuth redirect — requires auth to know who's initiating the flow
@@ -219,6 +220,7 @@ Route::prefix('console')->name('console.')->group(function () {
             Route::patch('/alerts/digest-schedules/{digestSchedule}',           [\App\Http\Controllers\Console\Admin\AlertsController::class, 'toggleDigestSchedule'])->name('alerts.digest-schedules.toggle');
             Route::delete('/alerts/digest-schedules/{digestSchedule}',          [\App\Http\Controllers\Console\Admin\AlertsController::class, 'destroyDigestSchedule'])->name('alerts.digest-schedules.destroy');
             Route::post('/alerts/digest-schedules/{digestSchedule}/test',       [\App\Http\Controllers\Console\Admin\AlertsController::class, 'testDigestSchedule'])->name('alerts.digest-schedules.test');
+            Route::get('/digests',                                               [\App\Http\Controllers\Console\Admin\DigestsController::class, 'index'])->name('digests');
         });
     });
 });

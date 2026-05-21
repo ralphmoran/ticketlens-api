@@ -101,6 +101,7 @@ const navGroups = computed(() => [
             { label: 'Seats',           href: '/console/admin/seats',           icon: 'key',         managerOnly: true,  ownerExcluded: true,  permission: Permission.TeamManageSeats   },
             { label: 'Integrations',    href: '/console/admin/integrations',    icon: 'plug',          managerOnly: true, ownerExcluded: false, permission: null },
             { label: 'Alerts',          href: '/console/admin/alerts',          icon: 'bell',          managerOnly: true, ownerExcluded: false, permission: null },
+            { label: 'Digests',         href: '/console/admin/digests',         icon: 'inbox',         managerOnly: true, ownerExcluded: false, permission: null },
         ]
     },
 ])

@@ -107,7 +107,7 @@ class ProcessMetricsController
                 foreach ($tickets as $ticket) {
                     $buckets[self::ageBucket($ticket['last_updated'] ?? null)]++;
                 }
-                return array_merge(['status' => mb_substr($status ?? 'Unknown', 0, 100), 'total' => count($tickets)], $buckets);
+                return array_merge(['status' => mb_substr($status ?: 'Unknown', 0, 100), 'total' => count($tickets)], $buckets);
             })
             ->sortByDesc('total')
             ->values();

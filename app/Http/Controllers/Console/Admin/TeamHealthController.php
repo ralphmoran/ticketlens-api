@@ -102,7 +102,7 @@ class TeamHealthController
 
         $bottlenecks = $allTickets
             ->groupBy('status')
-            ->map(fn ($tickets, $status) => ['status' => $status, 'count' => $tickets->count()])
+            ->map(fn ($tickets, $status) => ['status' => ($status ?: 'Unknown'), 'count' => $tickets->count()])
             ->sortByDesc('count')
             ->values();
 

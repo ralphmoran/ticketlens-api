@@ -17,9 +17,12 @@ const props = defineProps({
     selected_manager: { type: Object,  default: null },
 })
 
-const refreshing   = ref(false)
-const clientSearch = ref('')
+const refreshing    = ref(false)
+const clientSearch  = ref('')
+const lastRefreshed = ref(null)
+const tickerKey     = ref(0)
 let timer = null
+let ticker = null
 
 const filteredClients = computed(() => {
     const q = clientSearch.value.toLowerCase()
@@ -40,8 +43,17 @@ function timeAgo(iso) {
     const diff = Math.floor((Date.now() - new Date(iso).getTime()) / 1000)
     if (diff < 60)   return `${diff}s ago`
     if (diff < 3600) return `${Math.floor(diff / 60)}m ago`
-    return `${Math.floor(diff / 3600)}h ago`
+    if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`
+    return `${Math.floor(diff / 86400)}d ago`
 }
+
+// Reactive label: shows when user last clicked Refresh, falls back to data timestamp
+const refreshLabel = computed(() => {
+    void tickerKey.value
+    if (lastRefreshed.value) return `Checked ${timeAgo(lastRefreshed.value)}`
+    if (props.last_updated)  return `Updated ${timeAgo(props.last_updated)}`
+    return null
+})
 
 function workloadBar(count) {
     const max = Math.max(...props.workload.map(m => m.ticket_count), 1)
@@ -57,13 +69,20 @@ function attentionClass(score) {
 
 function manualRefresh() {
     refreshing.value = true
-    router.reload({ only: ['needs_response', 'bottlenecks', 'workload', 'last_updated'], onFinish: () => { refreshing.value = false } })
+    router.reload({
+        only: ['needs_response', 'bottlenecks', 'workload', 'last_updated'],
+        onFinish: () => {
+            refreshing.value = false
+            lastRefreshed.value = new Date().toISOString()
+        },
+    })
 }
 
 onMounted(() => {
-    timer = setInterval(() => router.reload({ only: ['needs_response', 'bottlenecks', 'workload', 'last_updated'] }), 60_000)
+    timer  = setInterval(() => router.reload({ only: ['needs_response', 'bottlenecks', 'workload', 'last_updated'] }), 60_000)
+    ticker = setInterval(() => tickerKey.value++, 1_000)
 })
-onUnmounted(() => clearInterval(timer))
+onUnmounted(() => { clearInterval(timer); clearInterval(ticker) })
 </script>
 
 <template>
@@ -132,7 +151,7 @@ onUnmounted(() => clearInterval(timer))
                 <p class="tl-subtext">{{ group_name }} — aggregated from member queue pushes</p>
             </div>
             <div class="flex items-center gap-3">
-                <span v-if="last_updated" class="tl-hint">Updated {{ timeAgo(last_updated) }}</span>
+                <span v-if="refreshLabel" class="tl-hint">{{ refreshLabel }}</span>
                 <button class="tl-btn tl-btn--secondary tl-btn--sm" :disabled="refreshing" @click="manualRefresh">
                     <TlIcon name="refresh" class="w-3.5 h-3.5" :class="{ 'animate-spin': refreshing }" />
                     Refresh
@@ -174,7 +193,10 @@ onUnmounted(() => clearInterval(timer))
 
             <!-- Workload per dev -->
             <div class="mb-8">
-                <h2 class="tl-section-heading mb-3">Workload per dev</h2>
+                <div class="flex items-start justify-between gap-3 mb-1">
+                    <h2 class="tl-section-heading">Workload per dev</h2>
+                </div>
+                <p class="tl-hint text-xs mb-3">Ticket count per team member from their latest pushed snapshot. "Needs response" counts tickets with a teammate waiting on them.</p>
                 <div class="tl-card tl-card--flush">
                     <table class="w-full text-sm">
                         <thead>
@@ -220,12 +242,21 @@ onUnmounted(() => clearInterval(timer))
                 </div>
             </div>
 
-            <!-- Bottlenecks by status -->
+            <!-- Bottlenecks + Needs response -->
             <div class="grid md:grid-cols-2 gap-6 mb-8">
+
+                <!-- Status bottlenecks -->
                 <div>
-                    <h2 class="tl-section-heading mb-3">Status bottlenecks</h2>
+                    <h2 class="tl-section-heading mb-1">Status bottlenecks</h2>
+                    <p class="tl-hint text-xs mb-3">
+                        Tickets grouped by Jira status. A long bar means many tickets are sitting in that status —
+                        useful for spotting where work stalls (e.g. "In Review" or "Blocked").
+                    </p>
                     <div class="tl-card space-y-2">
-                        <div v-if="bottlenecks.length === 0" class="tl-hint text-center py-4">No data</div>
+                        <div v-if="bottlenecks.length === 0" class="py-4 text-center">
+                            <p class="tl-hint mb-2">No status data yet.</p>
+                            <p class="tl-hint text-xs">Status is populated when members run <code class="font-mono">ticketlens triage --push</code> with full Jira data.</p>
+                        </div>
                         <div v-for="row in bottlenecks" :key="row.status" class="flex items-center gap-3">
                             <span class="tl-badge tl-badge--neutral w-36 truncate shrink-0">{{ row.status }}</span>
                             <div class="flex-1 h-1.5 rounded-full bg-slate-700">
@@ -241,7 +272,11 @@ onUnmounted(() => clearInterval(timer))
 
                 <!-- Needs-response tickets -->
                 <div>
-                    <h2 class="tl-section-heading mb-3">Needs response ({{ needs_response.length }})</h2>
+                    <h2 class="tl-section-heading mb-1">Needs response ({{ needs_response.length }})</h2>
+                    <p class="tl-hint text-xs mb-3">
+                        Tickets where a teammate is waiting on a response. Sorted by attention score — highest first.
+                        Populated when members push with the <code class="font-mono">needs-response</code> flag set.
+                    </p>
                     <div class="tl-card space-y-3">
                         <div v-if="needs_response.length === 0" class="tl-hint text-center py-4">All clear</div>
                         <div v-for="ticket in needs_response" :key="ticket.key" class="flex items-start gap-3">

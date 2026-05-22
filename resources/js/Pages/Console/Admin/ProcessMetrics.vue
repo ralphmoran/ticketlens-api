@@ -20,7 +20,10 @@ const props = defineProps({
 
 const refreshing    = ref(false)
 const clientSearch  = ref('')
+const lastRefreshed = ref(null)
+const tickerKey     = ref(0)
 let timer = null
+let ticker = null
 
 const filteredClients = computed(() => {
     const q = clientSearch.value.toLowerCase()
@@ -33,8 +36,7 @@ function selectManager(id) {
     router.get('/console/admin/process-metrics', { manager_id: id })
 }
 
-const hasData = computed(() => props.velocity.length > 0)
-
+const hasData      = computed(() => props.velocity.length > 0)
 const totalTickets = computed(() => props.velocity.reduce((s, m) => s + m.total, 0))
 
 function timeAgo(iso) {
@@ -46,20 +48,32 @@ function timeAgo(iso) {
     return `${Math.floor(diff / 86400)}d ago`
 }
 
+// Reactive label: shows when user last clicked Refresh, falls back to data timestamp
+const refreshLabel = computed(() => {
+    void tickerKey.value
+    if (lastRefreshed.value) return `Checked ${timeAgo(lastRefreshed.value)}`
+    if (props.last_updated)  return `Updated ${timeAgo(props.last_updated)}`
+    return null
+})
+
 function manualRefresh() {
     refreshing.value = true
     router.reload({
         only: ['velocity', 'status_flow', 'response_latency', 'compliance', 'last_updated'],
-        onFinish: () => { refreshing.value = false },
+        onFinish: () => {
+            refreshing.value = false
+            lastRefreshed.value = new Date().toISOString()
+        },
     })
 }
 
 onMounted(() => {
-    timer = setInterval(() => router.reload({
+    timer  = setInterval(() => router.reload({
         only: ['velocity', 'status_flow', 'response_latency', 'compliance', 'last_updated'],
     }), 60_000)
+    ticker = setInterval(() => tickerKey.value++, 1_000)
 })
-onUnmounted(() => clearInterval(timer))
+onUnmounted(() => { clearInterval(timer); clearInterval(ticker) })
 
 // Age bucket labels and colour classes
 const BUCKETS = [
@@ -151,7 +165,7 @@ const complianceAll0 = computed(() =>
                 <p class="tl-subtext">{{ group_name }} — ticket age, flow, and compliance snapshot</p>
             </div>
             <div class="flex items-center gap-3">
-                <span v-if="last_updated" class="tl-hint">Updated {{ timeAgo(last_updated) }}</span>
+                <span v-if="refreshLabel" class="tl-hint">{{ refreshLabel }}</span>
                 <button class="tl-btn tl-btn--secondary tl-btn--sm" :disabled="refreshing" @click="manualRefresh">
                     <TlIcon name="refresh" class="w-3.5 h-3.5" :class="{ 'animate-spin': refreshing }" />
                     Refresh
@@ -193,8 +207,15 @@ const complianceAll0 = computed(() =>
 
             <!-- Ticket Velocity (age breakdown per member) -->
             <div class="mb-8">
-                <h2 class="tl-section-heading mb-3">Ticket velocity</h2>
-                <p class="tl-hint mb-3 text-xs">How recently each ticket was updated — shows where work is moving or stalling</p>
+                <h2 class="tl-section-heading mb-1">Ticket velocity</h2>
+                <p class="tl-hint mb-3 text-xs">
+                    Shows how recently each ticket was last updated in Jira — bucketed by age.
+                    <strong class="text-emerald-400">Fresh</strong> = updated today,
+                    <strong class="text-indigo-400">Active</strong> = 1–2 days,
+                    <strong class="text-yellow-400">Slowing</strong> = 3–6 days,
+                    <strong class="text-amber-400">Stale</strong> = 7–13 days,
+                    <strong class="text-red-400">Abandoned</strong> = 14+ days or no update date.
+                </p>
                 <div class="tl-card tl-card--flush">
                     <table class="w-full text-sm">
                         <thead>
@@ -222,8 +243,12 @@ const complianceAll0 = computed(() =>
 
             <!-- Status Flow × Age Heatmap -->
             <div class="mb-8">
-                <h2 class="tl-section-heading mb-3">Status flow</h2>
-                <p class="tl-hint mb-3 text-xs">Ticket counts by status × age — columns show how long tickets stay in each status</p>
+                <h2 class="tl-section-heading mb-1">Status flow</h2>
+                <p class="tl-hint mb-3 text-xs">
+                    Each Jira status crossed with ticket age. Read across a row to see how long tickets sit in that status.
+                    A large "Abandoned" column in a status like "In Review" signals a process bottleneck.
+                    Status values come from the Jira <code class="font-mono">status</code> field — only populated after a full triage push.
+                </p>
                 <div class="tl-card tl-card--flush">
                     <table class="w-full text-sm">
                         <thead>
@@ -256,9 +281,14 @@ const complianceAll0 = computed(() =>
 
                 <!-- Response Latency -->
                 <div>
-                    <h2 class="tl-section-heading mb-3">Response latency ({{ response_latency.total }} flagged)</h2>
+                    <h2 class="tl-section-heading mb-1">Response latency</h2>
+                    <p class="tl-hint text-xs mb-3">
+                        Tickets flagged <strong class="text-slate-300">needs-response</strong> — bucketed by how old they are.
+                        "{{ response_latency.total }} flagged" = that many tickets currently need a reply from someone on this team.
+                        Zero means no one is waiting.
+                    </p>
                     <div class="tl-card">
-                        <div v-if="response_latency.total === 0" class="tl-hint text-center py-4">No tickets need response</div>
+                        <div v-if="response_latency.total === 0" class="tl-hint text-center py-4">No tickets need response — all clear</div>
                         <div v-else class="space-y-3">
                             <div v-for="b in latencyBuckets" :key="b.key" class="flex items-center gap-3">
                                 <span class="w-20 shrink-0 text-xs" :class="b.cls">{{ b.label }}</span>
@@ -277,7 +307,11 @@ const complianceAll0 = computed(() =>
 
                 <!-- Compliance Coverage -->
                 <div>
-                    <h2 class="tl-section-heading mb-3">Compliance coverage</h2>
+                    <h2 class="tl-section-heading mb-1">Compliance coverage</h2>
+                    <p class="tl-hint text-xs mb-3">
+                        What percentage of each member's tickets have been run through <code class="font-mono">--compliance</code>.
+                        Higher is better — 100% means every ticket has a compliance check result.
+                    </p>
                     <div class="tl-card">
                         <div v-if="complianceAll0" class="text-center py-2">
                             <p class="tl-hint mb-3">No compliance data yet — populate it by running:</p>

@@ -2,7 +2,7 @@
 import ConsoleLayout from '@/Layouts/ConsoleLayout.vue'
 import TlIcon from '@/components/TlIcon.vue'
 import { router } from '@inertiajs/vue3'
-import { onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 
 defineOptions({ layout: ConsoleLayout })
 
@@ -61,6 +61,13 @@ function manualRefresh() {
     router.reload({ only: ['snapshots'], onFinish: () => { refreshing.value = false } })
 }
 
+// Detect snapshots that only contain ticket keys (no enrichment)
+const hasSparseData = computed(() =>
+    props.snapshots.some(snap =>
+        snap.tickets?.some(t => !t.summary && !t.status && !t.attention_score)
+    )
+)
+
 onMounted(() => {
     timer = setInterval(() => router.reload({ only: ['snapshots'] }), 60_000)
 })
@@ -83,18 +90,42 @@ onUnmounted(() => clearInterval(timer))
         </div>
 
         <!-- Feature description -->
-        <div class="tl-card space-y-3 mb-8">
+        <div class="tl-card space-y-3 mb-6">
             <p class="text-sm text-slate-300 leading-relaxed">
                 <strong class="text-slate-100">What it does:</strong>
                 Displays your latest triage snapshot pushed from the CLI. Your Jira data is never relayed through TicketLens servers — the CLI fetches tickets locally and pushes a scored summary here.
             </p>
+            <div class="grid sm:grid-cols-3 gap-2 text-xs text-slate-400">
+                <div class="flex items-start gap-1.5">
+                    <TlIcon name="hash" class="w-3.5 h-3.5 mt-0.5 shrink-0 text-indigo-400" />
+                    <span><strong class="text-slate-300">Score</strong> — attention priority (0–10). High = needs your focus.</span>
+                </div>
+                <div class="flex items-start gap-1.5">
+                    <TlIcon name="flag" class="w-3.5 h-3.5 mt-0.5 shrink-0 text-amber-400" />
+                    <span><strong class="text-slate-300">Flags</strong> — "Response needed" means a teammate is waiting on you.</span>
+                </div>
+                <div class="flex items-start gap-1.5">
+                    <TlIcon name="shield-check" class="w-3.5 h-3.5 mt-0.5 shrink-0 text-emerald-400" />
+                    <span><strong class="text-slate-300">Compliance</strong> — populated by <code class="font-mono">--compliance --push</code>.</span>
+                </div>
+            </div>
             <p class="tl-hint">
-                <strong class="text-slate-300">CLI command:</strong>
-                <code class="tl-kbd tl-kbd--brand ml-1">ticketlens triage --push</code>
+                Push your queue: <code class="tl-kbd tl-kbd--brand ml-1">ticketlens triage --push</code>
+                &nbsp;·&nbsp; Auto-refreshes every 60 seconds.
             </p>
-            <p class="tl-hint">
-                Auto-refreshes every 60 seconds. One snapshot is kept per profile — each push replaces the previous.
-            </p>
+        </div>
+
+        <!-- Sparse data notice -->
+        <div v-if="snapshots.length > 0 && hasSparseData"
+             class="flex items-start gap-3 mb-6 px-4 py-3 rounded-lg bg-amber-500/10 border border-amber-500/25 text-sm">
+            <TlIcon name="info" class="w-4 h-4 text-amber-400 mt-0.5 shrink-0" />
+            <div>
+                <p class="text-amber-300 font-medium mb-0.5">Some columns are empty</p>
+                <p class="text-amber-400/70 text-xs leading-relaxed">
+                    This snapshot was pushed without full triage enrichment — Summary, Status, Score, and Flags are only populated when you run
+                    <code class="font-mono">ticketlens triage --push</code> (not a bare key-only push).
+                </p>
+            </div>
         </div>
 
         <!-- Empty state -->
@@ -135,9 +166,10 @@ onUnmounted(() => clearInterval(timer))
                                 {{ complianceLabel(ticket.compliance_status, ticket.compliance_coverage) }}
                             </span>
                         </div>
-                        <p class="text-sm text-slate-300 leading-snug">{{ ticket.summary }}</p>
+                        <p v-if="ticket.summary" class="text-sm text-slate-300 leading-snug">{{ ticket.summary }}</p>
+                        <p v-else class="tl-hint text-xs italic">No summary — run triage --push for full data</p>
                         <div class="flex flex-wrap items-center gap-1.5">
-                            <span class="tl-badge tl-badge--neutral">{{ ticket.status }}</span>
+                            <span v-if="ticket.status" class="tl-badge tl-badge--neutral">{{ ticket.status }}</span>
                             <span v-for="flag in ticket.flags" :key="flag" :class="flagBadge(flag)">
                                 {{ flagLabel(flag) }}
                             </span>
@@ -166,16 +198,19 @@ onUnmounted(() => clearInterval(timer))
                         <tbody class="tl-divide">
                             <tr v-for="ticket in snap.tickets" :key="ticket.key" class="tl-tr">
                                 <td class="px-5 py-3.5">
-                                    <a :href="ticket.url" target="_blank" rel="noopener"
+                                    <a v-if="ticket.url" :href="ticket.url" target="_blank" rel="noopener"
                                        class="tl-kbd hover:text-indigo-300 transition-colors whitespace-nowrap">
                                         {{ ticket.key }}
                                     </a>
+                                    <span v-else class="tl-kbd whitespace-nowrap">{{ ticket.key }}</span>
                                 </td>
                                 <td class="px-5 py-3.5 text-slate-300 max-w-xs truncate" :title="ticket.summary">
-                                    {{ ticket.summary }}
+                                    <span v-if="ticket.summary">{{ ticket.summary }}</span>
+                                    <span v-else class="tl-hint italic">—</span>
                                 </td>
                                 <td class="px-5 py-3.5">
-                                    <span class="tl-badge tl-badge--neutral">{{ ticket.status }}</span>
+                                    <span v-if="ticket.status" class="tl-badge tl-badge--neutral">{{ ticket.status }}</span>
+                                    <span v-else class="tl-hint">—</span>
                                 </td>
                                 <td class="px-5 py-3.5">
                                     <div class="flex flex-wrap gap-1">

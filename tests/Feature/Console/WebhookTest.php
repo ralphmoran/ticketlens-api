@@ -141,6 +141,31 @@ class WebhookTest extends TestCase
         $this->assertSame(0, $fresh->permissions, 'Owner permissions sentinel must not be overwritten by webhook.');
     }
 
+    public function test_webhook_rejects_user_id_email_mismatch(): void
+    {
+        $user  = User::factory()->create(['tier' => 'free', 'email' => 'real@example.com']);
+        $other = User::factory()->create(['tier' => 'free', 'email' => 'other@example.com']);
+
+        $data = [
+            'meta' => [
+                'event_name'  => 'subscription_created',
+                'custom_data' => ['user_id' => $user->id],
+            ],
+            'data' => [
+                'attributes' => [
+                    'product_name' => 'TicketLens Pro',
+                    'user_email'   => $other->email, // mismatch
+                    'identifier'   => 'lemon-key-xyz',
+                ],
+            ],
+        ];
+
+        $this->postSigned($data)->assertStatus(200);
+
+        // User tier must not have changed — mismatch was rejected.
+        $this->assertDatabaseHas('users', ['id' => $user->id, 'tier' => 'free']);
+    }
+
     public function test_webhook_does_not_mutate_owner_on_subscription_cancelled(): void
     {
         $owner = User::factory()->create(['is_owner' => true, 'tier' => 'owner', 'permissions' => 0]);

@@ -46,6 +46,17 @@ class LemonSqueezyWebhookController
             return response('OK', 200);
         }
 
+        // Cross-validate that custom_data.user_id resolves to the same email as the
+        // subscription record. Defense-in-depth against replayed or tampered payloads.
+        if ($userId && $email && strtolower($user->email) !== strtolower($email)) {
+            Log::warning('LemonSqueezy webhook: user_id/email mismatch', [
+                'user_id'        => $userId,
+                'payload_email'  => $email,
+                'resolved_email' => $user->email,
+            ]);
+            return response('OK', 200);
+        }
+
         match ($eventName) {
             'subscription_created', 'subscription_updated'                => $this->activateSubscription($user, $data),
             'subscription_cancelled', 'subscription_expired'              => $this->deactivateSubscription($user),

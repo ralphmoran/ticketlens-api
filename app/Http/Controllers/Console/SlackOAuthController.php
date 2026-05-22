@@ -8,6 +8,7 @@ use App\Models\SlackIntegration;
 use App\Services\SlackService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 
 class SlackOAuthController extends Controller
 {
@@ -54,7 +55,19 @@ class SlackOAuthController extends Controller
         }
 
         try {
-            $state  = $this->slack->decodeState($request->string('state'));
+            $state = $this->slack->decodeState($request->string('state'));
+        } catch (\RuntimeException $e) {
+            return redirect('/console/admin/integrations')
+                ->with('error', $e->getMessage());
+        }
+
+        // Consume the one-time nonce — rejects replayed callback URLs.
+        if (! Cache::pull("slack-oauth-nonce:{$state['nonce']}")) {
+            return redirect('/console/admin/integrations')
+                ->with('error', 'OAuth flow expired or already completed.');
+        }
+
+        try {
             $tokens = $this->slack->exchangeCode($request->string('code'));
         } catch (\RuntimeException $e) {
             return redirect('/console/admin/integrations')

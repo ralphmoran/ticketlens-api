@@ -2,8 +2,9 @@
 
 namespace App\Services;
 
-use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Str;
 
 class SlackService
 {
@@ -32,13 +33,16 @@ class SlackService
         bool   $popup = false,
         string $popupOrigin = '',
     ): string {
+        $nonce = Str::random(32);
+        Cache::put("slack-oauth-nonce:{$nonce}", true, 600);
+
         $state = encrypt(json_encode([
             'group_id'     => $groupId,
             'user_id'      => $userId,
             'is_owner'     => $isOwner,
             'popup'        => $popup,
             'popup_origin' => $popupOrigin,
-            'nonce'        => Str::random(32),
+            'nonce'        => $nonce,
         ]));
 
         return self::AUTH_URL . '?' . http_build_query([

@@ -43,11 +43,11 @@
                 @endif
             };
 
-            // Use '*' — the payload contains no secrets, only an event type and
-            // integration name. The origin may differ from the parent in local dev
-            // (Valet vs ngrok) so a strict same-origin target would silently drop it.
+            // The callback always redirects to $origin/console/oauth-close, so this
+            // page is always same-origin as the opener. window.location.origin is the
+            // correct target and avoids broadcasting to unrelated frames.
             if (window.opener && !window.opener.closed) {
-                window.opener.postMessage(payload, '*');
+                window.opener.postMessage(payload, window.location.origin);
             }
             // Always attempt close. Works when opened via window.open(); silently
             // fails if the user navigated here directly — in that case the message

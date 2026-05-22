@@ -36,6 +36,18 @@ class LicenseValidationServiceTest extends TestCase
         $this->assertFalse($this->service->isValid('any-key'));
     }
 
+    public function test_skip_license_does_not_work_on_staging(): void
+    {
+        Config::set('ticketlens.skip_license', true);
+        Config::set('app.env', 'staging');
+
+        Http::fake([
+            '*' => Http::response(['valid' => false], 200),
+        ]);
+
+        $this->assertFalse($this->service->isValid('any-key'));
+    }
+
     public function test_returns_true_for_valid_lemonsqueezy_response(): void
     {
         Config::set('ticketlens.skip_license', false);

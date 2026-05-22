@@ -8,8 +8,8 @@ class LicenseValidationService
 {
     public function isValid(string $key): bool
     {
-        // Skip flag only works in local environment — never production
-        if (config('app.env') !== 'production' && config('ticketlens.skip_license', false)) {
+        // Skip flag only works in local/testing — never staging or production
+        if (in_array(config('app.env'), ['local', 'testing']) && config('ticketlens.skip_license', false)) {
             return true;
         }
 

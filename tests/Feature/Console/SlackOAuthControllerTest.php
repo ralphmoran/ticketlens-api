@@ -7,6 +7,7 @@ use App\Models\SlackIntegration;
 use App\Models\User;
 use App\Services\SlackService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
 use Tests\TestCase;
 
 class SlackOAuthControllerTest extends TestCase
@@ -72,6 +73,7 @@ class SlackOAuthControllerTest extends TestCase
     {
         $manager = $this->makeManager();
         $group   = $manager->ownedGroup;
+        Cache::put('slack-oauth-nonce:abc', true, 600);
 
         $this->mock(SlackService::class, function ($mock) use ($group, $manager) {
             $mock->shouldReceive('decodeState')
@@ -130,6 +132,7 @@ class SlackOAuthControllerTest extends TestCase
     {
         $manager = $this->makeManager();
         $group   = $manager->ownedGroup;
+        Cache::put('slack-oauth-nonce:x', true, 600);
 
         SlackIntegration::create([
             'group_id'       => $group->id,
@@ -196,6 +199,7 @@ class SlackOAuthControllerTest extends TestCase
     {
         $manager = $this->makeManager();
         $group   = $manager->ownedGroup;
+        Cache::put('slack-oauth-nonce:abc', true, 600);
 
         $this->mock(SlackService::class, function ($mock) use ($group, $manager) {
             $mock->shouldReceive('decodeState')
@@ -250,6 +254,7 @@ class SlackOAuthControllerTest extends TestCase
     {
         $manager = $this->makeManager();
         $group   = $manager->ownedGroup;
+        Cache::put('slack-oauth-nonce:abc', true, 600);
 
         $this->mock(SlackService::class, function ($mock) use ($group, $manager) {
             $mock->shouldReceive('decodeState')
@@ -275,6 +280,48 @@ class SlackOAuthControllerTest extends TestCase
         $this->actingAs($manager)
             ->get('/console/slack/callback?code=authcode&state=enc')
             ->assertRedirect('/console/admin/integrations');
+    }
+
+    // --- Nonce / replay protection ---
+
+    public function test_callback_rejects_replayed_nonce(): void
+    {
+        $manager = $this->makeManager();
+        $group   = $manager->ownedGroup;
+        // Nonce NOT seeded in cache — simulates a replayed or expired callback.
+
+        $this->mock(SlackService::class, function ($mock) use ($group, $manager) {
+            $mock->shouldReceive('decodeState')
+                ->once()
+                ->andReturn(['group_id' => $group->id, 'user_id' => $manager->id, 'is_owner' => false, 'nonce' => 'spent']);
+        });
+
+        $this->actingAs($manager)
+            ->get('/console/slack/callback?code=x&state=enc')
+            ->assertRedirect('/console/admin/integrations');
+
+        $this->assertDatabaseMissing('slack_integrations', ['group_id' => $group->id]);
+    }
+
+    public function test_callback_nonce_is_consumed_after_use(): void
+    {
+        $manager = $this->makeManager();
+        $group   = $manager->ownedGroup;
+        Cache::put('slack-oauth-nonce:once', true, 600);
+
+        $this->mock(SlackService::class, function ($mock) use ($group, $manager) {
+            $mock->shouldReceive('decodeState')
+                ->andReturn(['group_id' => $group->id, 'user_id' => $manager->id, 'is_owner' => false, 'nonce' => 'once']);
+            $mock->shouldReceive('exchangeCode')
+                ->andReturn(['workspace_id' => 'T1', 'workspace_name' => 'W', 'bot_token' => 'xoxb-t']);
+        });
+
+        // First use succeeds.
+        $this->actingAs($manager)->get('/console/slack/callback?code=x&state=enc')->assertRedirect();
+
+        // Second use is rejected — nonce was consumed.
+        $this->actingAs($manager)->get('/console/slack/callback?code=x&state=enc')->assertRedirect('/console/admin/integrations');
+        $this->assertNull(Cache::get('slack-oauth-nonce:once'));
     }
 
     // --- Helpers ---

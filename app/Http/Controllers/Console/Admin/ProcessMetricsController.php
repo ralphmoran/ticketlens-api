@@ -140,7 +140,7 @@ class ProcessMetricsController
             'status_flow'      => $statusFlow,
             'response_latency' => $responseLatency,
             'compliance'       => $compliance,
-            'last_updated'     => $snapshots->max('captured_at')?->toIso8601String(),
+            'last_updated'     => now()->toIso8601String(),
         ];
     }
 

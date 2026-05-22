@@ -127,7 +127,7 @@ class TeamHealthController
             'needs_response' => $needsResponse,
             'bottlenecks'    => $bottlenecks,
             'workload'       => $workload,
-            'last_updated'   => $snapshots->max('captured_at')?->toIso8601String(),
+            'last_updated'   => now()->toIso8601String(),
         ];
     }
 }

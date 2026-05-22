@@ -121,6 +121,18 @@ class LicenseActivationTest extends TestCase
 
     // --- LicenseValidationService TL- key routing ---
 
+    public function test_activate_does_not_expose_customer_email(): void
+    {
+        $result = $this->issueKey('pro');
+
+        $response = $this->postJson('/v1/licenses/activate', [
+            'license_key'   => $result['raw_key'],
+            'instance_name' => 'test-host',
+        ])->assertOk();
+
+        $this->assertArrayNotHasKey('customer_email', $response->json('meta') ?? []);
+    }
+
     public function test_auth_license_middleware_accepts_tl_prefixed_key(): void
     {
         $result = $this->issueKey('pro');

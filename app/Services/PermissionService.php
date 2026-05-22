@@ -34,12 +34,15 @@ class PermissionService
             0,
         );
 
+        // Use bitwise OR across all grant bit values. SUM is wrong here: if a feature
+        // is granted twice (two rows), SUM double-counts the bit and corrupts the mask.
         $grantPermissions = UserFeatureGrant::where('user_id', $user->id)
             ->active()
             ->join('features', 'features.id', '=', 'user_feature_grants.feature_id')
-            ->sum('features.bit_value');
+            ->pluck('features.bit_value')
+            ->reduce(fn (int $carry, int $bit) => $carry | $bit, 0);
 
-        return $user->permissions | $groupPermissions | (int) $grantPermissions;
+        return $user->permissions | $groupPermissions | $grantPermissions;
     }
 
     public function can(User $user, int $permission): bool

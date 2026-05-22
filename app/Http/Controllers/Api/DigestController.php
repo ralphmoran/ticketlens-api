@@ -17,9 +17,11 @@ class DigestController
             ->where('active', true)
             ->firstOrFail();
 
-        // Update timestamp before dispatch so the job sees the correct last_delivered_at
-        $schedule->update(['last_delivered_at' => now()]);
+        // Dispatch first — only record delivery time if the queue accepts the job.
+        // Writing the timestamp before dispatch would poison the cooldown window on
+        // queue-driver failure, preventing legitimate retry attempts.
         SendDigestEmail::dispatch($schedule->id, $request->validated());
+        $schedule->update(['last_delivered_at' => now()]);
 
         return response()->json(['delivered' => true]);
     }

@@ -36,10 +36,10 @@
     <script>
         (function () {
             var payload = {
-                type:        '{{ $success ? 'oauth-success' : 'oauth-error' }}',
-                integration: '{{ $integration }}',
+                type:        {!! json_encode($success ? 'oauth-success' : 'oauth-error') !!},
+                integration: {!! json_encode($integration) !!},
                 @if (!$success)
-                message:     '{{ addslashes($message ?? '') }}',
+                message:     {!! json_encode($message ?? '') !!},
                 @endif
             };
 

@@ -29,7 +29,19 @@ class SingleOwnerInvariantTest extends TestCase
         User::factory()->create(['is_owner' => true]);
     }
 
-    public function test_promoting_existing_user_to_second_owner_is_blocked(): void
+    public function test_mass_assignment_cannot_promote_user_to_owner(): void
+    {
+        User::factory()->create(['is_owner' => true]);
+        $candidate = User::factory()->create(['is_owner' => false]);
+
+        // is_owner is not in $fillable — mass assignment is silently dropped.
+        $candidate->update(['is_owner' => true]);
+
+        $this->assertFalse($candidate->fresh()->is_owner);
+        $this->assertSame(1, User::where('is_owner', true)->count());
+    }
+
+    public function test_mark_as_owner_on_second_user_is_blocked(): void
     {
         User::factory()->create(['is_owner' => true]);
         $candidate = User::factory()->create(['is_owner' => false]);
@@ -37,7 +49,7 @@ class SingleOwnerInvariantTest extends TestCase
         $this->expectException(RuntimeException::class);
         $this->expectExceptionMessageMatches('/single platform owner/i');
 
-        $candidate->update(['is_owner' => true]);
+        $candidate->markAsOwner();
     }
 
     public function test_re_saving_the_owner_does_not_trip_the_guard(): void

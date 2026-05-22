@@ -78,7 +78,7 @@ class SlackService
      */
     public function exchangeCode(string $code): array
     {
-        $response = Http::asForm()->post(self::TOKEN_URL, [
+        $response = Http::timeout(10)->asForm()->post(self::TOKEN_URL, [
             'client_id'     => $this->clientId,
             'client_secret' => $this->clientSecret,
             'code'          => $code,
@@ -159,7 +159,7 @@ class SlackService
                 $params['cursor'] = $cursor;
             }
 
-            $body = Http::withToken($token)->get($url, $params)->json();
+            $body = Http::timeout(10)->withToken($token)->get($url, $params)->json();
 
             if (! ($body['ok'] ?? false)) {
                 throw new \RuntimeException('Slack API error: ' . ($body['error'] ?? 'unknown'));
@@ -182,7 +182,7 @@ class SlackService
      */
     public function postMessage(string $botToken, string $channelId, string $text): void
     {
-        $response = Http::withToken($botToken)->post(self::POST_URL, [
+        $response = Http::timeout(10)->withToken($botToken)->post(self::POST_URL, [
             'channel' => $channelId,
             'text'    => $text,
         ]);
@@ -201,7 +201,7 @@ class SlackService
      */
     public function postDm(string $botToken, string $userId, string $text): void
     {
-        $response = Http::withToken($botToken)->post(self::OPEN_DM_URL, ['users' => $userId]);
+        $response = Http::timeout(10)->withToken($botToken)->post(self::OPEN_DM_URL, ['users' => $userId]);
         $body     = $response->json();
 
         if (! ($body['ok'] ?? false)) {

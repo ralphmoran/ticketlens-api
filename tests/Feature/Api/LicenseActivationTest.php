@@ -6,6 +6,7 @@ use App\Models\License;
 use App\Models\User;
 use App\Services\LicenseIssuanceService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Config;
 use Tests\TestCase;
 
 class LicenseActivationTest extends TestCase
@@ -132,6 +133,9 @@ class LicenseActivationTest extends TestCase
 
     public function test_auth_license_middleware_rejects_unknown_tl_key(): void
     {
+        // Force real license validation — local .env may have TICKETLENS_SKIP_LICENSE=true
+        Config::set('ticketlens.skip_license', false);
+
         $this->withHeaders(['Authorization' => 'Bearer TL-00000000-0000-0000-0000-000000000000'])
             ->postJson('/v1/summarize', [])
             ->assertUnauthorized();

@@ -33,12 +33,13 @@ class MembersService
             ->latest()
             ->firstOrFail();
 
-        $seatsUsed = $group->members()->count();
-        if ($seatsUsed >= $license->seats) {
-            throw new SeatLimitReached($license->seats);
-        }
-
-        return DB::transaction(function () use ($manager, $group, $email, $name) {
+        return DB::transaction(function () use ($manager, $group, $email, $name, $license) {
+            // Re-count inside the transaction with a lock so two concurrent invites
+            // cannot both pass the seat check and both be inserted (TOCTOU fix).
+            $seatsUsed = $group->members()->lockForUpdate()->count();
+            if ($seatsUsed >= $license->seats) {
+                throw new SeatLimitReached($license->seats);
+            }
             // Idempotent — if the user already exists, just attach to the group if not already a member.
             $user = User::where('email', $email)->first();
 

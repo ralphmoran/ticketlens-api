@@ -13,7 +13,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-#[Fillable(['name', 'email', 'password', 'tier', 'permissions', 'is_owner', 'suspended_at', 'anthropic_key', 'openai_key'])]
+#[Fillable(['name', 'email', 'password', 'tier', 'permissions', 'suspended_at', 'anthropic_key', 'openai_key'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
@@ -102,5 +102,13 @@ class User extends Authenticatable
     public function isTeamManager(): bool
     {
         return $this->ownedGroup()->exists();
+    }
+
+    /**
+     * Elevate this user to platform owner. Not mass-assignable — must be called explicitly.
+     */
+    public function markAsOwner(): void
+    {
+        $this->forceFill(['is_owner' => true])->save();
     }
 }

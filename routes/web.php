@@ -15,7 +15,7 @@ Route::prefix('console')->name('console.')->group(function () {
     // Auth (guest only)
     Route::middleware('guest')->group(function () {
         Route::get('/login', [\App\Http\Controllers\Console\AuthController::class, 'showLogin'])->name('login');
-        Route::post('/login', [\App\Http\Controllers\Console\AuthController::class, 'login']);
+        Route::post('/login', [\App\Http\Controllers\Console\AuthController::class, 'login'])->middleware('throttle:5,1');
     });
 
     Route::post('/logout', [\App\Http\Controllers\Console\AuthController::class, 'logout'])

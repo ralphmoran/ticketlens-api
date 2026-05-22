@@ -74,9 +74,10 @@ class CollisionsController
         $collisions = [];
         foreach ($teammateSnapshots as $otherSnap) {
             foreach ($mySnapshot->git_branches as $myBranch) {
-                $myFiles = $myBranch['files'] ?? [];
+                $myFiles      = $myBranch['files'] ?? [];
+                $myFilesIndex = array_flip($myFiles);
                 foreach ($otherSnap->git_branches as $otherBranch) {
-                    $overlap = array_values(array_intersect($myFiles, $otherBranch['files'] ?? []));
+                    $overlap = array_keys(array_intersect_key($myFilesIndex, array_flip($otherBranch['files'] ?? [])));
                     if (empty($overlap)) {
                         continue;
                     }

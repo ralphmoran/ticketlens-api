@@ -5,6 +5,7 @@ namespace App\Http\Middleware;
 use App\Enums\Permission;
 use App\Models\UserFeatureGrant;
 use App\Services\ImpersonationService;
+use App\Services\PermissionService;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -45,23 +46,26 @@ class HandleInertiaRequests extends Middleware
 
         if ($user !== null) {
             $user->load('groups');
-            $effectivePermissions = app(\App\Services\PermissionService::class)->effective($user);
+
+            // Load grants once; owners have no meaningful grants (god bitmask via flag).
+            $grants = $user->is_owner
+                ? collect()
+                : UserFeatureGrant::where('user_id', $user->id)->active()->with('feature')->get();
+
+            $effectivePermissions = app(PermissionService::class)->effectiveWithGrants($user, $grants);
 
             // Matches EnsureTeamManager middleware predicate: manager bit AND owned group.
             // Both are required — a bit without a group is meaningless (nothing to
             // manage), a group without the bit is revoked manager access.
-            $hasManagerBit = ($effectivePermissions & \App\Enums\Permission::TeamManageMembers->value) !== 0;
+            $hasManagerBit = ($effectivePermissions & Permission::TeamManageMembers->value) !== 0;
             $isTeamManager = $hasManagerBit && $user->isTeamManager();
 
             // Lead: has TeamViewHealth bit but is not the manager.
             // The bit is only assigned by managers to their own group members.
             $isTeamLead = !$isTeamManager
-                && ($effectivePermissions & \App\Enums\Permission::TeamViewHealth->value) !== 0;
+                && ($effectivePermissions & Permission::TeamViewHealth->value) !== 0;
 
-            $activeGrants = UserFeatureGrant::where('user_id', $user->id)
-                ->active()
-                ->with('feature')
-                ->get()
+            $activeGrants = $grants
                 ->map(fn ($g) => [
                     'label'      => $g->feature->label,
                     'expires_at' => $g->expires_at?->toIso8601String(),

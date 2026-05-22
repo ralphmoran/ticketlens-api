@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\User;
 use App\Models\UserFeatureGrant;
+use Illuminate\Support\Collection;
 
 class PermissionService
 {
@@ -41,6 +42,29 @@ class PermissionService
             ->join('features', 'features.id', '=', 'user_feature_grants.feature_id')
             ->pluck('features.bit_value')
             ->reduce(fn (int $carry, int $bit) => $carry | $bit, 0);
+
+        return $user->permissions | $groupPermissions | $grantPermissions;
+    }
+
+    /**
+     * Same as effective() but accepts a pre-loaded grants collection (with 'feature' relation)
+     * so callers that already fetched grants can avoid a second DB round-trip.
+     */
+    public function effectiveWithGrants(User $user, Collection $grants): int
+    {
+        if ($user->is_owner) {
+            return self::OWNER_GOD_BITMASK;
+        }
+
+        $groupPermissions = $user->groups->reduce(
+            fn (int $carry, $group) => $carry | $group->permissions,
+            0,
+        );
+
+        $grantPermissions = $grants->reduce(
+            fn (int $carry, $g) => $carry | ($g->feature->bit_value ?? 0),
+            0,
+        );
 
         return $user->permissions | $groupPermissions | $grantPermissions;
     }

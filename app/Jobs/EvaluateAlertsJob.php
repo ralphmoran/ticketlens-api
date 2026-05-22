@@ -23,6 +23,9 @@ class EvaluateAlertsJob implements ShouldQueue
     public int $tries = 3;
     public array $backoff = [10, 60, 300];
 
+    /** @var array<string, list<\Carbon\Carbon>> Keyed by "type|key|ruleId" — built once per run. */
+    private array $sentCache = [];
+
     private const FLAG_TO_TYPE = [
         'needs-response' => 'needs_response',
         'aging'          => 'aging',
@@ -69,6 +72,8 @@ class EvaluateAlertsJob implements ShouldQueue
 
         $rules = CustomAlertRule::where('group_id', $group->id)->where('enabled', true)->get();
 
+        $this->buildSentCache($group->id, $settings);
+
         foreach ($snapshot->tickets as $ticket) {
             $key = $ticket['key'] ?? null;
             if (! $key) {
@@ -109,7 +114,7 @@ class EvaluateAlertsJob implements ShouldQueue
         $cooldown = $this->cooldownHours($settings, $type);
 
         if ($this->isEnabled($settings, $type)) {
-            if (! SentAlertLog::recentlySent($groupId, $type, $key, $cooldown)) {
+            if (! $this->recentlySentInMemory($type, $key, $cooldown)) {
                 $slack->postMessage(
                     $integration->bot_token,
                     $integration->channel_id,
@@ -121,11 +126,12 @@ class EvaluateAlertsJob implements ShouldQueue
                     'ticket_key'   => $key,
                     'triggered_at' => now(),
                 ]);
+                $this->trackSent($type, $key);
             }
         }
 
         foreach ($rules->where('alert_type', $type) as $rule) {
-            if (SentAlertLog::recentlySent($groupId, $type, $key, $cooldown, $rule->id)) {
+            if ($this->recentlySentInMemory($type, $key, $cooldown, $rule->id)) {
                 continue;
             }
             $slack->postDm(
@@ -140,7 +146,47 @@ class EvaluateAlertsJob implements ShouldQueue
                 'rule_id'      => $rule->id,
                 'triggered_at' => now(),
             ]);
+            $this->trackSent($type, $key, $rule->id);
         }
+    }
+
+    private function buildSentCache(int $groupId, AlertSetting $settings): void
+    {
+        $maxCooldown = max(
+            (int) ($settings->needs_response_cooldown_hours ?? 4),
+            (int) ($settings->aging_cooldown_hours          ?? 4),
+            (int) ($settings->compliance_gap_cooldown_hours  ?? 4),
+        );
+
+        $this->sentCache = [];
+        SentAlertLog::where('group_id', $groupId)
+            ->where('triggered_at', '>=', now()->subHours($maxCooldown))
+            ->get()
+            ->each(function (SentAlertLog $log): void {
+                $k = $log->alert_type . '|' . $log->ticket_key . '|' . ($log->rule_id ?? '');
+                $this->sentCache[$k][] = $log->triggered_at;
+            });
+    }
+
+    private function recentlySentInMemory(string $type, string $key, int $cooldownHours, ?int $ruleId = null): bool
+    {
+        $k = $type . '|' . $key . '|' . ($ruleId ?? '');
+        if (! array_key_exists($k, $this->sentCache)) {
+            return false;
+        }
+        $cutoff = now()->subHours($cooldownHours);
+        foreach ($this->sentCache[$k] as $ts) {
+            if ($ts->greaterThanOrEqualTo($cutoff)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private function trackSent(string $type, string $key, ?int $ruleId = null): void
+    {
+        $k = $type . '|' . $key . '|' . ($ruleId ?? '');
+        $this->sentCache[$k][] = now();
     }
 
     private function cooldownHours(AlertSetting $settings, string $type): int

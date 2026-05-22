@@ -204,6 +204,20 @@ class SendSlackDigestJobTest extends TestCase
         (new SendSlackDigestJob(\Carbon\Carbon::parse('2026-05-18 09:00:00', 'UTC')))->handle($slack);
     }
 
+    public function test_job_skips_when_group_deleted(): void
+    {
+        [$group] = $this->makeGroupWithUser();
+        $this->makeSlack($group);
+        $this->makeSchedule(['group_id' => $group->id, 'day_of_week' => 1, 'deliver_at' => '09:00', 'timezone' => 'UTC']);
+        $group->delete();
+
+        $slack = Mockery::mock(SlackService::class);
+        $slack->shouldNotReceive('postMessage');
+        $slack->shouldNotReceive('postDm');
+
+        (new SendSlackDigestJob(\Carbon\Carbon::parse('2026-05-18 09:00:00', 'UTC')))->handle($slack);
+    }
+
     public function test_job_fires_multiple_schedules_for_same_group(): void
     {
         [$group, $user] = $this->makeGroupWithUser();

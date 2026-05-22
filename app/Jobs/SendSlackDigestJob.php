@@ -27,52 +27,55 @@ class SendSlackDigestJob implements ShouldQueue
 
     public function handle(SlackService $slack): void
     {
-        $schedules = SlackDigestSchedule::where('active', true)->get();
-
-        foreach ($schedules as $schedule) {
-            if (! $schedule->isDue($this->now)) {
-                continue;
+        SlackDigestSchedule::where('active', true)->chunk(100, function ($schedules) use ($slack) {
+            foreach ($schedules as $schedule) {
+                if ($schedule->isDue($this->now)) {
+                    $this->processSchedule($schedule, $slack);
+                }
             }
-
-            $integration = SlackIntegration::where('group_id', $schedule->group_id)
-                ->whereNotNull('channel_id')
-                ->first();
-
-            if (! $integration) {
-                continue;
-            }
-
-            $snapshot = $this->latestSnapshot($schedule->group_id);
-            if (! $snapshot) {
-                continue;
-            }
-
-            $message = $this->buildMessage($snapshot->tickets ?? [], $schedule->group_id);
-
-            if ($schedule->target_type === 'user') {
-                $slack->postDm($integration->bot_token, $schedule->target_id, $message);
-            } else {
-                $slack->postMessage($integration->bot_token, $schedule->target_id, $message);
-            }
-
-            $schedule->update(['last_delivered_at' => $this->now]);
-        }
+        });
     }
 
-    private function latestSnapshot(int $groupId): ?TriageSnapshot
+    private function processSchedule(SlackDigestSchedule $schedule, SlackService $slack): void
     {
-        $userIds = Group::find($groupId)?->users()->pluck('users.id');
+        $integration = SlackIntegration::where('group_id', $schedule->group_id)
+            ->whereNotNull('channel_id')
+            ->first();
 
-        if (! $userIds || $userIds->isEmpty()) {
-            return null;
+        if (! $integration) {
+            return;
         }
 
-        return TriageSnapshot::whereIn('user_id', $userIds)
+        $group = Group::find($schedule->group_id);
+        if (! $group) {
+            return;
+        }
+
+        $userIds = $group->users()->pluck('users.id');
+        if ($userIds->isEmpty()) {
+            return;
+        }
+
+        $snapshot = TriageSnapshot::whereIn('user_id', $userIds)
             ->latest('captured_at')
             ->first();
+
+        if (! $snapshot) {
+            return;
+        }
+
+        $message = $this->buildMessage($snapshot->tickets ?? [], $group);
+
+        if ($schedule->target_type === 'user') {
+            $slack->postDm($integration->bot_token, $schedule->target_id, $message);
+        } else {
+            $slack->postMessage($integration->bot_token, $schedule->target_id, $message);
+        }
+
+        $schedule->update(['last_delivered_at' => $this->now]);
     }
 
-    private function buildMessage(array $tickets, int $groupId): string
+    private function buildMessage(array $tickets, Group $group): string
     {
         $total          = count($tickets);
         $needsResponse  = 0;
@@ -99,9 +102,8 @@ class SendSlackDigestJob implements ShouldQueue
             }
         }
 
-        $group = Group::find($groupId);
         $lines = [
-            ":bar_chart: *Weekly Digest" . ($group ? " — {$group->name}" : '') . "* | " . $this->now->format('D, M j Y'),
+            ":bar_chart: *Weekly Digest — {$group->name}* | " . $this->now->format('D, M j Y'),
             '',
             "• Total: {$total}",
             "• Needs response: {$needsResponse} :speech_balloon:",

@@ -113,6 +113,22 @@ class InertiaSharedPropsTest extends TestCase
         $this->assertFalse($auth['is_team_lead']);
     }
 
+    public function test_is_team_manager_and_lead_are_false_for_owner(): void
+    {
+        // The owner's effective permissions are 0x7FFFFFFF (all bits set), which
+        // includes both the manager bit and the team-lead bit. Both flags must still
+        // be false: the owner is a platform singleton, not a team-role participant.
+        $owner = User::factory()->create(['tier' => 'owner', 'is_owner' => true]);
+
+        $auth = $this->actingAs($owner)
+            ->get('/console/dashboard')
+            ->viewData('page')['props']['auth'];
+
+        $this->assertSame(0x7FFFFFFF, $auth['effectivePermissions']);
+        $this->assertFalse($auth['is_team_manager']);
+        $this->assertFalse($auth['is_team_lead']);
+    }
+
     public function test_is_team_lead_is_false_for_managers_even_with_lead_bit(): void
     {
         // Managers are managers, not leads — is_team_lead is mutually exclusive with is_team_manager.

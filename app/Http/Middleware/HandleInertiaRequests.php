@@ -42,6 +42,7 @@ class HandleInertiaRequests extends Middleware
         $user                 = $request->user();
         $effectivePermissions = null;
         $isTeamManager        = false;
+        $isTeamLead           = false;
         $activeGrants         = [];
 
         if ($user !== null) {
@@ -58,11 +59,13 @@ class HandleInertiaRequests extends Middleware
             // Both are required — a bit without a group is meaningless (nothing to
             // manage), a group without the bit is revoked manager access.
             $hasManagerBit = ($effectivePermissions & Permission::TeamManageMembers->value) !== 0;
-            $isTeamManager = $hasManagerBit && $user->isTeamManager();
+            // Owners are a platform singleton whose role is orthogonal to team roles.
+            // Guard by is_owner, not by bitmask value — the bitmask is a derived consequence.
+            $isTeamManager = !$user->is_owner && $hasManagerBit && $user->isTeamManager();
 
             // Lead: has TeamViewHealth bit but is not the manager.
             // The bit is only assigned by managers to their own group members.
-            $isTeamLead = !$isTeamManager
+            $isTeamLead = !$user->is_owner && !$isTeamManager
                 && ($effectivePermissions & Permission::TeamViewHealth->value) !== 0;
 
             $activeGrants = $grants
@@ -95,7 +98,7 @@ class HandleInertiaRequests extends Middleware
                 'effectivePermissions' => $effectivePermissions,
                 'is_owner'             => $user?->is_owner ?? false,
                 'is_team_manager'      => $isTeamManager,
-                'is_team_lead'         => $isTeamLead ?? false,
+                'is_team_lead'         => $isTeamLead,
                 'activeGrants'         => $activeGrants,
                 'impersonating'        => $impersonating,
                 'can'                  => $can,

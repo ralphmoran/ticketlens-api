@@ -39,8 +39,10 @@ class ClientController extends Controller
 
         $perPage = min(max(1, (int) $request->input('per_page', 20)), 100);
 
+        $columns = ['id', 'name', 'email', 'tier', 'permissions', 'is_owner', 'suspended_at', 'deleted_at', 'created_at'];
+
         return Inertia::render('Console/Owner/Clients/Index', [
-            'clients' => $query->latest()->paginate($perPage)->withQueryString(),
+            'clients' => $query->select($columns)->latest()->paginate($perPage)->withQueryString(),
             'filters' => array_merge($request->only('search', 'tier'), ['per_page' => $perPage]),
         ]);
     }

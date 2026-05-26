@@ -382,4 +382,20 @@ class ComplianceAnalyticsTest extends TestCase
              ->assertOk()
              ->assertInertia(fn ($page) => $page->where('total_checked', 1));
     }
+
+    public function test_deduplicates_to_latest_snapshot_per_user_per_day(): void
+    {
+        $manager = $this->makeManager();
+        $member  = $this->makeMember($manager->ownedGroup);
+        $today   = now()->toDateString();
+
+        // Two snapshots for the same member on the same day — only the later one should count
+        $this->pushSnapshot($member, [$this->ticket('PROJ-1', 'gap')],  "{$today}T08:00:00Z");
+        $this->pushSnapshot($member, [$this->ticket('PROJ-2', 'pass')], "{$today}T12:00:00Z");
+
+        $this->actingAs($manager)
+             ->get('/console/admin/compliance-analytics')
+             ->assertOk()
+             ->assertInertia(fn ($page) => $page->where('total_checked', 1));
+    }
 }

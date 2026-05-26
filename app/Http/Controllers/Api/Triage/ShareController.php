@@ -7,6 +7,7 @@ use App\Http\Requests\Triage\PushRequest;
 use App\Models\License;
 use App\Models\TriageSnapshot;
 use App\Models\User;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -29,20 +30,30 @@ class ShareController
             }
         }
 
-        $token = TriageSnapshot::generateToken();
         $expiresAt = now()->addHours(24);
+        $snapshot  = null;
+        $attempts  = 0;
 
-        $snapshot = TriageSnapshot::updateOrCreate(
-            ['license_key_hash' => $keyHash, 'profile' => $request->validated('profile')],
-            [
-                'user_id'          => $userId,
-                'tickets'          => $tickets,
-                'ticket_count'     => count($tickets),
-                'captured_at'      => $request->validated('captured_at'),
-                'share_token'      => $token,
-                'share_expires_at' => $expiresAt,
-            ],
-        );
+        while ($snapshot === null) {
+            try {
+                $snapshot = TriageSnapshot::updateOrCreate(
+                    ['license_key_hash' => $keyHash, 'profile' => $request->validated('profile')],
+                    [
+                        'user_id'          => $userId,
+                        'tickets'          => $tickets,
+                        'ticket_count'     => count($tickets),
+                        'captured_at'      => $request->validated('captured_at'),
+                        'share_token'      => TriageSnapshot::generateToken(),
+                        'share_expires_at' => $expiresAt,
+                    ],
+                );
+            } catch (UniqueConstraintViolationException $e) {
+                // Retry on share_token unique collision (astronomically rare with UUID4).
+                if (++$attempts >= 3) {
+                    throw $e;
+                }
+            }
+        }
 
         $shareUrl = self::shareUrl($snapshot->share_token);
 

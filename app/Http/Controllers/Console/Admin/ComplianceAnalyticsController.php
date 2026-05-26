@@ -77,10 +77,16 @@ class ComplianceAnalyticsController extends Controller
     {
         $memberIds = $group->members()->orderBy('users.name')->pluck('users.id');
 
+        // Limit and deduplicate: cap at 500 rows, then keep only the latest snapshot
+        // per user per calendar day to avoid OOM on large teams with frequent pushes.
         $snapshots = TriageSnapshot::whereIn('user_id', $memberIds)
             ->where('captured_at', '>=', now()->subDays(90))
-            ->orderBy('captured_at')
-            ->get(['user_id', 'tickets', 'captured_at']);
+            ->orderByDesc('captured_at')
+            ->limit(500)
+            ->get(['user_id', 'tickets', 'captured_at'])
+            ->unique(fn ($s) => $s->user_id . '|' . $s->captured_at->toDateString())
+            ->sortBy('captured_at')
+            ->values();
 
         $isChecked = fn ($t) => in_array($t['compliance_status'] ?? 'unknown', ['pass', 'gap']);
 

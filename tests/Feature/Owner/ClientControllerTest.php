@@ -529,4 +529,34 @@ class ClientControllerTest extends TestCase
 
         $response->assertSessionHasErrors('tier');
     }
+
+    public function test_index_does_not_expose_encrypted_api_keys(): void
+    {
+        $owner  = $this->makeOwner();
+        $client = $this->makeClient(['anthropic_key' => 'sk-ant-secret', 'openai_key' => 'sk-openai-secret']);
+
+        $response = $this->actingAs($owner)->get('/console/owner/clients');
+
+        $response->assertStatus(200);
+        $response->assertInertia(fn ($page) => $page
+            ->component('Console/Owner/Clients/Index')
+            ->missing('clients.data.0.anthropic_key')
+            ->missing('clients.data.0.openai_key')
+        );
+    }
+
+    public function test_show_does_not_expose_encrypted_api_keys(): void
+    {
+        $owner  = $this->makeOwner();
+        $client = $this->makeClient(['anthropic_key' => 'sk-ant-secret', 'openai_key' => 'sk-openai-secret']);
+
+        $response = $this->actingAs($owner)->get("/console/owner/clients/{$client->id}");
+
+        $response->assertStatus(200);
+        $response->assertInertia(fn ($page) => $page
+            ->component('Console/Owner/Clients/Show')
+            ->missing('client.anthropic_key')
+            ->missing('client.openai_key')
+        );
+    }
 }

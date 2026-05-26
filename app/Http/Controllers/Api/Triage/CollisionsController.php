@@ -71,12 +71,14 @@ class CollisionsController
             ->groupBy('user_id')
             ->map(fn($snaps) => $snaps->sortByDesc('captured_at')->first());
 
+        $myBranches = array_slice($mySnapshot->git_branches, 0, 20);
+
         $collisions = [];
         foreach ($teammateSnapshots as $otherSnap) {
-            foreach ($mySnapshot->git_branches as $myBranch) {
-                $myFiles      = $myBranch['files'] ?? [];
-                $myFilesIndex = array_flip($myFiles);
-                foreach ($otherSnap->git_branches as $otherBranch) {
+            $theirBranches = array_slice($otherSnap->git_branches, 0, 20);
+            foreach ($myBranches as $myBranch) {
+                $myFilesIndex = array_flip($myBranch['files'] ?? []);
+                foreach ($theirBranches as $otherBranch) {
                     $overlap = array_keys(array_intersect_key($myFilesIndex, array_flip($otherBranch['files'] ?? [])));
                     if (empty($overlap)) {
                         continue;

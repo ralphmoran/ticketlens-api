@@ -311,4 +311,30 @@ class CollisionsControllerTest extends TestCase
 
         $this->assertCount(2, $response->json('collisions'));
     }
+
+    public function test_branches_capped_at_20_per_snapshot(): void
+    {
+        $user     = $this->makeTeamUser();
+        $teammate = $this->makeTeamUser('teammate-key');
+        $this->addToGroup($user, $teammate);
+
+        // 25 branches for me, last 5 share files with teammate — but only first 20 are processed
+        $myBranches = array_map(
+            fn ($i) => ['branch' => "feat/mine-{$i}", 'base' => 'main', 'tickets' => [], 'files' => ["src/file-{$i}.php"]],
+            range(1, 25),
+        );
+        $theirBranches = array_map(
+            fn ($i) => ['branch' => "feat/theirs-{$i}", 'base' => 'main', 'tickets' => [], 'files' => ["src/file-{$i}.php"]],
+            range(21, 25),
+        );
+
+        $this->makeSnapshot($user, $myBranches);
+        $this->makeSnapshot($teammate, $theirBranches);
+
+        $response = $this->withToken('team-key')->getJson('/v1/triage/collisions');
+
+        $response->assertStatus(200);
+        // Branches 21–25 are beyond the cap of 20, so no overlaps are detected
+        $response->assertJson(['collisions' => []]);
+    }
 }

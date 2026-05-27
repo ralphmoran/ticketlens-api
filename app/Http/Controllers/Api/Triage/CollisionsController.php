@@ -2,9 +2,8 @@
 
 namespace App\Http\Controllers\Api\Triage;
 
-use App\Models\License;
+use App\Enums\Permission;
 use App\Models\TriageSnapshot;
-use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -13,20 +12,11 @@ class CollisionsController
 {
     public function __invoke(Request $request): JsonResponse
     {
-        $keyHash = TriageSnapshot::hashKey($request->bearerToken());
+        $user   = $request->user();
+        $userId = $user->id;
 
-        $userId = License::where('lemon_key_hash', $keyHash)
-            ->where('status', 'active')
-            ->where(fn($q) => $q->whereNull('expires_at')->orWhere('expires_at', '>', now()))
-            ->value('user_id');
-
-        if (!$userId) {
-            return response()->json(['collisions' => [], 'message' => 'License not linked to an account.']);
-        }
-
-        $user = User::find($userId);
-        if (!$user) {
-            return response()->json(['collisions' => [], 'message' => 'User not found.']);
+        if (($user->permissions & Permission::AttentionQueue->value) === 0) {
+            return response()->json(['error' => 'Insufficient permissions'], 403);
         }
 
         $myGroupIds = $user->groups()->pluck('groups.id');

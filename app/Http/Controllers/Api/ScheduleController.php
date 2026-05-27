@@ -1,6 +1,7 @@
 <?php
 namespace App\Http\Controllers\Api;
 
+use App\Enums\Permission;
 use App\Http\Requests\ScheduleRequest;
 use App\Models\DigestSchedule;
 use Carbon\Carbon;
@@ -11,11 +12,15 @@ class ScheduleController
 {
     public function store(ScheduleRequest $request): JsonResponse
     {
-        $hash = DigestSchedule::hashKey($request->bearerToken());
-        $data = $request->validated();
+        $user = $request->user();
+        if (($user->permissions & Permission::Schedules->value) === 0) {
+            return response()->json(['error' => 'Insufficient permissions'], 403);
+        }
+        $userId = $user->id;
+        $data   = $request->validated();
 
         DigestSchedule::updateOrCreate(
-            ['license_key_hash' => $hash],
+            ['user_id' => $userId],
             [
                 'email'      => $data['email'],
                 'timezone'   => $data['timezone'],
@@ -32,8 +37,11 @@ class ScheduleController
 
     public function show(Request $request): JsonResponse
     {
-        $hash = DigestSchedule::hashKey($request->bearerToken());
-        $schedule = DigestSchedule::where('license_key_hash', $hash)->firstOrFail();
+        $user = $request->user();
+        if (($user->permissions & Permission::Schedules->value) === 0) {
+            return response()->json(['error' => 'Insufficient permissions'], 403);
+        }
+        $schedule = DigestSchedule::where('user_id', $user->id)->firstOrFail();
 
         return response()->json([
             'email'           => $schedule->email,
@@ -47,8 +55,11 @@ class ScheduleController
 
     public function destroy(Request $request): JsonResponse
     {
-        $hash = DigestSchedule::hashKey($request->bearerToken());
-        DigestSchedule::where('license_key_hash', $hash)->delete();
+        $user = $request->user();
+        if (($user->permissions & Permission::Schedules->value) === 0) {
+            return response()->json(['error' => 'Insufficient permissions'], 403);
+        }
+        DigestSchedule::where('user_id', $user->id)->delete();
         return response()->json(['deleted' => true]);
     }
 

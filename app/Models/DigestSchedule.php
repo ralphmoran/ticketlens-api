@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class DigestSchedule extends Model
 {
     protected $fillable = [
+        'user_id',
         'license_key_hash',
         'assigned_to_user_id',
         'email',

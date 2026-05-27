@@ -62,8 +62,8 @@ class GrantController extends Controller
         $grant->load('feature');
 
         $this->audit->logFromRequest($request, 'grant.revoked', $user, [
-            'feature_id'    => $grant->feature->id,
-            'feature_label' => $grant->feature->label,
+            'feature_id'    => $grant->feature?->id,
+            'feature_label' => $grant->feature?->label ?? '(deleted)',
         ]);
 
         return redirect()->route('console.owner.clients.show', $user);

@@ -332,6 +332,7 @@ class GrantControllerTest extends TestCase
         ]);
     }
 
+
     public function test_cannot_revoke_grant_for_owner_target(): void
     {
         $owner          = $this->makeOwner();

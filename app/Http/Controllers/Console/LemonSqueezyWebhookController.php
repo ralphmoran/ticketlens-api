@@ -92,7 +92,7 @@ class LemonSqueezyWebhookController
 
         $productName = strtolower($data['data']['attributes']['product_name'] ?? '');
         $tierKey     = $this->resolveTierKey($productName);
-        $tierConfig  = self::TIER_MAP[$tierKey] ?? null;
+        $tierConfig  = $tierKey !== null ? (self::TIER_MAP[$tierKey] ?? null) : null;
 
         if (! $tierConfig) {
             Log::warning('LemonSqueezy webhook: unknown product', ['product' => $productName]);
@@ -149,7 +149,7 @@ class LemonSqueezyWebhookController
         License::where('user_id', $user->id)->update(['status' => $status]);
     }
 
-    private function resolveTierKey(string $productName): string
+    private function resolveTierKey(string $productName): ?string
     {
         foreach (array_keys(self::TIER_MAP) as $key) {
             if (str_contains($productName, $key)) {
@@ -157,6 +157,6 @@ class LemonSqueezyWebhookController
             }
         }
 
-        return 'pro';
+        return null;
     }
 }

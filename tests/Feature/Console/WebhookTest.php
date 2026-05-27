@@ -3,6 +3,7 @@
 namespace Tests\Feature\Console;
 
 use App\Models\User;
+use Illuminate\Support\Facades\Log;
 use Tests\TestCase;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
@@ -164,6 +165,33 @@ class WebhookTest extends TestCase
 
         // User tier must not have changed — mismatch was rejected.
         $this->assertDatabaseHas('users', ['id' => $user->id, 'tier' => 'free']);
+    }
+
+    public function test_webhook_unknown_product_name_does_not_activate_subscription(): void
+    {
+        $user = User::factory()->create(['tier' => 'free', 'permissions' => 0]);
+
+        Log::shouldReceive('warning')
+            ->once()
+            ->with('LemonSqueezy webhook: unknown product', \Mockery::type('array'));
+
+        $this->postSigned([
+            'meta' => [
+                'event_name'  => 'subscription_created',
+                'custom_data' => ['user_id' => $user->id],
+            ],
+            'data' => [
+                'attributes' => [
+                    'user_email'   => $user->email,
+                    'product_name' => 'Starter Plan',
+                    'identifier'   => 'lemon-key-fake',
+                ],
+            ],
+        ])->assertStatus(200);
+
+        // Tier must be unchanged — unknown product must not silently activate Pro.
+        $this->assertSame('free', $user->fresh()->tier);
+        $this->assertSame(0, $user->fresh()->permissions);
     }
 
     public function test_webhook_does_not_mutate_owner_on_subscription_cancelled(): void

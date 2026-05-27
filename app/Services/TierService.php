@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Feature;
 use App\Models\User;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
 class TierService
@@ -13,12 +14,14 @@ class TierService
      */
     public function permissionsForTier(string $tier): int
     {
-        $bits = DB::table('tier_features')
-            ->join('features', 'features.id', '=', 'tier_features.feature_id')
-            ->where('tier_features.tier', $tier)
-            ->pluck('features.bit_value');
+        return Cache::remember("tier_permissions:{$tier}", 300, function () use ($tier): int {
+            $bits = DB::table('tier_features')
+                ->join('features', 'features.id', '=', 'tier_features.feature_id')
+                ->where('tier_features.tier', $tier)
+                ->pluck('features.bit_value');
 
-        return $bits->reduce(fn (int $carry, int $bit) => $carry | $bit, 0);
+            return $bits->reduce(fn (int $carry, int $bit) => $carry | $bit, 0);
+        });
     }
 
     /**
@@ -46,6 +49,9 @@ class TierService
      */
     public function syncAllForTier(string $tier): void
     {
+        // Flush stale cache before recomputing — this method is called after tier_features
+        // change, so the cached bitmask must not be used.
+        Cache::forget("tier_permissions:{$tier}");
         $permissions = $this->permissionsForTier($tier);
 
         DB::transaction(function () use ($tier, $permissions): void {

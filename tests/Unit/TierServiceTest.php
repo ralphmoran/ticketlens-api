@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Services\TierService;
 use Tests\TestCase;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
 class TierServiceTest extends TestCase
@@ -104,6 +105,26 @@ class TierServiceTest extends TestCase
         $this->service->syncUser($owner);
 
         $this->assertEquals(0, $owner->fresh()->permissions, 'Owner permissions must not be overwritten by tier sync.');
+    }
+
+    public function test_permissions_for_tier_is_cached_for_subsequent_calls(): void
+    {
+        $feature = $this->seedFeature('schedules', 1);
+        DB::table('tier_features')->insert(['tier' => 'pro', 'feature_id' => $feature->id]);
+
+        Cache::flush();
+
+        // First call — populates the cache.
+        $first = $this->service->permissionsForTier('pro');
+
+        // Modify the underlying data without invalidating the cache.
+        DB::table('tier_features')->where('tier', 'pro')->delete();
+
+        // Second call — must return the cached value, not the current DB state.
+        $second = $this->service->permissionsForTier('pro');
+
+        $this->assertSame(1, $first);
+        $this->assertSame($first, $second);
     }
 
     public function test_sync_all_for_tier_skips_owner_rows(): void

@@ -379,4 +379,64 @@ class SchedulesTest extends TestCase
 
         $this->delete("/console/schedules/{$schedule->id}")->assertRedirect('/console/login');
     }
+
+    // =========================================================================
+    // CLI-created schedules (user_id-keyed, no license_key_hash)
+    // =========================================================================
+
+    public function test_cli_created_schedule_appears_in_console_index(): void
+    {
+        $user    = $this->proUser();
+        $license = $this->licenseFor($user);
+
+        $schedule = DigestSchedule::create([
+            'user_id'    => $user->id,
+            'email'      => 'cli@example.com',
+            'timezone'   => 'UTC',
+            'deliver_at' => '07:00',
+            'active'     => true,
+        ]);
+
+        $this->actingAs($user)->get('/console/schedules')
+            ->assertInertia(fn ($p) => $p
+                ->where('schedules.total', 1)
+                ->where('schedules.data.0.id', $schedule->id)
+            );
+    }
+
+    public function test_user_can_toggle_cli_created_schedule(): void
+    {
+        $user     = $this->proUser();
+        $this->licenseFor($user);
+        $schedule = DigestSchedule::create([
+            'user_id'    => $user->id,
+            'email'      => 'cli@example.com',
+            'timezone'   => 'UTC',
+            'deliver_at' => '07:00',
+            'active'     => true,
+        ]);
+
+        $this->actingAs($user)->patch("/console/schedules/{$schedule->id}/toggle")
+            ->assertRedirect(route('console.schedules'));
+
+        $this->assertDatabaseHas('digest_schedules', ['id' => $schedule->id, 'active' => false]);
+    }
+
+    public function test_user_can_delete_cli_created_schedule(): void
+    {
+        $user     = $this->proUser();
+        $this->licenseFor($user);
+        $schedule = DigestSchedule::create([
+            'user_id'    => $user->id,
+            'email'      => 'cli@example.com',
+            'timezone'   => 'UTC',
+            'deliver_at' => '07:00',
+            'active'     => true,
+        ]);
+
+        $this->actingAs($user)->delete("/console/schedules/{$schedule->id}")
+            ->assertRedirect(route('console.schedules'));
+
+        $this->assertDatabaseMissing('digest_schedules', ['id' => $schedule->id]);
+    }
 }

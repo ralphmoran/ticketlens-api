@@ -83,7 +83,10 @@ class SchedulesController
             ]);
         }
 
-        $schedules = DigestSchedule::where('license_key_hash', $license->lemon_key_hash)
+        $schedules = DigestSchedule::where(function ($q) use ($user, $license) {
+                $q->where('license_key_hash', $license->lemon_key_hash)
+                  ->orWhere('user_id', $user->id);
+            })
             ->select($this->scheduleColumns())
             ->orderByDesc('created_at')
             ->paginate(15)
@@ -182,8 +185,10 @@ class SchedulesController
             return;
         }
 
-        $hash = $this->hashForUser($user);
-        abort_if($schedule->license_key_hash !== $hash, 403);
+        abort_if(
+            $schedule->license_key_hash !== $this->hashForUser($user) && $schedule->user_id !== $user->id,
+            403
+        );
     }
 
     private function hashForUser(User $user): ?string
@@ -204,7 +209,7 @@ class SchedulesController
 
     private function scheduleColumns(): array
     {
-        return ['id', 'license_key_hash', 'assigned_to_user_id', 'email', 'timezone',
+        return ['id', 'license_key_hash', 'user_id', 'assigned_to_user_id', 'email', 'timezone',
                 'deliver_at', 'active', 'last_delivered_at', 'created_at'];
     }
 

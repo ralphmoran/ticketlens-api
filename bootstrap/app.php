@@ -13,10 +13,12 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        // Trust all reverse-proxy headers (ngrok, load balancers, CDNs).
-        // Without this Laravel generates http:// asset URLs even when the client
-        // connected over HTTPS, breaking the CSP 'self' directive.
-        $middleware->trustProxies(at: '*');
+        // Trust reverse-proxy headers from RFC-1918 private ranges only.
+        // Covers Docker bridge (172.16–172.31), local dev (127.0.0.1),
+        // and common cloud VPC ranges. Prevents untrusted containers from
+        // spoofing X-Forwarded-For to bypass IP-based rate limiting.
+        // For ngrok or external load balancers add their CIDR here.
+        $middleware->trustProxies(at: ['127.0.0.1', '10.0.0.0/8', '172.16.0.0/12', '192.168.0.0/16']);
         $middleware->append(\App\Http\Middleware\SecurityHeaders::class);
         $middleware->web(append: [\App\Http\Middleware\HandleInertiaRequests::class]);
         $middleware->redirectGuestsTo(fn () => route('console.login'));

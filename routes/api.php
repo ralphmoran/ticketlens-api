@@ -12,6 +12,12 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Route;
 
+// Public health check — no auth, rate-limited by IP
+RateLimiter::for('health', fn(Request $r) => Limit::perMinute(60)->by($r->ip()));
+Route::get('/v1/health', \App\Http\Controllers\Api\HealthController::class)
+    ->middleware('throttle:health')
+    ->name('api.health');
+
 // Define named rate limiters
 RateLimiter::for('api-global', fn(Request $r) => Limit::perMinute(120)->by($r->ip()));
 RateLimiter::for('summarize',  fn(Request $r) => Limit::perMinute(10)->by($r->bearerToken() ?: $r->ip()));

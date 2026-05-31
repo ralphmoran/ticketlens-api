@@ -40,6 +40,10 @@ Route::middleware(['throttle:api-global', 'auth.cli'])->group(function () {
         ->middleware('throttle:profiles')
         ->name('api.profiles');
 
+    Route::get('/v1/templates', \App\Http\Controllers\Api\BriefTemplateController::class)
+        ->middleware('throttle:profiles')
+        ->name('api.templates');
+
     Route::post('/v1/triage/push',      PushController::class)->middleware('throttle:triage');
     Route::post('/v1/triage/share',     ShareController::class)->middleware('throttle:triage');
     Route::get('/v1/triage/collisions', CollisionsController::class)->middleware('throttle:triage');

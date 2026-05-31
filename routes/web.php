@@ -148,6 +148,14 @@ Route::prefix('console')->name('console.')->group(function () {
             Route::get('/digests',                                               [\App\Http\Controllers\Console\Admin\DigestsController::class, 'index'])->name('digests');
         });
 
+        // Brief templates — Pro/Team/Enterprise (tier-gated in controller, owner unrestricted)
+        Route::prefix('admin')->name('admin.')->group(function () {
+            Route::get('/templates',               [\App\Http\Controllers\Console\Admin\BriefTemplatesController::class, 'index'])->name('templates.index');
+            Route::post('/templates',              [\App\Http\Controllers\Console\Admin\BriefTemplatesController::class, 'store'])->name('templates.store');
+            Route::put('/templates/{briefTemplate}',    [\App\Http\Controllers\Console\Admin\BriefTemplatesController::class, 'update'])->name('templates.update');
+            Route::delete('/templates/{briefTemplate}', [\App\Http\Controllers\Console\Admin\BriefTemplatesController::class, 'destroy'])->name('templates.destroy');
+        });
+
         // Slack OAuth redirect — requires auth to know who's initiating the flow
         Route::get('/slack/redirect', [\App\Http\Controllers\Console\SlackOAuthController::class, 'redirect'])
             ->name('slack.redirect');

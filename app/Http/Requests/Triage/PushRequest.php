@@ -16,8 +16,9 @@ class PushRequest extends FormRequest
         return [
             'profile'                   => ['required', 'string', 'max:100'],
             'captured_at'               => ['required', 'date'],
-            'tickets'                   => ['required', 'array'],
-            'tickets.*.key'             => ['required', 'string'],
+            'tickets'                      => ['required', 'array'],
+            'tickets.*.key'                => ['required', 'string'],
+            'tickets.*.last_comment_at'    => ['sometimes', 'nullable', 'date'],
             'git_branches'              => ['sometimes', 'nullable', 'array'],
             'git_branches.*.branch'     => ['required_with:git_branches', 'string'],
             'git_branches.*.base'       => ['sometimes', 'nullable', 'string'],

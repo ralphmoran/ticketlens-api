@@ -80,8 +80,13 @@ class QueueControllerTest extends TestCase
     public function test_snapshots_are_passed_to_the_page(): void
     {
         $user = $this->makeTeamUser();
-        $this->addSnapshot($user, 'production', 3);
-        $this->addSnapshot($user, 'staging', 1);
+        // Use distinct captured_at to guarantee deterministic ordering (DESC)
+        TriageSnapshot::create(array_merge($this->snapshotData($user, 'staging', 1), [
+            'captured_at' => now()->subMinutes(5),
+        ]));
+        TriageSnapshot::create(array_merge($this->snapshotData($user, 'production', 3), [
+            'captured_at' => now(),
+        ]));
 
         $response = $this->actingAs($user)->get('/console/queue');
 
@@ -90,6 +95,28 @@ class QueueControllerTest extends TestCase
             ->where('snapshots.0.profile', 'production')
             ->where('snapshots.0.ticket_count', 3)
         );
+    }
+
+    private function snapshotData(User $user, string $profile, int $ticketCount): array
+    {
+        return [
+            'user_id'          => $user->id,
+            'license_key_hash' => hash('sha256', 'some-key'),
+            'profile'          => $profile,
+            'tickets'          => array_map(fn ($i) => [
+                'key'                 => "PROJ-{$i}",
+                'summary'             => "Ticket {$i}",
+                'status'              => 'Code Review',
+                'assignee'            => 'Dev',
+                'attention_score'     => 7.0,
+                'flags'               => ['needs-response'],
+                'compliance_coverage' => null,
+                'compliance_status'   => 'unknown',
+                'url'                 => "https://jira.example.com/browse/PROJ-{$i}",
+                'last_updated'        => '2026-05-11T09:00:00Z',
+            ], range(1, $ticketCount)),
+            'ticket_count' => $ticketCount,
+        ];
     }
 
     public function test_empty_snapshots_passed_when_no_push_yet(): void

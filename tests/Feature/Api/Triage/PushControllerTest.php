@@ -242,8 +242,86 @@ class PushControllerTest extends TestCase
         $this->withToken($token)->postJson('/v1/triage/push', $this->validPayload(['git_branches' => $first]));
         $this->withToken($token)->postJson('/v1/triage/push', $this->validPayload(['git_branches' => $second]));
 
-        $snapshot = TriageSnapshot::first();
+        $snapshot = TriageSnapshot::orderByDesc('captured_at')->first();
         $this->assertEquals('feat/new', $snapshot->git_branches[0]['branch']);
         $this->assertCount(1, TriageSnapshot::all());
+    }
+
+    // ── History accumulation (daily-dedup insert semantics) ──────────────────
+
+    public function test_push_on_different_day_creates_new_row(): void
+    {
+        [, $token] = $this->makeUserWithToken();
+
+        $this->withToken($token)->postJson('/v1/triage/push', $this->validPayload([
+            'captured_at' => '2026-05-10T10:00:00Z',
+        ]));
+        $this->withToken($token)->postJson('/v1/triage/push', $this->validPayload([
+            'captured_at' => '2026-05-11T10:00:00Z',
+        ]));
+
+        $this->assertSame(2, TriageSnapshot::count());
+    }
+
+    public function test_push_same_day_updates_existing_row(): void
+    {
+        [, $token] = $this->makeUserWithToken();
+
+        $this->withToken($token)->postJson('/v1/triage/push', $this->validPayload([
+            'captured_at' => '2026-05-11T08:00:00Z',
+        ]));
+        $this->withToken($token)->postJson('/v1/triage/push', $this->validPayload([
+            'captured_at' => '2026-05-11T18:00:00Z',
+            'tickets'     => [
+                ['key' => 'PROJ-999', 'summary' => 'Later push', 'status' => 'Done',
+                 'assignee' => 'Eve', 'attention_score' => 1.0, 'flags' => [],
+                 'compliance_coverage' => null, 'compliance_status' => 'unknown',
+                 'url' => 'https://jira.example.com/browse/PROJ-999', 'last_updated' => '2026-05-11T17:00:00Z'],
+            ],
+        ]));
+
+        $this->assertSame(1, TriageSnapshot::count());
+        $this->assertSame(1, TriageSnapshot::first()->ticket_count);
+    }
+
+    public function test_old_rows_pruned_on_push(): void
+    {
+        [$user, $token] = $this->makeUserWithToken();
+
+        // Seed an old row (91 days ago) directly
+        TriageSnapshot::create([
+            'user_id'      => $user->id,
+            'profile'      => 'production',
+            'tickets'      => [],
+            'ticket_count' => 0,
+            'captured_at'  => now()->subDays(91),
+        ]);
+
+        $this->assertSame(1, TriageSnapshot::count());
+
+        // New push triggers pruning
+        $this->withToken($token)->postJson('/v1/triage/push', $this->validPayload());
+
+        // Old row gone, new row created
+        $this->assertSame(1, TriageSnapshot::count());
+        $this->assertSame(1, TriageSnapshot::first()->ticket_count);
+    }
+
+    public function test_push_accepts_last_comment_at_per_ticket(): void
+    {
+        [, $token] = $this->makeUserWithToken();
+        $payload = $this->validPayload([
+            'tickets' => [
+                array_merge($this->validPayload()['tickets'][0], [
+                    'last_comment_at' => '2026-05-11T09:30:00Z',
+                ]),
+            ],
+        ]);
+
+        $this->withToken($token)->postJson('/v1/triage/push', $payload)
+            ->assertStatus(200);
+
+        $ticket = TriageSnapshot::first()->tickets[0];
+        $this->assertSame('2026-05-11T09:30:00Z', $ticket['last_comment_at']);
     }
 }

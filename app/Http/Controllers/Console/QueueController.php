@@ -13,6 +13,7 @@ class QueueController
     {
         $snapshots = TriageSnapshot::where('user_id', $request->user()->id)
             ->orderByDesc('captured_at')
+            ->orderByDesc('id')
             ->get(['id', 'profile', 'tickets', 'ticket_count', 'captured_at', 'updated_at']);
 
         return Inertia::render('Console/Queue', [

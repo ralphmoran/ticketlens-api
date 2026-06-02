@@ -78,7 +78,8 @@ class TeamHealthController
 
         $snapshots = TriageSnapshot::whereIn('user_id', $members->pluck('id'))
             ->orderByDesc('captured_at')
-            ->get(['user_id', 'tickets', 'ticket_count', 'captured_at']);
+            ->get(['user_id', 'profile', 'tickets', 'ticket_count', 'captured_at'])
+            ->unique(fn ($s) => $s->user_id . '|' . $s->profile); // latest per user+profile
 
         $snapshotsByUser = $snapshots->groupBy('user_id');
         $memberMap       = $members->keyBy('id');

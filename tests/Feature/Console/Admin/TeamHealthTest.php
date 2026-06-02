@@ -272,6 +272,38 @@ class TeamHealthTest extends TestCase
             ->assertRedirect('/console/admin/team-health');
     }
 
+    // --- Historical row dedup (lock: latest-per-user-profile must be used) ---
+
+    public function test_workload_uses_latest_snapshot_per_user_profile(): void
+    {
+        $manager = $this->makeManager();
+        $dev     = $this->makeMember($manager->ownedGroup, 'Dave');
+
+        // Older snapshot: 5 tickets (should NOT count)
+        TriageSnapshot::create([
+            'user_id'      => $dev->id,
+            'profile'      => 'production',
+            'tickets'      => array_map(fn ($i) => $this->ticket("OLD-$i"), range(1, 5)),
+            'ticket_count' => 5,
+            'captured_at'  => now()->subDays(2),
+        ]);
+
+        // Latest snapshot: 2 tickets (SHOULD count)
+        TriageSnapshot::create([
+            'user_id'      => $dev->id,
+            'profile'      => 'production',
+            'tickets'      => [$this->ticket('NEW-1'), $this->ticket('NEW-2')],
+            'ticket_count' => 2,
+            'captured_at'  => now(),
+        ]);
+
+        $this->actingAs($manager)->get('/console/admin/team-health')
+            ->assertInertia(fn ($page) => $page
+                ->where('workload.0.ticket_count', 2)
+                ->where('workload.0.member_name', 'Dave')
+            );
+    }
+
     // --- Empty state ---
 
     public function test_empty_page_when_no_member_has_pushed(): void

@@ -109,37 +109,45 @@ async function destroyStale() {
                     <h2 class="text-sm font-semibold text-slate-200">Stale Status Detection</h2>
                     <p class="text-xs text-slate-500 mt-0.5">Flag tickets stuck in the same status too long</p>
                 </div>
-                <div class="flex items-center gap-3 shrink-0">
-                    <span
-                        class="rounded-full px-2 py-0.5 text-xs font-medium"
-                        :class="hasRule && stale_rule.enabled
-                            ? 'bg-emerald-900/40 text-emerald-400'
-                            : 'bg-slate-800 text-slate-500'"
-                    >
-                        {{ hasRule && stale_rule.enabled ? 'Active' : 'Off' }}
-                    </span>
-                    <button
-                        type="button"
-                        role="switch"
-                        :aria-checked="form.enabled"
-                        @click="form.enabled = !form.enabled"
-                        class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-slate-900"
-                        :class="form.enabled ? 'bg-indigo-600' : 'bg-slate-700'"
-                    >
-                        <span
-                            class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
-                            :class="form.enabled ? 'translate-x-5' : 'translate-x-0'"
-                        />
-                    </button>
-                </div>
+                <span
+                    class="shrink-0 rounded-full px-2 py-0.5 text-xs font-medium"
+                    :class="hasRule && stale_rule.enabled
+                        ? 'bg-emerald-900/40 text-emerald-400'
+                        : 'bg-slate-800 text-slate-500'"
+                >
+                    {{ hasRule && stale_rule.enabled ? 'Active' : 'Off' }}
+                </span>
             </div>
 
             <!-- Form body: two-column grid to fill the card width -->
             <form class="p-5" @submit.prevent="saveStale">
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
-                    <!-- Left: threshold -->
-                    <div class="space-y-2">
+                    <!-- Left: enabled toggle + threshold -->
+                    <div class="space-y-4">
+
+                        <!-- Enabled toggle -->
+                        <div class="flex items-center justify-between rounded-lg border border-slate-800 bg-slate-800/40 px-4 py-3">
+                            <div>
+                                <p class="text-sm font-medium text-slate-200">Enable detection</p>
+                                <p class="text-xs text-slate-500 mt-0.5">Runs on every sync push — save to apply</p>
+                            </div>
+                            <button
+                                type="button"
+                                role="switch"
+                                :aria-checked="form.enabled"
+                                @click="form.enabled = !form.enabled"
+                                class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-slate-900"
+                                :class="form.enabled ? 'bg-indigo-600' : 'bg-slate-700'"
+                            >
+                                <span
+                                    class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
+                                    :class="form.enabled ? 'translate-x-5' : 'translate-x-0'"
+                                />
+                            </button>
+                        </div>
+
+                        <div class="space-y-2">
                         <label class="tl-label block">Days before stale</label>
                         <div class="flex items-center gap-2">
                             <input
@@ -154,7 +162,8 @@ async function destroyStale() {
                         </div>
                         <p class="tl-hint">Tickets that exceed this threshold are flagged on the next sync.</p>
                         <p v-if="form.errors.stale_days" class="text-xs text-red-400">{{ form.errors.stale_days }}</p>
-                    </div>
+                        </div><!-- /days -->
+                    </div><!-- /left column -->
 
                     <!-- Right: status picker -->
                     <div class="space-y-2">

@@ -56,7 +56,15 @@ async function destroyStale() {
         confirmLabel: 'Remove',
     })
     if (!ok) return
-    router.delete('/console/admin/rules/stale', { preserveScroll: true })
+    router.delete('/console/admin/rules/stale', {
+        preserveScroll: true,
+        onSuccess: () => {
+            form.enabled    = true
+            form.stale_days = 14
+            form.statuses   = []
+            pendingStatuses.value = []
+        },
+    })
 }
 </script>
 

@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\DB;
  * Seeds the features table and default tier→feature mappings.
  *
  * Bit values match app/Enums/Permission.php exactly.
- * Tier presets: free=64, pro=71, team=127.
+ * Tier presets: free=64, pro=2119 (64|4|2|1|2048), team=2687.
  *
  * Run: php artisan db:seed --class=FeatureSeeder
  */
@@ -25,16 +25,17 @@ class FeatureSeeder extends Seeder
         ['name' => 'multi_account',    'bit_value' => 32,  'label' => 'Multi-Account',      'description' => 'Team seat management',             'sort_order' => 60],
         ['name' => 'savings_analytics','bit_value' => 64,  'label' => 'Savings Analytics',  'description' => 'Token savings dashboard',          'sort_order' => 70],
         ['name' => 'team_manage_members', 'bit_value' => 128, 'label' => 'Team: Manage Members', 'description' => 'Invite and remove team members', 'sort_order' => 80],
-        ['name' => 'team_manage_seats',   'bit_value' => 256, 'label' => 'Team: Manage Seats',   'description' => 'Allocate and rotate team seats', 'sort_order' => 90],
+        ['name' => 'team_manage_seats',   'bit_value' => 256,  'label' => 'Team: Manage Seats',   'description' => 'Allocate and rotate team seats',                        'sort_order' => 90],
+        ['name' => 'workflow_rules',       'bit_value' => 2048, 'label' => 'Workflow Rules',        'description' => 'Stale status detection and workflow automation rules',  'sort_order' => 75],
     ];
 
     // Default tier→feature preset (mirrors Permission enum presets)
-    // free=64, pro=71 (64|4|2|1), team=enterprise=127 (64|32|16|8|4|2|1)
+    // free=64, pro=2119 (64|4|2|1|2048), team=enterprise=2687 (pro|8|16|32|512)
     private const TIER_PRESETS = [
         'free' => [64],
-        'pro'  => [64, 4, 2, 1],
-        'team' => [64, 32, 16, 8, 4, 2, 1],
-        'enterprise' => [64, 32, 16, 8, 4, 2, 1],
+        'pro'  => [64, 4, 2, 1, 2048],
+        'team' => [64, 32, 16, 8, 4, 2, 1, 2048],
+        'enterprise' => [64, 32, 16, 8, 4, 2, 1, 2048],
     ];
 
     public function run(): void
@@ -49,16 +50,15 @@ class FeatureSeeder extends Seeder
 
         $this->command->info('  Features seeded: ' . count(self::FEATURES));
 
-        // Build tier_features from presets
+        // Build tier_features from presets — insertOrIgnore is idempotent and safe to re-run.
+        // Do NOT truncate here: the Owner Panel allows per-tier customisation that must be preserved.
         $featuresByBit = Feature::all()->keyBy('bit_value');
-
-        DB::table('tier_features')->truncate();
 
         foreach (self::TIER_PRESETS as $tier => $bits) {
             foreach ($bits as $bit) {
                 $feature = $featuresByBit->get($bit);
                 if ($feature) {
-                    DB::table('tier_features')->insert([
+                    DB::table('tier_features')->insertOrIgnore([
                         'tier'       => $tier,
                         'feature_id' => $feature->id,
                     ]);

@@ -92,6 +92,7 @@ class StatsController
                     'date'           => $date,
                     'needs_response' => $tickets->filter(fn ($t) => in_array('needs-response', $t['flags'] ?? []))->count(),
                     'aging'          => $tickets->filter(fn ($t) => in_array('aging', $t['flags'] ?? []))->count(),
+                    'stale'          => $tickets->filter(fn ($t) => in_array('stale', $t['flags'] ?? []))->count(),
                     'clear'          => $tickets->filter(fn ($t) => empty($t['flags']))->count(),
                 ];
             })
@@ -111,6 +112,7 @@ class StatsController
             $tickets      = $memberSnaps->flatMap(fn ($s) => $s->tickets ?? []);
             $needsResp    = $tickets->filter(fn ($t) => in_array('needs-response', $t['flags'] ?? []))->count();
             $aging        = $tickets->filter(fn ($t) => in_array('aging', $t['flags'] ?? []))->count();
+            $stale        = $tickets->filter(fn ($t) => in_array('stale', $t['flags'] ?? []))->count();
             $clear        = $tickets->filter(fn ($t) => empty($t['flags']))->count();
             $lastPush     = $memberSnaps->max('captured_at');
 
@@ -119,6 +121,7 @@ class StatsController
                 'member_name'    => $member->name,
                 'needs_response' => $needsResp,
                 'aging'          => $aging,
+                'stale'          => $stale,
                 'clear'          => $clear,
                 'total'          => $tickets->count(),
                 'last_push'      => $lastPush?->toIso8601String(),

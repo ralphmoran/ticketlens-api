@@ -29,6 +29,7 @@ class EvaluateAlertsJob implements ShouldQueue
     private const FLAG_TO_TYPE = [
         'needs-response' => 'needs_response',
         'aging'          => 'aging',
+        'stale'          => 'stale',
     ];
 
     private const COMPLIANCE_GAP_TYPE = 'compliance_gap';
@@ -80,7 +81,7 @@ class EvaluateAlertsJob implements ShouldQueue
                 continue;
             }
 
-            // Flag-based alerts (needs_response, aging)
+            // Flag-based alerts (needs_response, aging, stale)
             foreach ($ticket['flags'] ?? [] as $flag) {
                 $type = self::FLAG_TO_TYPE[$flag] ?? null;
                 if (! $type) {
@@ -156,6 +157,7 @@ class EvaluateAlertsJob implements ShouldQueue
             (int) ($settings->needs_response_cooldown_hours ?? 4),
             (int) ($settings->aging_cooldown_hours          ?? 4),
             (int) ($settings->compliance_gap_cooldown_hours  ?? 4),
+            (int) ($settings->stale_cooldown_hours           ?? 4),
         );
 
         $this->sentCache = [];
@@ -195,6 +197,7 @@ class EvaluateAlertsJob implements ShouldQueue
             'needs_response' => $settings->needs_response_cooldown_hours,
             'aging'          => $settings->aging_cooldown_hours,
             'compliance_gap' => $settings->compliance_gap_cooldown_hours,
+            'stale'          => $settings->stale_cooldown_hours ?? 4,
             default          => 4,
         };
     }
@@ -205,6 +208,7 @@ class EvaluateAlertsJob implements ShouldQueue
             'needs_response' => $settings->needs_response_enabled,
             'aging'          => $settings->aging_enabled,
             'compliance_gap' => $settings->compliance_gap_enabled,
+            'stale'          => $settings->stale_enabled ?? false,
             default          => false,
         };
     }
@@ -220,6 +224,7 @@ class EvaluateAlertsJob implements ShouldQueue
             'needs_response' => ":speech_balloon: *Needs response:* {$link} — {$summary}{$assignee}",
             'aging'          => ":hourglass_flowing_sand: *Aging ticket:* {$link} — {$summary}{$assignee}",
             'compliance_gap' => ":warning: *Compliance gap:* {$link} — Done but requirements incomplete{$assignee}",
+            'stale'          => ":sleeping: *Stale ticket:* {$link} — {$summary}{$assignee}",
             default          => ":bell: Alert on {$link}",
         };
     }

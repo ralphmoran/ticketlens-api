@@ -3,8 +3,10 @@
 namespace Tests\Feature\Api;
 
 use App\Models\CliToken;
+use App\Models\Group;
 use App\Models\TrackerProfile;
 use App\Models\User;
+use App\Models\WorkflowRule;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -147,5 +149,140 @@ class ProfileSyncTest extends TestCase
 
         $response = $this->withToken($token)->getJson('/v1/profiles');
         $response->assertOk();
+    }
+
+    // ── Stale rule fields ─────────────────────────────────────────────────────
+
+    public function test_profile_includes_stale_rule_known_statuses_and_cached_at_fields(): void
+    {
+        $user  = $this->makeUser();
+        $token = $this->makeToken($user);
+
+        TrackerProfile::create([
+            'user_id' => $user->id, 'name' => 'work', 'tracker_type' => 'jira',
+            'base_url' => 'https://a.atlassian.net', 'auth_method' => 'cloud',
+        ]);
+
+        $profile = $this->withToken($token)->getJson('/v1/profiles')
+            ->assertOk()
+            ->json('profiles.0');
+
+        $this->assertArrayHasKey('stale_rule', $profile);
+        $this->assertArrayHasKey('known_statuses', $profile);
+        $this->assertArrayHasKey('statuses_cached_at', $profile);
+        $this->assertNull($profile['stale_rule']);
+        $this->assertEquals([], $profile['known_statuses']);
+    }
+
+    public function test_team_stale_rule_applied_when_profile_has_no_user_override(): void
+    {
+        $user  = User::factory()->create(['tier' => 'pro', 'permissions' => 2119]);
+        $token = $this->makeToken($user);
+        $group = Group::create(['name' => 'Acme', 'owner_id' => $user->id]);
+        $group->members()->attach($user->id);
+
+        WorkflowRule::create([
+            'group_id' => $group->id,
+            'type'     => 'stale',
+            'config'   => ['stale_days' => 14, 'statuses' => ['In Review']],
+            'enabled'  => true,
+        ]);
+
+        TrackerProfile::create([
+            'user_id' => $user->id, 'name' => 'work', 'tracker_type' => 'jira',
+            'base_url' => 'https://a.atlassian.net', 'auth_method' => 'cloud',
+        ]);
+
+        $profile = $this->withToken($token)->getJson('/v1/profiles')
+            ->assertOk()
+            ->json('profiles.0');
+
+        $this->assertEquals(['stale_days' => 14, 'statuses' => ['In Review']], $profile['stale_rule']);
+    }
+
+    public function test_user_stale_rule_overrides_team_rule(): void
+    {
+        $user  = User::factory()->create(['tier' => 'pro', 'permissions' => 2119]);
+        $token = $this->makeToken($user);
+        $group = Group::create(['name' => 'Acme', 'owner_id' => $user->id]);
+        $group->members()->attach($user->id);
+
+        WorkflowRule::create([
+            'group_id' => $group->id,
+            'type'     => 'stale',
+            'config'   => ['stale_days' => 14, 'statuses' => ['Team Status']],
+            'enabled'  => true,
+        ]);
+
+        TrackerProfile::create([
+            'user_id'    => $user->id,
+            'name'       => 'work',
+            'tracker_type' => 'jira',
+            'base_url'   => 'https://a.atlassian.net',
+            'auth_method' => 'cloud',
+            'stale_rule' => ['stale_days' => 7, 'statuses' => ['User Status']],
+        ]);
+
+        $profile = $this->withToken($token)->getJson('/v1/profiles')
+            ->assertOk()
+            ->json('profiles.0');
+
+        // User-level override wins
+        $this->assertEquals(['stale_days' => 7, 'statuses' => ['User Status']], $profile['stale_rule']);
+    }
+
+    public function test_disabled_team_rule_is_not_applied_as_fallback(): void
+    {
+        $user  = User::factory()->create(['tier' => 'pro', 'permissions' => 2119]);
+        $token = $this->makeToken($user);
+        $group = Group::create(['name' => 'Acme', 'owner_id' => $user->id]);
+        $group->members()->attach($user->id);
+
+        WorkflowRule::create([
+            'group_id' => $group->id,
+            'type'     => 'stale',
+            'config'   => ['stale_days' => 14, 'statuses' => ['In Review']],
+            'enabled'  => false,   // disabled — must not be served
+        ]);
+
+        TrackerProfile::create([
+            'user_id' => $user->id, 'name' => 'work', 'tracker_type' => 'jira',
+            'base_url' => 'https://a.atlassian.net', 'auth_method' => 'cloud',
+        ]);
+
+        $profile = $this->withToken($token)->getJson('/v1/profiles')
+            ->assertOk()
+            ->json('profiles.0');
+
+        $this->assertNull($profile['stale_rule']);
+    }
+
+    public function test_credential_invariant_stale_rule_contains_no_auth_keys(): void
+    {
+        $user  = User::factory()->create(['tier' => 'pro', 'permissions' => 2119]);
+        $token = $this->makeToken($user);
+        $group = Group::create(['name' => 'Acme', 'owner_id' => $user->id]);
+        $group->members()->attach($user->id);
+
+        WorkflowRule::create([
+            'group_id' => $group->id,
+            'type'     => 'stale',
+            'config'   => ['stale_days' => 7, 'statuses' => ['In Review']],
+            'enabled'  => true,
+        ]);
+
+        TrackerProfile::create([
+            'user_id' => $user->id, 'name' => 'work', 'tracker_type' => 'jira',
+            'base_url' => 'https://a.atlassian.net', 'auth_method' => 'cloud',
+        ]);
+
+        $profile    = $this->withToken($token)->getJson('/v1/profiles')->json('profiles.0');
+        $staleRule  = $profile['stale_rule'] ?? [];
+
+        $forbidden = ['token', 'api_token', 'password', 'secret', 'key', 'credential', 'pat'];
+        foreach ($forbidden as $key) {
+            $this->assertArrayNotHasKey($key, $staleRule,
+                "Credential key '{$key}' must never appear in stale_rule");
+        }
     }
 }

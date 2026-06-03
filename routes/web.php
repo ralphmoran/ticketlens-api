@@ -147,9 +147,14 @@ Route::prefix('console')->name('console.')->group(function () {
             Route::delete('/alerts/digest-schedules/{digestSchedule}',          [\App\Http\Controllers\Console\Admin\AlertsController::class, 'destroyDigestSchedule'])->name('alerts.digest-schedules.destroy');
             Route::post('/alerts/digest-schedules/{digestSchedule}/test',       [\App\Http\Controllers\Console\Admin\AlertsController::class, 'testDigestSchedule'])->name('alerts.digest-schedules.test');
             Route::get('/digests',                                               [\App\Http\Controllers\Console\Admin\DigestsController::class, 'index'])->name('digests');
+
+            // Workflow Rules — manager-only (also tier-gated in controller for Pro+ enforcement)
+            Route::get('/rules',          [\App\Http\Controllers\Console\Admin\RulesController::class, 'index'])->name('rules.index');
+            Route::post('/rules/stale',   [\App\Http\Controllers\Console\Admin\RulesController::class, 'saveStale'])->name('rules.stale.save');
+            Route::delete('/rules/stale', [\App\Http\Controllers\Console\Admin\RulesController::class, 'destroyStale'])->name('rules.stale.destroy');
         });
 
-        // Brief templates — Pro/Team/Enterprise (tier-gated in controller, owner unrestricted)
+        // Brief templates — auth only (tier-gated in controller, owner unrestricted)
         Route::prefix('admin')->name('admin.')->group(function () {
             Route::get('/templates',               [\App\Http\Controllers\Console\Admin\BriefTemplatesController::class, 'index'])->name('templates.index');
             Route::post('/templates',              [\App\Http\Controllers\Console\Admin\BriefTemplatesController::class, 'store'])->name('templates.store');

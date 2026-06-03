@@ -564,4 +564,105 @@ class EvaluateAlertsJobTest extends TestCase
 
         (new EvaluateAlertsJob($user->id, $snapshot->id))->handle($slack);
     }
+
+    // ── Stale alert ───────────────────────────────────────────────────────────
+
+    public function test_stale_alert_fires_when_enabled_and_ticket_has_stale_flag(): void
+    {
+        $user  = $this->makeTeamUser();
+        $group = $user->groups()->first();
+        $this->makeSlack($group);
+        $this->makeAlertSettings($group, ['stale_enabled' => true, 'stale_cooldown_hours' => 4]);
+        $snapshot = $this->makeSnapshot($user, [
+            $this->ticket('ST-1', ['stale']),
+        ]);
+
+        $slack = $this->mockSlack();
+        $slack->shouldReceive('postMessage')->once()->with('xoxb-test', 'C001', Mockery::on(
+            fn ($text) => str_contains($text, 'ST-1') && str_contains($text, 'Stale')
+        ));
+
+        (new EvaluateAlertsJob($user->id, $snapshot->id))->handle($slack);
+    }
+
+    public function test_stale_alert_does_not_fire_when_disabled(): void
+    {
+        $user  = $this->makeTeamUser();
+        $group = $user->groups()->first();
+        $this->makeSlack($group);
+        $this->makeAlertSettings($group, ['stale_enabled' => false]);
+        $snapshot = $this->makeSnapshot($user, [
+            $this->ticket('ST-2', ['stale']),
+        ]);
+
+        $slack = $this->mockSlack();
+        $slack->shouldNotReceive('postMessage');
+        $slack->shouldNotReceive('postDm');
+
+        (new EvaluateAlertsJob($user->id, $snapshot->id))->handle($slack);
+    }
+
+    public function test_stale_alert_respects_cooldown(): void
+    {
+        $user  = $this->makeTeamUser();
+        $group = $user->groups()->first();
+        $this->makeSlack($group);
+        $this->makeAlertSettings($group, ['stale_enabled' => true, 'stale_cooldown_hours' => 4]);
+
+        // Pre-seed a recent sent log
+        \App\Models\SentAlertLog::create([
+            'group_id'     => $group->id,
+            'alert_type'   => 'stale',
+            'ticket_key'   => 'ST-3',
+            'triggered_at' => now()->subHour(),
+        ]);
+
+        $snapshot = $this->makeSnapshot($user, [
+            $this->ticket('ST-3', ['stale']),
+        ]);
+
+        $slack = $this->mockSlack();
+        $slack->shouldNotReceive('postMessage');
+
+        (new EvaluateAlertsJob($user->id, $snapshot->id))->handle($slack);
+    }
+
+    public function test_stale_alert_default_disabled_on_missing_stale_settings(): void
+    {
+        $user  = $this->makeTeamUser();
+        $group = $user->groups()->first();
+        $this->makeSlack($group);
+        // No stale_enabled column override — relies on default false
+        $this->makeAlertSettings($group);
+        $snapshot = $this->makeSnapshot($user, [
+            $this->ticket('ST-4', ['stale']),
+        ]);
+
+        $slack = $this->mockSlack();
+        $slack->shouldNotReceive('postMessage');
+
+        (new EvaluateAlertsJob($user->id, $snapshot->id))->handle($slack);
+    }
+
+    public function test_stale_and_aging_alerts_fire_independently_on_same_snapshot(): void
+    {
+        $user  = $this->makeTeamUser();
+        $group = $user->groups()->first();
+        $this->makeSlack($group);
+        $this->makeAlertSettings($group, [
+            'aging_enabled'        => true,
+            'aging_cooldown_hours' => 4,
+            'stale_enabled'        => true,
+            'stale_cooldown_hours' => 4,
+        ]);
+        $snapshot = $this->makeSnapshot($user, [
+            $this->ticket('AG-1', ['aging']),
+            $this->ticket('ST-5', ['stale']),
+        ]);
+
+        $slack = $this->mockSlack();
+        $slack->shouldReceive('postMessage')->twice();
+
+        (new EvaluateAlertsJob($user->id, $snapshot->id))->handle($slack);
+    }
 }

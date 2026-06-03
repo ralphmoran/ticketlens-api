@@ -41,9 +41,10 @@ class EnsureTeamLeadTest extends TestCase
 
     // --- LOCK: existing invariants ---
 
-    public function test_team_permission_bitmask_is_639(): void
+    public function test_team_permission_bitmask_is_2687(): void
     {
-        $this->assertSame(639, Permission::team());
+        // team() now includes WorkflowRules (2048): pro(2119) | 8 | 16 | 32 | 512 = 2687
+        $this->assertSame(2687, Permission::team());
     }
 
     public function test_manager_mask_is_384(): void

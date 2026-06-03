@@ -305,4 +305,43 @@ class StatsControllerTest extends TestCase
         $this->actingAs($owner)->get('/console/admin/stats?manager_id=99999')
             ->assertRedirect('/console/admin/stats');
     }
+
+    // ── Stale band ────────────────────────────────────────────────────────────
+
+    public function test_daily_urgency_includes_stale_band(): void
+    {
+        $manager = $this->makeManager();
+        $dev     = $this->makeMember($manager->ownedGroup, 'Dave');
+        $this->pushSnapshot($dev, [
+            $this->ticket('S-1', ['stale']),
+            $this->ticket('S-2', ['aging']),
+            $this->ticket('S-3'),
+        ]);
+
+        $this->actingAs($manager)->get('/console/admin/stats')
+            ->assertInertia(fn ($page) => $page
+                ->where('daily_urgency.0.stale', 1)
+                ->where('daily_urgency.0.aging', 1)
+                ->where('daily_urgency.0.clear', 1)
+            );
+    }
+
+    public function test_team_comparison_includes_stale_band(): void
+    {
+        $manager = $this->makeManager();
+        $dev     = $this->makeMember($manager->ownedGroup, 'Eve');
+        $this->pushSnapshot($dev, [
+            $this->ticket('S-4', ['stale']),
+            $this->ticket('S-5', ['stale']),
+        ]);
+
+        $this->actingAs($manager)->get('/console/admin/stats')
+            ->assertInertia(fn ($page) => $page
+                ->where('team_comparison', fn ($rows) =>
+                    collect($rows)->contains(fn ($r) =>
+                        $r['member_name'] === 'Eve' && $r['stale'] === 2
+                    )
+                )
+            );
+    }
 }

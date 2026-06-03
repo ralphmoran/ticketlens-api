@@ -24,16 +24,16 @@ class PermissionBitmaskLockTest extends TestCase
         $this->assertSame(64, Permission::free());
     }
 
-    public function test_pro_tier_equals_71(): void
+    public function test_pro_tier_equals_2119(): void
     {
-        // 64 (SavingsAnalytics) | 4 (Summarize) | 2 (Digests) | 1 (Schedules) = 71
-        $this->assertSame(71, Permission::pro());
+        // 64 (SavingsAnalytics) | 4 (Summarize) | 2 (Digests) | 1 (Schedules) | 2048 (WorkflowRules) = 2119
+        $this->assertSame(2119, Permission::pro());
     }
 
-    public function test_team_tier_equals_639(): void
+    public function test_team_tier_equals_2687(): void
     {
-        // pro (71) | 8 (Compliance) | 16 (Export) | 32 (MultiAccount) | 512 (AttentionQueue) = 639
-        $this->assertSame(639, Permission::team());
+        // pro (2119) | 8 (Compliance) | 16 (Export) | 32 (MultiAccount) | 512 (AttentionQueue) = 2687
+        $this->assertSame(2687, Permission::team());
     }
 
     public function test_enterprise_tier_equals_team(): void
@@ -93,6 +93,16 @@ class PermissionBitmaskLockTest extends TestCase
     public function test_attention_queue_is_bit_9(): void
     {
         $this->assertSame(512, Permission::AttentionQueue->value);
+    }
+
+    public function test_attention_queue_is_bit_10(): void
+    {
+        $this->assertSame(1024, Permission::TeamViewHealth->value);
+    }
+
+    public function test_workflow_rules_is_bit_11(): void
+    {
+        $this->assertSame(2048, Permission::WorkflowRules->value);
     }
 
     public function test_team_manager_mask_is_384(): void

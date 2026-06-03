@@ -12,6 +12,14 @@ class TierControllerTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+        // Clear migration-seeded tier_features so each test controls its own fixture state.
+        DB::table('tier_features')->truncate();
+        \Illuminate\Support\Facades\Cache::flush();
+    }
+
     private function makeOwner(): User
     {
         return User::factory()->create(['is_owner' => true]);

@@ -28,9 +28,10 @@ class PermissionBitmaskTest extends TestCase
         $this->assertSame(64, Permission::free());
     }
 
-    public function test_pro_bitmask_is_71(): void
+    public function test_pro_bitmask_is_2119(): void
     {
-        $this->assertSame(71, Permission::pro());
+        // 64 | 4 | 2 | 1 | 2048 (WorkflowRules) = 2119
+        $this->assertSame(2119, Permission::pro());
     }
 
     public function test_team_manager_mask_is_384(): void
@@ -59,5 +60,15 @@ class PermissionBitmaskTest extends TestCase
     public function test_pro_does_not_include_attention_queue(): void
     {
         $this->assertSame(0, Permission::pro() & Permission::AttentionQueue->value);
+    }
+
+    public function test_pro_includes_workflow_rules(): void
+    {
+        $this->assertSame(2048, Permission::pro() & Permission::WorkflowRules->value);
+    }
+
+    public function test_team_includes_workflow_rules(): void
+    {
+        $this->assertSame(2048, Permission::team() & Permission::WorkflowRules->value);
     }
 }

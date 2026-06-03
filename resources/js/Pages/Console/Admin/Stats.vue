@@ -98,6 +98,15 @@ const lineChartData = computed(() => ({
             pointRadius: 3,
         },
         {
+            label: 'Stale',
+            data: props.daily_urgency.map(d => d.stale ?? 0),
+            borderColor: '#fb923c',
+            backgroundColor: 'rgba(251,146,60,0.08)',
+            fill: true,
+            tension: 0.3,
+            pointRadius: 3,
+        },
+        {
             label: 'Clear',
             data: props.daily_urgency.map(d => d.clear),
             borderColor: '#34d399',
@@ -149,6 +158,12 @@ const barChartData = computed(() => ({
             borderRadius: 3,
         },
         {
+            label: 'Stale',
+            data: props.team_comparison.map(m => m.stale ?? 0),
+            backgroundColor: '#fb923c',
+            borderRadius: 3,
+        },
+        {
             label: 'Clear',
             data: props.team_comparison.map(m => m.clear),
             backgroundColor: '#34d399',
@@ -196,6 +211,7 @@ function urgencyClass(count, type) {
     if (count === 0) return 'text-slate-500'
     if (type === 'needs_response') return 'text-red-400 font-semibold'
     if (type === 'aging')          return 'text-amber-400'
+    if (type === 'stale')          return 'text-orange-400'
     return 'text-emerald-400'
 }
 </script>
@@ -305,6 +321,10 @@ function urgencyClass(count, type) {
                                     >Aging {{ sortIcon('aging') }}</th>
                                     <th
                                         class="px-4 py-3 font-medium cursor-pointer hover:text-slate-300 select-none"
+                                        @click="setSort('stale')"
+                                    >Stale {{ sortIcon('stale') }}</th>
+                                    <th
+                                        class="px-4 py-3 font-medium cursor-pointer hover:text-slate-300 select-none"
                                         @click="setSort('clear')"
                                     >Clear {{ sortIcon('clear') }}</th>
                                     <th
@@ -327,6 +347,9 @@ function urgencyClass(count, type) {
                                     <td class="px-4 py-3" :class="urgencyClass(row.aging, 'aging')">
                                         {{ row.aging }}
                                     </td>
+                                    <td class="px-4 py-3" :class="urgencyClass(row.stale ?? 0, 'stale')">
+                                        {{ row.stale ?? 0 }}
+                                    </td>
                                     <td class="px-4 py-3" :class="urgencyClass(row.clear, 'clear')">
                                         {{ row.clear }}
                                     </td>
@@ -334,7 +357,7 @@ function urgencyClass(count, type) {
                                     <td class="px-5 py-3 text-slate-500 text-xs">{{ timeAgo(row.last_push) }}</td>
                                 </tr>
                                 <tr v-if="sortedTeam.length === 0">
-                                    <td colspan="6" class="px-5 py-6 text-center text-slate-500">
+                                    <td colspan="7" class="px-5 py-6 text-center text-slate-500">
                                         No team members found.
                                     </td>
                                 </tr>

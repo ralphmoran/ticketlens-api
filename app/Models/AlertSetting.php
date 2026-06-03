@@ -12,6 +12,7 @@ class AlertSetting extends Model
         'needs_response_enabled', 'needs_response_cooldown_hours',
         'aging_enabled',          'aging_cooldown_hours',
         'compliance_gap_enabled', 'compliance_gap_cooldown_hours',
+        'stale_enabled',          'stale_cooldown_hours',
     ];
 
     protected function casts(): array
@@ -23,6 +24,8 @@ class AlertSetting extends Model
             'aging_cooldown_hours'          => 'integer',
             'compliance_gap_enabled'        => 'boolean',
             'compliance_gap_cooldown_hours' => 'integer',
+            'stale_enabled'                 => 'boolean',
+            'stale_cooldown_hours'          => 'integer',
         ];
     }
 

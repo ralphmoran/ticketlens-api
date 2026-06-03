@@ -40,6 +40,10 @@ Route::middleware(['throttle:api-global', 'auth.cli'])->group(function () {
         ->middleware('throttle:profiles')
         ->name('api.profiles');
 
+    Route::get('/v1/statuses', \App\Http\Controllers\Api\StatusCacheController::class)
+        ->middleware('throttle:profiles')
+        ->name('api.statuses');
+
     Route::get('/v1/templates', \App\Http\Controllers\Api\BriefTemplateController::class)
         ->middleware('throttle:profiles')
         ->name('api.templates');

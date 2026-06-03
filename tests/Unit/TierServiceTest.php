@@ -20,6 +20,11 @@ class TierServiceTest extends TestCase
     {
         parent::setUp();
         $this->service = new TierService();
+        // Clear migration-seeded tier_features so each test controls its own fixture state.
+        // The migration_add_workflow_rules_permission migration pre-seeds 'pro'/'team'/'enterprise'
+        // rows; clearing here ensures isolated, deterministic test outcomes.
+        DB::table('tier_features')->truncate();
+        Cache::flush();
     }
 
     private function seedFeature(string $name, int $bit): Feature

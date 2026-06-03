@@ -103,7 +103,7 @@ const navGroups = computed(() => [
             { label: 'Integrations',    href: '/console/admin/integrations',    icon: 'plug',          managerOnly: true, ownerExcluded: false, permission: null },
             { label: 'Alerts',          href: '/console/admin/alerts',          icon: 'bell',          managerOnly: true, ownerExcluded: false, permission: null },
             { label: 'Digests',         href: '/console/admin/digests',         icon: 'inbox',         managerOnly: true, ownerExcluded: false, permission: null },
-            { label: 'Workflow Rules',  href: '/console/admin/rules',           icon: 'cog',           managerOnly: true, ownerExcluded: false, permission: Permission.WorkflowRules },
+            { label: 'Workflow Rules',  href: '/console/admin/rules',           icon: 'settings',      managerOnly: true, ownerExcluded: false, permission: Permission.WorkflowRules },
         ]
     },
 ])

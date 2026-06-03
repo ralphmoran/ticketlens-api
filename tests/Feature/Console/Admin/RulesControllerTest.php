@@ -244,4 +244,69 @@ class RulesControllerTest extends TestCase
 
         $this->assertDatabaseMissing('workflow_rules', ['group_id' => $group->id, 'type' => 'stale']);
     }
+
+    public function test_toggle_stale_disables_rule(): void
+    {
+        $user  = $this->makeManager();
+        $group = $user->ownedGroup;
+
+        $rule = WorkflowRule::create([
+            'group_id' => $group->id,
+            'type'     => 'stale',
+            'config'   => ['stale_days' => 7, 'statuses' => ['In Review']],
+            'enabled'  => true,
+        ]);
+
+        $this->actingAs($user)
+            ->patch('/console/admin/rules/stale/toggle', ['enabled' => false])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('workflow_rules', ['id' => $rule->id, 'enabled' => false]);
+    }
+
+    public function test_toggle_stale_enables_rule(): void
+    {
+        $user  = $this->makeManager();
+        $group = $user->ownedGroup;
+
+        $rule = WorkflowRule::create([
+            'group_id' => $group->id,
+            'type'     => 'stale',
+            'config'   => ['stale_days' => 7, 'statuses' => ['In Review']],
+            'enabled'  => false,
+        ]);
+
+        $this->actingAs($user)
+            ->patch('/console/admin/rules/stale/toggle', ['enabled' => true])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('workflow_rules', ['id' => $rule->id, 'enabled' => true]);
+    }
+
+    public function test_toggle_stale_returns_404_when_no_rule(): void
+    {
+        $user = $this->makeManager();
+
+        $this->actingAs($user)
+            ->patch('/console/admin/rules/stale/toggle', ['enabled' => true])
+            ->assertStatus(404);
+    }
+
+    public function test_toggle_stale_blocks_non_manager(): void
+    {
+        $manager = $this->makeManager();
+        $member  = User::factory()->create(['tier' => 'team', 'permissions' => 2687]);
+        $manager->ownedGroup->members()->attach($member->id);
+
+        WorkflowRule::create([
+            'group_id' => $manager->ownedGroup->id,
+            'type'     => 'stale',
+            'config'   => ['stale_days' => 7, 'statuses' => ['In Review']],
+            'enabled'  => true,
+        ]);
+
+        $this->actingAs($member)
+            ->patch('/console/admin/rules/stale/toggle', ['enabled' => false])
+            ->assertRedirect('/console/dashboard');
+    }
 }

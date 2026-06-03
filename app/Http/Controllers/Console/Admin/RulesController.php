@@ -88,6 +88,24 @@ class RulesController extends Controller
         return back()->with('success', 'Stale rule saved.');
     }
 
+    public function toggleStale(Request $request): RedirectResponse
+    {
+        $user = $request->user();
+        abort_if($user->tier === 'free' && ! $user->is_owner, 403, 'Workflow rules require a Pro or higher plan.');
+
+        $group = $user->ownedGroup ?? $user->groups()->first();
+        abort_unless($group !== null, 403, 'No team found.');
+
+        $data = $request->validate(['enabled' => ['required', 'boolean']]);
+
+        $rule = WorkflowRule::where('group_id', $group->id)->where('type', 'stale')->first();
+        abort_unless($rule !== null, 404, 'No stale rule exists to toggle.');
+
+        $rule->update(['enabled' => $data['enabled']]);
+
+        return back()->with('success', $data['enabled'] ? 'Stale rule enabled.' : 'Stale rule disabled.');
+    }
+
     public function destroyStale(Request $request): RedirectResponse
     {
         $user = $request->user();

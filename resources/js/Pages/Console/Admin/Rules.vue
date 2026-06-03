@@ -23,7 +23,20 @@ const form = useForm({
 const { confirm } = useConfirm()
 const hasRule     = computed(() => props.stale_rule !== null)
 const statusInput = ref('')
-const pendingStatuses = ref([])  // statuses added this session, not yet saved
+const pendingStatuses = ref([])
+const toggling    = ref(false)
+
+function toggleEnabled() {
+    form.enabled = !form.enabled
+
+    if (!hasRule.value) return  // no rule yet — value staged for Enable Rule
+
+    toggling.value = true
+    router.patch('/console/admin/rules/stale/toggle', { enabled: form.enabled }, {
+        preserveScroll: true,
+        onFinish: () => { toggling.value = false },
+    })
+}
 
 function addStatus() {
     const s = statusInput.value.trim()
@@ -130,14 +143,15 @@ async function destroyStale() {
                         <div class="flex items-center justify-between rounded-lg border border-slate-800 bg-slate-800/40 px-4 py-3">
                             <div>
                                 <p class="text-sm font-medium text-slate-200">Enable detection</p>
-                                <p class="text-xs text-slate-500 mt-0.5">Runs on every sync push — save to apply</p>
+                                <p class="text-xs text-slate-500 mt-0.5">Toggles immediately — no save needed</p>
                             </div>
                             <button
                                 type="button"
                                 role="switch"
                                 :aria-checked="form.enabled"
-                                @click="form.enabled = !form.enabled"
-                                class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-slate-900"
+                                :disabled="toggling"
+                                @click="toggleEnabled"
+                                class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-slate-900 disabled:opacity-50 disabled:cursor-not-allowed"
                                 :class="form.enabled ? 'bg-indigo-600' : 'bg-slate-700'"
                             >
                                 <span

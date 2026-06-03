@@ -149,9 +149,10 @@ Route::prefix('console')->name('console.')->group(function () {
             Route::get('/digests',                                               [\App\Http\Controllers\Console\Admin\DigestsController::class, 'index'])->name('digests');
 
             // Workflow Rules — manager-only (also tier-gated in controller for Pro+ enforcement)
-            Route::get('/rules',          [\App\Http\Controllers\Console\Admin\RulesController::class, 'index'])->name('rules.index');
-            Route::post('/rules/stale',   [\App\Http\Controllers\Console\Admin\RulesController::class, 'saveStale'])->name('rules.stale.save');
-            Route::delete('/rules/stale', [\App\Http\Controllers\Console\Admin\RulesController::class, 'destroyStale'])->name('rules.stale.destroy');
+            Route::get('/rules',                 [\App\Http\Controllers\Console\Admin\RulesController::class, 'index'])->name('rules.index');
+            Route::post('/rules/stale',          [\App\Http\Controllers\Console\Admin\RulesController::class, 'saveStale'])->name('rules.stale.save');
+            Route::patch('/rules/stale/toggle',  [\App\Http\Controllers\Console\Admin\RulesController::class, 'toggleStale'])->name('rules.stale.toggle');
+            Route::delete('/rules/stale',        [\App\Http\Controllers\Console\Admin\RulesController::class, 'destroyStale'])->name('rules.stale.destroy');
         });
 
         // Brief templates — auth only (tier-gated in controller, owner unrestricted)

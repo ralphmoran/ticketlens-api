@@ -38,6 +38,60 @@ function toggleGroup(label) {
     localStorage.setItem(GROUPS_KEY, JSON.stringify({ ...groupOpen }))
 }
 
+// ── Floating panel positioning ───────────────────────────────────────────────
+const HEADER_H  = 64   // h-16
+const PANEL_GAP = 8    // px gap below header / above viewport bottom
+
+const windowHeight  = ref(window.innerHeight)
+const groupPanelEl  = ref(null)
+const ownerPanelEl  = ref(null)
+const groupFloatStyle = ref({ left: '4.5rem', top: '50%', transform: 'translateY(-50%)', maxHeight: '80vh' })
+const ownerFloatStyle = ref({ left: '4.5rem', top: '50%', transform: 'translateY(-50%)', maxHeight: '80vh' })
+
+function buildFloatStyle(iconMid, panelEl) {
+    const impH        = impersonating.value ? 36 : 0
+    const headerBottom = HEADER_H + impH + PANEL_GAP
+    const viewBottom   = windowHeight.value - PANEL_GAP
+    const maxH         = viewBottom - headerBottom
+
+    if (!iconMid || iconMid <= 0) {
+        return { left: '4.5rem', top: '50%', transform: 'translateY(-50%)', maxHeight: maxH + 'px' }
+    }
+
+    const adjustedMid = iconMid - impH
+    const panelH      = panelEl?.scrollHeight ?? 0
+    let top, transform
+
+    if (panelH > 0) {
+        const naturalTop = adjustedMid - panelH / 2
+        if (naturalTop < headerBottom) {
+            top = headerBottom
+            transform = 'none'
+        } else if (naturalTop + panelH > viewBottom) {
+            top = Math.max(headerBottom, viewBottom - panelH)
+            transform = 'none'
+        } else {
+            top = adjustedMid
+            transform = 'translateY(-50%)'
+        }
+    } else {
+        top = adjustedMid
+        transform = 'translateY(-50%)'
+    }
+
+    return { left: '4.5rem', top: top + 'px', transform, maxHeight: maxH + 'px' }
+}
+
+function onWindowResize() {
+    windowHeight.value = window.innerHeight
+    if (activeGroupKey.value) {
+        groupFloatStyle.value = buildFloatStyle(groupIconMids.value[activeGroupKey.value], groupPanelEl.value)
+    }
+    if (ownerSubOpen.value) {
+        ownerFloatStyle.value = buildFloatStyle(ownerIconMid.value, ownerPanelEl.value)
+    }
+}
+
 // ── Nav group hover sub-panel (collapsed sidebar) ────────────────────────────
 const activeGroupKey = ref(null)
 let   groupSubTimer  = null
@@ -49,8 +103,15 @@ function showGroupSub(label, event) {
     clearTimeout(ownerSubTimer)
     ownerSubOpen.value = false
     const rect = event.currentTarget.getBoundingClientRect()
-    groupIconMids.value = { ...groupIconMids.value, [label]: rect.top + rect.height / 2 }
+    const mid  = rect.top + rect.height / 2
+    groupIconMids.value = { ...groupIconMids.value, [label]: mid }
+    groupFloatStyle.value = buildFloatStyle(mid, null)
     activeGroupKey.value = label
+    nextTick().then(() => {
+        if (activeGroupKey.value === label && groupPanelEl.value) {
+            groupFloatStyle.value = buildFloatStyle(mid, groupPanelEl.value)
+        }
+    })
 }
 
 function keepGroupSubOpen() {
@@ -83,8 +144,14 @@ function showOwnerSub() {
     if (ownerIconRef.value) {
         const rect = ownerIconRef.value.getBoundingClientRect()
         ownerIconMid.value = rect.top + rect.height / 2
+        ownerFloatStyle.value = buildFloatStyle(ownerIconMid.value, null)
     }
     ownerSubOpen.value = true
+    nextTick().then(() => {
+        if (ownerSubOpen.value && ownerPanelEl.value) {
+            ownerFloatStyle.value = buildFloatStyle(ownerIconMid.value, ownerPanelEl.value)
+        }
+    })
 }
 
 function keepOwnerSubOpen() {
@@ -321,11 +388,13 @@ function slideAfterLeave(el) {
 onMounted(() => {
     lgMql.addEventListener('change', onMqlChange)
     window.addEventListener('keydown', handleKeydown)
+    window.addEventListener('resize', onWindowResize)
     document.addEventListener('click', handleClickOutside)
 })
 onUnmounted(() => {
     lgMql.removeEventListener('change', onMqlChange)
     window.removeEventListener('keydown', handleKeydown)
+    window.removeEventListener('resize', onWindowResize)
     document.removeEventListener('click', handleClickOutside)
     clearTimeout(ownerSubTimer)
     clearTimeout(groupSubTimer)
@@ -743,37 +812,30 @@ onUnmounted(() => {
         >
             <div
                 v-if="activeGroup && effectiveCollapsed"
-                class="hidden lg:block fixed z-[49] w-48"
-                :style="{
-                    left: '4.5rem',
-                    top: groupIconMids[activeGroupKey] > 0
-                        ? (groupIconMids[activeGroupKey] - (impersonating ? 36 : 0)) + 'px'
-                        : '50%',
-                    transform: 'translateY(-50%)',
-                }"
+                :ref="el => { groupPanelEl.value = el }"
+                class="hidden lg:block fixed z-[49] w-48 bg-slate-800 border border-slate-700 rounded-lg shadow-2xl overflow-y-auto"
+                :style="groupFloatStyle"
                 @mouseenter="keepGroupSubOpen"
                 @mouseleave="hideGroupSub"
             >
-                <div class="bg-slate-800 border border-slate-700 rounded-lg shadow-2xl overflow-hidden">
-                    <p class="px-3 pt-2.5 pb-1 text-[10px] font-semibold tracking-widest text-slate-500 uppercase">
-                        {{ activeGroup.label }}
-                    </p>
-                    <ul class="pb-1.5">
-                        <li v-for="item in activeGroup.items" :key="item.href">
-                            <a
-                                :href="item.href"
-                                @click="handleNavClick($event, item.href)"
-                                class="flex items-center gap-2.5 px-3 py-2 text-sm transition-colors duration-100"
-                                :class="page.url.startsWith(item.href)
-                                    ? 'text-indigo-400 bg-indigo-500/10'
-                                    : 'text-slate-300 hover:text-white hover:bg-slate-700'"
-                            >
-                                <TlIcon :name="item.icon" class="w-4 h-4 shrink-0" />
-                                <span>{{ item.label }}</span>
-                            </a>
-                        </li>
-                    </ul>
-                </div>
+                <p class="px-3 pt-2.5 pb-1 text-[10px] font-semibold tracking-widest text-slate-500 uppercase sticky top-0 bg-slate-800 z-10">
+                    {{ activeGroup.label }}
+                </p>
+                <ul class="pb-1.5">
+                    <li v-for="item in activeGroup.items" :key="item.href">
+                        <a
+                            :href="item.href"
+                            @click="handleNavClick($event, item.href)"
+                            class="flex items-center gap-2.5 px-3 py-2 text-sm transition-colors duration-100"
+                            :class="page.url.startsWith(item.href)
+                                ? 'text-indigo-400 bg-indigo-500/10'
+                                : 'text-slate-300 hover:text-white hover:bg-slate-700'"
+                        >
+                            <TlIcon :name="item.icon" class="w-4 h-4 shrink-0" />
+                            <span>{{ item.label }}</span>
+                        </a>
+                    </li>
+                </ul>
             </div>
         </Transition>
 
@@ -788,35 +850,28 @@ onUnmounted(() => {
         >
             <div
                 v-if="isOwner && ownerSubOpen && effectiveCollapsed"
-                class="hidden lg:block fixed z-[49] w-48"
-                :style="{
-                    left: '4.5rem',
-                    top: ownerIconMid > 0
-                        ? (ownerIconMid - (impersonating ? 36 : 0)) + 'px'
-                        : '50%',
-                    transform: 'translateY(-50%)',
-                }"
+                :ref="el => { ownerPanelEl.value = el }"
+                class="hidden lg:block fixed z-[49] w-48 bg-slate-800 border border-slate-700 rounded-lg shadow-2xl overflow-y-auto"
+                :style="ownerFloatStyle"
                 @mouseenter="keepOwnerSubOpen"
                 @mouseleave="hideOwnerSub"
             >
-                <div class="bg-slate-800 border border-slate-700 rounded-lg shadow-2xl overflow-hidden">
-                    <p class="px-3 pt-2.5 pb-1 text-[10px] font-semibold tracking-widest text-slate-500 uppercase">Owner Panel</p>
-                    <ul class="pb-1.5">
-                        <li v-for="item in ownerPanelItems" :key="item.href">
-                            <a
-                                :href="item.href"
-                                @click="handleNavClick($event, item.href)"
-                                class="flex items-center gap-2.5 px-3 py-2 text-sm transition-colors duration-100"
-                                :class="page.url.startsWith(item.href)
-                                    ? 'text-amber-400 bg-amber-500/10'
-                                    : 'text-slate-300 hover:text-white hover:bg-slate-700'"
-                            >
-                                <TlIcon :name="item.icon" class="w-4 h-4 shrink-0" />
-                                <span>{{ item.label }}</span>
-                            </a>
-                        </li>
-                    </ul>
-                </div>
+                <p class="px-3 pt-2.5 pb-1 text-[10px] font-semibold tracking-widest text-slate-500 uppercase sticky top-0 bg-slate-800 z-10">Owner Panel</p>
+                <ul class="pb-1.5">
+                    <li v-for="item in ownerPanelItems" :key="item.href">
+                        <a
+                            :href="item.href"
+                            @click="handleNavClick($event, item.href)"
+                            class="flex items-center gap-2.5 px-3 py-2 text-sm transition-colors duration-100"
+                            :class="page.url.startsWith(item.href)
+                                ? 'text-amber-400 bg-amber-500/10'
+                                : 'text-slate-300 hover:text-white hover:bg-slate-700'"
+                        >
+                            <TlIcon :name="item.icon" class="w-4 h-4 shrink-0" />
+                            <span>{{ item.label }}</span>
+                        </a>
+                    </li>
+                </ul>
             </div>
         </Transition>
 

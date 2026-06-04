@@ -45,6 +45,9 @@ const groupIconMids  = ref({})
 
 function showGroupSub(label, event) {
     clearTimeout(groupSubTimer)
+    // Close the owner panel immediately — prevents overlap
+    clearTimeout(ownerSubTimer)
+    ownerSubOpen.value = false
     const rect = event.currentTarget.getBoundingClientRect()
     groupIconMids.value = { ...groupIconMids.value, [label]: rect.top + rect.height / 2 }
     activeGroupKey.value = label
@@ -74,11 +77,18 @@ const avatarDropdownOpen = ref(false)
 
 function showOwnerSub() {
     clearTimeout(ownerSubTimer)
+    // Close any open group panel immediately — prevents overlap
+    clearTimeout(groupSubTimer)
+    activeGroupKey.value = null
     if (ownerIconRef.value) {
         const rect = ownerIconRef.value.getBoundingClientRect()
         ownerIconMid.value = rect.top + rect.height / 2
     }
     ownerSubOpen.value = true
+}
+
+function keepOwnerSubOpen() {
+    clearTimeout(ownerSubTimer)
 }
 
 function hideOwnerSub() {
@@ -781,7 +791,7 @@ onUnmounted(() => {
                         : '50%',
                     transform: 'translateY(-50%)',
                 }"
-                @mouseenter="showOwnerSub"
+                @mouseenter="keepOwnerSubOpen"
                 @mouseleave="hideOwnerSub"
             >
                 <div class="bg-slate-800 border border-slate-700 rounded-lg shadow-2xl overflow-hidden">

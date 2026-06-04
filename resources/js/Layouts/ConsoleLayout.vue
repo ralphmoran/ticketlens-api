@@ -539,13 +539,15 @@ onUnmounted(() => {
                         <button
                             type="button"
                             @click="toggleGroup(group.label)"
-                            class="tl-nav-group-label w-full flex items-center justify-between cursor-pointer hover:text-slate-300 transition-colors duration-150"
+                            class="tl-nav-link tl-nav-link--inactive w-full"
+                            :class="group.items.some(i => page.url.startsWith(i.href)) ? 'text-white' : ''"
                         >
-                            <span>{{ group.label }}</span>
+                            <TlIcon :name="group.collapseIcon" class="w-4 h-4 shrink-0" />
+                            <span class="flex-1 text-left">{{ group.label }}</span>
                             <TlIcon
-                                name="chevron-right"
+                                name="plus"
                                 class="w-3.5 h-3.5 shrink-0 transition-transform duration-200"
-                                :class="groupOpen[group.label] ? 'rotate-90' : ''"
+                                :class="groupOpen[group.label] ? 'rotate-45' : ''"
                                 :stroke-width="2"
                             />
                         </button>
@@ -555,19 +557,21 @@ onUnmounted(() => {
                             @leave="slideLeave"
                             @after-leave="slideAfterLeave"
                         >
-                            <ul v-if="groupOpen[group.label]" class="mb-5 space-y-0.5">
-                                <li v-for="item in group.items" :key="item.href">
-                                    <a
-                                        :href="item.href"
-                                        @click="handleNavClick($event, item.href)"
-                                        class="tl-nav-link"
-                                        :class="page.url.startsWith(item.href) ? 'tl-nav-link--active' : 'tl-nav-link--inactive'"
-                                    >
-                                        <TlIcon :name="item.icon" class="w-4 h-4 shrink-0" />
-                                        <span>{{ item.label }}</span>
-                                    </a>
-                                </li>
-                            </ul>
+                            <div v-if="groupOpen[group.label]" class="border-l border-slate-700/60 ml-[1.125rem] pl-2.5 mb-1">
+                                <ul class="mb-1 space-y-0.5">
+                                    <li v-for="item in group.items" :key="item.href">
+                                        <a
+                                            :href="item.href"
+                                            @click="handleNavClick($event, item.href)"
+                                            class="tl-nav-link"
+                                            :class="page.url.startsWith(item.href) ? 'tl-nav-link--active' : 'tl-nav-link--inactive'"
+                                        >
+                                            <TlIcon :name="item.icon" class="w-3.5 h-3.5 shrink-0" />
+                                            <span class="text-[13px]">{{ item.label }}</span>
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
                         </Transition>
                     </div>
 
@@ -604,10 +608,17 @@ onUnmounted(() => {
                         <button
                             type="button"
                             @click="ownerPanelOpen = !ownerPanelOpen"
-                            class="tl-nav-group-label tl-nav-group-label--owner w-full flex items-center justify-between cursor-pointer hover:text-amber-300 transition-colors"
+                            class="tl-nav-link tl-nav-link--owner-inactive w-full"
+                            :class="ownerPanelActive ? 'text-amber-300' : ''"
                         >
-                            <span>Owner Panel</span>
-                            <TlIcon name="chevron-right" class="w-3.5 h-3.5 shrink-0 transition-transform" :class="(ownerPanelOpen || ownerPanelActive) ? 'rotate-90' : ''" />
+                            <TlIcon name="building" class="w-4 h-4 shrink-0" />
+                            <span class="flex-1 text-left">Owner Panel</span>
+                            <TlIcon
+                                name="plus"
+                                class="w-3.5 h-3.5 shrink-0 transition-transform duration-200"
+                                :class="(ownerPanelOpen || ownerPanelActive) ? 'rotate-45' : ''"
+                                :stroke-width="2"
+                            />
                         </button>
                         <Transition
                             @enter="slideEnter"
@@ -615,19 +626,21 @@ onUnmounted(() => {
                             @leave="slideLeave"
                             @after-leave="slideAfterLeave"
                         >
-                            <ul v-if="ownerPanelOpen || ownerPanelActive" class="mb-5 space-y-0.5">
-                                <li v-for="item in ownerPanelItems" :key="item.href">
-                                    <a
-                                        :href="item.href"
-                                        @click="handleNavClick($event, item.href)"
-                                        class="tl-nav-link"
-                                        :class="page.url.startsWith(item.href) ? 'tl-nav-link--owner-active' : 'tl-nav-link--owner-inactive'"
-                                    >
-                                        <TlIcon :name="item.icon" class="w-4 h-4 shrink-0" />
-                                        <span>{{ item.label }}</span>
-                                    </a>
-                                </li>
-                            </ul>
+                            <div v-if="ownerPanelOpen || ownerPanelActive" class="border-l border-amber-700/40 ml-[1.125rem] pl-2.5 mb-1">
+                                <ul class="mb-1 space-y-0.5">
+                                    <li v-for="item in ownerPanelItems" :key="item.href">
+                                        <a
+                                            :href="item.href"
+                                            @click="handleNavClick($event, item.href)"
+                                            class="tl-nav-link"
+                                            :class="page.url.startsWith(item.href) ? 'tl-nav-link--owner-active' : 'tl-nav-link--owner-inactive'"
+                                        >
+                                            <TlIcon :name="item.icon" class="w-3.5 h-3.5 shrink-0" />
+                                            <span class="text-[13px]">{{ item.label }}</span>
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
                         </Transition>
                     </div>
 
@@ -636,10 +649,17 @@ onUnmounted(() => {
                         <button
                             type="button"
                             @click="ownerPanelOpen = !ownerPanelOpen"
-                            class="tl-nav-group-label tl-nav-group-label--owner w-full flex items-center justify-between cursor-pointer hover:text-amber-300 transition-colors"
+                            class="tl-nav-link tl-nav-link--owner-inactive w-full"
+                            :class="ownerPanelActive ? 'text-amber-300' : ''"
                         >
-                            <span>Owner Panel</span>
-                            <TlIcon name="chevron-right" class="w-3.5 h-3.5 shrink-0 transition-transform" :class="(ownerPanelOpen || ownerPanelActive) ? 'rotate-90' : ''" />
+                            <TlIcon name="building" class="w-4 h-4 shrink-0" />
+                            <span class="flex-1 text-left">Owner Panel</span>
+                            <TlIcon
+                                name="plus"
+                                class="w-3.5 h-3.5 shrink-0 transition-transform duration-200"
+                                :class="(ownerPanelOpen || ownerPanelActive) ? 'rotate-45' : ''"
+                                :stroke-width="2"
+                            />
                         </button>
                         <Transition
                             @enter="slideEnter"
@@ -647,19 +667,21 @@ onUnmounted(() => {
                             @leave="slideLeave"
                             @after-leave="slideAfterLeave"
                         >
-                            <ul v-if="ownerPanelOpen || ownerPanelActive" class="mb-5 space-y-0.5">
-                                <li v-for="item in ownerPanelItems" :key="item.href">
-                                    <a
-                                        :href="item.href"
-                                        @click="handleNavClick($event, item.href)"
-                                        class="tl-nav-link"
-                                        :class="page.url.startsWith(item.href) ? 'tl-nav-link--owner-active' : 'tl-nav-link--owner-inactive'"
-                                    >
-                                        <TlIcon :name="item.icon" class="w-4 h-4 shrink-0" />
-                                        <span>{{ item.label }}</span>
-                                    </a>
-                                </li>
-                            </ul>
+                            <div v-if="ownerPanelOpen || ownerPanelActive" class="border-l border-amber-700/40 ml-[1.125rem] pl-2.5 mb-1">
+                                <ul class="mb-1 space-y-0.5">
+                                    <li v-for="item in ownerPanelItems" :key="item.href">
+                                        <a
+                                            :href="item.href"
+                                            @click="handleNavClick($event, item.href)"
+                                            class="tl-nav-link"
+                                            :class="page.url.startsWith(item.href) ? 'tl-nav-link--owner-active' : 'tl-nav-link--owner-inactive'"
+                                        >
+                                            <TlIcon :name="item.icon" class="w-3.5 h-3.5 shrink-0" />
+                                            <span class="text-[13px]">{{ item.label }}</span>
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
                         </Transition>
                     </div>
                 </template>

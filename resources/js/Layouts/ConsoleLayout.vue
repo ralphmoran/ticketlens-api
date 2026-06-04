@@ -733,12 +733,12 @@ onUnmounted(() => {
 
         <!-- Nav group floating panel (desktop collapsed only, hover-triggered) -->
         <Transition
-            enter-active-class="transition-all duration-150 origin-left"
-            enter-from-class="opacity-0 -translate-x-1"
-            enter-to-class="opacity-100 translate-x-0"
-            leave-active-class="transition-all duration-100 origin-left"
-            leave-from-class="opacity-100 translate-x-0"
-            leave-to-class="opacity-0 -translate-x-1"
+            enter-active-class="transition-opacity duration-150"
+            enter-from-class="opacity-0"
+            enter-to-class="opacity-100"
+            leave-active-class="transition-opacity duration-100"
+            leave-from-class="opacity-100"
+            leave-to-class="opacity-0"
         >
             <div
                 v-if="activeGroup && effectiveCollapsed"
@@ -778,12 +778,12 @@ onUnmounted(() => {
 
         <!-- Owner floating popover (desktop collapsed only, hover-triggered) -->
         <Transition
-            enter-active-class="transition-all duration-150 origin-left"
-            enter-from-class="opacity-0 -translate-x-1"
-            enter-to-class="opacity-100 translate-x-0"
-            leave-active-class="transition-all duration-100 origin-left"
-            leave-from-class="opacity-100 translate-x-0"
-            leave-to-class="opacity-0 -translate-x-1"
+            enter-active-class="transition-opacity duration-150"
+            enter-from-class="opacity-0"
+            enter-to-class="opacity-100"
+            leave-active-class="transition-opacity duration-100"
+            leave-from-class="opacity-100"
+            leave-to-class="opacity-0"
         >
             <div
                 v-if="isOwner && ownerSubOpen && effectiveCollapsed"

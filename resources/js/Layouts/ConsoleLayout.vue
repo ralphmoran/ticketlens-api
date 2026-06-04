@@ -536,7 +536,6 @@ onUnmounted(() => {
                         @mouseenter="showGroupSub(group.label, $event)"
                         @mouseleave="hideGroupSub"
                     >
-                        <hr v-if="gIndex > 0" class="border-slate-700/60 my-2" />
                         <ul class="mb-1 space-y-0.5">
                             <li>
                                 <a
@@ -556,6 +555,7 @@ onUnmounted(() => {
 
                     <!-- EXPANDED (desktop) + MOBILE: accordion -->
                     <div v-else>
+                        <hr v-if="gIndex > 0" class="border-slate-700/60 my-2" />
                         <button
                             type="button"
                             @click="toggleGroup(group.label)"
@@ -606,7 +606,6 @@ onUnmounted(() => {
                         @mouseenter="showOwnerSub"
                         @mouseleave="hideOwnerSub"
                     >
-                        <hr class="border-slate-700/60 my-2" />
                         <ul class="mb-5 space-y-0.5">
                             <li>
                                 <a
@@ -625,6 +624,7 @@ onUnmounted(() => {
 
                     <!-- Desktop expanded: accordion sections -->
                     <div v-else class="hidden lg:block">
+                        <hr class="border-slate-700/60 my-2" />
                         <button
                             type="button"
                             @click="toggleOwnerPanel"
@@ -666,6 +666,7 @@ onUnmounted(() => {
 
                     <!-- Mobile: accordion sections in drawer -->
                     <div class="lg:hidden">
+                        <hr class="border-slate-700/60 my-2" />
                         <button
                             type="button"
                             @click="toggleOwnerPanel"

@@ -163,8 +163,14 @@ const ownerPanelItems = [
     { label: 'Audit Log',        href: '/console/owner/audit',    icon: 'history' },
 ]
 
-const ownerPanelOpen   = ref(false)
+const OWNER_PANEL_KEY  = 'tl-owner-panel-open'
+const ownerPanelOpen   = ref(localStorage.getItem(OWNER_PANEL_KEY) === 'true')
 const ownerPanelActive = computed(() => ownerPanelItems.some(item => page.url.startsWith(item.href)))
+
+function toggleOwnerPanel() {
+    ownerPanelOpen.value = !ownerPanelOpen.value
+    localStorage.setItem(OWNER_PANEL_KEY, String(ownerPanelOpen.value))
+}
 const subSidebarPersistent = computed(() =>
     effectiveCollapsed.value && isOwner.value && ownerPanelActive.value
 )
@@ -607,7 +613,7 @@ onUnmounted(() => {
                     <div v-else class="hidden lg:block">
                         <button
                             type="button"
-                            @click="ownerPanelOpen = !ownerPanelOpen"
+                            @click="toggleOwnerPanel"
                             class="tl-nav-link tl-nav-link--owner-inactive w-full"
                             :class="ownerPanelActive ? 'text-amber-300' : ''"
                         >
@@ -648,7 +654,7 @@ onUnmounted(() => {
                     <div class="lg:hidden">
                         <button
                             type="button"
-                            @click="ownerPanelOpen = !ownerPanelOpen"
+                            @click="toggleOwnerPanel"
                             class="tl-nav-link tl-nav-link--owner-inactive w-full"
                             :class="ownerPanelActive ? 'text-amber-300' : ''"
                         >

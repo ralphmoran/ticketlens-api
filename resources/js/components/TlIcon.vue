@@ -17,6 +17,7 @@ import {
   Building2, ChevronLeft, ChevronRight, Clock, CodeXml, Copy, Download, Eye, EyeOff, FlaskConical,
   History, Layers, LoaderCircle, Lock, LockOpen, Mail, Pause, Pencil, Play, Plus,
   Link, RefreshCw, Search, Send, Settings, Sparkles, Trash2, TrendingUp, Plug,
+  HeartPulse, Gauge, GitBranch, ClipboardCheck, Sliders, Activity, BarChart2,
 } from '@lucide/vue'
 
 const ICONS = {
@@ -76,6 +77,14 @@ const ICONS = {
   'link': Link,
   'plug': Plug,
   'send': Send,
+  // Admin / metrics icons (unique per nav item)
+  'heart-pulse': HeartPulse,
+  'gauge': Gauge,
+  'git-branch': GitBranch,
+  'clipboard-check': ClipboardCheck,
+  'sliders': Sliders,
+  'activity': Activity,
+  'bar-chart-2': BarChart2,
 }
 
 const props = defineProps({

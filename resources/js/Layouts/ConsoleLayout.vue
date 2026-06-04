@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue'
+import { ref, computed, reactive, watch, nextTick, onMounted, onUnmounted } from 'vue'
 import { usePage, router } from '@inertiajs/vue3'
 import { usePermissions } from '../composables/usePermissions'
 import { Permission } from '../permissions'
@@ -21,6 +21,48 @@ const ownerSubOpen  = ref(false)
 let   ownerSubTimer = null
 const ownerIconRef  = ref(null)
 const ownerIconMid  = ref(0)
+
+// ── Nav group accordion (expanded sidebar) ───────────────────────────────────
+const GROUPS_KEY = 'tl-nav-groups-open'
+const groupOpen = reactive((() => {
+    try {
+        const saved = JSON.parse(localStorage.getItem(GROUPS_KEY) ?? '{}')
+        return { Overview: true, Workflow: true, Team: true, Admin: true, ...saved }
+    } catch {
+        return { Overview: true, Workflow: true, Team: true, Admin: true }
+    }
+})())
+
+function toggleGroup(label) {
+    groupOpen[label] = !groupOpen[label]
+    localStorage.setItem(GROUPS_KEY, JSON.stringify({ ...groupOpen }))
+}
+
+// ── Nav group hover sub-panel (collapsed sidebar) ────────────────────────────
+const activeGroupKey = ref(null)
+let   groupSubTimer  = null
+const groupIconMids  = ref({})
+
+function showGroupSub(label, event) {
+    clearTimeout(groupSubTimer)
+    const rect = event.currentTarget.getBoundingClientRect()
+    groupIconMids.value = { ...groupIconMids.value, [label]: rect.top + rect.height / 2 }
+    activeGroupKey.value = label
+}
+
+function keepGroupSubOpen() {
+    clearTimeout(groupSubTimer)
+}
+
+function hideGroupSub() {
+    groupSubTimer = setTimeout(() => { activeGroupKey.value = null }, 150)
+}
+
+const activeGroup = computed(() =>
+    activeGroupKey.value
+        ? visibleGroups.value.find(g => g.label === activeGroupKey.value) ?? null
+        : null
+)
 
 // Command palette
 const paletteOpen     = ref(false)
@@ -63,47 +105,51 @@ function stopImpersonating() {
 const navGroups = computed(() => [
     {
         label: 'Overview',
+        collapseIcon: 'dashboard',
         requiresTeamManager: false,
         items: [
             { label: 'Dashboard',   href: '/console/dashboard',   permission: null, icon: 'dashboard' },
-            { label: 'Analytics',   href: '/console/analytics',  permission: null, icon: 'chart-bar' },
-            { label: 'Connections', href: '/console/connections', permission: null, icon: 'link' },
+            { label: 'Analytics',   href: '/console/analytics',   permission: null, icon: 'chart-bar' },
+            { label: 'Connections', href: '/console/connections',  permission: null, icon: 'link' },
         ]
     },
     {
         label: 'Workflow',
+        collapseIcon: 'calendar',
         requiresTeamManager: false,
         items: [
-            { label: 'Schedules',  href: '/console/schedules', permission: Permission.Schedules,      icon: 'calendar' },
-            { label: 'Digest History', href: '/console/digest-history', permission: Permission.Digests, icon: 'inbox' },
-            { label: 'Summarize',  href: '/console/summarize', permission: Permission.Summarize,       icon: 'document-text' },
-            { label: 'Compliance', href: '/console/compliance',permission: Permission.Compliance,      icon: 'shield-check' },
-            { label: 'Export',     href: '/console/export',    permission: Permission.Export,           icon: 'download' },
+            { label: 'Schedules',      href: '/console/schedules',      permission: Permission.Schedules,  icon: 'calendar' },
+            { label: 'Digest History', href: '/console/digest-history', permission: Permission.Digests,    icon: 'inbox' },
+            { label: 'Summarize',      href: '/console/summarize',      permission: Permission.Summarize,  icon: 'document-text' },
+            { label: 'Compliance',     href: '/console/compliance',     permission: Permission.Compliance, icon: 'shield-check' },
+            { label: 'Export',         href: '/console/export',         permission: Permission.Export,     icon: 'download' },
         ]
     },
     {
         label: 'Team',
+        collapseIcon: 'users',
         requiresTeamManager: false,
         items: [
-            { label: 'Queue',      href: '/console/queue',     permission: Permission.AttentionQueue,  icon: 'layers' },
-            { label: 'Team',       href: '/console/team',      permission: Permission.MultiAccount,    icon: 'users' },
+            { label: 'Queue', href: '/console/queue', permission: Permission.AttentionQueue, icon: 'layers' },
+            { label: 'Team',  href: '/console/team',  permission: Permission.MultiAccount,  icon: 'users' },
         ]
     },
     {
         label: 'Admin',
+        collapseIcon: 'sliders',
         requiresTeamManager: false,
         requiresTeamOrLead: true,
         items: [
-            { label: 'Team Health',          href: '/console/admin/team-health',          icon: 'chart-bar',    managerOnly: false, ownerExcluded: false, permission: null },
-            { label: 'Response Stats',       href: '/console/admin/stats',                icon: 'trending-up',  managerOnly: false, ownerExcluded: false, permission: null },
-            { label: 'Compliance Analytics', href: '/console/admin/compliance-analytics', icon: 'shield-check', managerOnly: false, ownerExcluded: false, permission: null },
-            { label: 'Members',              href: '/console/admin/members',              icon: 'user-group',  managerOnly: true,  ownerExcluded: true,  permission: Permission.TeamManageMembers },
-            { label: 'Process Metrics',      href: '/console/admin/process-metrics',      icon: 'trending-up', managerOnly: true,  ownerExcluded: false, permission: Permission.TeamManageMembers },
-            { label: 'Seats',           href: '/console/admin/seats',           icon: 'key',         managerOnly: true,  ownerExcluded: true,  permission: Permission.TeamManageSeats   },
-            { label: 'Integrations',    href: '/console/admin/integrations',    icon: 'plug',          managerOnly: true, ownerExcluded: false, permission: null },
-            { label: 'Alerts',          href: '/console/admin/alerts',          icon: 'bell',          managerOnly: true, ownerExcluded: false, permission: null },
-            { label: 'Digests',         href: '/console/admin/digests',         icon: 'inbox',         managerOnly: true, ownerExcluded: false, permission: null },
-            { label: 'Workflow Rules',  href: '/console/admin/rules',           icon: 'settings',      managerOnly: true, ownerExcluded: false, permission: Permission.WorkflowRules },
+            { label: 'Team Health',          href: '/console/admin/team-health',          icon: 'heart-pulse',      managerOnly: false, ownerExcluded: false, permission: null },
+            { label: 'Response Stats',       href: '/console/admin/stats',                icon: 'trending-up',      managerOnly: false, ownerExcluded: false, permission: null },
+            { label: 'Compliance Analytics', href: '/console/admin/compliance-analytics', icon: 'clipboard-check',  managerOnly: false, ownerExcluded: false, permission: null },
+            { label: 'Members',              href: '/console/admin/members',              icon: 'user-group',       managerOnly: true,  ownerExcluded: true,  permission: Permission.TeamManageMembers },
+            { label: 'Process Metrics',      href: '/console/admin/process-metrics',      icon: 'gauge',            managerOnly: true,  ownerExcluded: false, permission: Permission.TeamManageMembers },
+            { label: 'Seats',                href: '/console/admin/seats',                icon: 'key',              managerOnly: true,  ownerExcluded: true,  permission: Permission.TeamManageSeats },
+            { label: 'Integrations',         href: '/console/admin/integrations',         icon: 'plug',             managerOnly: true,  ownerExcluded: false, permission: null },
+            { label: 'Alerts',               href: '/console/admin/alerts',               icon: 'bell',             managerOnly: true,  ownerExcluded: false, permission: null },
+            { label: 'Digests',              href: '/console/admin/digests',              icon: 'send',             managerOnly: true,  ownerExcluded: false, permission: null },
+            { label: 'Workflow Rules',       href: '/console/admin/rules',                icon: 'git-branch',       managerOnly: true,  ownerExcluded: false, permission: Permission.WorkflowRules },
         ]
     },
 ])
@@ -262,6 +308,7 @@ onUnmounted(() => {
     window.removeEventListener('keydown', handleKeydown)
     document.removeEventListener('click', handleClickOutside)
     clearTimeout(ownerSubTimer)
+    clearTimeout(groupSubTimer)
 })
 </script>
 
@@ -461,25 +508,69 @@ onUnmounted(() => {
             <!-- Nav groups -->
             <nav class="flex-1 overflow-y-auto py-4" :class="effectiveCollapsed ? 'px-2' : 'px-3'">
                 <template v-for="(group, gIndex) in visibleGroups" :key="group.label">
-                    <hr v-if="effectiveCollapsed && gIndex > 0" class="border-slate-700/60 my-2" />
-                    <p v-show="!effectiveCollapsed" class="tl-nav-group-label">{{ group.label }}</p>
-                    <ul class="mb-5 space-y-0.5">
-                        <li v-for="item in group.items" :key="item.href">
-                            <a
-                                :href="item.href"
-                                :title="effectiveCollapsed ? item.label : undefined"
-                                @click="handleNavClick($event, item.href)"
-                                class="tl-nav-link"
-                                :class="[
-                                    page.url.startsWith(item.href) ? 'tl-nav-link--active' : 'tl-nav-link--inactive',
-                                    effectiveCollapsed ? 'justify-center px-0' : '',
-                                ]"
-                            >
-                                <TlIcon :name="item.icon" class="w-4 h-4 shrink-0" />
-                                <span v-show="!effectiveCollapsed">{{ item.label }}</span>
-                            </a>
-                        </li>
-                    </ul>
+
+                    <!-- COLLAPSED (desktop only): one icon per group, hover reveals floating panel -->
+                    <div
+                        v-if="effectiveCollapsed"
+                        class="hidden lg:block"
+                        @mouseenter="showGroupSub(group.label, $event)"
+                        @mouseleave="hideGroupSub"
+                    >
+                        <hr v-if="gIndex > 0" class="border-slate-700/60 my-2" />
+                        <ul class="mb-1 space-y-0.5">
+                            <li>
+                                <a
+                                    :href="group.items[0].href"
+                                    :title="group.label"
+                                    @click="handleNavClick($event, group.items[0].href)"
+                                    class="tl-nav-link w-full justify-center px-0"
+                                    :class="group.items.some(i => page.url.startsWith(i.href))
+                                        ? 'tl-nav-link--active'
+                                        : 'tl-nav-link--inactive'"
+                                >
+                                    <TlIcon :name="group.collapseIcon" class="w-4 h-4 shrink-0" />
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <!-- EXPANDED (desktop) + MOBILE: accordion -->
+                    <div v-else>
+                        <button
+                            type="button"
+                            @click="toggleGroup(group.label)"
+                            class="tl-nav-group-label w-full flex items-center justify-between cursor-pointer hover:text-slate-300 transition-colors duration-150"
+                        >
+                            <span>{{ group.label }}</span>
+                            <TlIcon
+                                name="chevron-right"
+                                class="w-3.5 h-3.5 shrink-0 transition-transform duration-200"
+                                :class="groupOpen[group.label] ? 'rotate-90' : ''"
+                                :stroke-width="2"
+                            />
+                        </button>
+                        <Transition
+                            @enter="slideEnter"
+                            @after-enter="slideAfterEnter"
+                            @leave="slideLeave"
+                            @after-leave="slideAfterLeave"
+                        >
+                            <ul v-if="groupOpen[group.label]" class="mb-5 space-y-0.5">
+                                <li v-for="item in group.items" :key="item.href">
+                                    <a
+                                        :href="item.href"
+                                        @click="handleNavClick($event, item.href)"
+                                        class="tl-nav-link"
+                                        :class="page.url.startsWith(item.href) ? 'tl-nav-link--active' : 'tl-nav-link--inactive'"
+                                    >
+                                        <TlIcon :name="item.icon" class="w-4 h-4 shrink-0" />
+                                        <span>{{ item.label }}</span>
+                                    </a>
+                                </li>
+                            </ul>
+                        </Transition>
+                    </div>
+
                 </template>
 
                 <!-- Owner section (only shown when is_owner = true) -->
@@ -597,6 +688,51 @@ onUnmounted(() => {
                 </button>
             </div>
         </aside>
+
+        <!-- Nav group floating panel (desktop collapsed only, hover-triggered) -->
+        <Transition
+            enter-active-class="transition-all duration-150 origin-left"
+            enter-from-class="opacity-0 -translate-x-1"
+            enter-to-class="opacity-100 translate-x-0"
+            leave-active-class="transition-all duration-100 origin-left"
+            leave-from-class="opacity-100 translate-x-0"
+            leave-to-class="opacity-0 -translate-x-1"
+        >
+            <div
+                v-if="activeGroup && effectiveCollapsed"
+                class="hidden lg:block fixed z-[49] w-48"
+                :style="{
+                    left: '4.5rem',
+                    top: groupIconMids[activeGroupKey] > 0
+                        ? (groupIconMids[activeGroupKey] - (impersonating ? 36 : 0)) + 'px'
+                        : '50%',
+                    transform: 'translateY(-50%)',
+                }"
+                @mouseenter="keepGroupSubOpen"
+                @mouseleave="hideGroupSub"
+            >
+                <div class="bg-slate-800 border border-slate-700 rounded-lg shadow-2xl overflow-hidden">
+                    <p class="px-3 pt-2.5 pb-1 text-[10px] font-semibold tracking-widest text-slate-500 uppercase">
+                        {{ activeGroup.label }}
+                    </p>
+                    <ul class="pb-1.5">
+                        <li v-for="item in activeGroup.items" :key="item.href">
+                            <a
+                                :href="item.href"
+                                @click="handleNavClick($event, item.href)"
+                                class="flex items-center gap-2.5 px-3 py-2 text-sm transition-colors duration-100"
+                                :class="page.url.startsWith(item.href)
+                                    ? 'text-indigo-400 bg-indigo-500/10'
+                                    : 'text-slate-300 hover:text-white hover:bg-slate-700'"
+                            >
+                                <TlIcon :name="item.icon" class="w-4 h-4 shrink-0" />
+                                <span>{{ item.label }}</span>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </Transition>
 
         <!-- Owner floating popover (desktop collapsed only, hover-triggered) -->
         <Transition

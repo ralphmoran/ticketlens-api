@@ -2,7 +2,7 @@
 import ConsoleLayout from '@/Layouts/ConsoleLayout.vue'
 import TlIcon from '@/components/TlIcon.vue'
 import { router } from '@inertiajs/vue3'
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 
 defineOptions({ layout: ConsoleLayout })
 
@@ -19,6 +19,7 @@ const props = defineProps({
 
 const refreshing    = ref(false)
 const clientSearch  = ref('')
+const clientPage    = ref(1)
 const lastRefreshed = ref(null)
 const tickerKey     = ref(0)
 let timer = null
@@ -30,6 +31,15 @@ const filteredClients = computed(() => {
         c.name.toLowerCase().includes(q) || c.email.toLowerCase().includes(q)
     ) : props.clients
 })
+
+const PAGE_SIZE    = 10
+const totalPages   = computed(() => Math.ceil(filteredClients.value.length / PAGE_SIZE))
+const pagedClients = computed(() => {
+    const start = (clientPage.value - 1) * PAGE_SIZE
+    return filteredClients.value.slice(start, start + PAGE_SIZE)
+})
+
+watch(clientSearch, () => { clientPage.value = 1 })
 
 function selectManager(id) {
     router.get('/console/admin/team-health', { manager_id: id })
@@ -101,12 +111,12 @@ onUnmounted(() => { clearInterval(timer); clearInterval(ticker) })
                     placeholder="Search by name or email…"
                     class="tl-input w-full mb-4"
                 />
-                <div v-if="filteredClients.length === 0" class="tl-empty-state">
+                <div v-if="pagedClients.length === 0" class="tl-empty-state">
                     <TlIcon name="users" class="w-8 h-8 text-slate-700 mb-3" />
                     <p class="tl-hint">No matching clients found.</p>
                 </div>
                 <ul v-else class="space-y-2">
-                    <li v-for="client in filteredClients" :key="client.id">
+                    <li v-for="client in pagedClients" :key="client.id">
                         <button
                             type="button"
                             @click="selectManager(client.id)"
@@ -117,6 +127,20 @@ onUnmounted(() => { clearInterval(timer); clearInterval(ticker) })
                         </button>
                     </li>
                 </ul>
+                <div v-if="totalPages > 1" class="flex items-center justify-between mt-4">
+                    <span class="text-xs text-slate-500">{{ filteredClients.length }} clients</span>
+                    <div class="flex items-center gap-1">
+                        <button type="button" :disabled="clientPage === 1" @click="clientPage--"
+                                class="p-1.5 text-slate-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
+                            <TlIcon name="chevron-left" class="w-4 h-4" />
+                        </button>
+                        <span class="text-xs text-slate-400 font-mono">{{ clientPage }} / {{ totalPages }}</span>
+                        <button type="button" :disabled="clientPage >= totalPages" @click="clientPage++"
+                                class="p-1.5 text-slate-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
+                            <TlIcon name="chevron-right" class="w-4 h-4" />
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
 

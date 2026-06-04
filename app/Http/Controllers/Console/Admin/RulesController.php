@@ -2,9 +2,10 @@
 
 namespace App\Http\Controllers\Console\Admin;
 
-use App\Enums\Permission;
 use App\Http\Controllers\Controller;
+use App\Models\Group;
 use App\Models\TriageSnapshot;
+use App\Models\User;
 use App\Models\WorkflowRule;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -13,20 +14,67 @@ use Inertia\Response;
 
 class RulesController extends Controller
 {
-    public function index(Request $request): Response
+    public function index(Request $request): Response|RedirectResponse
     {
         $user = $request->user();
-        abort_if($user->tier === 'free' && ! $user->is_owner, 403, 'Workflow rules require a Pro or higher plan.');
+
+        if ($user->is_owner) {
+            return $this->ownerIndex($request);
+        }
+
+        abort_if($user->tier === 'free', 403, 'Workflow rules require a Pro or higher plan.');
 
         $group = $user->ownedGroup ?? $user->groups()->first();
         abort_unless($group !== null, 403, 'No team found.');
 
+        return Inertia::render('Console/Admin/Rules', array_merge(
+            $this->buildRuleData($group),
+            ['owner_mode' => false, 'clients' => [], 'selected_manager' => null],
+        ));
+    }
+
+    private function ownerIndex(Request $request): Response|RedirectResponse
+    {
+        $clients = User::whereHas('ownedGroup')
+            ->orderBy('name')
+            ->get(['id', 'name', 'email'])
+            ->map(fn ($u) => ['id' => $u->id, 'name' => $u->name, 'email' => $u->email])
+            ->values();
+
+        $managerId = (int) $request->query('manager_id', 0);
+
+        if ($managerId <= 0) {
+            return Inertia::render('Console/Admin/Rules', [
+                'owner_mode'       => true,
+                'clients'          => $clients,
+                'selected_manager' => null,
+                'stale_rule'       => null,
+                'known_statuses'   => [],
+            ]);
+        }
+
+        $manager = User::whereHas('ownedGroup')->find($managerId);
+
+        if (! $manager) {
+            return redirect('/console/admin/rules');
+        }
+
+        return Inertia::render('Console/Admin/Rules', array_merge(
+            $this->buildRuleData($manager->ownedGroup),
+            [
+                'owner_mode'       => true,
+                'clients'          => $clients,
+                'selected_manager' => ['id' => $manager->id, 'name' => $manager->name, 'email' => $manager->email],
+            ],
+        ));
+    }
+
+    private function buildRuleData(Group $group): array
+    {
         $staleRule = WorkflowRule::where('group_id', $group->id)
             ->where('type', 'stale')
             ->first();
 
-        // Prefer statuses already cached on tracker_profiles (populated by CLI on push).
-        // Fall back to recent snapshots only when no profile cache is available yet.
         $memberIds = $group->members()->pluck('users.id');
 
         $profileStatuses = \App\Models\TrackerProfile::whereIn('user_id', $memberIds)
@@ -49,23 +97,34 @@ class RulesController extends Controller
                 ->values();
         }
 
-        return Inertia::render('Console/Admin/Rules', [
+        return [
             'stale_rule'     => $staleRule ? [
                 'id'      => $staleRule->id,
                 'enabled' => $staleRule->enabled,
                 'config'  => $staleRule->config,
             ] : null,
             'known_statuses' => $statuses,
-        ]);
+        ];
+    }
+
+    private function resolveGroup(User $user, Request $request): Group
+    {
+        if ($user->is_owner) {
+            $managerId = (int) $request->input('manager_id', 0);
+            $manager   = User::whereHas('ownedGroup')->find($managerId);
+            abort_unless($manager !== null, 422, 'No team selected.');
+            return $manager->ownedGroup;
+        }
+
+        abort_if($user->tier === 'free', 403, 'Workflow rules require a Pro or higher plan.');
+        $group = $user->ownedGroup ?? $user->groups()->first();
+        abort_unless($group !== null, 403, 'No team found.');
+        return $group;
     }
 
     public function saveStale(Request $request): RedirectResponse
     {
-        $user = $request->user();
-        abort_if($user->tier === 'free' && ! $user->is_owner, 403, 'Workflow rules require a Pro or higher plan.');
-
-        $group = $user->ownedGroup ?? $user->groups()->first();
-        abort_unless($group !== null, 403, 'No team found.');
+        $group = $this->resolveGroup($request->user(), $request);
 
         $data = $request->validate([
             'enabled'    => ['required', 'boolean'],
@@ -90,13 +149,8 @@ class RulesController extends Controller
 
     public function toggleStale(Request $request): RedirectResponse
     {
-        $user = $request->user();
-        abort_if($user->tier === 'free' && ! $user->is_owner, 403, 'Workflow rules require a Pro or higher plan.');
-
-        $group = $user->ownedGroup ?? $user->groups()->first();
-        abort_unless($group !== null, 403, 'No team found.');
-
-        $data = $request->validate(['enabled' => ['required', 'boolean']]);
+        $group = $this->resolveGroup($request->user(), $request);
+        $data  = $request->validate(['enabled' => ['required', 'boolean']]);
 
         $rule = WorkflowRule::where('group_id', $group->id)->where('type', 'stale')->first();
         abort_unless($rule !== null, 404, 'No stale rule exists to toggle.');
@@ -108,11 +162,7 @@ class RulesController extends Controller
 
     public function destroyStale(Request $request): RedirectResponse
     {
-        $user = $request->user();
-        abort_if($user->tier === 'free' && ! $user->is_owner, 403, 'Workflow rules require a Pro or higher plan.');
-
-        $group = $user->ownedGroup ?? $user->groups()->first();
-        abort_unless($group !== null, 403, 'No team found.');
+        $group = $this->resolveGroup($request->user(), $request);
 
         WorkflowRule::where('group_id', $group->id)->where('type', 'stale')->delete();
 

@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useForm, router } from '@inertiajs/vue3'
 import ConsoleLayout from '@/Layouts/ConsoleLayout.vue'
 import TlIcon from '@/components/TlIcon.vue'
@@ -8,13 +8,42 @@ import { useConfirm } from '@/composables/useConfirm'
 defineOptions({ layout: ConsoleLayout })
 
 const props = defineProps({
-    stale_rule:     { type: Object,  default: null },
-    known_statuses: { type: Array,   default: () => [] },
+    stale_rule:       { type: Object,  default: null },
+    known_statuses:   { type: Array,   default: () => [] },
+    owner_mode:       { type: Boolean, default: false },
+    clients:          { type: Array,   default: () => [] },
+    selected_manager: { type: Object,  default: null },
 })
+
+// ── Owner client picker ───────────────────────────────────────────────────────
+
+const clientSearch = ref('')
+
+const filteredClients = computed(() => {
+    const q = clientSearch.value.toLowerCase()
+    return q
+        ? props.clients.filter(c => c.name.toLowerCase().includes(q) || c.email.toLowerCase().includes(q))
+        : props.clients
+})
+
+const PAGE_SIZE    = 10
+const clientPage   = ref(1)
+const totalPages   = computed(() => Math.ceil(filteredClients.value.length / PAGE_SIZE))
+const pagedClients = computed(() => {
+    const start = (clientPage.value - 1) * PAGE_SIZE
+    return filteredClients.value.slice(start, start + PAGE_SIZE)
+})
+
+watch(clientSearch, () => { clientPage.value = 1 })
+
+function selectManager(id) {
+    router.get('/console/admin/rules', { manager_id: id })
+}
 
 // ── Stale rule form ───────────────────────────────────────────────────────────
 
 const form = useForm({
+    manager_id: props.selected_manager?.id ?? null,
     enabled:    props.stale_rule?.enabled    ?? true,
     stale_days: props.stale_rule?.config?.stale_days ?? 14,
     statuses:   props.stale_rule?.config?.statuses   ?? [],
@@ -32,7 +61,7 @@ function toggleEnabled() {
     if (!hasRule.value) return  // no rule yet — value staged for Enable Rule
 
     toggling.value = true
-    router.patch('/console/admin/rules/stale/toggle', { enabled: form.enabled }, {
+    router.patch('/console/admin/rules/stale/toggle', { enabled: form.enabled, manager_id: form.manager_id }, {
         preserveScroll: true,
         onFinish: () => { toggling.value = false },
     })
@@ -70,6 +99,7 @@ async function destroyStale() {
     })
     if (!ok) return
     router.delete('/console/admin/rules/stale', {
+        data: { manager_id: form.manager_id },
         preserveScroll: true,
         onSuccess: () => {
             form.enabled    = true
@@ -83,6 +113,80 @@ async function destroyStale() {
 
 <template>
     <div class="tl-page">
+
+        <!-- Owner: no manager selected — client search picker -->
+        <div v-if="owner_mode && !selected_manager">
+            <div class="mb-6">
+                <h1 class="tl-heading">Workflow Rules</h1>
+                <p class="tl-subtext">Select a team to manage their workflow rules.</p>
+            </div>
+            <div class="max-w-md">
+                <input
+                    v-model="clientSearch"
+                    type="search"
+                    placeholder="Search by name or email…"
+                    class="tl-input w-full mb-4"
+                />
+                <div v-if="pagedClients.length === 0" class="tl-empty-state">
+                    <TlIcon name="users" class="w-8 h-8 text-slate-700 mb-3" />
+                    <p class="tl-hint">No matching clients found.</p>
+                </div>
+                <ul v-else class="space-y-2">
+                    <li v-for="client in pagedClients" :key="client.id">
+                        <button
+                            type="button"
+                            @click="selectManager(client.id)"
+                            class="w-full text-left tl-card hover:border-amber-500/40 hover:bg-slate-800/60 transition-colors cursor-pointer"
+                        >
+                            <p class="text-sm font-medium text-slate-200">{{ client.name }}</p>
+                            <p class="tl-hint text-xs font-mono">{{ client.email }}</p>
+                        </button>
+                    </li>
+                </ul>
+                <div v-if="totalPages > 1" class="flex items-center justify-between mt-4">
+                    <span class="text-xs text-slate-500">{{ filteredClients.length }} clients</span>
+                    <div class="flex items-center gap-1">
+                        <button
+                            type="button"
+                            :disabled="clientPage === 1"
+                            @click="clientPage--"
+                            class="p-1.5 text-slate-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                        >
+                            <TlIcon name="chevron-left" class="w-4 h-4" />
+                        </button>
+                        <span class="text-xs text-slate-400 font-mono">{{ clientPage }} / {{ totalPages }}</span>
+                        <button
+                            type="button"
+                            :disabled="clientPage >= totalPages"
+                            @click="clientPage++"
+                            class="p-1.5 text-slate-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                        >
+                            <TlIcon name="chevron-right" class="w-4 h-4" />
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Rules content (normal user view or owner with selected manager) -->
+        <template v-else>
+
+        <!-- Owner: manager selected — action banner -->
+        <div v-if="owner_mode && selected_manager"
+             class="flex flex-wrap items-center gap-3 mb-6 px-4 py-3 rounded-lg bg-amber-500/10 border border-amber-500/30 text-sm">
+            <TlIcon name="building" class="w-4 h-4 text-amber-400 shrink-0" />
+            <span class="text-amber-300 font-medium flex-1 min-w-0 truncate">
+                {{ selected_manager.name }}
+                <span class="text-amber-400/60 font-mono text-xs ml-1">{{ selected_manager.email }}</span>
+            </span>
+            <div class="flex items-center gap-2 shrink-0">
+                <a :href="`/console/owner/clients/${selected_manager.id}`" class="tl-btn tl-btn--secondary tl-btn--sm">Manage</a>
+                <button type="button" class="tl-btn tl-btn--secondary tl-btn--sm"
+                        @click="router.get('/console/admin/rules')">
+                    ← Back
+                </button>
+            </div>
+        </div>
 
         <!-- Page header -->
         <div class="mb-6">
@@ -278,5 +382,6 @@ async function destroyStale() {
             <p class="text-xs text-slate-600">More rule types (SLA breach, priority escalation) coming in future releases.</p>
         </div>
 
+        </template><!-- /v-else (rules content) -->
     </div>
 </template>

@@ -309,4 +309,130 @@ class RulesControllerTest extends TestCase
             ->patch('/console/admin/rules/stale/toggle', ['enabled' => false])
             ->assertRedirect('/console/dashboard');
     }
+
+    // ── Owner mode ────────────────────────────────────────────────────────────
+
+    private function makeOwner(): User
+    {
+        return User::factory()->create(['tier' => 'owner', 'is_owner' => true, 'permissions' => 0]);
+    }
+
+    public function test_owner_sees_client_picker_without_manager_id(): void
+    {
+        $owner   = $this->makeOwner();
+        $manager = $this->makeManager();
+
+        $this->actingAs($owner)->get('/console/admin/rules')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('Console/Admin/Rules')
+                ->where('owner_mode', true)
+                ->where('selected_manager', null)
+                ->has('clients')
+            );
+    }
+
+    public function test_owner_with_manager_id_sees_team_rules(): void
+    {
+        $owner   = $this->makeOwner();
+        $manager = $this->makeManager();
+
+        WorkflowRule::create([
+            'group_id' => $manager->ownedGroup->id,
+            'type'     => 'stale',
+            'config'   => ['stale_days' => 7, 'statuses' => ['In Review']],
+            'enabled'  => true,
+        ]);
+
+        $this->actingAs($owner)->get("/console/admin/rules?manager_id={$manager->id}")
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('Console/Admin/Rules')
+                ->where('owner_mode', true)
+                ->where('selected_manager.id', $manager->id)
+                ->where('stale_rule.enabled', true)
+            );
+    }
+
+    public function test_owner_can_save_stale_rule_for_selected_manager(): void
+    {
+        $owner   = $this->makeOwner();
+        $manager = $this->makeManager();
+
+        $this->actingAs($owner)->post('/console/admin/rules/stale', [
+            'manager_id' => $manager->id,
+            'enabled'    => true,
+            'stale_days' => 10,
+            'statuses'   => ['In Review', 'Blocked'],
+        ])->assertRedirect();
+
+        $this->assertDatabaseHas('workflow_rules', [
+            'group_id' => $manager->ownedGroup->id,
+            'type'     => 'stale',
+            'enabled'  => true,
+        ]);
+    }
+
+    public function test_owner_save_stale_without_manager_id_returns_422(): void
+    {
+        $owner = $this->makeOwner();
+
+        $this->actingAs($owner)->post('/console/admin/rules/stale', [
+            'enabled'    => true,
+            'stale_days' => 7,
+            'statuses'   => ['In Review'],
+        ])->assertStatus(422);
+    }
+
+    public function test_owner_can_toggle_stale_rule_for_selected_manager(): void
+    {
+        $owner   = $this->makeOwner();
+        $manager = $this->makeManager();
+
+        $rule = WorkflowRule::create([
+            'group_id' => $manager->ownedGroup->id,
+            'type'     => 'stale',
+            'config'   => ['stale_days' => 7, 'statuses' => ['In Review']],
+            'enabled'  => true,
+        ]);
+
+        $this->actingAs($owner)->patch('/console/admin/rules/stale/toggle', [
+            'manager_id' => $manager->id,
+            'enabled'    => false,
+        ])->assertRedirect();
+
+        $this->assertDatabaseHas('workflow_rules', ['id' => $rule->id, 'enabled' => false]);
+    }
+
+    public function test_owner_can_delete_stale_rule_for_selected_manager(): void
+    {
+        $owner   = $this->makeOwner();
+        $manager = $this->makeManager();
+
+        WorkflowRule::create([
+            'group_id' => $manager->ownedGroup->id,
+            'type'     => 'stale',
+            'config'   => ['stale_days' => 7, 'statuses' => ['In Review']],
+            'enabled'  => true,
+        ]);
+
+        $this->actingAs($owner)->delete('/console/admin/rules/stale', [
+            'manager_id' => $manager->id,
+        ])->assertRedirect();
+
+        $this->assertDatabaseMissing('workflow_rules', ['group_id' => $manager->ownedGroup->id, 'type' => 'stale']);
+    }
+
+    public function test_owner_cannot_target_non_manager_user(): void
+    {
+        $owner  = $this->makeOwner();
+        $member = User::factory()->create(['tier' => 'team', 'permissions' => 2687]);
+
+        $this->actingAs($owner)->post('/console/admin/rules/stale', [
+            'manager_id' => $member->id,
+            'enabled'    => true,
+            'stale_days' => 7,
+            'statuses'   => ['In Review'],
+        ])->assertStatus(422);
+    }
 }

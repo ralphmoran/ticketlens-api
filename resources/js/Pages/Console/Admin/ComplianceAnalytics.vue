@@ -2,7 +2,7 @@
 import ConsoleLayout from '@/Layouts/ConsoleLayout.vue'
 import TlIcon from '@/components/TlIcon.vue'
 import { router } from '@inertiajs/vue3'
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 
 defineOptions({ layout: ConsoleLayout })
 
@@ -22,6 +22,7 @@ const props = defineProps({
 
 const hasData      = computed(() => props.total_checked > 0)
 const clientSearch = ref('')
+const clientPage   = ref(1)
 
 const filteredClients = computed(() => {
     const q = clientSearch.value.toLowerCase()
@@ -29,6 +30,15 @@ const filteredClients = computed(() => {
         ? props.clients.filter(c => c.name.toLowerCase().includes(q) || c.email.toLowerCase().includes(q))
         : props.clients
 })
+
+const PAGE_SIZE    = 10
+const totalPages   = computed(() => Math.ceil(filteredClients.value.length / PAGE_SIZE))
+const pagedClients = computed(() => {
+    const start = (clientPage.value - 1) * PAGE_SIZE
+    return filteredClients.value.slice(start, start + PAGE_SIZE)
+})
+
+watch(clientSearch, () => { clientPage.value = 1 })
 
 function selectManager(id) {
     router.get('/console/admin/compliance-analytics', { manager_id: id })
@@ -62,24 +72,64 @@ function formatPct(v) {
     <div class="tl-page">
 
         <!-- Owner client picker -->
-        <div v-if="owner_mode" class="mb-6 rounded-xl border border-slate-800 bg-slate-900/60 p-4">
-            <p class="text-sm font-medium text-slate-300 mb-3">Select a client team to view their compliance analytics</p>
-            <input
-                v-model="clientSearch"
-                type="text"
-                placeholder="Search clients…"
-                class="tl-input w-full max-w-sm mb-3"
-            />
-            <div class="flex flex-wrap gap-2">
-                <button
-                    v-for="client in filteredClients"
-                    :key="client.id"
-                    class="tl-btn-ghost text-sm"
-                    :class="selected_manager?.id === client.id ? 'ring-1 ring-indigo-500' : ''"
-                    @click="selectManager(client.id)"
-                >
-                    {{ client.name }}
-                </button>
+        <!-- Owner: no manager selected — client search picker -->
+        <div v-if="owner_mode && !selected_manager">
+            <div class="mb-6">
+                <h1 class="tl-heading">Compliance Analytics</h1>
+                <p class="tl-subtext">Select a team to view their compliance analytics.</p>
+            </div>
+            <div class="max-w-md">
+                <input
+                    v-model="clientSearch"
+                    type="search"
+                    placeholder="Search by name or email…"
+                    class="tl-input w-full mb-4"
+                />
+                <div v-if="pagedClients.length === 0" class="tl-empty-state">
+                    <TlIcon name="users" class="w-8 h-8 text-slate-700 mb-3" />
+                    <p class="tl-hint">No matching clients found.</p>
+                </div>
+                <ul v-else class="space-y-2">
+                    <li v-for="client in pagedClients" :key="client.id">
+                        <button type="button" @click="selectManager(client.id)"
+                                class="w-full text-left tl-card hover:border-amber-500/40 hover:bg-slate-800/60 transition-colors cursor-pointer">
+                            <p class="text-sm font-medium text-slate-200">{{ client.name }}</p>
+                            <p class="tl-hint text-xs font-mono">{{ client.email }}</p>
+                        </button>
+                    </li>
+                </ul>
+                <div v-if="totalPages > 1" class="flex items-center justify-between mt-4">
+                    <span class="text-xs text-slate-500">{{ filteredClients.length }} clients</span>
+                    <div class="flex items-center gap-1">
+                        <button type="button" :disabled="clientPage === 1" @click="clientPage--"
+                                class="p-1.5 text-slate-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
+                            <TlIcon name="chevron-left" class="w-4 h-4" />
+                        </button>
+                        <span class="text-xs text-slate-400 font-mono">{{ clientPage }} / {{ totalPages }}</span>
+                        <button type="button" :disabled="clientPage >= totalPages" @click="clientPage++"
+                                class="p-1.5 text-slate-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
+                            <TlIcon name="chevron-right" class="w-4 h-4" />
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Content (normal view or owner with selected manager) -->
+        <template v-else>
+
+        <!-- Owner: manager selected — action banner -->
+        <div v-if="owner_mode && selected_manager"
+             class="flex flex-wrap items-center gap-3 mb-6 px-4 py-3 rounded-lg bg-amber-500/10 border border-amber-500/30 text-sm">
+            <TlIcon name="building" class="w-4 h-4 text-amber-400 shrink-0" />
+            <span class="text-amber-300 font-medium flex-1 min-w-0 truncate">
+                {{ selected_manager.name }}
+                <span class="text-amber-400/60 font-mono text-xs ml-1">{{ selected_manager.email }}</span>
+            </span>
+            <div class="flex items-center gap-2 shrink-0">
+                <a :href="`/console/owner/clients/${selected_manager.id}`" class="tl-btn tl-btn--secondary tl-btn--sm">Manage</a>
+                <button type="button" class="tl-btn tl-btn--secondary tl-btn--sm"
+                        @click="router.get('/console/admin/compliance-analytics')">← Back</button>
             </div>
         </div>
 
@@ -95,7 +145,7 @@ function formatPct(v) {
         </div>
 
         <!-- No data state -->
-        <div v-if="!hasData && (!owner_mode || selected_manager)" class="rounded-xl border border-slate-800 bg-slate-900/40 p-10 text-center">
+        <div v-if="!hasData" class="rounded-xl border border-slate-800 bg-slate-900/40 p-10 text-center">
             <TlIcon name="shield-check" class="w-10 h-10 text-slate-600 mx-auto mb-3" />
             <p class="text-slate-400 font-medium mb-1">No compliance data yet</p>
             <p class="text-slate-500 text-sm">
@@ -103,11 +153,6 @@ function formatPct(v) {
                 <code class="tl-kbd tl-kbd--brand">ticketlens compliance PROJ-123</code>
                 and then push a triage snapshot to see analytics here.
             </p>
-        </div>
-
-        <!-- Owner no selection state -->
-        <div v-else-if="owner_mode && !selected_manager" class="rounded-xl border border-slate-800 bg-slate-900/40 p-10 text-center">
-            <p class="text-slate-500 text-sm">Select a client team above to view their compliance analytics.</p>
         </div>
 
         <template v-else>
@@ -225,6 +270,8 @@ function formatPct(v) {
                 </div>
             </div>
 
-        </template>
+        </template><!-- /v-else hasData -->
+
+        </template><!-- /v-else owner_mode && !selected_manager -->
     </div>
 </template>

@@ -2,6 +2,20 @@
 import ConsoleLayout from '@/Layouts/ConsoleLayout.vue'
 import TlIcon from '@/components/TlIcon.vue'
 import { computed } from 'vue'
+import {
+    Chart as ChartJS,
+    CategoryScale,
+    LinearScale,
+    PointElement,
+    LineElement,
+    BarElement,
+    Tooltip,
+    Legend,
+    Filler,
+} from 'chart.js'
+import { Line, Bar } from 'vue-chartjs'
+
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, Tooltip, Legend, Filler)
 
 defineOptions({ layout: ConsoleLayout })
 
@@ -35,17 +49,99 @@ const sortedActions = computed(() => {
 // We display per-action calls as "—" since the API doesn't split that out.
 
 
-const maxDailyTokens = computed(() => {
-    if (!props.daily.length) return 1
-    return Math.max(...props.daily.map(d => Number(d.tokens)), 1)
-})
-
 function formatNumber(n) {
     return Number(n).toLocaleString()
 }
 
 function formatAction(action) {
     return action.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+}
+
+// ── Charts (Pro+ only) ─────────────────────────────────────────────────────
+
+const lineChartData = computed(() => ({
+    labels: props.daily.map(d => d.date.slice(5)), // MM-DD
+    datasets: [
+        {
+            label: 'Tokens Saved',
+            data: props.daily.map(d => Number(d.tokens)),
+            borderColor: '#818cf8',
+            backgroundColor: 'rgba(129,140,248,0.1)',
+            fill: true,
+            tension: 0.3,
+            pointRadius: 3,
+            yAxisID: 'yTokens',
+        },
+        {
+            label: 'API Calls',
+            data: props.daily.map(d => Number(d.calls ?? 0)),
+            borderColor: '#34d399',
+            backgroundColor: 'rgba(52,211,153,0.08)',
+            fill: false,
+            tension: 0.3,
+            pointRadius: 3,
+            yAxisID: 'yCalls',
+        },
+    ],
+}))
+
+const lineChartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    interaction: { mode: 'index', intersect: false },
+    plugins: {
+        legend: { labels: { color: '#94a3b8', boxWidth: 12, padding: 16 } },
+        tooltip: { mode: 'index', intersect: false },
+    },
+    scales: {
+        x: {
+            ticks: { color: '#64748b', maxTicksLimit: 10 },
+            grid:  { color: 'rgba(255,255,255,0.04)' },
+        },
+        yTokens: {
+            position: 'left',
+            ticks: { color: '#64748b' },
+            grid:  { color: 'rgba(255,255,255,0.04)' },
+            min:   0,
+        },
+        yCalls: {
+            position: 'right',
+            ticks: { color: '#64748b', stepSize: 1 },
+            grid:  { drawOnChartArea: false },
+            min:   0,
+        },
+    },
+}
+
+const barChartData = computed(() => ({
+    labels: sortedActions.value.map(a => formatAction(a.action)),
+    datasets: [{
+        label: 'Tokens',
+        data: sortedActions.value.map(a => a.tokens),
+        backgroundColor: '#818cf8',
+        borderRadius: 3,
+    }],
+}))
+
+const barChartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    indexAxis: 'y',
+    plugins: {
+        legend: { display: false },
+        tooltip: { mode: 'index', intersect: false },
+    },
+    scales: {
+        x: {
+            ticks: { color: '#64748b' },
+            grid:  { color: 'rgba(255,255,255,0.04)' },
+            min:   0,
+        },
+        y: {
+            ticks: { color: '#94a3b8', font: { size: 11 } },
+            grid:  { display: false },
+        },
+    },
 }
 </script>
 
@@ -173,55 +269,30 @@ function formatAction(action) {
                     No activity yet.
                 </div>
 
-                <div v-else class="space-y-2">
-                    <div
-                        v-for="row in daily"
-                        :key="row.date"
-                        class="flex items-center gap-3"
-                    >
-                        <span class="font-mono text-xs text-slate-500 w-20 shrink-0">{{ row.date }}</span>
-                        <div class="flex-1 h-5 bg-slate-800 rounded overflow-hidden">
-                            <div
-                                class="h-full bg-indigo-600 rounded transition-all duration-300"
-                                :style="{ width: Math.round((Number(row.tokens) / maxDailyTokens) * 100) + '%' }"
-                            ></div>
-                        </div>
-                        <span class="font-mono text-xs text-slate-400 w-16 text-right shrink-0">{{ formatNumber(row.tokens) }}</span>
-                    </div>
+                <div v-else class="relative h-52">
+                    <Line :data="lineChartData" :options="lineChartOptions" />
                 </div>
+
+                <p v-if="daily.length > 0" class="mt-3 pt-3 border-t border-slate-800 text-xs text-slate-500 leading-relaxed">
+                    Tokens compressed per day (left axis) vs. API calls made (right axis). A spike in tokens with flat calls means larger briefs were served from cache. A flat token line with rising calls indicates repeated fresh fetches — consider warming the cache more frequently.
+                </p>
             </div>
 
-            <!-- Action breakdown table -->
-            <div class="tl-card tl-card--flush">
-                <div class="px-5 py-4 border-b border-slate-800">
-                    <h2 class="text-sm font-semibold text-white">Breakdown by action</h2>
+            <!-- Action breakdown chart -->
+            <div class="tl-card mb-6">
+                <h2 class="text-sm font-semibold text-white mb-5">Token usage by action</h2>
+
+                <div v-if="sortedActions.length === 0" class="text-sm text-slate-500 py-4 text-center">
+                    No usage logged yet.
                 </div>
 
-                <div v-if="sortedActions.length === 0" class="px-5 py-6 text-center">
-                    <p class="text-sm text-slate-500">No usage logged yet.</p>
+                <div v-else class="relative" :style="{ height: Math.max(120, sortedActions.length * 36) + 'px' }">
+                    <Bar :data="barChartData" :options="barChartOptions" />
                 </div>
 
-                <table v-else class="w-full text-sm">
-                    <thead>
-                        <tr class="border-b border-slate-800">
-                            <th class="tl-th tl-th--muted">Action</th>
-                            <th class="tl-th tl-th--right tl-th--muted">Tokens</th>
-                            <th class="tl-th tl-th--right tl-th--muted">Calls</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-slate-800">
-                        <tr
-                            v-for="row in sortedActions"
-                            :key="row.action"
-                            class="hover:bg-slate-800/40 transition-colors duration-100"
-                        >
-                            <td class="px-5 py-3 font-mono text-xs text-slate-300">{{ formatAction(row.action) }}</td>
-                            <td class="px-5 py-3 font-mono text-xs text-indigo-400 text-right">{{ formatNumber(row.tokens) }}</td>
-                            <td class="px-5 py-3 font-mono text-xs text-slate-500 text-right">&mdash;</td>
-                        </tr>
-                    </tbody>
-                </table>
-
+                <p v-if="sortedActions.length > 0" class="mt-3 pt-3 border-t border-slate-800 text-xs text-slate-500 leading-relaxed">
+                    Cumulative tokens compressed per CLI action. Actions at the top consume the most — if a single action dominates, consider whether it fetches more Jira data than your AI actually needs. Each token saved here is a token your AI never has to process.
+                </p>
             </div>
 
         </template>

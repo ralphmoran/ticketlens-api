@@ -174,8 +174,12 @@ const ownerPanelItems = [
 ]
 
 const OWNER_PANEL_KEY  = 'tl-owner-panel-open'
-const ownerPanelOpen   = ref(localStorage.getItem(OWNER_PANEL_KEY) === 'true')
 const ownerPanelActive = computed(() => ownerPanelItems.some(item => page.url.startsWith(item.href)))
+// Auto-open on first load when a child page is active; afterwards honour localStorage
+const ownerPanelOpen   = ref(
+    localStorage.getItem(OWNER_PANEL_KEY) === 'true' ||
+    ownerPanelItems.some(item => page.url.startsWith(item.href))
+)
 
 function toggleOwnerPanel() {
     ownerPanelOpen.value = !ownerPanelOpen.value
@@ -632,7 +636,7 @@ onUnmounted(() => {
                             <TlIcon
                                 name="plus"
                                 class="w-3.5 h-3.5 shrink-0 transition-transform duration-200"
-                                :class="(ownerPanelOpen || ownerPanelActive) ? 'rotate-45' : ''"
+                                :class="ownerPanelOpen ? 'rotate-45' : ''"
                                 :stroke-width="2"
                             />
                         </button>
@@ -642,7 +646,7 @@ onUnmounted(() => {
                             @leave="slideLeave"
                             @after-leave="slideAfterLeave"
                         >
-                            <div v-if="ownerPanelOpen || ownerPanelActive" class="border-l border-amber-700/40 ml-[1.125rem] pl-2.5 mb-1">
+                            <div v-if="ownerPanelOpen" class="border-l border-amber-700/40 ml-[1.125rem] pl-2.5 mb-1">
                                 <ul class="mb-1 space-y-0.5">
                                     <li v-for="item in ownerPanelItems" :key="item.href">
                                         <a
@@ -673,7 +677,7 @@ onUnmounted(() => {
                             <TlIcon
                                 name="plus"
                                 class="w-3.5 h-3.5 shrink-0 transition-transform duration-200"
-                                :class="(ownerPanelOpen || ownerPanelActive) ? 'rotate-45' : ''"
+                                :class="ownerPanelOpen ? 'rotate-45' : ''"
                                 :stroke-width="2"
                             />
                         </button>
@@ -683,7 +687,7 @@ onUnmounted(() => {
                             @leave="slideLeave"
                             @after-leave="slideAfterLeave"
                         >
-                            <div v-if="ownerPanelOpen || ownerPanelActive" class="border-l border-amber-700/40 ml-[1.125rem] pl-2.5 mb-1">
+                            <div v-if="ownerPanelOpen" class="border-l border-amber-700/40 ml-[1.125rem] pl-2.5 mb-1">
                                 <ul class="mb-1 space-y-0.5">
                                     <li v-for="item in ownerPanelItems" :key="item.href">
                                         <a

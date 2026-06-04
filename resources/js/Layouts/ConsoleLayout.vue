@@ -43,8 +43,6 @@ const HEADER_H  = 64   // h-16
 const PANEL_GAP = 8    // px gap below header / above viewport bottom
 
 const windowHeight  = ref(window.innerHeight)
-const groupPanelEl  = ref(null)
-const ownerPanelEl  = ref(null)
 const groupFloatStyle = ref({ left: '4.5rem', top: '50%', transform: 'translateY(-50%)', maxHeight: '80vh' })
 const ownerFloatStyle = ref({ left: '4.5rem', top: '50%', transform: 'translateY(-50%)', maxHeight: '80vh' })
 
@@ -82,13 +80,25 @@ function buildFloatStyle(iconMid, panelEl) {
     return { left: '4.5rem', top: top + 'px', transform, maxHeight: maxH + 'px' }
 }
 
+function onEnterGroupPanel(el) {
+    const mid = activeGroupKey.value ? groupIconMids.value[activeGroupKey.value] : 0
+    groupFloatStyle.value = buildFloatStyle(mid, el)
+}
+
+function onEnterOwnerPanel(el) {
+    ownerFloatStyle.value = buildFloatStyle(ownerIconMid.value, el)
+}
+
 function onWindowResize() {
     windowHeight.value = window.innerHeight
-    if (activeGroupKey.value) {
-        groupFloatStyle.value = buildFloatStyle(groupIconMids.value[activeGroupKey.value], groupPanelEl.value)
+    // Re-query the live DOM elements (simpler than tracking refs through Transitions)
+    const groupEl = document.getElementById('tl-group-float-panel')
+    const ownerEl = document.getElementById('tl-owner-float-panel')
+    if (activeGroupKey.value && groupEl) {
+        groupFloatStyle.value = buildFloatStyle(groupIconMids.value[activeGroupKey.value], groupEl)
     }
-    if (ownerSubOpen.value) {
-        ownerFloatStyle.value = buildFloatStyle(ownerIconMid.value, ownerPanelEl.value)
+    if (ownerSubOpen.value && ownerEl) {
+        ownerFloatStyle.value = buildFloatStyle(ownerIconMid.value, ownerEl)
     }
 }
 
@@ -105,12 +115,13 @@ function showGroupSub(label, event) {
     const rect = event.currentTarget.getBoundingClientRect()
     const mid  = rect.top + rect.height / 2
     groupIconMids.value = { ...groupIconMids.value, [label]: mid }
-    groupFloatStyle.value = buildFloatStyle(mid, null)
+    // Use the live element if panel is already open (fast icon switching — @enter won't re-fire)
+    groupFloatStyle.value = buildFloatStyle(mid, document.getElementById('tl-group-float-panel'))
     activeGroupKey.value = label
-    nextTick().then(() => {
-        if (activeGroupKey.value === label && groupPanelEl.value) {
-            groupFloatStyle.value = buildFloatStyle(mid, groupPanelEl.value)
-        }
+    // Refine after Vue re-renders the panel with the new group's content
+    nextTick(() => {
+        const el = document.getElementById('tl-group-float-panel')
+        if (el) groupFloatStyle.value = buildFloatStyle(mid, el)
     })
 }
 
@@ -144,14 +155,9 @@ function showOwnerSub() {
     if (ownerIconRef.value) {
         const rect = ownerIconRef.value.getBoundingClientRect()
         ownerIconMid.value = rect.top + rect.height / 2
-        ownerFloatStyle.value = buildFloatStyle(ownerIconMid.value, null)
+        ownerFloatStyle.value = buildFloatStyle(ownerIconMid.value, null)  // initial estimate; @enter refines
     }
     ownerSubOpen.value = true
-    nextTick().then(() => {
-        if (ownerSubOpen.value && ownerPanelEl.value) {
-            ownerFloatStyle.value = buildFloatStyle(ownerIconMid.value, ownerPanelEl.value)
-        }
-    })
 }
 
 function keepOwnerSubOpen() {
@@ -624,7 +630,7 @@ onUnmounted(() => {
 
                     <!-- EXPANDED (desktop) + MOBILE: accordion -->
                     <div v-else>
-                        <hr v-if="gIndex > 0" class="border-slate-700/60 my-2" />
+                        <hr v-if="gIndex > 0" class="border-slate-700/60 my-3" />
                         <button
                             type="button"
                             @click="toggleGroup(group.label)"
@@ -693,7 +699,7 @@ onUnmounted(() => {
 
                     <!-- Desktop expanded: accordion sections -->
                     <div v-else class="hidden lg:block">
-                        <hr class="border-slate-700/60 my-2" />
+                        <hr class="border-slate-700/60 my-3" />
                         <button
                             type="button"
                             @click="toggleOwnerPanel"
@@ -735,7 +741,7 @@ onUnmounted(() => {
 
                     <!-- Mobile: accordion sections in drawer -->
                     <div class="lg:hidden">
-                        <hr class="border-slate-700/60 my-2" />
+                        <hr class="border-slate-700/60 my-3" />
                         <button
                             type="button"
                             @click="toggleOwnerPanel"
@@ -809,10 +815,11 @@ onUnmounted(() => {
             leave-active-class="transition-opacity duration-100"
             leave-from-class="opacity-100"
             leave-to-class="opacity-0"
+            @enter="onEnterGroupPanel"
         >
             <div
                 v-if="activeGroup && effectiveCollapsed"
-                :ref="el => { groupPanelEl.value = el }"
+                id="tl-group-float-panel"
                 class="hidden lg:block fixed z-[49] w-48 bg-slate-800 border border-slate-700 rounded-lg shadow-2xl overflow-y-auto"
                 :style="groupFloatStyle"
                 @mouseenter="keepGroupSubOpen"
@@ -847,10 +854,11 @@ onUnmounted(() => {
             leave-active-class="transition-opacity duration-100"
             leave-from-class="opacity-100"
             leave-to-class="opacity-0"
+            @enter="onEnterOwnerPanel"
         >
             <div
                 v-if="isOwner && ownerSubOpen && effectiveCollapsed"
-                :ref="el => { ownerPanelEl.value = el }"
+                id="tl-owner-float-panel"
                 class="hidden lg:block fixed z-[49] w-48 bg-slate-800 border border-slate-700 rounded-lg shadow-2xl overflow-y-auto"
                 :style="ownerFloatStyle"
                 @mouseenter="keepOwnerSubOpen"

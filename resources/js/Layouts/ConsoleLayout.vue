@@ -630,7 +630,7 @@ onUnmounted(() => {
 
                     <!-- EXPANDED (desktop) + MOBILE: accordion -->
                     <div v-else>
-                        <div v-if="gIndex > 0" class="flex items-center px-3 py-2.5">
+                        <div v-if="gIndex > 0" class="flex items-center px-3 h-10">
                             <hr class="w-full border-slate-700/60" />
                         </div>
                         <button
@@ -701,7 +701,7 @@ onUnmounted(() => {
 
                     <!-- Desktop expanded: accordion sections -->
                     <div v-else class="hidden lg:block">
-                        <div class="flex items-center px-3 py-2.5">
+                        <div class="flex items-center px-3 h-10">
                             <hr class="w-full border-slate-700/60" />
                         </div>
                         <button
@@ -745,7 +745,7 @@ onUnmounted(() => {
 
                     <!-- Mobile: accordion sections in drawer -->
                     <div class="lg:hidden">
-                        <div class="flex items-center px-3 py-2.5">
+                        <div class="flex items-center px-3 h-10">
                             <hr class="w-full border-slate-700/60" />
                         </div>
                         <button

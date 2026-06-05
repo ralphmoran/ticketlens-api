@@ -170,9 +170,14 @@ function hideOwnerSub() {
 
 const effectiveCollapsed = computed(() => sidebarCollapsed.value && isDesktop.value)
 
-function toggleCollapsed() {
+const skipSlideTransitions = ref(false)
+
+async function toggleCollapsed() {
+    skipSlideTransitions.value = true
     sidebarCollapsed.value = !sidebarCollapsed.value
     localStorage.setItem(SIDEBAR_KEY, sidebarCollapsed.value)
+    await nextTick()
+    skipSlideTransitions.value = false
 }
 
 const user          = computed(() => page.props.auth?.user)
@@ -365,6 +370,7 @@ function handleClickOutside(e) {
 }
 
 function slideEnter(el) {
+    if (skipSlideTransitions.value) return
     el.style.height = '0'
     el.style.overflow = 'hidden'
     requestAnimationFrame(() => {
@@ -378,6 +384,11 @@ function slideAfterEnter(el) {
     el.style.transition = ''
 }
 function slideLeave(el) {
+    if (skipSlideTransitions.value) {
+        el.style.height = '0'
+        el.style.overflow = 'hidden'
+        return
+    }
     el.style.height = el.scrollHeight + 'px'
     el.style.overflow = 'hidden'
     requestAnimationFrame(() => {
@@ -565,7 +576,7 @@ onUnmounted(() => {
         <!-- Sidebar -->
         <aside
             :class="[
-                'fixed left-0 bottom-0 z-50 bg-slate-900 border-r border-slate-800 flex flex-col transition-all duration-200',
+                'fixed left-0 bottom-0 z-50 bg-slate-900 border-r border-slate-800 flex flex-col transition-all duration-200 overflow-hidden',
                 impersonating ? 'top-9' : 'top-0',
                 sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0',
                 effectiveCollapsed ? 'lg:w-16' : 'w-64',
@@ -601,7 +612,7 @@ onUnmounted(() => {
             </div>
 
             <!-- Nav groups -->
-            <nav class="flex-1 overflow-y-auto py-4" :class="effectiveCollapsed ? 'px-2' : 'px-3'">
+            <nav class="flex-1 overflow-y-auto py-4 px-3">
                 <template v-for="(group, gIndex) in visibleGroups" :key="group.label">
 
                     <!-- COLLAPSED (desktop only): one icon per group, hover reveals floating panel -->
@@ -617,7 +628,7 @@ onUnmounted(() => {
                                     :href="group.items[0].href"
                                     :title="group.label"
                                     @click="handleNavClick($event, group.items[0].href)"
-                                    class="tl-nav-link w-full justify-center px-0"
+                                    class="tl-nav-link w-full"
                                     :class="group.items.some(i => page.url.startsWith(i.href))
                                         ? 'tl-nav-link--active'
                                         : 'tl-nav-link--inactive'"
@@ -630,9 +641,6 @@ onUnmounted(() => {
 
                     <!-- EXPANDED (desktop) + MOBILE: accordion -->
                     <div v-else>
-                        <div v-if="gIndex > 0" class="flex items-center px-3 h-10">
-                            <hr class="w-full border-slate-700/60" />
-                        </div>
                         <button
                             type="button"
                             @click="toggleGroup(group.label)"
@@ -678,7 +686,7 @@ onUnmounted(() => {
                 <template v-if="isOwner">
                     <!-- Desktop collapsed: clicking navigates to first owner item; hover reveals sub-sidebar -->
                     <div
-                        v-if="effectiveCollapsed"
+                        v-show="effectiveCollapsed"
                         class="hidden lg:block"
                         @mouseenter="showOwnerSub"
                         @mouseleave="hideOwnerSub"
@@ -690,7 +698,7 @@ onUnmounted(() => {
                                     ref="ownerIconRef"
                                     title="Owner Panel"
                                     @click="handleNavClick($event, ownerPanelItems[0].href)"
-                                    class="tl-nav-link w-full justify-center px-0"
+                                    class="tl-nav-link w-full"
                                     :class="(ownerSubOpen || subSidebarPersistent) ? 'tl-nav-link--owner-active' : 'tl-nav-link--owner-inactive'"
                                 >
                                     <TlIcon name="building" class="w-4 h-4 shrink-0" />
@@ -699,11 +707,8 @@ onUnmounted(() => {
                         </ul>
                     </div>
 
-                    <!-- Desktop expanded: accordion sections -->
-                    <div v-else class="hidden lg:block">
-                        <div class="flex items-center px-3 h-10">
-                            <hr class="w-full border-slate-700/60" />
-                        </div>
+                    <!-- Desktop expanded: accordion sections (v-show keeps Transition alive — prevents spurious slideEnter on sidebar toggle) -->
+                    <div v-show="!effectiveCollapsed" class="hidden lg:block">
                         <button
                             type="button"
                             @click="toggleOwnerPanel"
@@ -711,7 +716,7 @@ onUnmounted(() => {
                             :class="ownerPanelActive ? 'text-amber-300' : ''"
                         >
                             <TlIcon name="building" class="w-4 h-4 shrink-0" />
-                            <span class="flex-1 text-left">Owner Panel</span>
+                            <span class="flex-1 text-left truncate">Owner Panel</span>
                             <TlIcon
                                 name="plus"
                                 class="w-3.5 h-3.5 shrink-0 transition-transform duration-200"
@@ -745,9 +750,6 @@ onUnmounted(() => {
 
                     <!-- Mobile: accordion sections in drawer -->
                     <div class="lg:hidden">
-                        <div class="flex items-center px-3 h-10">
-                            <hr class="w-full border-slate-700/60" />
-                        </div>
                         <button
                             type="button"
                             @click="toggleOwnerPanel"
@@ -755,7 +757,7 @@ onUnmounted(() => {
                             :class="ownerPanelActive ? 'text-amber-300' : ''"
                         >
                             <TlIcon name="building" class="w-4 h-4 shrink-0" />
-                            <span class="flex-1 text-left">Owner Panel</span>
+                            <span class="flex-1 text-left truncate">Owner Panel</span>
                             <TlIcon
                                 name="plus"
                                 class="w-3.5 h-3.5 shrink-0 transition-transform duration-200"

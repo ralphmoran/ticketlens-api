@@ -238,6 +238,7 @@ const navGroups = computed(() => [
             { label: 'Alerts',               href: '/console/admin/alerts',               icon: 'bell',             managerOnly: true,  ownerExcluded: false, permission: null },
             { label: 'Digests',              href: '/console/admin/digests',              icon: 'send',             managerOnly: true,  ownerExcluded: false, permission: null },
             { label: 'Workflow Rules',       href: '/console/admin/rules',                icon: 'git-branch',       managerOnly: true,  ownerExcluded: false, permission: Permission.WorkflowRules },
+            { label: 'Brief Templates',      href: '/console/admin/templates',            icon: 'layout-template',  managerOnly: false, ownerExcluded: false, permission: null, paidOnly: true },
         ]
     },
 ])
@@ -279,6 +280,7 @@ const visibleGroups = computed(() =>
             items: g.items.filter(item => {
                 if (item.ownerExcluded && isOwner.value) return false
                 if (item.managerOnly && !isOwner.value && !isTeamManager.value) return false
+                if (item.paidOnly && !isOwner.value && !isTeamManager.value && !['pro', 'team', 'enterprise'].includes(user.value?.tier)) return false
                 return item.permission === null || isOwner.value || can(item.permission)
             })
         }))

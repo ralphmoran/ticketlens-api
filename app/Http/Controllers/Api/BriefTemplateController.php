@@ -11,9 +11,10 @@ class BriefTemplateController extends Controller
 {
     public function __invoke(Request $request): JsonResponse
     {
-        $user = $request->user();
+        $user  = $request->user();
+        $group = $user->is_owner ? null : $user->groups()->first();
 
-        $templates = BriefTemplate::forGroup($user->group_id ?? null)
+        $templates = BriefTemplate::forGroup($group?->id)
             ->orderByDesc('is_system')
             ->orderBy('name')
             ->get();

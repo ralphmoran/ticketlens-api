@@ -73,6 +73,30 @@ class BriefTemplateTest extends TestCase
         $this->assertArrayHasKey('is_system', $first);
     }
 
+    public function test_returns_custom_templates_for_users_own_group(): void
+    {
+        $this->seedSystemTemplates();
+        $owner = $this->makeUser('team');
+        $group = Group::create(['name' => 'My Team', 'owner_id' => $owner->id]);
+        $owner->groups()->attach($group->id);
+
+        BriefTemplate::create([
+            'group_id'   => $group->id,
+            'slug'       => 'title-only',
+            'name'       => 'Title Only',
+            'sections'   => ['meta' => true],
+            'is_system'  => false,
+            'created_by' => $owner->id,
+        ]);
+
+        $token = $this->makeToken($owner);
+        $response = $this->withToken($token)->getJson('/v1/templates');
+
+        $response->assertOk();
+        $slugs = collect($response->json())->pluck('slug')->all();
+        $this->assertContains('title-only', $slugs, 'Custom template for own group must be returned');
+    }
+
     public function test_does_not_return_templates_from_other_groups(): void
     {
         $this->seedSystemTemplates();

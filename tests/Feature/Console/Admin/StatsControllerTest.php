@@ -159,8 +159,13 @@ class StatsControllerTest extends TestCase
 
         $this->actingAs($manager)->get('/console/admin/stats')
             ->assertInertia(fn ($page) => $page
-                ->where('team_comparison.0.needs_response', 1)
-                ->where('team_comparison.0.total', 2)
+                ->where('team_comparison', fn ($rows) =>
+                    collect($rows)->contains(fn ($r) =>
+                        $r['member_name'] === 'Bob' &&
+                        $r['needs_response'] === 1 &&
+                        $r['total'] === 2
+                    )
+                )
             );
     }
 
@@ -340,6 +345,128 @@ class StatsControllerTest extends TestCase
                 ->where('team_comparison', fn ($rows) =>
                     collect($rows)->contains(fn ($r) =>
                         $r['member_name'] === 'Eve' && $r['stale'] === 2
+                    )
+                )
+            );
+    }
+
+    // ── RED: new stats fields ─────────────────────────────────────────────────
+
+    public function test_push_heatmap_present_in_response(): void
+    {
+        $manager = $this->makeManager();
+        $dev     = $this->makeMember($manager->ownedGroup);
+        $this->pushSnapshot($dev, [$this->ticket('H-1')], 'production', now()->subDays(5)->toIso8601String());
+
+        $this->actingAs($manager)->get('/console/admin/stats')
+            ->assertInertia(fn ($page) => $page
+                ->has('push_heatmap')
+                ->where('push_heatmap', fn ($v) =>
+                    collect($v)->contains(fn ($row) => isset($row['member_id']) && isset($row['days']))
+                )
+            );
+    }
+
+    public function test_hour_distribution_present_and_has_24_buckets(): void
+    {
+        $manager = $this->makeManager();
+        $dev     = $this->makeMember($manager->ownedGroup);
+        $this->pushSnapshot($dev, [$this->ticket('HR-1')]);
+
+        $this->actingAs($manager)->get('/console/admin/stats')
+            ->assertInertia(fn ($page) => $page
+                ->has('hour_distribution')
+                ->where('hour_distribution', fn ($v) => count($v) === 24)
+            );
+    }
+
+    public function test_day_of_week_distribution_present_and_has_7_buckets(): void
+    {
+        $manager = $this->makeManager();
+        $dev     = $this->makeMember($manager->ownedGroup);
+        $this->pushSnapshot($dev, [$this->ticket('DW-1')]);
+
+        $this->actingAs($manager)->get('/console/admin/stats')
+            ->assertInertia(fn ($page) => $page
+                ->has('day_of_week_dist')
+                ->where('day_of_week_dist', fn ($v) => count($v) === 7)
+            );
+    }
+
+    public function test_engagement_scores_present_with_required_keys(): void
+    {
+        $manager = $this->makeManager();
+        $dev     = $this->makeMember($manager->ownedGroup, 'Engaged Dev');
+        $this->pushSnapshot($dev, [$this->ticket('E-1')]);
+
+        $this->actingAs($manager)->get('/console/admin/stats')
+            ->assertInertia(fn ($page) => $page
+                ->has('engagement_scores')
+                ->where('engagement_scores', fn ($v) =>
+                    collect($v)->contains(fn ($row) =>
+                        isset($row['member_name']) &&
+                        isset($row['active_days_30d']) &&
+                        isset($row['avg_ticket_count']) &&
+                        isset($row['score'])
+                    )
+                )
+            );
+    }
+
+    public function test_ticket_load_trend_present_per_member(): void
+    {
+        $manager = $this->makeManager();
+        $dev     = $this->makeMember($manager->ownedGroup, 'Trend Dev');
+        $this->pushSnapshot($dev, [$this->ticket('T-1'), $this->ticket('T-2')], 'production', now()->subDays(3)->toIso8601String());
+
+        $this->actingAs($manager)->get('/console/admin/stats')
+            ->assertInertia(fn ($page) => $page
+                ->has('ticket_load_trend')
+                ->where('ticket_load_trend', fn ($v) =>
+                    collect($v)->contains(fn ($row) =>
+                        isset($row['member_name']) && isset($row['data'])
+                    )
+                )
+            );
+    }
+
+    // ── LOCK: existing response keys must not change shape ────────────────────
+
+    public function test_lock_existing_response_keys_are_present(): void
+    {
+        $manager = $this->makeManager();
+        $dev     = $this->makeMember($manager->ownedGroup);
+        $this->pushSnapshot($dev, [$this->ticket('L-1')]);
+
+        $this->actingAs($manager)->get('/console/admin/stats')
+            ->assertInertia(fn ($page) => $page
+                ->has('daily_urgency')
+                ->has('team_comparison')
+                ->has('group_name')
+                ->has('last_updated')
+                ->has('daily_urgency', 1)
+                ->has('team_comparison', 2)
+            );
+    }
+
+    public function test_lock_team_comparison_row_keys_unchanged(): void
+    {
+        $manager = $this->makeManager();
+        $dev     = $this->makeMember($manager->ownedGroup, 'Lock Dev');
+        $this->pushSnapshot($dev, [$this->ticket('L-2', ['needs-response'])]);
+
+        $this->actingAs($manager)->get('/console/admin/stats')
+            ->assertInertia(fn ($page) => $page
+                ->where('team_comparison', fn ($rows) =>
+                    collect($rows)->every(fn ($r) =>
+                        array_key_exists('member_id', $r) &&
+                        array_key_exists('member_name', $r) &&
+                        array_key_exists('needs_response', $r) &&
+                        array_key_exists('aging', $r) &&
+                        array_key_exists('stale', $r) &&
+                        array_key_exists('clear', $r) &&
+                        array_key_exists('total', $r) &&
+                        array_key_exists('last_push', $r)
                     )
                 )
             );

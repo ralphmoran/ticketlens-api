@@ -324,4 +324,66 @@ class PushControllerTest extends TestCase
         $ticket = TriageSnapshot::first()->tickets[0];
         $this->assertSame('2026-05-11T09:30:00Z', $ticket['last_comment_at']);
     }
+
+    // ── LOCK: backward-compat — cli_activity is optional ─────────────────────
+
+    public function test_lock_push_without_cli_activity_succeeds(): void
+    {
+        [, $token] = $this->makeUserWithToken();
+
+        $this->withToken($token)->postJson('/v1/triage/push', $this->validPayload())
+            ->assertStatus(200)
+            ->assertJsonFragment(['pushed' => true]);
+
+        $snapshot = TriageSnapshot::first();
+        $this->assertNotNull($snapshot);
+        $this->assertNull($snapshot->cli_activity);
+    }
+
+    // ── RED: cli_activity stored when sent ────────────────────────────────────
+
+    public function test_cli_activity_is_stored_on_snapshot(): void
+    {
+        [, $token] = $this->makeUserWithToken();
+
+        $payload = $this->validPayload([
+            'cli_activity' => [
+                'fetch_count'       => 12,
+                'triage_run_count'  => 3,
+                'invocations'       => 17,
+            ],
+        ]);
+
+        $this->withToken($token)->postJson('/v1/triage/push', $payload)
+            ->assertStatus(200);
+
+        $activity = TriageSnapshot::first()->cli_activity;
+        $this->assertSame(12, $activity['fetch_count']);
+        $this->assertSame(3,  $activity['triage_run_count']);
+        $this->assertSame(17, $activity['invocations']);
+    }
+
+    public function test_cli_activity_rejects_non_integer_fields(): void
+    {
+        [, $token] = $this->makeUserWithToken();
+
+        $payload = $this->validPayload([
+            'cli_activity' => ['fetch_count' => 'abc'],
+        ]);
+
+        $this->withToken($token)->postJson('/v1/triage/push', $payload)
+            ->assertStatus(422);
+    }
+
+    public function test_cli_activity_rejects_negative_values(): void
+    {
+        [, $token] = $this->makeUserWithToken();
+
+        $payload = $this->validPayload([
+            'cli_activity' => ['fetch_count' => -1],
+        ]);
+
+        $this->withToken($token)->postJson('/v1/triage/push', $payload)
+            ->assertStatus(422);
+    }
 }

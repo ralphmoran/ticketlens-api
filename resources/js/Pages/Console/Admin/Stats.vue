@@ -18,16 +18,27 @@ import { Line, Bar } from 'vue-chartjs'
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, Tooltip, Legend, Filler)
 
+// Colour palette for per-member lines (10 distinct hues)
+const MEMBER_COLORS = [
+    '#6366f1', '#22d3ee', '#f59e0b', '#34d399', '#f87171',
+    '#a78bfa', '#38bdf8', '#fb923c', '#4ade80', '#f472b6',
+]
+
 defineOptions({ layout: ConsoleLayout })
 
 const props = defineProps({
-    group_name:       { type: String,  default: '' },
-    daily_urgency:    { type: Array,   default: () => [] },
-    team_comparison:  { type: Array,   default: () => [] },
-    last_updated:     { type: String,  default: null },
-    owner_mode:       { type: Boolean, default: false },
-    clients:          { type: Array,   default: () => [] },
-    selected_manager: { type: Object,  default: null },
+    group_name:        { type: String,  default: '' },
+    daily_urgency:     { type: Array,   default: () => [] },
+    team_comparison:   { type: Array,   default: () => [] },
+    last_updated:      { type: String,  default: null },
+    owner_mode:        { type: Boolean, default: false },
+    clients:           { type: Array,   default: () => [] },
+    selected_manager:  { type: Object,  default: null },
+    push_heatmap:      { type: Array,   default: () => [] },
+    hour_distribution: { type: Array,   default: () => [] },
+    day_of_week_dist:  { type: Array,   default: () => [] },
+    engagement_scores: { type: Array,   default: () => [] },
+    ticket_load_trend: { type: Array,   default: () => [] },
 })
 
 // ── Owner picker ───────────────────────────────────────────────────────────
@@ -203,6 +214,95 @@ const barChartOptions = {
             grid:  { color: 'rgba(255,255,255,0.04)' },
             min:   0,
         },
+    },
+}
+
+// ── Hour-of-day bar chart ──────────────────────────────────────────────────
+
+const hourChartData = computed(() => ({
+    labels: props.hour_distribution.map(h => `${String(h.hour).padStart(2, '0')}:00`),
+    datasets: [{
+        label: 'Pushes',
+        data: props.hour_distribution.map(h => h.count),
+        backgroundColor: 'rgba(99,102,241,0.6)',
+        borderRadius: 3,
+    }],
+}))
+
+const hourChartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+        legend: { display: false },
+        tooltip: { mode: 'index', intersect: false },
+    },
+    scales: {
+        x: { ticks: { color: '#64748b', maxRotation: 45 }, grid: { color: 'rgba(255,255,255,0.04)' } },
+        y: { ticks: { color: '#64748b', stepSize: 1 }, grid: { color: 'rgba(255,255,255,0.04)' }, min: 0 },
+    },
+}
+
+// ── Day-of-week bar chart ──────────────────────────────────────────────────
+
+const dowChartData = computed(() => ({
+    labels: props.day_of_week_dist.map(d => d.day),
+    datasets: [{
+        label: 'Pushes',
+        data: props.day_of_week_dist.map(d => d.count),
+        backgroundColor: props.day_of_week_dist.map((d) => {
+            return (d.day === 'Sat' || d.day === 'Sun') ? 'rgba(99,102,241,0.3)' : 'rgba(99,102,241,0.65)'
+        }),
+        borderRadius: 3,
+    }],
+}))
+
+const dowChartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+        legend: { display: false },
+        tooltip: { mode: 'index', intersect: false },
+    },
+    scales: {
+        x: { ticks: { color: '#64748b' }, grid: { color: 'rgba(255,255,255,0.04)' } },
+        y: { ticks: { color: '#64748b', stepSize: 1 }, grid: { color: 'rgba(255,255,255,0.04)' }, min: 0 },
+    },
+}
+
+// ── Ticket load trend (multi-line) ─────────────────────────────────────────
+
+const ticketTrendChartData = computed(() => {
+    const allDates = [...new Set(
+        props.ticket_load_trend.flatMap(m => m.data.map(d => d.date))
+    )].sort()
+
+    return {
+        labels: allDates.map(d => d.slice(5)),
+        datasets: props.ticket_load_trend.map((member, i) => {
+            const byDate = Object.fromEntries(member.data.map(d => [d.date, d.count]))
+            return {
+                label: member.member_name.split(' ')[0],
+                data: allDates.map(d => byDate[d] ?? null),
+                borderColor: MEMBER_COLORS[i % MEMBER_COLORS.length],
+                backgroundColor: 'transparent',
+                tension: 0.3,
+                pointRadius: 2,
+                spanGaps: true,
+            }
+        }),
+    }
+})
+
+const ticketTrendChartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+        legend: { labels: { color: '#94a3b8', boxWidth: 12, padding: 16 } },
+        tooltip: { mode: 'index', intersect: false },
+    },
+    scales: {
+        x: { ticks: { color: '#64748b', maxTicksLimit: 10 }, grid: { color: 'rgba(255,255,255,0.04)' } },
+        y: { ticks: { color: '#64748b', stepSize: 1 }, grid: { color: 'rgba(255,255,255,0.04)' }, min: 0 },
     },
 }
 
@@ -418,6 +518,104 @@ function urgencyClass(count, type) {
                         </table>
                     </div>
                 </div>
+
+            <!-- ── Engagement Leaderboard ──────────────────────────────── -->
+            <div v-if="engagement_scores.length > 0" class="mt-6 rounded-xl border border-slate-800 bg-slate-900/60 overflow-hidden">
+                <div class="px-5 py-4 border-b border-slate-800">
+                    <h2 class="text-sm font-semibold text-slate-300 uppercase tracking-wide">Engagement Leaderboard — last 30 days</h2>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead>
+                            <tr class="border-b border-slate-800 text-left text-xs text-slate-500 uppercase tracking-wide">
+                                <th class="px-5 py-3 font-medium">#</th>
+                                <th class="px-5 py-3 font-medium">Member</th>
+                                <th class="px-4 py-3 font-medium text-right">Active Days</th>
+                                <th class="px-4 py-3 font-medium text-right">Avg Tickets</th>
+                                <th class="px-5 py-3 font-medium text-right">Score</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-800/60">
+                            <tr v-for="(row, idx) in engagement_scores" :key="row.member_id"
+                                class="hover:bg-slate-800/30 transition-colors">
+                                <td class="px-5 py-3 text-slate-500 font-mono text-xs">{{ idx + 1 }}</td>
+                                <td class="px-5 py-3 text-slate-200 font-medium">{{ row.member_name }}</td>
+                                <td class="px-4 py-3 text-slate-300 text-right font-mono">{{ row.active_days_30d }}</td>
+                                <td class="px-4 py-3 text-slate-300 text-right font-mono">{{ row.avg_ticket_count }}</td>
+                                <td class="px-5 py-3 text-right">
+                                    <span class="font-mono font-semibold"
+                                          :class="row.score > 0.5 ? 'text-indigo-400' : row.score > 0.2 ? 'text-slate-300' : 'text-slate-500'">
+                                        {{ row.score.toFixed(2) }}
+                                    </span>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <p class="px-5 py-3 border-t border-slate-800 text-xs text-slate-500">
+                    Score = (active days / 30) × log(avg tickets + 1). Higher means more consistent, heavier triage usage.
+                </p>
+            </div>
+
+            <!-- ── Push Activity Heatmap ──────────────────────────────────── -->
+            <div v-if="push_heatmap.some(m => m.days.length > 0)" class="mt-6 rounded-xl border border-slate-800 bg-slate-900/60 p-5">
+                <h2 class="mb-4 text-sm font-semibold text-slate-300 uppercase tracking-wide">Push Activity — last 90 days</h2>
+                <div class="space-y-3">
+                    <div v-for="member in push_heatmap" :key="member.member_id" class="flex items-center gap-3">
+                        <span class="w-24 text-xs text-slate-400 truncate shrink-0">{{ member.member_name.split(' ')[0] }}</span>
+                        <div class="flex flex-wrap gap-0.5">
+                            <template v-for="day in member.days" :key="day">
+                                <div
+                                    class="w-2.5 h-2.5 rounded-sm bg-indigo-500/70"
+                                    :title="day"
+                                ></div>
+                            </template>
+                        </div>
+                        <span class="text-xs text-slate-500 font-mono shrink-0">{{ member.days.length }}d</span>
+                    </div>
+                </div>
+                <p class="mt-4 pt-3 border-t border-slate-800 text-xs text-slate-500">
+                    Each block represents a day with at least one push. Consistent streaks indicate strong daily habits.
+                </p>
+            </div>
+
+            <!-- ── Hour-of-Day & Day-of-Week side by side ─────────────────── -->
+            <div v-if="hour_distribution.some(h => h.count > 0) || day_of_week_dist.some(d => d.count > 0)"
+                 class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+
+                <div v-if="hour_distribution.some(h => h.count > 0)"
+                     class="rounded-xl border border-slate-800 bg-slate-900/60 p-5">
+                    <h2 class="mb-4 text-sm font-semibold text-slate-300 uppercase tracking-wide">Hour of Day (UTC)</h2>
+                    <div class="h-40">
+                        <Bar :data="hourChartData" :options="hourChartOptions" />
+                    </div>
+                    <p class="mt-3 pt-3 border-t border-slate-800 text-xs text-slate-500">
+                        When the team pushes most often (UTC). Note: one push per profile per day is counted.
+                    </p>
+                </div>
+
+                <div v-if="day_of_week_dist.some(d => d.count > 0)"
+                     class="rounded-xl border border-slate-800 bg-slate-900/60 p-5">
+                    <h2 class="mb-4 text-sm font-semibold text-slate-300 uppercase tracking-wide">Day of Week</h2>
+                    <div class="h-40">
+                        <Bar :data="dowChartData" :options="dowChartOptions" />
+                    </div>
+                    <p class="mt-3 pt-3 border-t border-slate-800 text-xs text-slate-500">
+                        Weekend bars are dimmed. Heavy weekend usage may indicate on-call rotation.
+                    </p>
+                </div>
+            </div>
+
+            <!-- ── Ticket Load Trend (per member) ────────────────────────── -->
+            <div v-if="ticket_load_trend.length > 0" class="mt-6 mb-6 rounded-xl border border-slate-800 bg-slate-900/60 p-5">
+                <h2 class="mb-4 text-sm font-semibold text-slate-300 uppercase tracking-wide">Ticket Load — last 30 days</h2>
+                <div class="h-56">
+                    <Line :data="ticketTrendChartData" :options="ticketTrendChartOptions" />
+                </div>
+                <p class="mt-3 pt-3 border-t border-slate-800 text-xs text-slate-500">
+                    Active ticket count per member over time. Members with a rising trend may need load balancing. Flat lines at zero indicate no push data in this window.
+                </p>
+            </div>
 
         </template><!-- /v-else hasData -->
 

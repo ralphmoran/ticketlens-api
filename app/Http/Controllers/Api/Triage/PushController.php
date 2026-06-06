@@ -34,6 +34,10 @@ class PushController
             $data['git_branches'] = $request->validated('git_branches');
         }
 
+        if ($request->has('cli_activity')) {
+            $data['cli_activity'] = $request->validated('cli_activity');
+        }
+
         $capturedDate = Carbon::parse($capturedAt)->utc()->toDateString();
 
         // One row per user+profile+day: update if same day already exists, else create.

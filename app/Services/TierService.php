@@ -38,8 +38,9 @@ class TierService
         }
 
         DB::transaction(function () use ($user): void {
-            $permissions = $this->permissionsForTier($user->tier);
-            $user->update(['permissions' => $permissions]);
+            $permissions        = $this->permissionsForTier($user->tier);
+            $user->permissions  = $permissions;
+            $user->save();
         });
     }
 

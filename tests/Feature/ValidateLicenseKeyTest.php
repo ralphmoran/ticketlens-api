@@ -1,6 +1,7 @@
 <?php
 namespace Tests\Feature;
 
+use App\Models\License;
 use App\Services\LicenseValidationService;
 use Illuminate\Support\Facades\Route;
 use Tests\TestCase;
@@ -11,7 +12,12 @@ class ValidateLicenseKeyTest extends TestCase
     {
         parent::setUp();
         // Register a test-only route protected by the middleware
-        Route::middleware('auth.license')->get('/test-auth', fn() => response()->json(['ok' => true]));
+        Route::middleware('auth.license')->get('/test-auth', fn () => response()->json(['ok' => true]));
+    }
+
+    private function fakeLicense(): License
+    {
+        return (new License)->forceFill(['tier' => 'pro', 'status' => 'active', 'expires_at' => null]);
     }
 
     public function test_returns_401_when_no_authorization_header(): void
@@ -24,7 +30,7 @@ class ValidateLicenseKeyTest extends TestCase
     public function test_returns_401_when_bearer_token_is_invalid(): void
     {
         $this->mock(LicenseValidationService::class, function ($mock) {
-            $mock->shouldReceive('isValid')->once()->andReturn(false);
+            $mock->shouldReceive('validate')->once()->andReturn(null);
         });
 
         $response = $this->withToken('bad-key')->getJson('/test-auth');
@@ -33,8 +39,9 @@ class ValidateLicenseKeyTest extends TestCase
 
     public function test_allows_request_when_token_is_valid(): void
     {
-        $this->mock(LicenseValidationService::class, function ($mock) {
-            $mock->shouldReceive('isValid')->once()->andReturn(true);
+        $license = $this->fakeLicense();
+        $this->mock(LicenseValidationService::class, function ($mock) use ($license) {
+            $mock->shouldReceive('validate')->once()->andReturn($license);
         });
 
         $response = $this->withToken('valid-key')->getJson('/test-auth');

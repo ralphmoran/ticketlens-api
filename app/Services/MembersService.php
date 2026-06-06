@@ -45,12 +45,14 @@ class MembersService
 
             if ($user === null) {
                 $user = User::create([
-                    'name'        => $name ?: explode('@', $email)[0],
-                    'email'       => $email,
-                    'password'    => Str::random(64), // unusable — forces reset flow
-                    'tier'        => $manager->tier,  // inherit manager's tier
-                    'permissions' => \App\Enums\Permission::team(),
+                    'name'     => $name ?: explode('@', $email)[0],
+                    'email'    => $email,
+                    'password' => Str::random(64), // unusable — forces reset flow
                 ]);
+                // tier and permissions are not mass-assignable — set directly
+                $user->tier        = $manager->tier;
+                $user->permissions = \App\Enums\Permission::team();
+                $user->save();
             }
 
             if (! $group->members()->where('users.id', $user->id)->exists()) {

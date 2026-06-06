@@ -125,6 +125,12 @@ Route::prefix('console')->name('console.')->group(function () {
             Route::post('/members/{user}/role',     [\App\Http\Controllers\Console\Admin\MembersController::class, 'assignRole'])->name('members.role');
             Route::get('/seats',                    [\App\Http\Controllers\Console\Admin\SeatsController::class, 'index'])->name('seats.index');
             Route::get('/process-metrics',          [\App\Http\Controllers\Console\Admin\ProcessMetricsController::class, 'index'])->name('process-metrics');
+            Route::get('/ai',                          [\App\Http\Controllers\Console\Admin\AiController::class, 'index'])->name('ai');
+            Route::get('/ai-providers',                [\App\Http\Controllers\Api\AiProviderController::class, 'index'])->name('ai-providers.index');
+            Route::post('/ai-providers',               [\App\Http\Controllers\Api\AiProviderController::class, 'store'])->name('ai-providers.store');
+            Route::put('/ai-providers/{id}',           [\App\Http\Controllers\Api\AiProviderController::class, 'update'])->name('ai-providers.update');
+            Route::delete('/ai-providers/{id}',        [\App\Http\Controllers\Api\AiProviderController::class, 'destroy'])->name('ai-providers.destroy');
+            Route::post('/ai-providers/{id}/test',     [\App\Http\Controllers\Api\AiProviderController::class, 'test'])->name('ai-providers.test')->middleware('throttle:ai-test');
             Route::get('/integrations',             [\App\Http\Controllers\Console\Admin\IntegrationsController::class, 'index'])->name('integrations');
             Route::get('/integrations/channels',    [\App\Http\Controllers\Console\Admin\IntegrationsController::class, 'channels'])->name('integrations.channels');
             Route::post('/integrations/channel',    [\App\Http\Controllers\Console\Admin\IntegrationsController::class, 'saveChannel'])->name('integrations.channel');
@@ -155,10 +161,12 @@ Route::prefix('console')->name('console.')->group(function () {
             Route::delete('/rules/stale',        [\App\Http\Controllers\Console\Admin\RulesController::class, 'destroyStale'])->name('rules.stale.destroy');
         });
 
-        // Brief templates — auth only (tier-gated in controller, owner unrestricted)
+        // Brief templates — read for all auth users; mutations require team.manager (owner bypasses)
         Route::prefix('admin')->name('admin.')->group(function () {
-            Route::get('/templates',               [\App\Http\Controllers\Console\Admin\BriefTemplatesController::class, 'index'])->name('templates.index');
-            Route::post('/templates',              [\App\Http\Controllers\Console\Admin\BriefTemplatesController::class, 'store'])->name('templates.store');
+            Route::get('/templates', [\App\Http\Controllers\Console\Admin\BriefTemplatesController::class, 'index'])->name('templates.index');
+        });
+        Route::prefix('admin')->name('admin.')->middleware('team.manager')->group(function () {
+            Route::post('/templates',                   [\App\Http\Controllers\Console\Admin\BriefTemplatesController::class, 'store'])->name('templates.store');
             Route::put('/templates/{briefTemplate}',    [\App\Http\Controllers\Console\Admin\BriefTemplatesController::class, 'update'])->name('templates.update');
             Route::delete('/templates/{briefTemplate}', [\App\Http\Controllers\Console\Admin\BriefTemplatesController::class, 'destroy'])->name('templates.destroy');
         });
@@ -212,6 +220,8 @@ Route::prefix('console')->name('console.')->group(function () {
             // Impersonation — start only (stop lives outside this group, see above)
             Route::post('/impersonate/{user}', [\App\Http\Controllers\Owner\ImpersonationController::class, 'store'])->name('impersonate.start');
 
+            // AI Settings — owner has their own provider keys like any user
+            Route::get('/ai', [\App\Http\Controllers\Console\Admin\AiController::class, 'index'])->name('ai');
             // Integrations — owner manages Slack on behalf of any group via ?group_id=X
             Route::get('/integrations',          [\App\Http\Controllers\Console\Admin\IntegrationsController::class, 'index'])->name('integrations');
             Route::get('/integrations/channels', [\App\Http\Controllers\Console\Admin\IntegrationsController::class, 'channels'])->name('integrations.channels');

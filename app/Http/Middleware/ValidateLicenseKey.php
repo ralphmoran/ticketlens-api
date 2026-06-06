@@ -13,8 +13,8 @@ class ValidateLicenseKey
 
     public function handle(Request $request, Closure $next): Response
     {
-        $token = $request->bearerToken();
-        $ip = $request->ip();
+        $token   = $request->bearerToken();
+        $ip      = $request->ip();
         $lockKey = "auth-fail:{$ip}";
 
         // Check lockout (5 consecutive failures → 15-minute block)
@@ -22,13 +22,21 @@ class ValidateLicenseKey
             return response()->json(['error' => 'Unauthorized'], 401);
         }
 
-        if (!$token || !$this->validator->isValid($token)) {
+        $license = $token ? $this->validator->validate($token) : null;
+
+        if (!$license) {
             RateLimiter::hit($lockKey, 900); // 15-minute window
             return response()->json(['error' => 'Unauthorized'], 401);
         }
 
-        // Successful auth — clear failure count
+        // Successful auth — clear failure count and expose license for downstream middleware
         RateLimiter::clear($lockKey);
+        $request->attributes->set('license', $license);
+
+        // Resolve the user from the license when possible so $request->user() works downstream
+        if ($license->user_id) {
+            $request->setUserResolver(fn () => $license->user);
+        }
 
         return $next($request);
     }

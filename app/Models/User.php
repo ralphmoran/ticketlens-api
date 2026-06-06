@@ -13,7 +13,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-#[Fillable(['name', 'email', 'password', 'tier', 'permissions', 'suspended_at', 'anthropic_key', 'openai_key'])]
+#[Fillable(['name', 'email', 'password', 'suspended_at', 'anthropic_key', 'openai_key'])]
 #[Hidden(['password', 'remember_token', 'anthropic_key', 'openai_key'])]
 class User extends Authenticatable
 {
@@ -75,6 +75,11 @@ class User extends Authenticatable
     public function cliTokens(): HasMany
     {
         return $this->hasMany(CliToken::class);
+    }
+
+    public function aiProviders(): HasMany
+    {
+        return $this->hasMany(UserAiProvider::class)->orderBy('priority');
     }
 
     public function trackerProfiles(): HasMany

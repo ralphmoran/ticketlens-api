@@ -23,9 +23,12 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->web(append: [\App\Http\Middleware\HandleInertiaRequests::class]);
         $middleware->redirectGuestsTo(fn () => route('console.login'));
         $middleware->redirectUsersTo(fn () => route('console.dashboard'));
+        // LemonSqueezy posts without a browser session — HMAC signature is the auth mechanism
+        $middleware->validateCsrfTokens(except: ['webhooks/*']);
         $middleware->alias([
             'auth.license'     => \App\Http\Middleware\ValidateLicenseKey::class,
             'auth.cli'         => \App\Http\Middleware\ValidateCliToken::class,
+            'license.tier'     => \App\Http\Middleware\RequireLicenseTier::class,
             'permission'       => \App\Http\Middleware\HasPermission::class,
             'owner'            => \App\Http\Middleware\IsOwner::class,
             'team.manager'     => \App\Http\Middleware\EnsureTeamManager::class,

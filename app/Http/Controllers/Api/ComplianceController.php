@@ -2,13 +2,14 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Exceptions\NoAiProviderException;
 use App\Http\Requests\ComplianceRequest;
-use App\Services\AnthropicService;
+use App\Services\AiService;
 use Illuminate\Http\JsonResponse;
 
 class ComplianceController
 {
-    public function __construct(private readonly AnthropicService $anthropic) {}
+    public function __construct(private readonly AiService $ai) {}
 
     public function handle(ComplianceRequest $request): JsonResponse
     {
@@ -32,7 +33,11 @@ class ComplianceController
             . implode("\n", array_map(fn($r) => "- {$r}", $requirements))
             . "\n\nFor each requirement, respond with: FOUND, PARTIAL, or NOT_FOUND. One per line, format: '<requirement> | <status>'.";
 
-        $rawAnalysis = $this->anthropic->summarize($prompt);
+        try {
+            $rawAnalysis = $this->ai->summarize($request->user(), $prompt);
+        } catch (NoAiProviderException $e) {
+            return response()->json(['error' => $e->getMessage()], 503);
+        }
 
         $results  = $this->parseAnalysis($requirements, $rawAnalysis);
         $found    = count(array_filter($results, fn($r) => $r['status'] === 'FOUND'));
@@ -85,7 +90,7 @@ class ComplianceController
                 if (str_contains(strtolower($line), strtolower(substr($req, 0, 20)))) {
                     if (str_contains(strtoupper($line), 'PARTIAL')) {
                         $status = 'PARTIAL';
-                    } elseif (str_contains(strtoupper($line), 'FOUND') && !str_contains(strtoupper($line), 'NOT_FOUND')) {
+                    } elseif (str_contains(strtoupper($line), 'FOUND') && ! str_contains(strtoupper($line), 'NOT_FOUND')) {
                         $status = 'FOUND';
                     }
                     break;
@@ -93,6 +98,7 @@ class ComplianceController
             }
             $results[] = ['requirement' => $req, 'status' => $status, 'evidence' => null];
         }
+
         return $results;
     }
 }

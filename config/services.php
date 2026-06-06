@@ -43,6 +43,13 @@ return [
         'max_tokens' => 256,
     ],
 
+    'groq' => [
+        'key' => env('GROQ_API_KEY'),
+        'url' => 'https://api.groq.com/openai/v1/chat/completions',
+        'model' => 'llama-3.3-70b-versatile',
+        'max_tokens' => 256,
+    ],
+
     'lemonsqueezy' => [
         'api_key' => env('LEMONSQUEEZY_API_KEY'),
         'validate_url' => env('LEMONSQUEEZY_VALIDATE_URL', 'https://api.lemonsqueezy.com/v1/licenses/validate'),

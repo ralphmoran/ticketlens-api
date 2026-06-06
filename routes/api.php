@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\AiProviderController;
 use App\Http\Controllers\Api\ComplianceController;
 use App\Http\Controllers\Api\DigestController;
 use App\Http\Controllers\Api\ScheduleController;
@@ -24,6 +25,7 @@ RateLimiter::for('summarize',  fn(Request $r) => Limit::perMinute(10)->by($r->be
 RateLimiter::for('schedule',   fn(Request $r) => Limit::perMinute(5)->by($r->bearerToken() ?: $r->ip()));
 RateLimiter::for('digest',      fn(Request $r) => Limit::perMinute(20)->by($r->bearerToken() ?: $r->ip()));
 RateLimiter::for('compliance',  fn(Request $r) => Limit::perMinute(10)->by($r->bearerToken() ?: $r->ip()));
+RateLimiter::for('ai-test',     fn(Request $r) => Limit::perMinute(5)->by($r->bearerToken() ?: $r->ip()));
 RateLimiter::for('triage',      fn(Request $r) => Limit::perMinute(30)->by($r->bearerToken() ?: $r->ip()));
 
 // Public license activation/validation — no auth, rate-limited by IP
@@ -57,8 +59,22 @@ Route::middleware(['throttle:api-global', 'auth.cli'])->group(function () {
     Route::delete('/v1/schedule', [ScheduleController::class, 'destroy'])->middleware('throttle:schedule');
 });
 
-Route::middleware(['throttle:api-global', 'auth.license'])->group(function () {
+// Summarize + Digest: Pro tier minimum (bit 4 and bit 2 are in the pro preset)
+Route::middleware(['throttle:api-global', 'auth.license', 'license.tier:pro'])->group(function () {
     Route::post('/v1/summarize',      [SummarizeController::class, 'handle'])->middleware('throttle:summarize');
     Route::post('/v1/digest/deliver', [DigestController::class, 'deliver'])->middleware('throttle:digest');
-    Route::post('/v1/compliance',     [ComplianceController::class, 'handle'])->middleware('throttle:compliance');
+});
+
+// Compliance: Team tier only (bit 8 is absent from the pro preset)
+Route::middleware(['throttle:api-global', 'auth.license', 'license.tier:team'])->group(function () {
+    Route::post('/v1/compliance', [ComplianceController::class, 'handle'])->middleware('throttle:compliance');
+});
+
+// AI provider management: CLI users with a CliToken (sets $request->user() via auth.cli)
+Route::middleware(['throttle:api-global', 'auth.cli'])->group(function () {
+    Route::get('/v1/ai-providers',              [AiProviderController::class, 'index']);
+    Route::post('/v1/ai-providers',             [AiProviderController::class, 'store']);
+    Route::put('/v1/ai-providers/{id}',         [AiProviderController::class, 'update']);
+    Route::delete('/v1/ai-providers/{id}',      [AiProviderController::class, 'destroy']);
+    Route::post('/v1/ai-providers/{id}/test',   [AiProviderController::class, 'test'])->middleware('throttle:ai-test');
 });

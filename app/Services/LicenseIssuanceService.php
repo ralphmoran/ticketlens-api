@@ -67,7 +67,9 @@ class LicenseIssuanceService
                     default => Permission::free(),
                 };
                 if ($recipient->tier !== $tier || $recipient->permissions !== $preset) {
-                    $recipient->update(['tier' => $tier, 'permissions' => $preset]);
+                    $recipient->tier        = $tier;
+                    $recipient->permissions = $preset;
+                    $recipient->save();
                 }
             }
 
@@ -151,7 +153,9 @@ class LicenseIssuanceService
         // seats won't get these — only the group owner.
         $target = $recipient->permissions | Permission::team() | Permission::teamManagerMask();
         if ($recipient->permissions !== $target || $recipient->tier !== $tier) {
-            $recipient->update(['tier' => $tier, 'permissions' => $target]);
+            $recipient->tier        = $tier;
+            $recipient->permissions = $target;
+            $recipient->save();
         }
     }
 

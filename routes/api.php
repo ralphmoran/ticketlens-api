@@ -59,15 +59,15 @@ Route::middleware(['throttle:api-global', 'auth.cli'])->group(function () {
     Route::delete('/v1/schedule', [ScheduleController::class, 'destroy'])->middleware('throttle:schedule');
 });
 
-// Summarize + Digest: Pro tier minimum (bit 4 and bit 2 are in the pro preset)
+// Digest delivery: Pro tier, license-key auth (called from digest job, not CLI session)
 Route::middleware(['throttle:api-global', 'auth.license', 'license.tier:pro'])->group(function () {
-    Route::post('/v1/summarize',      [SummarizeController::class, 'handle'])->middleware('throttle:summarize');
     Route::post('/v1/digest/deliver', [DigestController::class, 'deliver'])->middleware('throttle:digest');
 });
 
-// Compliance: Team tier only (bit 8 is absent from the pro preset)
-Route::middleware(['throttle:api-global', 'auth.license', 'license.tier:team'])->group(function () {
-    Route::post('/v1/compliance', [ComplianceController::class, 'handle'])->middleware('throttle:compliance');
+// CLI features: CLI token auth — user tier checked directly (same user who manages their BYOK keys)
+Route::middleware(['throttle:api-global', 'auth.cli'])->group(function () {
+    Route::post('/v1/summarize',  [SummarizeController::class, 'handle'])->middleware(['throttle:summarize', 'license.tier:pro']);
+    Route::post('/v1/compliance', [ComplianceController::class, 'handle'])->middleware(['throttle:compliance', 'license.tier:team']);
 });
 
 // AI provider management: CLI users with a CliToken (sets $request->user() via auth.cli)

@@ -137,9 +137,9 @@ class LicenseActivationTest extends TestCase
     {
         $result = $this->issueKey('pro');
 
-        // POST /v1/summarize is behind auth.license — a 422 (missing brief) means auth passed
+        // POST /v1/digest/deliver is behind auth.license — a 422 (missing fields) means auth passed
         $this->withHeaders(['Authorization' => 'Bearer ' . $result['raw_key']])
-            ->postJson('/v1/summarize', [])
+            ->postJson('/v1/digest/deliver', [])
             ->assertUnprocessable();
     }
 
@@ -149,7 +149,7 @@ class LicenseActivationTest extends TestCase
         Config::set('ticketlens.skip_license', false);
 
         $this->withHeaders(['Authorization' => 'Bearer TL-00000000-0000-0000-0000-000000000000'])
-            ->postJson('/v1/summarize', [])
+            ->postJson('/v1/digest/deliver', [])
             ->assertUnauthorized();
     }
 }

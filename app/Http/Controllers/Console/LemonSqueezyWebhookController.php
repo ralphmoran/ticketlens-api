@@ -102,10 +102,9 @@ class LemonSqueezyWebhookController
         $fn             = $tierConfig['permissions_fn'];
         $newPermissions = ($user->permissions & Permission::adminMask()) | Permission::{$fn}();
 
-        $user->update([
-            'tier'        => $tierConfig['tier'],
-            'permissions' => $newPermissions,
-        ]);
+        $user->tier        = $tierConfig['tier'];
+        $user->permissions = $newPermissions;
+        $user->save();
 
         $rawKey = $data['data']['attributes']['identifier'] ?? null;
         if ($rawKey) {
@@ -131,10 +130,9 @@ class LemonSqueezyWebhookController
 
         $newPermissions = ($user->permissions & Permission::adminMask()) | Permission::free();
 
-        $user->update([
-            'tier'        => 'free',
-            'permissions' => $newPermissions,
-        ]);
+        $user->tier        = 'free';
+        $user->permissions = $newPermissions;
+        $user->save();
 
         License::where('user_id', $user->id)->update(['status' => 'cancelled']);
     }

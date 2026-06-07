@@ -100,7 +100,8 @@ class ComplianceAnalyticsTest extends TestCase
     {
         $manager = $this->makeManager();
         $lead    = $this->makeMember($manager->ownedGroup);
-        $lead->update(['permissions' => 127 | 1024]);
+        $lead->permissions = 127 | 1024;
+        $lead->save();
         $this->actingAs($lead)->get('/console/admin/compliance-analytics')
              ->assertOk();
     }

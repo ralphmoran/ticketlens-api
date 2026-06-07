@@ -3,6 +3,7 @@ namespace Tests\Feature;
 
 use App\Jobs\SendDigestEmail;
 use App\Models\DigestSchedule;
+use App\Models\License;
 use App\Services\LicenseValidationService;
 use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
@@ -15,7 +16,8 @@ class DigestControllerTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->mock(LicenseValidationService::class, fn($m) => $m->shouldReceive('isValid')->andReturn(true));
+        $proLicense = (new License)->forceFill(['tier' => 'pro', 'status' => 'active', 'expires_at' => null]);
+        $this->mock(LicenseValidationService::class, fn ($m) => $m->shouldReceive('validate')->andReturn($proLicense));
         Queue::fake();
     }
 

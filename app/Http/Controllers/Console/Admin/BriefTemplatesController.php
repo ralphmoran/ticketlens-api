@@ -59,9 +59,13 @@ class BriefTemplatesController extends Controller
 
     public function update(Request $request, BriefTemplate $briefTemplate): RedirectResponse
     {
-        $user = $request->user();
+        $user      = $request->user();
+        $userGroup = $user->groups()->first();
+
         abort_if($briefTemplate->is_system, 403, 'System templates cannot be modified.');
-        abort_unless($user->is_owner || $briefTemplate->group_id === $user->groups()->first()?->id, 403);
+        // Explicit null guard prevents the null === null bypass (solo user with no group
+        // matching an owner-created template that also has group_id = null).
+        abort_unless($user->is_owner || ($userGroup !== null && $briefTemplate->group_id === $userGroup->id), 403);
 
         $data = $request->validate([
             'name'        => ['required', 'string', 'max:100'],
@@ -80,9 +84,11 @@ class BriefTemplatesController extends Controller
 
     public function destroy(Request $request, BriefTemplate $briefTemplate): RedirectResponse
     {
-        $user = $request->user();
+        $user      = $request->user();
+        $userGroup = $user->groups()->first();
+
         abort_if($briefTemplate->is_system, 403, 'System templates cannot be deleted.');
-        abort_unless($user->is_owner || $briefTemplate->group_id === $user->groups()->first()?->id, 403);
+        abort_unless($user->is_owner || ($userGroup !== null && $briefTemplate->group_id === $userGroup->id), 403);
 
         $briefTemplate->delete();
 

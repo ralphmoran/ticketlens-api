@@ -2,12 +2,15 @@
 namespace Tests\Unit;
 
 use App\Services\LicenseValidationService;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 class LicenseValidationServiceTest extends TestCase
 {
+    use RefreshDatabase;
+
     private LicenseValidationService $service;
 
     protected function setUp(): void

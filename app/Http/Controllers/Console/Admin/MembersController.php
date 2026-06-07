@@ -94,10 +94,11 @@ class MembersController extends Controller
         $leadBit = Permission::TeamViewHealth->value;
 
         if ($validated['role'] === 'lead') {
-            $user->update(['permissions' => $user->permissions | $leadBit]);
+            $user->permissions |= $leadBit;
         } else {
-            $user->update(['permissions' => $user->permissions & ~$leadBit]);
+            $user->permissions &= ~$leadBit;
         }
+        $user->save();
 
         $this->audit->log(
             actor: $request->user(),
@@ -130,7 +131,8 @@ class MembersController extends Controller
         \DB::transaction(function () use ($group, $user): void {
             $group->members()->detach($user->id);
             // Clear lead bit so a re-invited member doesn't inherit stale elevation.
-            $user->update(['permissions' => $user->permissions & ~Permission::TeamViewHealth->value]);
+            $user->permissions &= ~Permission::TeamViewHealth->value;
+            $user->save();
         });
 
         $this->audit->log(
@@ -163,8 +165,10 @@ class MembersController extends Controller
 
             // Grant manager bits to new owner, revoke from old
             $mask = Permission::teamManagerMask();
-            $user->update(['permissions' => $user->permissions | $mask]);
-            $manager->update(['permissions' => $manager->permissions & ~$mask]);
+            $user->permissions |= $mask;
+            $user->save();
+            $manager->permissions &= ~$mask;
+            $manager->save();
         });
 
         $this->audit->log(

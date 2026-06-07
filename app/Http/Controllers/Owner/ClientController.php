@@ -65,8 +65,9 @@ class ClientController extends Controller
             'name'     => $validated['name'],
             'email'    => $validated['email'],
             'password' => $validated['password'],
-            'tier'     => $validated['tier'],
         ]);
+        $user->tier = $validated['tier'];
+        $user->save();
 
         $this->tiers->syncUser($user->fresh());
 
@@ -109,7 +110,8 @@ class ClientController extends Controller
 
         $oldTier = $user->tier;
 
-        $user->update(['tier' => $validated['tier']]);
+        $user->tier = $validated['tier'];
+        $user->save();
         $this->tiers->syncUser($user->fresh());
 
         $this->audit->logFromRequest($request, 'user.tier_changed', $user, $oldTier, $validated['tier']);

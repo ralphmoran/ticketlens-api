@@ -299,8 +299,7 @@ class AlertsController extends Controller
     {
         $this->authorizeDigestSchedule($request, $digestSchedule);
 
-        $group = $this->resolveGroup($request);
-        $integration = SlackIntegration::where('group_id', $group->id)->first();
+        $integration = SlackIntegration::where('group_id', $digestSchedule->group_id)->first();
         if (! $integration) {
             return response()->json(['error' => 'No Slack integration connected for this team.'], 422);
         }

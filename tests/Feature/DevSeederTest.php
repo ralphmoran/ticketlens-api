@@ -115,7 +115,7 @@ class DevSeederTest extends TestCase
 
     public function test_features_and_tier_features_are_populated(): void
     {
-        $this->assertSame(10, Feature::count(), 'FeatureSeeder must run before users so the Owner panel renders.');
+        $this->assertSame(12, Feature::count(), 'FeatureSeeder must run before users so the Owner panel renders.');
         $this->assertGreaterThan(0, DB::table('tier_features')->count());
     }
 }

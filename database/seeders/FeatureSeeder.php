@@ -26,16 +26,19 @@ class FeatureSeeder extends Seeder
         ['name' => 'savings_analytics','bit_value' => 64,  'label' => 'Savings Analytics',  'description' => 'Token savings dashboard',          'sort_order' => 70],
         ['name' => 'team_manage_members', 'bit_value' => 128, 'label' => 'Team: Manage Members', 'description' => 'Invite and remove team members', 'sort_order' => 80],
         ['name' => 'team_manage_seats',   'bit_value' => 256,  'label' => 'Team: Manage Seats',   'description' => 'Allocate and rotate team seats',                        'sort_order' => 90],
-        ['name' => 'workflow_rules',       'bit_value' => 2048, 'label' => 'Workflow Rules',        'description' => 'Stale status detection and workflow automation rules',  'sort_order' => 75],
+        ['name' => 'workflow_rules',    'bit_value' => 2048, 'label' => 'Workflow Rules',          'description' => 'Stale status detection and workflow automation rules',  'sort_order' => 75],
+        ['name' => 'attention_queue',   'bit_value' => 512,  'label' => 'Attention Queue',         'description' => 'Team dev attention queue in Console',                   'sort_order' => 85],
+        ['name' => 'team_view_health',  'bit_value' => 1024, 'label' => 'Team: View Health',       'description' => 'Team lead health dashboard (manager-assigned, not a tier preset)', 'sort_order' => 95],
     ];
 
     // Default tier→feature preset (mirrors Permission enum presets)
-    // free=64, pro=2119 (64|4|2|1|2048), team=enterprise=2687 (pro|8|16|32|512)
+    // free=64, pro=2119 (64|4|2|1|2048), team=enterprise=3199 (pro|8|16|32|512)
+    // Note: bit 1024 (TeamViewHealth) is manager-assigned, not in any tier preset.
     private const TIER_PRESETS = [
         'free' => [64],
         'pro'  => [64, 4, 2, 1, 2048],
-        'team' => [64, 32, 16, 8, 4, 2, 1, 2048],
-        'enterprise' => [64, 32, 16, 8, 4, 2, 1, 2048],
+        'team' => [64, 32, 16, 8, 4, 2, 1, 512, 2048],
+        'enterprise' => [64, 32, 16, 8, 4, 2, 1, 512, 2048],
     ];
 
     public function run(): void
@@ -48,7 +51,7 @@ class FeatureSeeder extends Seeder
             );
         }
 
-        $this->command->info('  Features seeded: ' . count(self::FEATURES));
+        $this->command?->info('  Features seeded: ' . count(self::FEATURES));
 
         // Build tier_features from presets — insertOrIgnore is idempotent and safe to re-run.
         // Do NOT truncate here: the Owner Panel allows per-tier customisation that must be preserved.
@@ -66,6 +69,6 @@ class FeatureSeeder extends Seeder
             }
         }
 
-        $this->command->info('  Tier→feature mappings seeded.');
+        $this->command?->info('  Tier→feature mappings seeded.');
     }
 }

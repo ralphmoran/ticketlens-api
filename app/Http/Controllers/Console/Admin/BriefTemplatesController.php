@@ -31,7 +31,7 @@ class BriefTemplatesController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $user = $request->user();
-        abort_if($user->tier === 'free' && ! $user->is_owner, 403, 'Custom templates require a Pro or higher plan.');
+        $this->authorize('create', BriefTemplate::class);
 
         $group = $user->is_owner ? null : $user->groups()->first();
         abort_unless($group !== null || $user->is_owner, 403, 'Custom templates require a Team plan.');
@@ -59,13 +59,7 @@ class BriefTemplatesController extends Controller
 
     public function update(Request $request, BriefTemplate $briefTemplate): RedirectResponse
     {
-        $user      = $request->user();
-        $userGroup = $user->groups()->first();
-
-        abort_if($briefTemplate->is_system, 403, 'System templates cannot be modified.');
-        // Explicit null guard prevents the null === null bypass (solo user with no group
-        // matching an owner-created template that also has group_id = null).
-        abort_unless($user->is_owner || ($userGroup !== null && $briefTemplate->group_id === $userGroup->id), 403);
+        $this->authorize('update', $briefTemplate);
 
         $data = $request->validate([
             'name'        => ['required', 'string', 'max:100'],
@@ -84,11 +78,7 @@ class BriefTemplatesController extends Controller
 
     public function destroy(Request $request, BriefTemplate $briefTemplate): RedirectResponse
     {
-        $user      = $request->user();
-        $userGroup = $user->groups()->first();
-
-        abort_if($briefTemplate->is_system, 403, 'System templates cannot be deleted.');
-        abort_unless($user->is_owner || ($userGroup !== null && $briefTemplate->group_id === $userGroup->id), 403);
+        $this->authorize('delete', $briefTemplate);
 
         $briefTemplate->delete();
 

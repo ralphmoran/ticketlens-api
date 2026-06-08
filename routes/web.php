@@ -1,6 +1,16 @@
 <?php
 
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Route;
+
+// M4: per-email counter supplements the route-level IP throttle (throttle:5,1).
+// Different IPs submitting the same email address are collectively capped at 5/min.
+RateLimiter::for('login-by-email', function ($r) {
+    $email = $r->input('email');
+    $key = $email ? 'login-by-email:' . strtolower($email) : 'login-by-email-ip:' . $r->ip();
+    return Limit::perMinute(5)->by($key);
+});
 
 Route::get('/', fn () => response()->file(public_path('landing.html')));
 Route::get('/inertia-test', fn () => inertia('Test'));
@@ -9,13 +19,15 @@ Route::get('/inertia-test', fn () => inertia('Test'));
 Route::post('/webhooks/lemonsqueezy', [\App\Http\Controllers\Console\LemonSqueezyWebhookController::class, 'handle']);
 
 // Public triage share page — no auth, token scoped to 24h TTL
-Route::get('/s/{token}', \App\Http\Controllers\Web\TriageSharePageController::class)->name('triage.share');
+Route::get('/s/{token}', \App\Http\Controllers\Web\TriageSharePageController::class)
+    ->name('triage.share')
+    ->middleware('throttle:30,1');
 
 Route::prefix('console')->name('console.')->group(function () {
     // Auth (guest only)
     Route::middleware('guest')->group(function () {
         Route::get('/login', [\App\Http\Controllers\Console\AuthController::class, 'showLogin'])->name('login');
-        Route::post('/login', [\App\Http\Controllers\Console\AuthController::class, 'login'])->middleware('throttle:5,1');
+        Route::post('/login', [\App\Http\Controllers\Console\AuthController::class, 'login'])->middleware('throttle:5,1', 'throttle:login-by-email');
     });
 
     Route::post('/logout', [\App\Http\Controllers\Console\AuthController::class, 'logout'])

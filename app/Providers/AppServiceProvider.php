@@ -2,7 +2,14 @@
 
 namespace App\Providers;
 
+use App\Models\BriefTemplate;
+use App\Models\CustomAlertRule;
+use App\Models\SlackDigestSchedule;
+use App\Policies\BriefTemplatePolicy;
+use App\Policies\CustomAlertRulePolicy;
+use App\Policies\DigestSchedulePolicy;
 use App\Services\SlackService;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -21,6 +28,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        Gate::policy(BriefTemplate::class, BriefTemplatePolicy::class);
+        Gate::policy(CustomAlertRule::class, CustomAlertRulePolicy::class);
+        Gate::policy(SlackDigestSchedule::class, DigestSchedulePolicy::class);
     }
 }

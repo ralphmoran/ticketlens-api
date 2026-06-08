@@ -37,6 +37,22 @@ class DashboardTest extends TestCase
         $response->assertRedirect('/console/dashboard');
     }
 
+    public function test_owner_login_redirects_to_owner_dashboard(): void
+    {
+        $owner = User::factory()->create([
+            'email'      => 'owner@example.com',
+            'password'   => bcrypt('password'),
+            'tier'       => 'owner',
+            'is_owner'   => true,
+            'permissions' => 0,
+        ]);
+
+        $this->post('/console/login', [
+            'email'    => 'owner@example.com',
+            'password' => 'password',
+        ])->assertRedirect('/console/owner/dashboard');
+    }
+
     public function test_login_redirects_to_dashboard(): void
     {
         $user = User::factory()->create([

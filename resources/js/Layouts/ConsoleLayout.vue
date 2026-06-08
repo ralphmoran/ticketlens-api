@@ -245,6 +245,7 @@ const navGroups = computed(() => [
 ])
 
 const ownerPanelItems = [
+    { label: 'Dashboard',        href: '/console/owner/dashboard', icon: 'dashboard' },
     { label: 'Clients',          href: '/console/owner/clients',  icon: 'building' },
     { label: 'Teams',            href: '/console/owner/teams',    icon: 'users' },
     { label: 'Licenses',         href: '/console/owner/licenses', icon: 'badge-check' },

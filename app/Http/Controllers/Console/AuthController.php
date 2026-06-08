@@ -40,7 +40,11 @@ class AuthController extends Controller
             return redirect()->route('console.suspended');
         }
 
-        return redirect()->intended(route('console.dashboard'));
+        $destination = Auth::user()->is_owner
+            ? route('console.owner.dashboard')
+            : route('console.dashboard');
+
+        return redirect()->intended($destination);
     }
 
     public function logout(Request $request): RedirectResponse

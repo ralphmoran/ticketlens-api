@@ -261,12 +261,13 @@ class AlertsController extends Controller
             'aging'          => 'Aging',
             'compliance-gap' => 'Compliance Gap',
         ];
+        abort_unless(isset($labels[$alertType]), 422);
 
         try {
             app(SlackService::class)->postMessage(
                 $integration->bot_token,
                 $integration->channel_id,
-                '🧪 *Test alert* — This is a test *' . ($labels[$alertType] ?? $alertType) . '* alert from TicketLens. Your integration is working correctly.',
+                '🧪 *Test alert* — This is a test *' . $labels[$alertType] . '* alert from TicketLens. Your integration is working correctly.',
             );
             return response()->json(['ok' => true]);
         } catch (\RuntimeException $e) {
@@ -278,8 +279,7 @@ class AlertsController extends Controller
     {
         $this->authorizeRule($request, $rule);
 
-        $group = $this->resolveGroup($request);
-        $integration = SlackIntegration::where('group_id', $group->id)->first();
+        $integration = SlackIntegration::where('group_id', $rule->group_id)->first();
         if (! $integration) {
             return response()->json(['error' => 'No Slack integration connected for this team.'], 422);
         }

@@ -10,8 +10,7 @@ class HealthControllerTest extends TestCase
     {
         $this->getJson('/v1/health')
             ->assertStatus(200)
-            ->assertJsonStructure(['status', 'version'])
-            ->assertJson(['status' => 'ok']);
+            ->assertExactJson(['status' => 'ok']);
     }
 
     public function test_health_requires_no_authentication(): void
@@ -19,9 +18,9 @@ class HealthControllerTest extends TestCase
         $this->getJson('/v1/health')->assertStatus(200);
     }
 
-    public function test_health_version_matches_app_config(): void
+    public function test_health_does_not_expose_version(): void
     {
         $response = $this->getJson('/v1/health')->assertStatus(200);
-        $this->assertSame(config('app.version'), $response->json('version'));
+        $this->assertArrayNotHasKey('version', $response->json());
     }
 }

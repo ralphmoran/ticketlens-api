@@ -26,7 +26,10 @@ class ValidateCliToken
             return response()->json(['error' => 'Unauthorized'], 401);
         }
 
-        $token = CliToken::with('user')->where('token_hash', CliToken::hashToken($plaintext))->first();
+        $token = CliToken::findByPlaintext($plaintext);
+        if ($token) {
+            $token->load('user');
+        }
 
         if (!$token) {
             RateLimiter::hit($lockKey, 900);

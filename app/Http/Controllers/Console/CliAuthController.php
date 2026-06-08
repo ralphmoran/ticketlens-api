@@ -42,9 +42,10 @@ class CliAuthController
         $plaintext = 'tl_' . Str::random(40);
 
         CliToken::create([
-            'user_id'    => $user->id,
-            'name'       => 'CLI (Browser Login)',
-            'token_hash' => CliToken::hashToken($plaintext),
+            'user_id'      => $user->id,
+            'name'         => 'CLI (Browser Login)',
+            'token_hash'   => CliToken::hashToken($plaintext),
+            'token_prefix' => substr($plaintext, 0, 8),
         ]);
 
         $callbackUrl = 'http://localhost:' . $validated['port']

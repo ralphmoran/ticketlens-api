@@ -112,11 +112,12 @@ class SlackOAuthController extends Controller
     }
 
     /**
-     * Validate that an origin is http(s) — prevents javascript: injection.
-     * Returns the origin unchanged, or '' if invalid.
+     * Validate that the origin matches the configured app URL exactly.
+     * Prevents open-redirect if state is compromised — only our own origin is trusted.
      */
     private function safePopupOrigin(string $origin): string
     {
-        return preg_match('#^https?://[^/]+$#', $origin) ? $origin : '';
+        $allowed = rtrim(config('app.url'), '/');
+        return $origin === $allowed ? $origin : '';
     }
 }

@@ -8,9 +8,6 @@ class HealthController
 {
     public function __invoke(): JsonResponse
     {
-        return response()->json([
-            'status'  => 'ok',
-            'version' => config('app.version'),
-        ]);
+        return response()->json(['status' => 'ok']);
     }
 }

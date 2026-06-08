@@ -36,10 +36,10 @@
     <script>
         (function () {
             var payload = {
-                type:        {!! json_encode($success ? 'oauth-success' : 'oauth-error') !!},
-                integration: {!! json_encode($integration) !!},
+                type:        {!! json_encode($success ? 'oauth-success' : 'oauth-error', JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) !!},
+                integration: {!! json_encode($integration, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) !!},
                 @if (!$success)
-                message:     {!! json_encode($message ?? '') !!},
+                message:     {!! json_encode($message ?? '', JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) !!},
                 @endif
             };
 

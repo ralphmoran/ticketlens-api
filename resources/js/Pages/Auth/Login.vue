@@ -152,7 +152,7 @@ function submitRegister() {
         <!-- Right: product preview (hidden on mobile) -->
         <div class="hidden lg:flex lg:w-[55%] bg-slate-900 border-l border-slate-800 flex-col items-center justify-center p-12 relative overflow-hidden">
             <!-- Subtle grid bg -->
-            <div class="absolute inset-0 opacity-5" style="background-image: linear-gradient(#6366F1 1px, transparent 1px), linear-gradient(90deg, #6366F1 1px, transparent 1px); background-size: 32px 32px;"></div>
+            <div class="absolute inset-0 opacity-5" style="background-image: linear-gradient(#377EA5 1px, transparent 1px), linear-gradient(90deg, #377EA5 1px, transparent 1px); background-size: 32px 32px;"></div>
 
             <div class="relative w-full max-w-lg">
                 <!-- Mock browser chrome -->

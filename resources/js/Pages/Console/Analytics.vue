@@ -65,8 +65,8 @@ const lineChartData = computed(() => ({
         {
             label: 'Tokens Saved',
             data: props.daily.map(d => Number(d.tokens)),
-            borderColor: '#818cf8',
-            backgroundColor: 'rgba(129,140,248,0.1)',
+            borderColor: '#377EA5',
+            backgroundColor: 'rgba(55,126,165,0.1)',
             fill: true,
             tension: 0.3,
             pointRadius: 3,
@@ -118,7 +118,7 @@ const barChartData = computed(() => ({
     datasets: [{
         label: 'Tokens',
         data: sortedActions.value.map(a => a.tokens),
-        backgroundColor: '#818cf8',
+        backgroundColor: '#377EA5',
         borderRadius: 3,
     }],
 }))

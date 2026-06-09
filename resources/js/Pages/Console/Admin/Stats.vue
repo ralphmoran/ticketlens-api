@@ -20,8 +20,8 @@ ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarEleme
 
 // Colour palette for per-member lines (10 distinct hues)
 const MEMBER_COLORS = [
-    '#6366f1', '#22d3ee', '#f59e0b', '#34d399', '#f87171',
-    '#a78bfa', '#38bdf8', '#fb923c', '#4ade80', '#f472b6',
+    '#377EA5', '#22d3ee', '#f59e0b', '#34d399', '#f87171',
+    '#5BA3C8', '#38bdf8', '#fb923c', '#4ade80', '#f472b6',
 ]
 
 defineOptions({ layout: ConsoleLayout })

@@ -20,7 +20,7 @@
   }
 
   .tl-btn--primary {
-    @apply px-4 py-2 rounded-lg bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-500 transition;
+    @apply px-4 py-2 rounded-lg bg-indigo-500 text-white text-sm font-medium hover:bg-indigo-400 transition;
   }
 
   .tl-btn--secondary {

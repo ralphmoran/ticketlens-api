@@ -54,12 +54,12 @@ const trendChartData = computed(() => ({
         {
             label: 'Active Tickets',
             data: props.ticket_trend.map(d => d.count),
-            borderColor: '#6366f1',
-            backgroundColor: 'rgba(99,102,241,0.12)',
+            borderColor: '#377EA5',
+            backgroundColor: 'rgba(55,126,165,0.12)',
             fill: true,
             tension: 0.35,
             pointRadius: 3,
-            pointBackgroundColor: '#6366f1',
+            pointBackgroundColor: '#377EA5',
         },
     ],
 }))
@@ -73,12 +73,12 @@ const trendChartOptions = {
     },
     scales: {
         x: {
-            ticks: { color: '#64748b', maxTicksLimit: 10 },
-            grid:  { color: 'rgba(255,255,255,0.04)' },
+            ticks: { color: '#8a8278', maxTicksLimit: 10 },
+            grid:  { color: 'rgba(232,227,219,0.05)' },
         },
         y: {
-            ticks: { color: '#64748b', stepSize: 1 },
-            grid:  { color: 'rgba(255,255,255,0.04)' },
+            ticks: { color: '#8a8278', stepSize: 1 },
+            grid:  { color: 'rgba(232,227,219,0.05)' },
             min: 0,
         },
     },

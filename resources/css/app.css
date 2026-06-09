@@ -21,10 +21,38 @@
 @source '../**/*.js';
 
 @theme {
-    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
+    /* Inter for UI, JetBrains Mono for code surfaces */
+    --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
+    --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Monaco, Consolas, monospace;
 
-    /* Remap indigo → steel blue #377EA5 */
+    /* Remap slate → warm earthy (hue 68°, R>G>B undertone) */
+    --color-slate-50:  oklch(0.97 0.007 68);
+    --color-slate-100: oklch(0.93 0.009 68);
+    --color-slate-200: oklch(0.87 0.010 68);
+    --color-slate-300: oklch(0.77 0.012 68);
+    --color-slate-400: oklch(0.63 0.014 68);
+    --color-slate-500: oklch(0.50 0.014 68);
+    --color-slate-600: oklch(0.38 0.013 68);
+    --color-slate-700: oklch(0.28 0.012 68);
+    --color-slate-800: oklch(0.18 0.011 68);
+    --color-slate-900: oklch(0.12 0.010 68);
+    --color-slate-950: oklch(0.08 0.010 68);
+
+    /* Remap gray → same warm scale (slightly less saturated) */
+    --color-gray-50:  oklch(0.97 0.005 68);
+    --color-gray-100: oklch(0.93 0.006 68);
+    --color-gray-200: oklch(0.87 0.007 68);
+    --color-gray-300: oklch(0.77 0.008 68);
+    --color-gray-400: oklch(0.63 0.009 68);
+    --color-gray-500: oklch(0.50 0.009 68);
+    --color-gray-600: oklch(0.38 0.009 68);
+    --color-gray-700: oklch(0.28 0.009 68);
+    --color-gray-800: oklch(0.18 0.008 68);
+    --color-gray-900: oklch(0.12 0.008 68);
+    --color-gray-950: oklch(0.08 0.008 68);
+
+    /* Remap indigo → steel blue #377EA5 (brand accent) */
     --color-indigo-50:  oklch(0.96 0.018 228);
     --color-indigo-100: oklch(0.91 0.035 228);
     --color-indigo-200: oklch(0.83 0.052 228);

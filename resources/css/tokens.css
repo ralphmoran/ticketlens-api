@@ -1,56 +1,56 @@
 /*
- * TicketLens design-system tokens.
- * Phase 3 of the tl-* refactor. Additive only — no consumers in this phase.
- * Values and names match docs/design-system/AUDIT.md §2 in the CLI repo.
+ * TicketLens design-system tokens — warm dark (hue 68°, earthy near-black).
+ * Migrated from cold steel-blue (228°) to warm parchment/earth aesthetic.
+ * Aligns with the landing page DESIGN.md warm token system.
  */
 
 :root {
-  /* Surface — hue aligned to steel blue 228° */
-  --tl-bg: oklch(0.12 0.008 228);
-  --tl-surface: oklch(0.16 0.009 228);
-  --tl-surface-2: oklch(0.20 0.010 228);
-  --tl-surface-3: oklch(0.25 0.011 228);
-  --tl-border: oklch(0.22 0.010 228);
-  --tl-border-strong: oklch(0.28 0.011 228);
+  /* Surface — warm near-black canvas (R > G > B, earthy undertone) */
+  --tl-bg:        oklch(0.08 0.010 68);   /* #111009 equiv — deepest canvas */
+  --tl-surface:   oklch(0.11 0.010 68);   /* #181410 — lifted surface */
+  --tl-surface-2: oklch(0.14 0.011 68);   /* #1f1b17 — raised cards */
+  --tl-surface-3: oklch(0.18 0.012 68);   /* #261f1a — component card bg */
+  --tl-border:    oklch(0.19 0.011 68);   /* rgba(232,227,219,.07) equiv */
+  --tl-border-strong: oklch(0.25 0.012 68); /* rgba(232,227,219,.13) equiv */
 
-  /* Text */
-  --tl-text: oklch(0.98 0 0);
-  --tl-text-primary: oklch(0.93 0.012 228);
-  --tl-text-secondary: oklch(0.85 0.015 228);
-  --tl-text-muted: oklch(0.72 0.018 228);
-  --tl-text-subtle: oklch(0.62 0.018 228);
+  /* Text — warm parchment scale */
+  --tl-text:         oklch(0.91 0.011 68);   /* #e8e3db — warm parchment */
+  --tl-text-primary: oklch(0.88 0.013 68);   /* slightly dimmer */
+  --tl-text-secondary: oklch(0.72 0.015 68); /* muted secondary */
+  --tl-text-muted:   oklch(0.58 0.015 68);   /* rgba(232,227,219,.55) equiv */
+  --tl-text-subtle:  oklch(0.45 0.013 68);   /* rgba(232,227,219,.28) equiv */
 
-  /* Brand — steel blue #377EA5 */
-  --tl-brand: oklch(0.53 0.083 228);
+  /* Brand — Slate Blue #377EA5 (unchanged — single chromatic accent) */
+  --tl-brand:       oklch(0.53 0.083 228);
   --tl-brand-hover: oklch(0.46 0.080 228);
-  --tl-brand-soft: oklch(0.72 0.065 228);
-  --tl-brand-tint: oklch(0.53 0.083 228 / 0.12);
+  --tl-brand-soft:  oklch(0.72 0.065 228);
+  --tl-brand-tint:  oklch(0.53 0.083 228 / 0.12);
 
   /* Semantic */
-  --tl-warn: oklch(0.82 0.15 75);
-  --tl-danger: oklch(0.68 0.19 25);
+  --tl-warn:    oklch(0.82 0.15 75);
+  --tl-danger:  oklch(0.68 0.19 25);
   --tl-success: oklch(0.72 0.17 155);
 
   /* Radius */
-  --tl-radius-sm: 0.25rem;
-  --tl-radius: 0.5rem;
-  --tl-radius-lg: 0.75rem;
+  --tl-radius-sm:   0.25rem;
+  --tl-radius:      0.5rem;
+  --tl-radius-lg:   0.75rem;
   --tl-radius-full: 9999px;
 
   /* Shadow / focus ring */
-  --tl-ring-subtle: 0 0 0 1px oklch(0.45 0.015 228);
-  --tl-ring-brand: 0 0 0 2px oklch(0.62 0.074 228);
-  --tl-shadow-lg: 0 10px 15px -3px oklch(0 0 0 / 0.3);
+  --tl-ring-subtle: 0 0 0 1px oklch(0.25 0.012 68);
+  --tl-ring-brand:  0 0 0 2px oklch(0.53 0.083 228 / 0.55);
+  --tl-shadow-lg:   0 10px 15px -3px oklch(0 0 0 / 0.35);
 
   /* Transitions */
   --tl-transition-fast: 100ms ease-out;
-  --tl-transition: 150ms ease-out;
+  --tl-transition:      150ms ease-out;
   --tl-transition-slow: 200ms ease-out;
 
   /* Z-index scale */
-  --tl-z-base: 10;
-  --tl-z-nav: 30;
+  --tl-z-base:    10;
+  --tl-z-nav:     30;
   --tl-z-sidebar: 40;
   --tl-z-overlay: 50;
-  --tl-z-banner: 60;
+  --tl-z-banner:  60;
 }

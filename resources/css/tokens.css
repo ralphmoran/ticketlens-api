@@ -5,13 +5,13 @@
  */
 
 :root {
-  /* Surface — warm near-black canvas (R > G > B, earthy undertone) */
-  --tl-bg:        oklch(0.08 0.010 68);   /* #111009 equiv — deepest canvas */
-  --tl-surface:   oklch(0.11 0.010 68);   /* #181410 — lifted surface */
-  --tl-surface-2: oklch(0.14 0.011 68);   /* #1f1b17 — raised cards */
-  --tl-surface-3: oklch(0.18 0.012 68);   /* #261f1a — component card bg */
-  --tl-border:    oklch(0.19 0.011 68);   /* rgba(232,227,219,.07) equiv */
-  --tl-border-strong: oklch(0.25 0.012 68); /* rgba(232,227,219,.13) equiv */
+  /* Surface — warm dark canvas (lifted from near-black for readability) */
+  --tl-bg:        oklch(0.11 0.010 68);   /* deepest canvas */
+  --tl-surface:   oklch(0.14 0.010 68);   /* lifted surface */
+  --tl-surface-2: oklch(0.18 0.011 68);   /* raised cards */
+  --tl-surface-3: oklch(0.22 0.012 68);   /* component card bg */
+  --tl-border:    oklch(0.23 0.011 68);
+  --tl-border-strong: oklch(0.29 0.012 68);
 
   /* Text — warm parchment scale */
   --tl-text:         oklch(0.91 0.011 68);   /* #e8e3db — warm parchment */

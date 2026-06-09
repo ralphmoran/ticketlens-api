@@ -18,6 +18,7 @@ import {
   History, Layers, LoaderCircle, Lock, LockOpen, Mail, Pause, Pencil, Play, Plus,
   Link, RefreshCw, Search, Send, Settings, Sparkles, Trash2, TrendingUp, Plug,
   HeartPulse, Gauge, GitBranch, ClipboardCheck, Sliders, Activity, BarChart2,
+  Sun, Moon,
 } from '@lucide/vue'
 
 const ICONS = {
@@ -85,6 +86,8 @@ const ICONS = {
   'sliders': Sliders,
   'activity': Activity,
   'bar-chart-2': BarChart2,
+  'sun': Sun,
+  'moon': Moon,
 }
 
 const props = defineProps({

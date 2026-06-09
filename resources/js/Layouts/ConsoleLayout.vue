@@ -12,6 +12,24 @@ const sidebarOpen = ref(false)
 const SIDEBAR_KEY = 'tl-sidebar-collapsed'
 const sidebarCollapsed = ref(localStorage.getItem(SIDEBAR_KEY) === 'true')
 
+// ── Theme toggle (dark / light) ───────────────────────────────────────────
+const THEME_KEY = 'tl-theme'
+const themeMode = ref(localStorage.getItem(THEME_KEY) ?? 'dark')
+
+function applyTheme(mode) {
+    if (mode === 'light') {
+        document.documentElement.setAttribute('data-theme', 'light')
+    } else {
+        document.documentElement.removeAttribute('data-theme')
+    }
+}
+
+function toggleTheme() {
+    themeMode.value = themeMode.value === 'dark' ? 'light' : 'dark'
+    localStorage.setItem(THEME_KEY, themeMode.value)
+    applyTheme(themeMode.value)
+}
+
 // Collapse is a desktop-only feature — on mobile the sidebar is a full-width drawer.
 const lgMql     = window.matchMedia('(min-width: 1024px)')
 const isDesktop = ref(lgMql.matches)
@@ -407,6 +425,7 @@ function slideAfterLeave(el) {
 }
 
 onMounted(() => {
+    applyTheme(themeMode.value)
     lgMql.addEventListener('change', onMqlChange)
     window.addEventListener('keydown', handleKeydown)
     window.addEventListener('resize', onWindowResize)
@@ -463,8 +482,18 @@ onUnmounted(() => {
 
             <span class="font-mono text-sm font-semibold text-indigo-400">TicketLens</span>
 
-            <div class="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-xs font-semibold text-white">
-                {{ user?.name?.charAt(0)?.toUpperCase() ?? '?' }}
+            <div class="flex items-center gap-2">
+                <button
+                    type="button"
+                    @click="toggleTheme"
+                    class="p-2 rounded-md text-slate-400 hover:text-white hover:bg-slate-800 transition-colors duration-150 cursor-pointer"
+                    :aria-label="themeMode === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'"
+                >
+                    <TlIcon :name="themeMode === 'dark' ? 'sun' : 'moon'" class="w-4 h-4" />
+                </button>
+                <div class="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-xs font-semibold text-white">
+                    {{ user?.name?.charAt(0)?.toUpperCase() ?? '?' }}
+                </div>
             </div>
         </header>
 
@@ -498,6 +527,17 @@ onUnmounted(() => {
                     <TlIcon name="search" class="w-3.5 h-3.5 shrink-0" />
                     <span>Search...</span>
                     <kbd class="ml-1 font-mono text-slate-500">⌘K</kbd>
+                </button>
+
+                <!-- Theme toggle -->
+                <button
+                    type="button"
+                    @click="toggleTheme"
+                    class="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-md transition-colors duration-150 cursor-pointer"
+                    :aria-label="themeMode === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'"
+                    :title="themeMode === 'dark' ? 'Light mode' : 'Dark mode'"
+                >
+                    <TlIcon :name="themeMode === 'dark' ? 'sun' : 'moon'" class="w-4 h-4" />
                 </button>
 
                 <!-- Settings gear -->

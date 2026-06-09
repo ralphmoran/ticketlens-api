@@ -26,7 +26,7 @@
         'Segoe UI Symbol', 'Noto Color Emoji';
     --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Monaco, Consolas, monospace;
 
-    /* Remap slate → warm earthy (hue 68°, R>G>B undertone) */
+    /* Remap slate → warm earthy (hue 68°, R>G>B undertone) — lifted for readability */
     --color-slate-50:  oklch(0.97 0.007 68);
     --color-slate-100: oklch(0.93 0.009 68);
     --color-slate-200: oklch(0.87 0.010 68);
@@ -34,10 +34,10 @@
     --color-slate-400: oklch(0.63 0.014 68);
     --color-slate-500: oklch(0.50 0.014 68);
     --color-slate-600: oklch(0.38 0.013 68);
-    --color-slate-700: oklch(0.28 0.012 68);
-    --color-slate-800: oklch(0.18 0.011 68);
-    --color-slate-900: oklch(0.12 0.010 68);
-    --color-slate-950: oklch(0.08 0.010 68);
+    --color-slate-700: oklch(0.30 0.012 68);
+    --color-slate-800: oklch(0.22 0.011 68);
+    --color-slate-900: oklch(0.16 0.010 68);
+    --color-slate-950: oklch(0.11 0.010 68);
 
     /* Remap gray → same warm scale (slightly less saturated) */
     --color-gray-50:  oklch(0.97 0.005 68);
@@ -47,10 +47,10 @@
     --color-gray-400: oklch(0.63 0.009 68);
     --color-gray-500: oklch(0.50 0.009 68);
     --color-gray-600: oklch(0.38 0.009 68);
-    --color-gray-700: oklch(0.28 0.009 68);
-    --color-gray-800: oklch(0.18 0.008 68);
-    --color-gray-900: oklch(0.12 0.008 68);
-    --color-gray-950: oklch(0.08 0.008 68);
+    --color-gray-700: oklch(0.30 0.009 68);
+    --color-gray-800: oklch(0.22 0.008 68);
+    --color-gray-900: oklch(0.16 0.008 68);
+    --color-gray-950: oklch(0.11 0.008 68);
 
     /* Remap indigo → steel blue #377EA5 (brand accent) */
     --color-indigo-50:  oklch(0.96 0.018 228);
@@ -64,4 +64,66 @@
     --color-indigo-800: oklch(0.28 0.050 228);
     --color-indigo-900: oklch(0.18 0.030 228);
     --color-indigo-950: oklch(0.12 0.020 228);
+}
+
+/* ── Light theme ──────────────────────────────────────────────────────────── *
+ * Applied when <html data-theme="light"> is set (ConsoleLayout toggle).
+ * Overrides @theme vars at element level — wins via higher specificity.
+ * ────────────────────────────────────────────────────────────────────────── */
+[data-theme="light"],
+[data-theme="light"] * {
+    /* Slate: fully inverted (background ↔ text) */
+    --color-slate-950: oklch(0.97 0.007 68);
+    --color-slate-900: oklch(0.93 0.009 68);
+    --color-slate-800: oklch(0.87 0.010 68);
+    --color-slate-700: oklch(0.78 0.012 68);
+    --color-slate-600: oklch(0.62 0.013 68);
+    --color-slate-500: oklch(0.48 0.013 68);
+    --color-slate-400: oklch(0.35 0.012 68);
+    --color-slate-300: oklch(0.25 0.012 68);
+    --color-slate-200: oklch(0.18 0.011 68);
+    --color-slate-100: oklch(0.13 0.010 68);
+    --color-slate-50:  oklch(0.09 0.010 68);
+    /* Gray: same inversion */
+    --color-gray-950: oklch(0.97 0.005 68);
+    --color-gray-900: oklch(0.93 0.006 68);
+    --color-gray-800: oklch(0.87 0.007 68);
+    --color-gray-700: oklch(0.78 0.008 68);
+    --color-gray-600: oklch(0.62 0.009 68);
+    --color-gray-500: oklch(0.48 0.009 68);
+    --color-gray-400: oklch(0.35 0.009 68);
+    --color-gray-300: oklch(0.25 0.008 68);
+    --color-gray-200: oklch(0.18 0.008 68);
+    --color-gray-100: oklch(0.13 0.007 68);
+    --color-gray-50:  oklch(0.09 0.007 68);
+    /* white → near-black (headings, labels on light backgrounds) */
+    --color-white: oklch(0.09 0.010 68);
+    /* Amber: shift bright yellows → dark amber-browns for readability on light bg */
+    --color-amber-300: oklch(0.40 0.120 65);
+    --color-amber-400: oklch(0.46 0.130 65);
+    --color-amber-500: oklch(0.50 0.140 65);
+    --color-amber-600: oklch(0.56 0.140 65);
+    --color-amber-700: oklch(0.65 0.130 70);
+    --color-amber-800: oklch(0.82 0.080 75);
+    --color-amber-900: oklch(0.90 0.050 80);
+    --color-amber-950: oklch(0.96 0.020 80);
+    /* Emerald/green: keep accent readable */
+    --color-emerald-400: oklch(0.42 0.130 155);
+    --color-emerald-500: oklch(0.36 0.120 155);
+    /* Red/danger stays readable */
+    --color-red-400: oklch(0.44 0.170 25);
+    --color-red-500: oklch(0.38 0.170 25);
+    /* tl-* semantic tokens */
+    --tl-bg:             oklch(0.97 0.007 68);
+    --tl-surface:        oklch(0.93 0.009 68);
+    --tl-surface-2:      oklch(0.87 0.010 68);
+    --tl-surface-3:      oklch(0.82 0.011 68);
+    --tl-border:         oklch(0.80 0.011 68);
+    --tl-border-strong:  oklch(0.68 0.012 68);
+    --tl-text:           oklch(0.10 0.010 68);
+    --tl-text-primary:   oklch(0.14 0.010 68);
+    --tl-text-secondary: oklch(0.28 0.012 68);
+    --tl-text-muted:     oklch(0.40 0.012 68);
+    --tl-text-subtle:    oklch(0.55 0.013 68);
+    --tl-shadow-lg:      0 10px 15px -3px oklch(0 0 0 / 0.08);
 }

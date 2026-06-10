@@ -12,6 +12,7 @@ const props = defineProps({
 })
 
 const refreshing = ref(false)
+const perPage    = ref(10)
 let timer = null
 
 // Track which snapshot IDs are expanded
@@ -76,7 +77,12 @@ function manualRefresh() {
 }
 
 function goToPage(page) {
-    router.get('/console/queue', { page }, { preserveScroll: true })
+    router.get('/console/queue', { page, per_page: perPage.value }, { preserveScroll: true })
+}
+
+function changePerPage(value) {
+    perPage.value = value
+    router.get('/console/queue', { page: 1, per_page: value }, { preserveScroll: true })
 }
 
 // Detect snapshots that only contain ticket keys (no enrichment)
@@ -274,9 +280,11 @@ onUnmounted(() => clearInterval(timer))
 
             <!-- Pagination -->
             <TlPagination
-                v-if="snapshots.last_page > 1"
+                v-if="snapshots.total > 0"
                 :paginator="snapshots"
+                :per-page="perPage"
                 @page="goToPage"
+                @update:per-page="changePerPage"
             />
         </div>
 

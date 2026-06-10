@@ -11,10 +11,12 @@ class QueueController
 {
     public function index(Request $request): Response
     {
+        $perPage = max(10, min(100, (int) $request->get('per_page', 10)));
+
         $snapshots = TriageSnapshot::where('user_id', $request->user()->id)
             ->orderByDesc('captured_at')
             ->orderByDesc('id')
-            ->paginate(10, ['id', 'profile', 'tickets', 'ticket_count', 'captured_at', 'updated_at']);
+            ->paginate($perPage, ['id', 'profile', 'tickets', 'ticket_count', 'captured_at', 'updated_at']);
 
         return Inertia::render('Console/Queue', [
             'snapshots' => $snapshots,

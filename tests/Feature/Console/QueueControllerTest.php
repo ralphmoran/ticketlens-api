@@ -139,6 +139,22 @@ class QueueControllerTest extends TestCase
         ];
     }
 
+    public function test_per_page_param_is_respected(): void
+    {
+        $user = $this->makeTeamUser();
+        for ($i = 0; $i < 12; $i++) {
+            TriageSnapshot::create(array_merge($this->snapshotData($user, 'production', 1), [
+                'captured_at' => now()->subMinutes($i),
+            ]));
+        }
+
+        $this->actingAs($user)->get('/console/queue?per_page=25')
+            ->assertInertia(fn ($page) => $page
+                ->has('snapshots.data', 12)
+                ->where('snapshots.last_page', 1)
+            );
+    }
+
     public function test_empty_snapshots_passed_when_no_push_yet(): void
     {
         $user = $this->makeTeamUser();

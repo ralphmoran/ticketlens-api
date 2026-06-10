@@ -152,7 +152,7 @@ async function disconnect() {
             <!-- Header row -->
             <div class="flex items-center gap-3">
                 <div class="w-10 h-10 rounded-lg bg-[#4A154B] flex items-center justify-center shrink-0">
-                    <span class="text-white text-sm font-bold">#</span>
+                    <span class="text-sm font-bold" style="color: white">#</span>
                 </div>
                 <div>
                     <h2 class="text-sm font-semibold text-white">Slack</h2>

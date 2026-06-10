@@ -195,7 +195,7 @@ async function destroyStale() {
         </div>
 
         <!-- Feature description (Summarize.vue pattern) -->
-        <div class="mb-8 rounded-xl border border-slate-800 bg-slate-900/60 p-5 space-y-3">
+        <div class="mb-8 tl-info-box">
             <p class="text-sm text-slate-300 leading-relaxed">
                 <strong class="text-slate-100">What it does:</strong>
                 Flags tickets that have stayed in the same status too long. Rules are evaluated server-side every time a team member pushes a triage sync — no manual review needed.

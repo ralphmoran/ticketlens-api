@@ -29,4 +29,9 @@
   .tl-empty-state {
     @apply bg-slate-900 border border-slate-800 rounded-xl p-12 flex flex-col items-center justify-center text-center;
   }
+
+  /* Feature description / info box — consistent across all pages */
+  .tl-info-box {
+    @apply rounded-xl border border-slate-700/70 bg-slate-800/50 p-5 space-y-3;
+  }
 }

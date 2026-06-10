@@ -37,3 +37,53 @@
     @apply text-amber-500/70;
   }
 }
+
+/* ── Tree-connector nav sub-items ─────────────────────────────────────────── *
+ * Replaces the old border-l / pl-2.5 pattern with ├─ / └─ style connectors.
+ * Uses ::before (vertical segment) + ::after (horizontal branch) on each <li>.
+ * ────────────────────────────────────────────────────────────────────────── */
+.tl-nav-tree {
+    margin-left: 1.125rem;
+    margin-bottom: 0.25rem;
+}
+
+.tl-nav-tree > ul > li {
+    position: relative;
+    padding-left: 1rem; /* space for connector */
+}
+
+/* Vertical segment of the tree line */
+.tl-nav-tree > ul > li::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    background-color: var(--tl-border-strong);
+    opacity: 0.7;
+}
+
+/* Last item: vertical line ends at the midpoint (└─ effect) */
+.tl-nav-tree > ul > li:last-child::before {
+    bottom: 50%;
+}
+
+/* Horizontal connector (branch to the link) */
+.tl-nav-tree > ul > li::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    width: 0.75rem;
+    height: 1px;
+    background-color: var(--tl-border-strong);
+    opacity: 0.7;
+}
+
+/* Amber variant for Owner Panel sub-items */
+.tl-nav-tree--amber > ul > li::before,
+.tl-nav-tree--amber > ul > li::after {
+    background-color: oklch(0.72 0.14 75);
+    opacity: 0.45;
+}

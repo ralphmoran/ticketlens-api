@@ -257,7 +257,7 @@ const navGroups = computed(() => [
             { label: 'Digests',              href: '/console/admin/digests',              icon: 'send',             managerOnly: true,  ownerExcluded: false, permission: null },
             { label: 'Workflow Rules',       href: '/console/admin/rules',                icon: 'git-branch',       managerOnly: true,  ownerExcluded: false, permission: Permission.WorkflowRules },
             { label: 'Brief Templates',      href: '/console/admin/templates',            icon: 'document-text',    managerOnly: false, ownerExcluded: false, permission: null, paidOnly: true },
-            { label: 'AI Settings',          href: '/console/admin/ai',                   icon: 'sparkles',         managerOnly: true,  ownerExcluded: false, permission: null },
+            { label: 'AI Settings',          href: '/console/admin/ai',                   icon: 'sparkles',         managerOnly: false, ownerExcluded: false, permission: Permission.Summarize },
         ]
     },
 ])
@@ -706,7 +706,7 @@ onUnmounted(() => {
                             @leave="slideLeave"
                             @after-leave="slideAfterLeave"
                         >
-                            <div v-if="groupOpen[group.label]" class="border-l border-slate-700/60 ml-[1.125rem] pl-2.5 mb-1">
+                            <div v-if="groupOpen[group.label]" class="tl-nav-tree">
                                 <ul class="mb-1 space-y-0.5">
                                     <li v-for="item in group.items" :key="item.href">
                                         <a
@@ -774,7 +774,7 @@ onUnmounted(() => {
                             @leave="slideLeave"
                             @after-leave="slideAfterLeave"
                         >
-                            <div v-if="ownerPanelOpen" class="border-l border-amber-700/40 ml-[1.125rem] pl-2.5 mb-1">
+                            <div v-if="ownerPanelOpen" class="tl-nav-tree tl-nav-tree--amber">
                                 <ul class="mb-1 space-y-0.5">
                                     <li v-for="item in ownerPanelItems" :key="item.href">
                                         <a
@@ -815,7 +815,7 @@ onUnmounted(() => {
                             @leave="slideLeave"
                             @after-leave="slideAfterLeave"
                         >
-                            <div v-if="ownerPanelOpen" class="border-l border-amber-700/40 ml-[1.125rem] pl-2.5 mb-1">
+                            <div v-if="ownerPanelOpen" class="tl-nav-tree tl-nav-tree--amber">
                                 <ul class="mb-1 space-y-0.5">
                                     <li v-for="item in ownerPanelItems" :key="item.href">
                                         <a

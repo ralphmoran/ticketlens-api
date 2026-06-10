@@ -2,10 +2,13 @@
 
 namespace Tests\Feature\Console\Admin;
 
+use App\Enums\Permission;
 use App\Models\CliToken;
+use App\Models\Feature;
 use App\Models\Group;
 use App\Models\User;
 use App\Models\UserAiProvider;
+use App\Models\UserFeatureGrant;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -87,13 +90,50 @@ class AiControllerTest extends TestCase
         $this->get('/console/admin/ai')->assertRedirect('/console/login');
     }
 
-    public function test_requires_manager_role(): void
+    public function test_free_user_without_summarize_is_blocked(): void
     {
-        $user = User::factory()->create(['tier' => 'free']);
+        $user = User::factory()->create(['tier' => 'free', 'permissions' => 0]);
 
         $this->actingAs($user)
             ->get('/console/admin/ai')
-            ->assertStatus(302); // redirected by team.manager middleware
+            ->assertStatus(302); // HasPermission redirects to console.upgrade
+    }
+
+    public function test_pro_user_with_summarize_can_access(): void
+    {
+        $user = User::factory()->create([
+            'tier'        => 'pro',
+            'permissions' => Permission::pro(),
+        ]);
+
+        $this->actingAs($user)
+            ->get('/console/admin/ai')
+            ->assertStatus(200)
+            ->assertInertia(fn ($page) => $page->component('Console/Admin/Ai'));
+    }
+
+    public function test_free_user_with_owner_granted_summarize_can_access(): void
+    {
+        $freeUser = User::factory()->create(['tier' => 'free', 'permissions' => 0]);
+        $owner    = User::factory()->create(['is_owner' => true]);
+
+        $feature = Feature::create([
+            'name'      => 'summarize',
+            'bit_value' => Permission::Summarize->value,
+            'label'     => 'Summarize',
+        ]);
+
+        UserFeatureGrant::create([
+            'user_id'    => $freeUser->id,
+            'feature_id' => $feature->id,
+            'granted_by' => $owner->id,
+            'expires_at' => null,
+        ]);
+
+        $this->actingAs($freeUser)
+            ->get('/console/admin/ai')
+            ->assertStatus(200)
+            ->assertInertia(fn ($page) => $page->component('Console/Admin/Ai'));
     }
 
     public function test_store_creates_provider(): void

@@ -1,10 +1,8 @@
 <script setup>
 import ConsoleLayout from '@/Layouts/ConsoleLayout.vue'
 import TlIcon from '@/components/TlIcon.vue'
-import { Link, router, usePage } from '@inertiajs/vue3'
-import { computed, ref } from 'vue'
+import { Link } from '@inertiajs/vue3'
 import { formatDate } from '@/composables/useDateFormat'
-import { useConfirm } from '@/composables/useConfirm'
 
 defineOptions({ layout: ConsoleLayout })
 
@@ -14,42 +12,7 @@ const props = defineProps({
         required: true,
         // { name: string, email: string, tier: string, license: null | { status: string, expires_at: string|null } }
     },
-    cli_token: { type: Object, default: null },
-    // { name: string, last_used_at: string|null, created_at: string }
 })
-
-const page = usePage()
-const newToken = computed(() => page.props.flash?.cli_token_generated ?? null)
-
-const { confirm } = useConfirm()
-
-const generateToken = () => router.post('/console/account/cli-token', {}, { preserveScroll: true })
-const revokeToken   = async () => {
-    const ok = await confirm({
-        title:        'Revoke CLI token?',
-        message:      'You will need to generate a new one to use ticketlens sync.',
-        confirmLabel: 'Revoke',
-    })
-    if (!ok) return
-    router.delete('/console/account/cli-token', { preserveScroll: true })
-}
-
-const copied = ref(false)
-const copyToken = async (val) => {
-    try {
-        await navigator.clipboard.writeText(val)
-    } catch {
-        const el = document.createElement('textarea')
-        el.value = val
-        el.style.cssText = 'position:fixed;opacity:0'
-        document.body.appendChild(el)
-        el.select()
-        document.execCommand('copy')
-        document.body.removeChild(el)
-    }
-    copied.value = true
-    setTimeout(() => { copied.value = false }, 2000)
-}
 
 const tierStyles = {
     free:       'bg-slate-700 text-slate-300',
@@ -146,67 +109,6 @@ const licenseBadge = (status) => licenseStatusStyles[status?.toLowerCase()] ?? l
                     >Manage subscription →</a>
                 </div>
             </template>
-        </div>
-
-        <!-- AI Providers card — links to /console/admin/ai -->
-        <div class="tl-card tl-card--lg">
-            <div class="mb-4">
-                <h2 class="text-sm font-semibold text-slate-300 uppercase tracking-wider">AI Provider Keys</h2>
-                <p class="tl-hint">Used for <code class="font-mono text-slate-400">--summarize</code> and <code class="font-mono text-slate-400">--cloud</code> features</p>
-            </div>
-            <p class="text-sm text-slate-400 mb-4">
-                Manage your AI providers — add keys, set priority order, enable or disable providers, and test connectivity — in the AI Settings panel.
-            </p>
-            <Link
-                href="/console/admin/ai"
-                class="tl-btn tl-btn--primary tl-btn--sm inline-flex items-center gap-1.5"
-            >
-                <TlIcon name="cpu" class="w-3.5 h-3.5" />
-                Manage AI Providers
-            </Link>
-        </div>
-
-        <!-- CLI Access card -->
-        <div class="tl-card tl-card--lg">
-            <h2 class="text-sm font-semibold text-slate-300 uppercase tracking-wider mb-1">CLI Access</h2>
-            <p class="text-xs text-slate-500 mb-5">Generate a token so <code class="text-indigo-400">ticketlens sync</code> can pull your connections to any machine. The token is shown once — store it securely.</p>
-
-            <!-- Token just generated — show plaintext once -->
-            <div v-if="newToken" class="mb-5 rounded-lg bg-green-950/40 border border-green-700/40 px-4 py-4">
-                <p class="text-xs font-medium text-green-400 mb-2">Token generated — copy it now, it won't be shown again.</p>
-                <div class="flex items-center gap-2 font-mono text-sm bg-slate-950 rounded-md px-3 py-2 border border-slate-800">
-                    <span class="flex-1 text-indigo-300 select-all break-all">{{ newToken }}</span>
-                    <button
-                        @click="copyToken(newToken)"
-                        class="text-slate-400 hover:text-white transition-colors shrink-0"
-                        :title="copied ? 'Copied!' : 'Copy'"
-                    >
-                        <TlIcon :name="copied ? 'check' : 'copy'" class="w-4 h-4" :class="copied ? 'text-green-400' : ''" />
-                    </button>
-                </div>
-                <p class="text-xs text-slate-500 mt-3">Run <code class="text-indigo-400">ticketlens login</code> and paste this token to connect the CLI.</p>
-            </div>
-
-            <!-- Existing token status -->
-            <div v-if="cli_token && !newToken" class="flex items-center justify-between mb-5">
-                <div>
-                    <p class="text-sm text-slate-300 font-medium">{{ cli_token.name }}</p>
-                    <p class="text-xs text-slate-500 mt-0.5">
-                        Created {{ formatDate(cli_token.created_at) }}
-                        <template v-if="cli_token.last_used_at"> · Last used {{ formatDate(cli_token.last_used_at) }}</template>
-                    </p>
-                </div>
-                <span class="text-xs px-2 py-0.5 rounded-full bg-green-500/15 text-green-400 border border-green-500/25">Active</span>
-            </div>
-
-            <div class="flex gap-3">
-                <button @click="generateToken" class="tl-btn tl-btn--primary text-sm">
-                    {{ cli_token ? 'Regenerate token' : 'Generate token' }}
-                </button>
-                <button v-if="cli_token" @click="revokeToken" class="tl-btn tl-btn--ghost text-sm text-red-400 hover:text-red-300">
-                    Revoke
-                </button>
-            </div>
         </div>
 
         <!-- Upgrade CTA (free tier only) -->

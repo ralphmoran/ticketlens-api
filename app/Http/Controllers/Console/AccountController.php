@@ -16,8 +16,6 @@ class AccountController
         $user    = $request->user();
         $license = $user->license ?? null;
 
-        $cliToken = $user->cliTokens()->latest()->first();
-
         return Inertia::render('Console/Account', [
             'account' => [
                 'name'    => $user->name,
@@ -28,11 +26,6 @@ class AccountController
                     'expires_at' => $license->expires_at?->toDateString(),
                 ] : null,
             ],
-            'cli_token' => $cliToken ? [
-                'name'         => $cliToken->name,
-                'last_used_at' => $cliToken->last_used_at?->toDateTimeString(),
-                'created_at'   => $cliToken->created_at->toDateTimeString(),
-            ] : null,
         ]);
     }
 

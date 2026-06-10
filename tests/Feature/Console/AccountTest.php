@@ -77,4 +77,16 @@ class AccountTest extends TestCase
 
         $response->assertStatus(404); // Route removed — no longer registered
     }
+
+    public function test_account_page_does_not_expose_cli_token_prop(): void
+    {
+        $user = User::factory()->create(['tier' => 'pro', 'permissions' => 71]);
+
+        $this->actingAs($user)->get('/console/account')
+            ->assertStatus(200)
+            ->assertInertia(fn ($page) => $page
+                ->component('Console/Account')
+                ->missing('cli_token')
+            );
+    }
 }

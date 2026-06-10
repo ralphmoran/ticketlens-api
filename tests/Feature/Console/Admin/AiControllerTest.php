@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Console\Admin;
 
+use App\Models\CliToken;
 use App\Models\Group;
 use App\Models\User;
 use App\Models\UserAiProvider;
@@ -31,6 +32,38 @@ class AiControllerTest extends TestCase
                 ->component('Console/Admin/Ai')
                 ->has('providers')
                 ->has('supported_providers')
+                ->has('cli_token')
+            );
+    }
+
+    public function test_ai_settings_page_includes_active_cli_token(): void
+    {
+        $manager = $this->makeManager();
+        CliToken::create([
+            'user_id'    => $manager->id,
+            'name'       => 'CLI Token',
+            'token_hash' => CliToken::hashToken('tl_' . str_repeat('a', 40)),
+        ]);
+
+        $this->actingAs($manager)
+            ->get('/console/admin/ai')
+            ->assertStatus(200)
+            ->assertInertia(fn ($page) => $page
+                ->component('Console/Admin/Ai')
+                ->where('cli_token.name', 'CLI Token')
+            );
+    }
+
+    public function test_ai_settings_page_cli_token_is_null_when_none_exists(): void
+    {
+        $manager = $this->makeManager();
+
+        $this->actingAs($manager)
+            ->get('/console/admin/ai')
+            ->assertStatus(200)
+            ->assertInertia(fn ($page) => $page
+                ->component('Console/Admin/Ai')
+                ->where('cli_token', null)
             );
     }
 

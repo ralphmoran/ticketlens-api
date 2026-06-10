@@ -1,7 +1,7 @@
 <script setup>
 import ConsoleLayout from '@/Layouts/ConsoleLayout.vue'
 import TlIcon from '@/components/TlIcon.vue'
-import { Link, useForm, router, usePage } from '@inertiajs/vue3'
+import { Link, router, usePage } from '@inertiajs/vue3'
 import { computed, ref } from 'vue'
 import { formatDate } from '@/composables/useDateFormat'
 import { useConfirm } from '@/composables/useConfirm'
@@ -14,9 +14,7 @@ const props = defineProps({
         required: true,
         // { name: string, email: string, tier: string, license: null | { status: string, expires_at: string|null } }
     },
-    has_anthropic_key: { type: Boolean, default: false },
-    has_openai_key:    { type: Boolean, default: false },
-    cli_token:         { type: Object,  default: null },
+    cli_token: { type: Object, default: null },
     // { name: string, last_used_at: string|null, created_at: string }
 })
 
@@ -51,29 +49,6 @@ const copyToken = async (val) => {
     }
     copied.value = true
     setTimeout(() => { copied.value = false }, 2000)
-}
-
-const keyForm = useForm({
-    anthropic_key: '',
-    openai_key: '',
-})
-
-const inlineError = ref('')
-
-const bothFieldsEmpty = computed(() =>
-    keyForm.anthropic_key.trim() === '' && keyForm.openai_key.trim() === ''
-)
-
-const submitKeys = () => {
-    if (bothFieldsEmpty.value) {
-        inlineError.value = 'Enter at least one API key before saving.'
-        return
-    }
-    inlineError.value = ''
-    keyForm.post('/console/account/keys', {
-        preserveScroll: true,
-        onSuccess: () => keyForm.reset(),
-    })
 }
 
 const tierStyles = {
@@ -173,76 +148,22 @@ const licenseBadge = (status) => licenseStatusStyles[status?.toLowerCase()] ?? l
             </template>
         </div>
 
-        <!-- API Keys card (BYOK) -->
+        <!-- AI Providers card — links to /console/admin/ai -->
         <div class="tl-card tl-card--lg">
-            <div class="mb-5">
+            <div class="mb-4">
                 <h2 class="text-sm font-semibold text-slate-300 uppercase tracking-wider">AI Provider Keys</h2>
                 <p class="tl-hint">Used for <code class="font-mono text-slate-400">--summarize</code> and <code class="font-mono text-slate-400">--cloud</code> features</p>
             </div>
-
-            <form @submit.prevent="submitKeys" class="space-y-4">
-                <!-- Anthropic API Key -->
-                <div class="flex flex-col sm:flex-row sm:items-center gap-3">
-                    <div class="sm:w-40 shrink-0">
-                        <span class="text-sm text-slate-300">Anthropic API Key</span>
-                        <span
-                            class="block text-xs mt-0.5"
-                            :class="has_anthropic_key ? 'text-green-400' : 'text-slate-500'"
-                        >{{ has_anthropic_key ? '•••• set' : 'Not configured' }}</span>
-                    </div>
-                    <div class="flex items-center gap-2 flex-1">
-                        <input
-                            v-model="keyForm.anthropic_key"
-                            type="text"
-                            class="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm font-mono text-slate-300 focus:outline-none focus:border-indigo-500 min-w-0"
-                            placeholder="sk-ant-…"
-                            autocomplete="off"
-                        />
-                    </div>
-                </div>
-
-                <!-- OpenAI API Key -->
-                <div class="flex flex-col sm:flex-row sm:items-center gap-3">
-                    <div class="sm:w-40 shrink-0">
-                        <span class="text-sm text-slate-300">OpenAI API Key</span>
-                        <span
-                            class="block text-xs mt-0.5"
-                            :class="has_openai_key ? 'text-green-400' : 'text-slate-500'"
-                        >{{ has_openai_key ? '•••• set' : 'Not configured' }}</span>
-                    </div>
-                    <div class="flex items-center gap-2 flex-1">
-                        <input
-                            v-model="keyForm.openai_key"
-                            type="text"
-                            class="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm font-mono text-slate-300 focus:outline-none focus:border-indigo-500 min-w-0"
-                            placeholder="sk-…"
-                            autocomplete="off"
-                        />
-                    </div>
-                </div>
-
-                <div class="pt-2 flex flex-col gap-2">
-                    <button
-                        type="submit"
-                        :disabled="keyForm.processing || bothFieldsEmpty"
-                        data-testid="save-keys-button"
-                        class="self-start inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150"
-                    >
-                        <TlIcon name="key" class="w-3.5 h-3.5" />
-                        Save Keys
-                    </button>
-                    <p
-                        v-if="inlineError"
-                        role="alert"
-                        data-testid="save-keys-error"
-                        class="text-xs text-red-400"
-                    >{{ inlineError }}</p>
-                    <p
-                        v-else-if="bothFieldsEmpty"
-                        class="text-xs text-slate-500"
-                    >Enter at least one API key to enable Save.</p>
-                </div>
-            </form>
+            <p class="text-sm text-slate-400 mb-4">
+                Manage your AI providers — add keys, set priority order, enable or disable providers, and test connectivity — in the AI Settings panel.
+            </p>
+            <Link
+                href="/console/admin/ai"
+                class="tl-btn tl-btn--primary tl-btn--sm inline-flex items-center gap-1.5"
+            >
+                <TlIcon name="cpu" class="w-3.5 h-3.5" />
+                Manage AI Providers
+            </Link>
         </div>
 
         <!-- CLI Access card -->

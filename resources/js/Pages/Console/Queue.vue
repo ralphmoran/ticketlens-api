@@ -1,17 +1,31 @@
 <script setup>
 import ConsoleLayout from '@/Layouts/ConsoleLayout.vue'
 import TlIcon from '@/components/TlIcon.vue'
+import TlPagination from '@/Components/TlPagination.vue'
 import { router } from '@inertiajs/vue3'
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 
 defineOptions({ layout: ConsoleLayout })
 
 const props = defineProps({
-    snapshots: { type: Array, default: () => [] },
+    snapshots: { type: Object, default: () => ({ data: [], current_page: 1, last_page: 1, total: 0 }) },
 })
 
 const refreshing = ref(false)
 let timer = null
+
+// Track which snapshot IDs are expanded
+const expanded = ref(new Set())
+
+function toggleExpand(id) {
+    const next = new Set(expanded.value)
+    if (next.has(id)) {
+        next.delete(id)
+    } else {
+        next.add(id)
+    }
+    expanded.value = next
+}
 
 function formatDate(iso) {
     return new Date(iso).toLocaleString('en-US', {
@@ -61,9 +75,13 @@ function manualRefresh() {
     router.reload({ only: ['snapshots'], onFinish: () => { refreshing.value = false } })
 }
 
+function goToPage(page) {
+    router.get('/console/queue', { page }, { preserveScroll: true })
+}
+
 // Detect snapshots that only contain ticket keys (no enrichment)
 const hasSparseData = computed(() =>
-    props.snapshots.some(snap =>
+    props.snapshots.data.some(snap =>
         snap.tickets?.some(t => !t.summary && !t.status && !t.attention_score)
     )
 )
@@ -116,7 +134,7 @@ onUnmounted(() => clearInterval(timer))
         </div>
 
         <!-- Sparse data notice -->
-        <div v-if="snapshots.length > 0 && hasSparseData"
+        <div v-if="snapshots.data.length > 0 && hasSparseData"
              class="flex items-start gap-3 mb-6 px-4 py-3 rounded-lg bg-amber-500/10 border border-amber-500/25 text-sm">
             <TlIcon name="info" class="w-4 h-4 text-amber-400 mt-0.5 shrink-0" />
             <div>
@@ -129,19 +147,22 @@ onUnmounted(() => clearInterval(timer))
         </div>
 
         <!-- Empty state -->
-        <div v-if="snapshots.length === 0" class="tl-empty-state">
+        <div v-if="snapshots.data.length === 0" class="tl-empty-state">
             <TlIcon name="layers" class="w-10 h-10 text-slate-700 mb-4" />
             <p class="text-slate-300 font-medium mb-1">No queue data yet.</p>
             <p class="tl-hint mb-3">Run the CLI to populate your queue:</p>
             <code class="tl-kbd tl-kbd--brand">ticketlens triage --push</code>
         </div>
 
-        <!-- Snapshot groups — one per profile -->
-        <div v-else class="space-y-10">
-            <div v-for="snap in snapshots" :key="snap.id">
+        <!-- Snapshot groups — one per snapshot, expand-on-click -->
+        <div v-else class="space-y-4">
+            <div v-for="snap in snapshots.data" :key="snap.id" class="tl-card tl-card--flush">
 
-                <!-- Profile header -->
-                <div class="flex items-center justify-between mb-3">
+                <!-- Profile header — click to expand/collapse -->
+                <button
+                    class="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-slate-800/40 transition-colors"
+                    @click="toggleExpand(snap.id)"
+                >
                     <div class="flex items-center gap-2">
                         <TlIcon name="layers" class="w-4 h-4 text-slate-500" />
                         <span class="tl-label">{{ snap.profile }}</span>
@@ -149,96 +170,114 @@ onUnmounted(() => clearInterval(timer))
                             {{ snap.ticket_count }} {{ snap.ticket_count === 1 ? 'ticket' : 'tickets' }}
                         </span>
                     </div>
-                    <span class="tl-hint" :title="formatDate(snap.captured_at)">
-                        Captured {{ timeAgo(snap.captured_at) }}
-                    </span>
-                </div>
+                    <div class="flex items-center gap-3">
+                        <span class="text-xs text-slate-400">
+                            {{ formatDate(snap.captured_at) }}
+                            <span class="text-slate-600 mx-1">·</span>
+                            {{ timeAgo(snap.captured_at) }}
+                        </span>
+                        <TlIcon
+                            :name="expanded.has(snap.id) ? 'chevron-up' : 'chevron-down'"
+                            class="w-4 h-4 text-slate-500 shrink-0"
+                        />
+                    </div>
+                </button>
 
-                <!-- Mobile cards -->
-                <div class="md:hidden space-y-3">
-                    <div v-for="ticket in snap.tickets" :key="ticket.key" class="tl-card tl-card--sm tl-card--stack">
-                        <div class="flex items-start justify-between gap-2">
-                            <a :href="ticket.url" target="_blank" rel="noopener"
-                               class="tl-kbd hover:text-indigo-300 transition-colors">
-                                {{ ticket.key }}
-                            </a>
-                            <span :class="complianceBadge(ticket.compliance_status)">
-                                {{ complianceLabel(ticket.compliance_status, ticket.compliance_coverage) }}
-                            </span>
+                <!-- Expanded ticket list -->
+                <div v-if="expanded.has(snap.id)">
+                    <!-- Mobile cards -->
+                    <div class="md:hidden border-t border-slate-800 divide-y divide-slate-800">
+                        <div v-for="ticket in snap.tickets" :key="ticket.key" class="px-4 py-3 space-y-2">
+                            <div class="flex items-start justify-between gap-2">
+                                <a :href="ticket.url" target="_blank" rel="noopener"
+                                   class="tl-kbd hover:text-indigo-300 transition-colors">
+                                    {{ ticket.key }}
+                                </a>
+                                <span :class="complianceBadge(ticket.compliance_status)">
+                                    {{ complianceLabel(ticket.compliance_status, ticket.compliance_coverage) }}
+                                </span>
+                            </div>
+                            <p v-if="ticket.summary" class="text-sm text-slate-300 leading-snug">{{ ticket.summary }}</p>
+                            <p v-else class="tl-hint text-xs italic">No summary — run triage --push for full data</p>
+                            <div class="flex flex-wrap items-center gap-1.5">
+                                <span v-if="ticket.status" class="tl-badge tl-badge--neutral">{{ ticket.status }}</span>
+                                <span v-for="flag in ticket.flags" :key="flag" :class="flagBadge(flag)">
+                                    {{ flagLabel(flag) }}
+                                </span>
+                                <span v-if="ticket.attention_score != null"
+                                      :class="attentionClass(ticket.attention_score)"
+                                      class="font-mono text-xs ml-auto">
+                                    {{ ticket.attention_score.toFixed(1) }}
+                                </span>
+                            </div>
                         </div>
-                        <p v-if="ticket.summary" class="text-sm text-slate-300 leading-snug">{{ ticket.summary }}</p>
-                        <p v-else class="tl-hint text-xs italic">No summary — run triage --push for full data</p>
-                        <div class="flex flex-wrap items-center gap-1.5">
-                            <span v-if="ticket.status" class="tl-badge tl-badge--neutral">{{ ticket.status }}</span>
-                            <span v-for="flag in ticket.flags" :key="flag" :class="flagBadge(flag)">
-                                {{ flagLabel(flag) }}
-                            </span>
-                            <span v-if="ticket.attention_score != null"
-                                  :class="attentionClass(ticket.attention_score)"
-                                  class="font-mono text-xs ml-auto">
-                                {{ ticket.attention_score.toFixed(1) }}
-                            </span>
-                        </div>
+                    </div>
+
+                    <!-- Desktop table -->
+                    <div class="hidden md:block border-t border-slate-800">
+                        <table class="w-full text-sm">
+                            <thead>
+                                <tr class="tl-thead">
+                                    <th class="tl-th">Key</th>
+                                    <th class="tl-th">Summary</th>
+                                    <th class="tl-th">Status</th>
+                                    <th class="tl-th">Flags</th>
+                                    <th class="tl-th tl-th--right">Compliance</th>
+                                    <th class="tl-th tl-th--right">Score</th>
+                                </tr>
+                            </thead>
+                            <tbody class="tl-divide">
+                                <tr v-for="ticket in snap.tickets" :key="ticket.key" class="tl-tr">
+                                    <td class="px-5 py-3.5">
+                                        <a v-if="ticket.url" :href="ticket.url" target="_blank" rel="noopener"
+                                           class="tl-kbd hover:text-indigo-300 transition-colors whitespace-nowrap">
+                                            {{ ticket.key }}
+                                        </a>
+                                        <span v-else class="tl-kbd whitespace-nowrap">{{ ticket.key }}</span>
+                                    </td>
+                                    <td class="px-5 py-3.5 text-slate-300 max-w-xs truncate" :title="ticket.summary">
+                                        <span v-if="ticket.summary">{{ ticket.summary }}</span>
+                                        <span v-else class="tl-hint italic">—</span>
+                                    </td>
+                                    <td class="px-5 py-3.5">
+                                        <span v-if="ticket.status" class="tl-badge tl-badge--neutral">{{ ticket.status }}</span>
+                                        <span v-else class="tl-hint">—</span>
+                                    </td>
+                                    <td class="px-5 py-3.5">
+                                        <div class="flex flex-wrap gap-1">
+                                            <span v-for="flag in ticket.flags" :key="flag" :class="flagBadge(flag)">
+                                                {{ flagLabel(flag) }}
+                                            </span>
+                                            <span v-if="!ticket.flags?.length" class="tl-hint">—</span>
+                                        </div>
+                                    </td>
+                                    <td class="px-5 py-3.5 text-right">
+                                        <span :class="complianceBadge(ticket.compliance_status)">
+                                            {{ complianceLabel(ticket.compliance_status, ticket.compliance_coverage) }}
+                                        </span>
+                                    </td>
+                                    <td class="px-5 py-3.5 text-right">
+                                        <span v-if="ticket.attention_score != null"
+                                              :class="attentionClass(ticket.attention_score)"
+                                              class="font-mono text-xs">
+                                            {{ ticket.attention_score.toFixed(1) }}
+                                        </span>
+                                        <span v-else class="tl-hint">—</span>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
 
-                <!-- Desktop table -->
-                <div class="hidden md:block tl-card tl-card--flush">
-                    <table class="w-full text-sm">
-                        <thead>
-                            <tr class="tl-thead">
-                                <th class="tl-th">Key</th>
-                                <th class="tl-th">Summary</th>
-                                <th class="tl-th">Status</th>
-                                <th class="tl-th">Flags</th>
-                                <th class="tl-th tl-th--right">Compliance</th>
-                                <th class="tl-th tl-th--right">Score</th>
-                            </tr>
-                        </thead>
-                        <tbody class="tl-divide">
-                            <tr v-for="ticket in snap.tickets" :key="ticket.key" class="tl-tr">
-                                <td class="px-5 py-3.5">
-                                    <a v-if="ticket.url" :href="ticket.url" target="_blank" rel="noopener"
-                                       class="tl-kbd hover:text-indigo-300 transition-colors whitespace-nowrap">
-                                        {{ ticket.key }}
-                                    </a>
-                                    <span v-else class="tl-kbd whitespace-nowrap">{{ ticket.key }}</span>
-                                </td>
-                                <td class="px-5 py-3.5 text-slate-300 max-w-xs truncate" :title="ticket.summary">
-                                    <span v-if="ticket.summary">{{ ticket.summary }}</span>
-                                    <span v-else class="tl-hint italic">—</span>
-                                </td>
-                                <td class="px-5 py-3.5">
-                                    <span v-if="ticket.status" class="tl-badge tl-badge--neutral">{{ ticket.status }}</span>
-                                    <span v-else class="tl-hint">—</span>
-                                </td>
-                                <td class="px-5 py-3.5">
-                                    <div class="flex flex-wrap gap-1">
-                                        <span v-for="flag in ticket.flags" :key="flag" :class="flagBadge(flag)">
-                                            {{ flagLabel(flag) }}
-                                        </span>
-                                        <span v-if="!ticket.flags?.length" class="tl-hint">—</span>
-                                    </div>
-                                </td>
-                                <td class="px-5 py-3.5 text-right">
-                                    <span :class="complianceBadge(ticket.compliance_status)">
-                                        {{ complianceLabel(ticket.compliance_status, ticket.compliance_coverage) }}
-                                    </span>
-                                </td>
-                                <td class="px-5 py-3.5 text-right">
-                                    <span v-if="ticket.attention_score != null"
-                                          :class="attentionClass(ticket.attention_score)"
-                                          class="font-mono text-xs">
-                                        {{ ticket.attention_score.toFixed(1) }}
-                                    </span>
-                                    <span v-else class="tl-hint">—</span>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-
             </div>
+
+            <!-- Pagination -->
+            <TlPagination
+                v-if="snapshots.last_page > 1"
+                :paginator="snapshots"
+                @page="goToPage"
+            />
         </div>
 
     </div>

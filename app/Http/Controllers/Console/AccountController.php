@@ -28,8 +28,6 @@ class AccountController
                     'expires_at' => $license->expires_at?->toDateString(),
                 ] : null,
             ],
-            'has_anthropic_key' => !empty($user->anthropic_key),
-            'has_openai_key'    => !empty($user->openai_key),
             'cli_token' => $cliToken ? [
                 'name'         => $cliToken->name,
                 'last_used_at' => $cliToken->last_used_at?->toDateTimeString(),
@@ -64,20 +62,4 @@ class AccountController
         return redirect()->back()->with('success', 'CLI access token revoked.');
     }
 
-    public function updateKeys(Request $request): RedirectResponse
-    {
-        $validated = $request->validate([
-            'anthropic_key' => ['nullable', 'string', 'max:200'],
-            'openai_key'    => ['nullable', 'string', 'max:200'],
-        ]);
-
-        $user = $request->user();
-
-        $user->anthropic_key = $validated['anthropic_key'] !== '' ? ($validated['anthropic_key'] ?? null) : null;
-        $user->openai_key    = $validated['openai_key'] !== '' ? ($validated['openai_key'] ?? null) : null;
-
-        $user->save();
-
-        return redirect()->back()->with('success', 'API keys updated.');
-    }
 }

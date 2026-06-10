@@ -46,9 +46,39 @@ class DashboardController
                 ->toArray();
         }
 
+        // Personal urgency trend (30d) — Pro, Team, and owner only
+        $dailyUrgency = [];
+        if (in_array($user->tier, ['pro', 'team', 'owner'])) {
+            $urgencySnaps = TriageSnapshot::where('user_id', $user->id)
+                ->where('captured_at', '>=', now()->subDays(30))
+                ->orderBy('captured_at')
+                ->limit(1000)
+                ->get(['profile', 'tickets', 'captured_at']);
+
+            $dailyUrgency = $urgencySnaps
+                ->groupBy(fn ($s) => $s->captured_at->toDateString())
+                ->map(function ($daySnaps, $date) {
+                    // Latest per profile within the day — avoids double-counting multiple pushes
+                    $latest  = $daySnaps->sortByDesc('captured_at')->unique('profile');
+                    $tickets = $latest->flatMap(fn ($s) => $s->tickets ?? []);
+
+                    return [
+                        'date'           => $date,
+                        'needs_response' => $tickets->filter(fn ($t) => in_array('needs-response', $t['flags'] ?? []))->count(),
+                        'aging'          => $tickets->filter(fn ($t) => in_array('aging', $t['flags'] ?? []))->count(),
+                        'stale'          => $tickets->filter(fn ($t) => in_array('stale', $t['flags'] ?? []))->count(),
+                        'clear'          => $tickets->filter(fn ($t) => empty($t['flags']))->count(),
+                    ];
+                })
+                ->sortKeys()
+                ->values()
+                ->toArray();
+        }
+
         return Inertia::render('Console/Dashboard', [
-            'stats'        => $stats,
-            'ticket_trend' => $ticketTrend,
+            'stats'         => $stats,
+            'ticket_trend'  => $ticketTrend,
+            'daily_urgency' => $dailyUrgency,
         ]);
     }
 

@@ -21,8 +21,9 @@ ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip,
 defineOptions({ layout: ConsoleLayout })
 
 const props = defineProps({
-    stats:        { type: Object, default: () => ({}) },
-    ticket_trend: { type: Array,  default: () => [] },
+    stats:         { type: Object, default: () => ({}) },
+    ticket_trend:  { type: Array,  default: () => [] },
+    daily_urgency: { type: Array,  default: () => [] },
 })
 
 const { can } = usePermissions()
@@ -69,6 +70,67 @@ const trendChartOptions = {
     maintainAspectRatio: false,
     plugins: {
         legend: { display: false },
+        tooltip: { mode: 'index', intersect: false },
+    },
+    scales: {
+        x: {
+            ticks: { color: '#8a8278', maxTicksLimit: 10 },
+            grid:  { color: 'rgba(232,227,219,0.05)' },
+        },
+        y: {
+            ticks: { color: '#8a8278', stepSize: 1 },
+            grid:  { color: 'rgba(232,227,219,0.05)' },
+            min: 0,
+        },
+    },
+}
+
+// Urgency trend (30-day) — Pro+ only
+const urgencyChartData = computed(() => ({
+    labels: props.daily_urgency.map(d => d.date.slice(5)), // MM-DD
+    datasets: [
+        {
+            label: 'Needs Response',
+            data: props.daily_urgency.map(d => d.needs_response),
+            borderColor: '#f87171',
+            backgroundColor: 'rgba(248,113,113,0.08)',
+            fill: false,
+            tension: 0.35,
+            pointRadius: 2,
+            pointBackgroundColor: '#f87171',
+        },
+        {
+            label: 'Aging',
+            data: props.daily_urgency.map(d => d.aging),
+            borderColor: '#fb923c',
+            backgroundColor: 'rgba(251,146,60,0.08)',
+            fill: false,
+            tension: 0.35,
+            pointRadius: 2,
+            pointBackgroundColor: '#fb923c',
+        },
+        {
+            label: 'Clear',
+            data: props.daily_urgency.map(d => d.clear),
+            borderColor: '#34d399',
+            backgroundColor: 'rgba(52,211,153,0.08)',
+            fill: false,
+            tension: 0.35,
+            pointRadius: 2,
+            pointBackgroundColor: '#34d399',
+        },
+    ],
+}))
+
+const urgencyChartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+        legend: {
+            display: true,
+            position: 'bottom',
+            labels: { color: '#8a8278', boxWidth: 10, font: { size: 11 } },
+        },
         tooltip: { mode: 'index', intersect: false },
     },
     scales: {
@@ -194,7 +256,7 @@ const trendChartOptions = {
         </div>
 
         <!-- Ticket trend (Pro+, 30-day area chart) -->
-        <div v-if="ticket_trend.length > 0" class="mb-8 rounded-xl border border-slate-800 bg-slate-900/60 p-5">
+        <div v-if="ticket_trend.length > 0" class="mb-6 rounded-xl border border-slate-800 bg-slate-900/60 p-5">
             <h2 class="mb-4 text-sm font-semibold text-slate-300 uppercase tracking-wide">
                 Ticket Load Trend — last 30 days
             </h2>
@@ -203,6 +265,19 @@ const trendChartOptions = {
             </div>
             <p class="mt-3 pt-3 border-t border-slate-800 text-xs text-slate-500 leading-relaxed">
                 Number of active tickets in your triage queue over time, based on your daily pushes. Upward trends may indicate accumulating backlog; drops confirm tickets are being resolved.
+            </p>
+        </div>
+
+        <!-- Urgency trend (Pro+, 30-day line chart) -->
+        <div v-if="daily_urgency.length > 0" class="mb-8 rounded-xl border border-slate-800 bg-slate-900/60 p-5">
+            <h2 class="mb-4 text-sm font-semibold text-slate-300 uppercase tracking-wide">
+                Urgency Trend — last 30 days
+            </h2>
+            <div class="h-52">
+                <Line :data="urgencyChartData" :options="urgencyChartOptions" />
+            </div>
+            <p class="mt-3 pt-3 border-t border-slate-800 text-xs text-slate-500 leading-relaxed">
+                Daily breakdown of your ticket urgency flags. "Needs Response" means a teammate is waiting on you. Aim to keep that line at zero.
             </p>
         </div>
 

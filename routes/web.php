@@ -81,7 +81,6 @@ Route::prefix('console')->name('console.')->group(function () {
 
         // Account — accessible to all authenticated users
         Route::get('/account', [\App\Http\Controllers\Console\AccountController::class, 'index'])->name('account');
-        Route::post('/account/keys', [\App\Http\Controllers\Console\AccountController::class, 'updateKeys'])->name('account.keys');
         Route::post('/account/cli-token', [\App\Http\Controllers\Console\AccountController::class, 'generateCliToken'])->name('account.cli-token.generate');
         Route::delete('/account/cli-token', [\App\Http\Controllers\Console\AccountController::class, 'revokeCliToken'])->name('account.cli-token.revoke');
 

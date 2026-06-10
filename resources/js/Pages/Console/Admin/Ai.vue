@@ -129,6 +129,26 @@
                 <!-- Right column -->
                 <div class="space-y-5">
 
+                    <!-- Supported providers reference -->
+                    <div class="rounded-xl border border-dashed border-slate-800 p-4">
+                        <p class="text-xs text-slate-500 mb-2.5 font-medium uppercase tracking-wider">Supported Providers</p>
+                        <div class="space-y-2 text-xs text-slate-400">
+                            <div class="flex items-start gap-2">
+                                <span class="text-slate-300 font-mono w-20 shrink-0">groq</span>
+                                <span>Llama 3.x — <span class="text-indigo-400">free tier</span></span>
+                            </div>
+                            <div class="flex items-start gap-2">
+                                <span class="text-slate-300 font-mono w-20 shrink-0">anthropic</span>
+                                <span>Claude Haiku / Sonnet</span>
+                            </div>
+                            <div class="flex items-start gap-2">
+                                <span class="text-slate-300 font-mono w-20 shrink-0">openai</span>
+                                <span>GPT-4o mini</span>
+                            </div>
+                        </div>
+                        <p class="mt-3 text-xs text-slate-500 leading-relaxed border-t border-slate-800/60 pt-3">AES-256 encrypted at rest.<br>CLI: <span class="font-mono text-slate-400">ticketlens cloud-keys add groq &lt;key&gt;</span></p>
+                    </div>
+
                     <!-- CLI Access -->
                     <div class="tl-card">
                         <h2 class="text-sm font-semibold text-slate-300 uppercase tracking-wider mb-1">CLI Access</h2>
@@ -170,17 +190,6 @@
                                 Revoke
                             </button>
                         </div>
-                    </div>
-
-                    <!-- Supported providers reference -->
-                    <div class="rounded-xl border border-dashed border-slate-800 p-4">
-                        <p class="text-xs text-slate-500 mb-2.5 font-medium uppercase tracking-wider">Providers</p>
-                        <div class="space-y-1.5 text-xs text-slate-400">
-                            <p><span class="text-slate-300 font-mono">groq</span> — Llama 3.x, free</p>
-                            <p><span class="text-slate-300 font-mono">anthropic</span> — Claude Haiku / Sonnet</p>
-                            <p><span class="text-slate-300 font-mono">openai</span> — GPT-4o mini</p>
-                        </div>
-                        <p class="mt-2.5 text-xs text-slate-500 leading-relaxed">AES-256 encrypted at rest. CLI: <span class="font-mono text-slate-400">ticketlens cloud-keys add groq &lt;key&gt;</span></p>
                     </div>
 
                 </div>

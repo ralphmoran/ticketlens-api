@@ -151,8 +151,8 @@ async function testProvider(provider) {
         <!-- Two-column layout -->
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-            <!-- Left: AI Providers card -->
-            <div class="lg:col-span-2">
+            <!-- Left: AI Providers + CLI Access -->
+            <div class="lg:col-span-2 space-y-5">
                 <div class="tl-card tl-card--flush">
 
                     <!-- Card header -->
@@ -279,33 +279,6 @@ async function testProvider(provider) {
                         </p>
                     </div>
                 </div>
-            </div>
-
-            <!-- Right column -->
-            <div class="space-y-5">
-
-                <!-- Supported providers reference -->
-                <div class="tl-card tl-card--flush">
-                    <div class="flex items-center gap-3 px-5 py-3.5 border-b border-slate-800">
-                        <h2 class="text-sm font-medium text-slate-300">Supported Providers</h2>
-                    </div>
-                    <div class="p-5 space-y-3">
-                        <div v-for="p in [
-                            { name: 'groq',      desc: 'Llama 3.x',              note: 'free tier', noteClass: 'text-indigo-400' },
-                            { name: 'anthropic', desc: 'Claude Haiku / Sonnet',   note: null },
-                            { name: 'openai',    desc: 'GPT-4o mini',             note: null },
-                        ]" :key="p.name" class="flex items-start gap-3">
-                            <span class="font-mono text-xs text-slate-300 w-20 shrink-0 pt-0.5">{{ p.name }}</span>
-                            <span class="text-xs text-slate-400">
-                                {{ p.desc }}
-                                <span v-if="p.note" :class="['ml-1', p.noteClass]">— {{ p.note }}</span>
-                            </span>
-                        </div>
-                    </div>
-                    <div class="px-5 pb-4 border-t border-slate-800 pt-3">
-                        <p class="tl-hint">Keys are AES-256 encrypted at rest.</p>
-                    </div>
-                </div>
 
                 <!-- CLI Access -->
                 <div class="tl-card tl-card--flush">
@@ -357,6 +330,32 @@ async function testProvider(provider) {
                     </div>
                 </div>
 
+            </div>
+
+            <!-- Right column: Supported Providers reference note -->
+            <div>
+                <div class="rounded-xl border border-dashed border-slate-700/60 bg-slate-800/30 px-4 py-3.5">
+                    <div class="flex items-center gap-2 mb-3">
+                        <TlIcon name="info" class="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                        <span class="text-xs font-medium text-slate-400 uppercase tracking-wider">Supported Providers</span>
+                    </div>
+                    <div class="space-y-2">
+                        <div class="flex items-center gap-2">
+                            <span class="font-mono text-xs text-slate-300 w-[72px] shrink-0">groq</span>
+                            <span class="text-xs text-slate-500">Llama 3.x</span>
+                            <span class="text-xs text-indigo-400 ml-auto">free</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="font-mono text-xs text-slate-300 w-[72px] shrink-0">anthropic</span>
+                            <span class="text-xs text-slate-500">Claude Haiku / Sonnet</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="font-mono text-xs text-slate-300 w-[72px] shrink-0">openai</span>
+                            <span class="text-xs text-slate-500">GPT-4o mini</span>
+                        </div>
+                    </div>
+                    <p class="mt-3 pt-3 border-t border-slate-700/50 text-xs text-slate-600 leading-relaxed">Keys encrypted AES-256. CLI: <code class="text-slate-500">cloud-keys add groq &lt;key&gt;</code></p>
+                </div>
             </div>
 
         </div>

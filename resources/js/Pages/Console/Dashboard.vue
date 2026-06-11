@@ -3,16 +3,18 @@ import ConsoleLayout from '@/Layouts/ConsoleLayout.vue'
 import TlIcon from '@/components/TlIcon.vue'
 import TlChart from '@/components/TlChart.vue'
 import { usePermissions } from '@/composables/usePermissions'
-import { usePage } from '@inertiajs/vue3'
-import { computed } from 'vue'
+import { usePage, router } from '@inertiajs/vue3'
+import { computed, ref } from 'vue'
 import { Permission } from '@/permissions'
 
 defineOptions({ layout: ConsoleLayout })
 
 const props = defineProps({
-    stats:         { type: Object, default: () => ({}) },
-    ticket_trend:  { type: Array,  default: () => [] },
-    daily_urgency: { type: Array,  default: () => [] },
+    stats:             { type: Object, default: () => ({}) },
+    ticket_trend:      { type: Array,  default: () => [] },
+    daily_urgency:     { type: Array,  default: () => [] },
+    hour_distribution: { type: Array,  default: () => null },
+    day_of_week_dist:  { type: Array,  default: () => null },
 })
 
 const { can } = usePermissions()
@@ -20,6 +22,16 @@ const page = usePage()
 const user         = computed(() => page.props.auth?.user)
 const tier         = computed(() => user.value?.tier ?? 'free')
 const activeGrants = computed(() => page.props.auth?.activeGrants ?? [])
+const isPro        = computed(() => ['pro', 'team', 'owner'].includes(tier.value))
+
+// Period selector
+const period = ref(new URLSearchParams(window.location.search).get('period') ?? '30')
+const PERIODS = [{ value: '7', label: '7d' }, { value: '30', label: '30d' }, { value: '90', label: '90d' }]
+
+function selectPeriod(p) {
+    period.value = p
+    router.get('/console/dashboard', { period: p }, { preserveState: true, preserveScroll: true })
+}
 
 const pushesMonth    = computed(() => props.stats.pushes_this_month ?? '—')
 const activeTickets  = computed(() => props.stats.current_ticket_count ?? '—')
@@ -37,19 +49,38 @@ function timeAgo(iso) {
 
 const lastPushLabel = computed(() => timeAgo(props.stats.last_push))
 
-// Ticket trend (30-day) — Pro+ only, rendered when ticket_trend.length > 0
-const trendLabels   = computed(() => props.ticket_trend.map(d => d.date.slice(5))) // MM-DD
+// Ticket trend — Pro+ only
+const trendLabels   = computed(() => props.ticket_trend.map(d => d.date.slice(5)))
 const trendDatasets = computed(() => [
     { label: 'Active Tickets', data: props.ticket_trend.map(d => d.count), color: 'brand' },
 ])
 
-// Urgency trend (30-day) — Pro+ only
+// Urgency trend — Pro+ only
 const urgencyLabels   = computed(() => props.daily_urgency.map(d => d.date.slice(5)))
 const urgencyDatasets = computed(() => [
     { label: 'Needs Response', data: props.daily_urgency.map(d => d.needs_response), color: 'danger' },
     { label: 'Aging',          data: props.daily_urgency.map(d => d.aging),          color: 'warn' },
     { label: 'Clear',          data: props.daily_urgency.map(d => d.clear),          color: 'success' },
 ])
+
+// Hour-of-day distribution — Pro+ only (24 buckets, index = hour)
+const hourLabels   = computed(() => Array.from({ length: 24 }, (_, i) => `${i}h`))
+const hourDatasets = computed(() => [{
+    label: 'Pushes',
+    data:  props.hour_distribution ?? [],
+    color: 'info',
+}])
+
+// Day-of-week distribution — Pro+ only (7 buckets: Sun–Sat)
+const DOW_LABELS     = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+const dowLabels      = computed(() => DOW_LABELS)
+const dowDatasets    = computed(() => [{
+    label: 'Pushes',
+    data:  props.day_of_week_dist ?? [],
+    color: 'brand',
+    // dim weekend bars slightly
+    alphas: [0.45, 1, 1, 1, 1, 1, 0.45],
+}])
 </script>
 
 <template>
@@ -61,7 +92,17 @@ const urgencyDatasets = computed(() => [
                 <h1 class="tl-heading">Dashboard</h1>
                 <p class="tl-subtext">Welcome back, {{ user?.name?.split(' ')[0] }}.</p>
             </div>
-            <span class="tl-kbd tl-cap">{{ tier }}</span>
+            <div class="tl-row tl-row--gap-sm">
+                <div v-if="isPro" class="tl-seg">
+                    <button
+                        v-for="p in PERIODS" :key="p.value"
+                        class="tl-seg-btn"
+                        :class="{ 'tl-seg-btn--active': period === p.value }"
+                        @click="selectPeriod(p.value)"
+                    >{{ p.label }}</button>
+                </div>
+                <span class="tl-kbd tl-cap">{{ tier }}</span>
+            </div>
         </div>
 
         <!-- Trial notices -->
@@ -140,7 +181,7 @@ const urgencyDatasets = computed(() => [
             </div>
 
             <!-- Usage Analytics teaser (non-Pro) -->
-            <div v-if="!can(Permission.Export)" class="tl-card--teaser">
+            <div v-if="!isPro" class="tl-card--teaser">
                 <div>
                     <p class="tl-stat-label">Trend Charts</p>
                     <p class="tl-body--muted">Ticket trend charts available on Pro and above.</p>
@@ -160,9 +201,9 @@ const urgencyDatasets = computed(() => [
 
         </div>
 
-        <!-- Ticket trend (Pro+, 30-day area chart) -->
+        <!-- Ticket trend (Pro+) -->
         <div v-if="ticket_trend.length > 0" class="tl-card tl-card-gap">
-            <h2 class="tl-title tl-title--spaced">Ticket Load Trend — last 30 days</h2>
+            <h2 class="tl-title tl-title--spaced">Ticket Load Trend — last {{ period }} days</h2>
             <div class="tl-chart-frame">
                 <TlChart type="area" :labels="trendLabels" :datasets="trendDatasets" />
             </div>
@@ -171,15 +212,42 @@ const urgencyDatasets = computed(() => [
             </p>
         </div>
 
-        <!-- Urgency trend (Pro+, 30-day line chart) -->
+        <!-- Urgency trend (Pro+) -->
         <div v-if="daily_urgency.length > 0" class="tl-card tl-card-gap">
-            <h2 class="tl-title tl-title--spaced">Urgency Trend — last 30 days</h2>
+            <h2 class="tl-title tl-title--spaced">Urgency Trend — last {{ period }} days</h2>
             <div class="tl-chart-frame">
                 <TlChart type="line" :labels="urgencyLabels" :datasets="urgencyDatasets" legend="bottom" />
             </div>
             <p class="tl-card-footnote">
                 Daily breakdown of your ticket urgency flags. "Needs Response" means a teammate is waiting on you. Aim to keep that line at zero.
             </p>
+        </div>
+
+        <!-- Hour-of-day + day-of-week (Pro+) -->
+        <div v-if="hour_distribution" class="tl-grid-2 tl-card-gap">
+            <div class="tl-card tl-card-gap">
+                <h2 class="tl-title tl-title--spaced">Push Activity by Hour</h2>
+                <div class="tl-chart-frame">
+                    <TlChart type="bar" :labels="hourLabels" :datasets="hourDatasets" :legend="false" />
+                </div>
+                <p class="tl-card-footnote">When during the day you typically run triage.</p>
+            </div>
+            <div class="tl-card tl-card-gap">
+                <h2 class="tl-title tl-title--spaced">Push Activity by Day</h2>
+                <div class="tl-chart-frame">
+                    <TlChart type="bar" :labels="dowLabels" :datasets="dowDatasets" :legend="false" />
+                </div>
+                <p class="tl-card-footnote">Weekend bars dimmed — workday patterns visible at a glance.</p>
+            </div>
+        </div>
+
+        <!-- Free tier teaser for Pro charts -->
+        <div v-if="!isPro" class="tl-card tl-card--teaser tl-card-gap">
+            <div class="tl-stack--sm">
+                <p class="tl-title">Unlock Trend Charts &amp; Activity Patterns</p>
+                <p class="tl-body--muted">Pro includes ticket trend, urgency trend, push-time heatmaps, and day-of-week patterns. See exactly when and how your queue grows.</p>
+            </div>
+            <a href="#" class="tl-btn tl-btn--primary tl-btn--sm">Upgrade to Pro →</a>
         </div>
 
         <!-- Quick start (shown when no push history) -->

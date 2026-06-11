@@ -20,6 +20,7 @@ const props = defineProps({
     day_of_week_dist:  { type: Array,   default: () => [] },
     engagement_scores: { type: Array,   default: () => [] },
     ticket_load_trend: { type: Array,   default: () => [] },
+    workload_donut:    { type: Object,  default: () => ({ labels: [], data: [] }) },
 })
 
 // ── Owner picker ───────────────────────────────────────────────────────────
@@ -44,7 +45,19 @@ const pagedClients = computed(() => {
 watch(clientSearch, () => { clientPage.value = 1 })
 
 function selectManager(id) {
-    router.get('/console/admin/stats', { manager_id: id })
+    router.get('/console/admin/stats', { manager_id: id, period: period.value })
+}
+
+// ── Period selector ────────────────────────────────────────────────────────
+
+const period  = ref(new URLSearchParams(window.location.search).get('period') ?? '30')
+const PERIODS = [{ value: '7', label: '7d' }, { value: '30', label: '30d' }, { value: '90', label: '90d' }]
+
+function selectPeriod(p) {
+    period.value = p
+    const params = { period: p }
+    if (props.selected_manager) params.manager_id = props.selected_manager.id
+    router.get('/console/admin/stats', params, { preserveState: true, preserveScroll: true })
 }
 
 // ── Derived state ──────────────────────────────────────────────────────────
@@ -124,6 +137,9 @@ const trendDatasets = computed(() => {
 })
 const trendDisplayLabels = computed(() => trendLabels.value.map(d => d.slice(5)))
 const spanGapsOptions = { spanGaps: true }
+
+const donutDatasets = computed(() => [{ data: props.workload_donut.data }])
+const hasDonutData  = computed(() => props.workload_donut.data.some(v => v > 0))
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -225,6 +241,14 @@ function scoreClass(score) {
                     <span class="tl-hint">updated {{ timeAgo(last_updated) }}</span>
                 </p>
             </div>
+            <div class="tl-seg">
+                <button
+                    v-for="p in PERIODS" :key="p.value"
+                    class="tl-seg-btn"
+                    :class="{ 'tl-seg-btn--active': period === p.value }"
+                    @click="selectPeriod(p.value)"
+                >{{ p.label }}</button>
+            </div>
         </div>
 
         <!-- No-data empty state -->
@@ -242,7 +266,7 @@ function scoreClass(score) {
 
             <!-- Urgency trend (30-day line chart) -->
             <div class="tl-card tl-card-gap">
-                <h2 class="tl-title tl-title--spaced">Urgency Trend — last 30 days</h2>
+                <h2 class="tl-title tl-title--spaced">Urgency Trend — last {{ period }} days</h2>
                 <div class="tl-chart-frame">
                     <TlChart type="line" :labels="urgencyLabels" :datasets="urgencyDatasets" legend="bottom" />
                 </div>
@@ -251,15 +275,27 @@ function scoreClass(score) {
                 </p>
             </div>
 
-            <!-- Team urgency snapshot (stacked bar) -->
-            <div v-if="team_comparison.length > 1" class="tl-card tl-card-gap">
-                <h2 class="tl-title tl-title--spaced">Team Snapshot — current urgency by member</h2>
-                <div class="tl-chart-frame">
-                    <TlChart type="bar" :labels="teamBarLabels" :datasets="teamBarDatasets" :options="stackedOptions" legend="bottom" />
+            <!-- Team urgency snapshot (stacked bar) + workload donut -->
+            <div v-if="team_comparison.length > 1" class="tl-grid-2 tl-card-gap">
+                <div class="tl-card tl-card-gap">
+                    <h2 class="tl-title tl-title--spaced">Team Snapshot — urgency by member</h2>
+                    <div class="tl-chart-frame">
+                        <TlChart type="bar" :labels="teamBarLabels" :datasets="teamBarDatasets" :options="stackedOptions" legend="bottom" />
+                    </div>
+                    <p class="tl-card-footnote">
+                        Side-by-side urgency breakdown per team member from their most recent push.
+                    </p>
                 </div>
-                <p class="tl-card-footnote">
-                    Side-by-side urgency breakdown per team member from their most recent push. Useful for spotting who carries the highest "Needs Response" load or whose queue has stagnated.
-                </p>
+                <div class="tl-card tl-card-gap">
+                    <h2 class="tl-title tl-title--spaced">Workload Distribution</h2>
+                    <div class="tl-chart-frame">
+                        <TlChart v-if="hasDonutData" type="donut" :labels="workload_donut.labels" :datasets="donutDatasets" />
+                        <div v-else class="tl-chart-empty">No tickets in current window.</div>
+                    </div>
+                    <p class="tl-card-footnote">
+                        Current flag mix across all team members' latest pushes.
+                    </p>
+                </div>
             </div>
 
             <!-- Response-time placeholder -->
@@ -311,7 +347,7 @@ function scoreClass(score) {
             <!-- ── Engagement Leaderboard ──────────────────────────────── -->
             <div v-if="engagement_scores.length > 0" class="tl-card tl-card--flush tl-section-start">
                 <div class="tl-table-header">
-                    <h2 class="tl-title">Engagement Leaderboard — last 30 days</h2>
+                    <h2 class="tl-title">Engagement Leaderboard — last {{ period }} days</h2>
                 </div>
                 <div class="tl-table-scroll">
                     <table class="tl-table">
@@ -388,7 +424,7 @@ function scoreClass(score) {
 
             <!-- ── Ticket Load Trend (per member) ────────────────────────── -->
             <div v-if="ticket_load_trend.length > 0" class="tl-card tl-section-start tl-card-gap">
-                <h2 class="tl-title tl-title--spaced">Ticket Load — last 30 days</h2>
+                <h2 class="tl-title tl-title--spaced">Ticket Load — last {{ period }} days</h2>
                 <div class="tl-chart-frame">
                     <TlChart type="line" :labels="trendDisplayLabels" :datasets="trendDatasets" :options="spanGapsOptions" legend="bottom" />
                 </div>

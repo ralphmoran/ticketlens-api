@@ -7,10 +7,14 @@ import { formatDate } from '@/composables/useDateFormat'
 defineOptions({ layout: ConsoleLayout })
 
 const props = defineProps({
-    mrr:            { type: Number, required: true },
-    total_active:   { type: Number, required: true },
-    tier_breakdown: { type: Object, required: true },
-    recent_events:  { type: Array,  required: true },
+    mrr:                   { type: Number, required: true },
+    total_active:          { type: Number, required: true },
+    tier_breakdown:        { type: Object, required: true },
+    recent_events:         { type: Array,  required: true },
+    signups_per_week:      { type: Array,  default: () => [] },
+    push_volume_per_day:   { type: Array,  default: () => [] },
+    dau_wau_mau:           { type: Object, default: () => ({ dau: 0, wau: 0, mau: 0 }) },
+    top_teams_by_activity: { type: Array,  default: () => [] },
 })
 
 const conversionRate = computed(() => {
@@ -41,6 +45,14 @@ const tierDatasets = computed(() => [
     { label: 'Users', data: TIERS.map(t => props.tier_breakdown[t] ?? 0) },
 ])
 const hasTierData = computed(() => TIERS.some(t => (props.tier_breakdown[t] ?? 0) > 0))
+
+// Signups per week
+const signupLabels   = computed(() => props.signups_per_week.map(r => r.week.slice(5)))
+const signupDatasets = computed(() => [{ label: 'Signups', data: props.signups_per_week.map(r => r.count), color: 'success' }])
+
+// Push volume per day
+const pushVolLabels   = computed(() => props.push_volume_per_day.map(r => r.date.slice(5)))
+const pushVolDatasets = computed(() => [{ label: 'Pushes', data: props.push_volume_per_day.map(r => r.count), color: 'brand' }])
 </script>
 
 <template>
@@ -53,7 +65,26 @@ const hasTierData = computed(() => TIERS.some(t => (props.tier_breakdown[t] ?? 0
             </div>
         </div>
 
-        <!-- Top stat cards -->
+        <!-- DAU / WAU / MAU stat cards -->
+        <div class="tl-grid-3 tl-section-gap">
+            <div class="tl-stat-card">
+                <p class="tl-stat-label">DAU</p>
+                <p class="tl-stat-value">{{ dau_wau_mau.dau }}</p>
+                <p class="tl-hint">unique active users today</p>
+            </div>
+            <div class="tl-stat-card">
+                <p class="tl-stat-label">WAU</p>
+                <p class="tl-stat-value">{{ dau_wau_mau.wau }}</p>
+                <p class="tl-hint">unique active users this week</p>
+            </div>
+            <div class="tl-stat-card">
+                <p class="tl-stat-label">MAU</p>
+                <p class="tl-stat-value">{{ dau_wau_mau.mau }}</p>
+                <p class="tl-hint">unique active users this month</p>
+            </div>
+        </div>
+
+        <!-- Revenue stat cards -->
         <div class="tl-grid-3 tl-section-gap">
             <div class="tl-stat-card">
                 <p class="tl-stat-label">Monthly Recurring Revenue</p>
@@ -101,6 +132,43 @@ const hasTierData = computed(() => TIERS.some(t => (props.tier_breakdown[t] ?? 0
                     </div>
                 </div>
             </div>
+        </div>
+
+        <!-- Signups per week + Push volume per day -->
+        <div class="tl-grid-2 tl-section-gap">
+            <div class="tl-card tl-card-gap">
+                <h2 class="tl-title tl-title--spaced">Signups / Week</h2>
+                <div class="tl-chart-frame">
+                    <TlChart type="bar" :labels="signupLabels" :datasets="signupDatasets" :legend="false" />
+                </div>
+            </div>
+            <div class="tl-card tl-card-gap">
+                <h2 class="tl-title tl-title--spaced">Push Volume / Day — last 30d</h2>
+                <div class="tl-chart-frame">
+                    <TlChart type="bar" :labels="pushVolLabels" :datasets="pushVolDatasets" :legend="false" />
+                </div>
+            </div>
+        </div>
+
+        <!-- Top teams by activity -->
+        <div v-if="top_teams_by_activity.length > 0" class="tl-card tl-card--flush tl-section-gap">
+            <div class="tl-table-header">
+                <h2 class="tl-title">Top Teams by Activity (last 30d)</h2>
+            </div>
+            <table class="tl-table">
+                <thead>
+                    <tr class="tl-thead">
+                        <th class="tl-th tl-th--muted">Team</th>
+                        <th class="tl-th tl-th--muted">Pushes</th>
+                    </tr>
+                </thead>
+                <tbody class="tl-divide">
+                    <tr v-for="team in top_teams_by_activity" :key="team.group_id" class="tl-tr">
+                        <td class="tl-td">{{ team.group_name }}</td>
+                        <td class="tl-td tl-mono--xs">{{ team.push_count }}</td>
+                    </tr>
+                </tbody>
+            </table>
         </div>
 
         <!-- Recent events -->

@@ -13,24 +13,29 @@ use Inertia\Response;
 
 class StatsController
 {
+    private const ALLOWED_PERIODS = [7, 30, 90];
+
     public function index(Request $request): Response|RedirectResponse
     {
-        $user = $request->user();
+        $user   = $request->user();
+        $period = in_array((int) $request->query('period'), self::ALLOWED_PERIODS)
+            ? (int) $request->query('period')
+            : 30;
 
         if ($user->is_owner) {
-            return $this->ownerIndex($request);
+            return $this->ownerIndex($request, $period);
         }
 
         $group = $user->ownedGroup ?? $user->groups()->first();
         abort_unless($group !== null, 403, 'No team found.');
 
         return Inertia::render('Console/Admin/Stats', array_merge(
-            $this->computeData($group),
+            $this->computeData($group, $period),
             ['owner_mode' => false, 'clients' => [], 'selected_manager' => null],
         ));
     }
 
-    private function ownerIndex(Request $request): Response|RedirectResponse
+    private function ownerIndex(Request $request, int $period): Response|RedirectResponse
     {
         $clients = User::whereHas('ownedGroup')
             ->orderBy('name')
@@ -54,6 +59,7 @@ class StatsController
                 'day_of_week_dist'  => [],
                 'engagement_scores' => [],
                 'ticket_load_trend' => [],
+                'workload_donut'    => ['labels' => [], 'data' => []],
             ]);
         }
 
@@ -64,7 +70,7 @@ class StatsController
         }
 
         return Inertia::render('Console/Admin/Stats', array_merge(
-            $this->computeData($manager->ownedGroup),
+            $this->computeData($manager->ownedGroup, $period),
             [
                 'owner_mode'       => true,
                 'clients'          => $clients,
@@ -73,14 +79,14 @@ class StatsController
         ));
     }
 
-    private function computeData(Group $group): array
+    private function computeData(Group $group, int $period = 30): array
     {
         $members   = $group->members()->orderBy('users.name')->get(['users.id', 'users.name', 'users.email']);
         $memberIds = $members->pluck('id');
 
-        // Historical window: last 30 days, cap at 1000 rows
+        // Historical window: configurable period, cap at 1000 rows
         $historical = TriageSnapshot::whereIn('user_id', $memberIds)
-            ->where('captured_at', '>=', now()->subDays(30))
+            ->where('captured_at', '>=', now()->subDays($period))
             ->orderBy('captured_at')
             ->limit(1000)
             ->get(['user_id', 'profile', 'tickets', 'captured_at']);
@@ -219,6 +225,20 @@ class StatsController
             ];
         })->filter(fn ($row) => count($row['data']) > 0)->values();
 
+        // Workload donut: current flag distribution across all team members (latest snapshot per member)
+        $currentTickets = collect($latestByMember->flatten())
+            ->flatMap(fn ($s) => $s->tickets ?? []);
+
+        $workloadDonut = [
+            'labels' => ['Needs Response', 'Aging', 'Stale', 'Clear'],
+            'data'   => [
+                $currentTickets->filter(fn ($t) => in_array('needs-response', $t['flags'] ?? []))->count(),
+                $currentTickets->filter(fn ($t) => in_array('aging', $t['flags'] ?? []))->count(),
+                $currentTickets->filter(fn ($t) => in_array('stale', $t['flags'] ?? []))->count(),
+                $currentTickets->filter(fn ($t) => empty($t['flags']))->count(),
+            ],
+        ];
+
         return [
             'group_name'        => $group->name,
             'daily_urgency'     => $dailyUrgency,
@@ -229,6 +249,7 @@ class StatsController
             'day_of_week_dist'  => $dayOfWeekDist,
             'engagement_scores' => $engagementScores,
             'ticket_load_trend' => $ticketLoadTrend,
+            'workload_donut'    => $workloadDonut,
         ];
     }
 }

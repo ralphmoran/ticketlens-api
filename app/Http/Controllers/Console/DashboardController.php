@@ -10,21 +10,26 @@ use Inertia\Response;
 
 class DashboardController
 {
+    private const ALLOWED_PERIODS = [7, 30, 90];
+
     public function index(Request $request): Response
     {
-        $user = $request->user();
+        $user   = $request->user();
+        $period = in_array((int) $request->query('period'), self::ALLOWED_PERIODS)
+            ? (int) $request->query('period')
+            : 30;
 
         $snapshots = TriageSnapshot::where('user_id', $user->id)
             ->where('captured_at', '>=', now()->subDays(90))
             ->orderBy('captured_at')
             ->get(['ticket_count', 'captured_at']);
 
-        $monthStart   = now()->startOfMonth();
-        $pushesMonth  = $snapshots->filter(fn ($s) => $s->captured_at->gte($monthStart))->count();
-        $latestSnap   = $snapshots->last();
-        $currentLoad  = $latestSnap?->ticket_count ?? 0;
-        $lastPush     = $latestSnap?->captured_at?->toIso8601String();
-        $pushStreak   = $this->computeStreak($snapshots);
+        $monthStart  = now()->startOfMonth();
+        $pushesMonth = $snapshots->filter(fn ($s) => $s->captured_at->gte($monthStart))->count();
+        $latestSnap  = $snapshots->last();
+        $currentLoad = $latestSnap?->ticket_count ?? 0;
+        $lastPush    = $latestSnap?->captured_at?->toIso8601String();
+        $pushStreak  = $this->computeStreak($snapshots);
 
         $stats = [
             'pushes_this_month'    => $pushesMonth,
@@ -33,24 +38,25 @@ class DashboardController
             'last_push'            => $lastPush,
         ];
 
-        // Ticket trend (30d) — Pro, Team, and owner only
-        $ticketTrend = [];
+        $ticketTrend    = [];
+        $dailyUrgency   = [];
+        $hourDist       = null;
+        $dayOfWeekDist  = null;
+
         if (in_array($user->tier, ['pro', 'team', 'owner'])) {
+            $windowStart = now()->subDays($period);
+
             $ticketTrend = $snapshots
-                ->filter(fn ($s) => $s->captured_at->gte(now()->subDays(30)))
+                ->filter(fn ($s) => $s->captured_at->gte($windowStart))
                 ->map(fn ($s) => [
                     'date'  => $s->captured_at->toDateString(),
                     'count' => $s->ticket_count,
                 ])
                 ->values()
                 ->toArray();
-        }
 
-        // Personal urgency trend (30d) — Pro, Team, and owner only
-        $dailyUrgency = [];
-        if (in_array($user->tier, ['pro', 'team', 'owner'])) {
             $urgencySnaps = TriageSnapshot::where('user_id', $user->id)
-                ->where('captured_at', '>=', now()->subDays(30))
+                ->where('captured_at', '>=', $windowStart)
                 ->orderBy('captured_at')
                 ->limit(1000)
                 ->get(['profile', 'tickets', 'captured_at']);
@@ -58,7 +64,6 @@ class DashboardController
             $dailyUrgency = $urgencySnaps
                 ->groupBy(fn ($s) => $s->captured_at->toDateString())
                 ->map(function ($daySnaps, $date) {
-                    // Latest per profile within the day — avoids double-counting multiple pushes
                     $latest  = $daySnaps->sortByDesc('captured_at')->unique('profile');
                     $tickets = $latest->flatMap(fn ($s) => $s->tickets ?? []);
 
@@ -73,13 +78,30 @@ class DashboardController
                 ->sortKeys()
                 ->values()
                 ->toArray();
+
+            // Hour-of-day and day-of-week distributions — reuse $snapshots (90d window already loaded)
+            $hourBuckets = array_fill(0, 24, 0);
+            $dowBuckets  = array_fill(0, 7, 0);
+            foreach ($snapshots as $s) {
+                $hourBuckets[$s->captured_at->hour]++;
+                $dowBuckets[$s->captured_at->dayOfWeek]++;
+            }
+            $hourDist      = $hourBuckets;
+            $dayOfWeekDist = $dowBuckets;
         }
 
-        return Inertia::render('Console/Dashboard', [
+        $payload = [
             'stats'         => $stats,
             'ticket_trend'  => $ticketTrend,
             'daily_urgency' => $dailyUrgency,
-        ]);
+        ];
+
+        if ($hourDist !== null) {
+            $payload['hour_distribution'] = $hourDist;
+            $payload['day_of_week_dist']  = $dayOfWeekDist;
+        }
+
+        return Inertia::render('Console/Dashboard', $payload);
     }
 
     private function computeStreak($snapshots): int

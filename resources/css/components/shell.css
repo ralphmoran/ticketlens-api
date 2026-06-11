@@ -316,3 +316,7 @@
   .tl-icon-btn--danger { color: var(--tl-danger); }
   .tl-icon-btn--danger:hover { color: var(--tl-danger); background-color: var(--tl-danger-tint); }
 }
+
+@layer components {
+  .tl-avatar--xs { @apply w-6 h-6; font-size: 0.7rem; }
+}

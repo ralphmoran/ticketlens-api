@@ -116,3 +116,7 @@
 @layer components {
   .tl-badge--clamp { @apply truncate inline-block; max-width: 180px; }
 }
+
+@layer components {
+  .tl-badge--caps { @apply uppercase tracking-wide; }
+}

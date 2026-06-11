@@ -185,3 +185,40 @@
     filter: brightness(1.05);
   }
 }
+
+@layer components {
+  /* Transient state text colors for action buttons (test feedback) */
+  .tl-btn--state-ok  { color: var(--tl-success) !important; }
+  .tl-btn--state-err { color: var(--tl-danger) !important; }
+}
+
+@layer components {
+  /* Pagination page-number buttons */
+  .tl-page-btn {
+    @apply px-2.5 py-1.5 text-xs cursor-pointer;
+    border-radius: var(--tl-radius-sm);
+    border: 1px solid var(--tl-border);
+    background-color: var(--tl-card);
+    color: var(--tl-text-secondary);
+    transition: background-color var(--tl-transition), border-color var(--tl-transition), color var(--tl-transition);
+  }
+  .tl-page-btn:hover:not(:disabled):not(.tl-page-btn--active) {
+    background-color: var(--tl-surface-2);
+    border-color: var(--tl-border-strong);
+    color: var(--tl-text);
+  }
+  .tl-page-btn--active {
+    background-color: var(--tl-brand);
+    border-color: var(--tl-brand);
+    color: var(--tl-brand-fg);
+    font-weight: 500;
+  }
+  .tl-page-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+  .tl-page-ellipsis {
+    @apply px-1.5 py-1.5 text-xs select-none;
+    color: var(--tl-text-subtle);
+  }
+}

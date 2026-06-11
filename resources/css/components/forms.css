@@ -249,3 +249,41 @@
   .tl-token-reveal-body { @apply space-y-2 min-w-0 flex-1; }
   .tl-token-value { @apply flex-1 break-all; }
 }
+
+@layer components {
+  /* Small switch (inline table/list rows) */
+  .tl-switch--sm { @apply h-5 w-9; }
+  .tl-switch--sm > span { @apply h-3.5 w-3.5; }
+  .tl-switch--sm[aria-checked="true"] > span { transform: translateX(1.125rem); }
+
+  /* Scrollable bordered option list */
+  .tl-scroll-list {
+    @apply max-h-48 overflow-y-auto;
+    border: 1px solid var(--tl-border-strong);
+    border-radius: var(--tl-radius-sm);
+    background-color: var(--tl-input-bg);
+  }
+  .tl-scroll-list > :not(:last-child) { border-bottom: 1px solid var(--tl-border); }
+  .tl-scroll-list-empty { @apply px-3 py-3 text-xs text-center; color: var(--tl-text-subtle); }
+
+  /* Visual checkbox (custom multi-select rows) */
+  .tl-checkbox-visual {
+    @apply w-4 h-4 flex items-center justify-center shrink-0;
+    border: 2px solid var(--tl-border-strong);
+    border-radius: var(--tl-radius-sm);
+    transition: background-color var(--tl-transition), border-color var(--tl-transition);
+  }
+  .tl-checkbox-visual--checked {
+    background-color: var(--tl-brand);
+    border-color: var(--tl-brand);
+    color: var(--tl-brand-fg);
+  }
+}
+
+@layer components {
+  .tl-setting-row { @apply py-4 space-y-3; }
+  .tl-rule-row { @apply py-3; }
+  .tl-input--cooldown { @apply w-20 px-2; }
+  .tl-form-label-col { @apply text-xs w-24 shrink-0; color: var(--tl-text-muted); }
+  .tl-form-indent { padding-left: 6.5rem; }
+}

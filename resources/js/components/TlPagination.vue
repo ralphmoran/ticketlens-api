@@ -43,14 +43,14 @@ function buildPageWindow(current, total) {
 </script>
 
 <template>
-    <div class="mt-4 flex flex-wrap items-center justify-between gap-3">
+    <div class="tl-pager tl-row--wrap">
         <!-- Left: record count + per-page selector -->
-        <div class="flex items-center gap-3 text-xs text-slate-500">
+        <div class="tl-row tl-hint">
             <p>
                 Showing
-                <span class="font-medium text-slate-300">{{ formatNum(paginator.from) }}</span>–<span class="font-medium text-slate-300">{{ formatNum(paginator.to) }}</span>
+                <span class="tl-value">{{ formatNum(paginator.from) }}</span>–<span class="tl-value">{{ formatNum(paginator.to) }}</span>
                 of
-                <span class="font-medium text-slate-300">{{ formatNum(paginator.total) }}</span>
+                <span class="tl-value">{{ formatNum(paginator.total) }}</span>
                 records
             </p>
             <select
@@ -70,41 +70,33 @@ function buildPageWindow(current, total) {
         <nav
             v-if="paginator.last_page > 1"
             aria-label="Table pagination"
-            class="flex items-center gap-1"
+            class="tl-pager-nav"
         >
             <button
                 @click="emit('page', paginator.current_page - 1)"
                 :disabled="!paginator.prev_page_url"
-                class="px-2.5 py-1.5 rounded text-xs transition"
-                :class="paginator.prev_page_url
-                    ? 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-                    : 'bg-slate-900 text-slate-600 cursor-not-allowed'"
+                class="tl-page-btn"
             >‹ Prev</button>
 
             <template v-for="(item, idx) in buildPageWindow(paginator.current_page, paginator.last_page)" :key="idx">
                 <span
                     v-if="item === '...'"
-                    class="px-1.5 py-1.5 text-xs text-slate-600 select-none"
+                    class="tl-page-ellipsis"
                     aria-hidden="true"
                 >…</span>
                 <button
                     v-else
                     @click="emit('page', item)"
                     :aria-current="item === paginator.current_page ? 'page' : undefined"
-                    class="px-2.5 py-1.5 rounded text-xs transition"
-                    :class="item === paginator.current_page
-                        ? 'bg-indigo-600 text-white'
-                        : 'bg-slate-800 text-slate-300 hover:bg-slate-700'"
+                    class="tl-page-btn"
+                    :class="item === paginator.current_page ? 'tl-page-btn--active' : ''"
                 >{{ item }}</button>
             </template>
 
             <button
                 @click="emit('page', paginator.current_page + 1)"
                 :disabled="!paginator.next_page_url"
-                class="px-2.5 py-1.5 rounded text-xs transition"
-                :class="paginator.next_page_url
-                    ? 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-                    : 'bg-slate-900 text-slate-600 cursor-not-allowed'"
+                class="tl-page-btn"
             >Next ›</button>
         </nav>
     </div>

@@ -90,9 +90,9 @@ function testLabel(state) {
 }
 
 function testClass(state) {
-    if (state === 'ok')    return 'tl-btn tl-btn--secondary text-xs shrink-0 !text-emerald-400'
-    if (state === 'error') return 'tl-btn tl-btn--secondary text-xs shrink-0 !text-red-400'
-    return 'tl-btn tl-btn--secondary text-xs shrink-0'
+    if (state === 'ok')    return 'tl-btn tl-btn--secondary tl-btn--sm tl-btn--state-ok'
+    if (state === 'error') return 'tl-btn tl-btn--secondary tl-btn--sm tl-btn--state-err'
+    return 'tl-btn tl-btn--secondary tl-btn--sm'
 }
 
 // ── Alert channel picker ──────────────────────────────────────────────────────
@@ -301,7 +301,7 @@ function goRulesPage(page) {
 </script>
 
 <template>
-    <div class="px-4 sm:px-6 lg:px-8 py-8 max-w-3xl mx-auto space-y-6">
+    <div class="tl-page tl-page--narrow tl-stack">
 
         <div>
             <h1 class="tl-heading">Alerts</h1>
@@ -309,11 +309,11 @@ function goRulesPage(page) {
         </div>
 
         <!-- No group (owner without ?group_id) -->
-        <div v-if="!group" class="tl-card p-8 text-center">
-            <TlIcon name="bell" class="w-8 h-8 mx-auto mb-3 text-slate-600" />
-            <p class="text-sm text-slate-400">
+        <div v-if="!group" class="tl-empty-state">
+            <TlIcon name="bell" class="tl-empty-icon" />
+            <p class="tl-body--muted">
                 Select a client team from the
-                <a href="/console/owner/clients" class="text-indigo-400 hover:underline">Clients</a>
+                <a href="/console/owner/clients" class="tl-link tl-link--md">Clients</a>
                 page to manage their alerts.
             </p>
         </div>
@@ -321,69 +321,69 @@ function goRulesPage(page) {
         <template v-else>
 
             <!-- ── Standard alerts ─────────────────────────────────────────── -->
-            <div class="tl-card p-6 space-y-5">
-                <div class="flex items-start gap-3">
-                    <div class="w-10 h-10 rounded-lg bg-indigo-600/30 flex items-center justify-center shrink-0 mt-0.5">
-                        <TlIcon name="bell" class="w-5 h-5 text-indigo-400" />
+            <div class="tl-card tl-card--lg tl-form-stack">
+                <div class="tl-row tl-row--top">
+                    <div class="tl-section-icon">
+                        <TlIcon name="bell" class="tl-ic" />
                     </div>
-                    <div class="flex-1 min-w-0">
-                        <h2 class="text-sm font-semibold text-white">Channel alerts</h2>
+                    <div class="tl-card-head-body">
+                        <h2 class="tl-title">Channel alerts</h2>
 
                         <!-- Channel + Change button -->
-                        <div v-if="!showChannelPicker" class="flex items-center gap-2 mt-0.5 flex-wrap">
-                            <p class="text-xs text-slate-400">
+                        <div v-if="!showChannelPicker" class="tl-row tl-row--wrap tl-row--tight">
+                            <p class="tl-hint">
                                 Posted to
-                                <span v-if="localChannel" class="text-indigo-300 font-mono">#{{ localChannel.name }}</span>
-                                <span v-else class="text-red-400">no channel connected</span>
+                                <span v-if="localChannel" class="tl-code-inline">#{{ localChannel.name }}</span>
+                                <span v-else class="tl-error">no channel connected</span>
                             </p>
                             <button
                                 type="button"
                                 @click="openChannelPicker"
-                                class="text-xs text-slate-500 hover:text-indigo-400 transition-colors underline underline-offset-2"
+                                class="tl-link tl-link--underline"
                             >
                                 Change
                             </button>
                         </div>
 
                         <!-- Inline channel picker -->
-                        <div v-else class="mt-2 space-y-2">
-                            <div class="flex items-center gap-3">
-                                <span class="text-xs text-slate-400">Select a channel:</span>
+                        <div v-else class="tl-stack--sm tl-form-actions">
+                            <div class="tl-row">
+                                <span class="tl-hint">Select a channel:</span>
                                 <button
                                     type="button"
                                     @click="showChannelPicker = false; alertChannelSearch = ''"
-                                    class="text-xs text-slate-500 hover:text-slate-300 transition-colors"
+                                    class="tl-btn-ghost tl-btn-ghost--neutral"
                                 >
                                     Cancel
                                 </button>
                             </div>
-                            <p v-if="alertChannelsError" class="text-xs text-red-400">{{ alertChannelsError }}</p>
-                            <p v-if="alertChannelsLoading" class="text-xs text-slate-500">Loading channels…</p>
-                            <div v-else-if="alertChannels.length" class="space-y-1.5">
+                            <p v-if="alertChannelsError" class="tl-error">{{ alertChannelsError }}</p>
+                            <p v-if="alertChannelsLoading" class="tl-hint">Loading channels…</p>
+                            <div v-else-if="alertChannels.length" class="tl-stack--sm">
                                 <input
                                     v-model="alertChannelSearch"
                                     type="text"
                                     placeholder="Search channels…"
-                                    class="tl-input w-full text-xs"
+                                    class="tl-input tl-input--sm tl-input--full"
                                 />
-                                <div class="max-h-44 overflow-y-auto rounded-md border border-slate-700 divide-y divide-slate-700/50">
+                                <div class="tl-scroll-list">
                                     <button
                                         v-for="ch in filteredAlertChannels"
                                         :key="ch.id"
                                         type="button"
                                         :disabled="savingChannel"
                                         @click="selectAlertChannel(ch)"
-                                        class="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-slate-700/60 transition-colors disabled:opacity-50"
-                                        :class="localChannel?.id === ch.id ? 'bg-slate-700/40' : ''"
+                                        class="tl-combo-item tl-row"
+                                        :class="localChannel?.id === ch.id ? 'tl-combo-item--active' : ''"
                                     >
-                                        <span class="text-xs text-slate-200 font-mono flex-1">#{{ ch.name }}</span>
-                                        <span v-if="ch.is_private" class="text-xs text-slate-500">private</span>
-                                        <TlIcon v-if="localChannel?.id === ch.id" name="check" class="w-3 h-3 text-indigo-400 shrink-0" />
+                                        <span class="tl-mono--xs tl-banner-fill">#{{ ch.name }}</span>
+                                        <span v-if="ch.is_private" class="tl-hint">private</span>
+                                        <TlIcon v-if="localChannel?.id === ch.id" name="check" class="tl-ic tl-ic--xs" />
                                     </button>
-                                    <p v-if="filteredAlertChannels.length === 0" class="px-3 py-2 text-xs text-slate-500 text-center">
+                                    <p v-if="filteredAlertChannels.length === 0" class="tl-scroll-list-empty">
                                         No channels match "{{ alertChannelSearch }}"
                                     </p>
-                                    <p v-else-if="alertChannelsOverflow > 0" class="px-3 py-1.5 text-xs text-slate-500 text-center border-t border-slate-700/50">
+                                    <p v-else-if="alertChannelsOverflow > 0" class="tl-scroll-list-empty">
                                         {{ alertChannelsOverflow }} more — type to narrow
                                     </p>
                                 </div>
@@ -392,14 +392,14 @@ function goRulesPage(page) {
                     </div>
                 </div>
 
-                <div class="divide-y divide-slate-700/50">
+                <div class="tl-divide">
 
                     <!-- Needs-response row -->
-                    <div class="py-4 space-y-3">
-                        <div class="flex items-start justify-between gap-4">
+                    <div class="tl-setting-row">
+                        <div class="tl-row tl-row--between tl-row--top">
                             <div>
-                                <p class="text-sm font-medium text-slate-200">Needs-response alert</p>
-                                <p class="text-xs text-slate-500 mt-0.5">Fires when a ticket has been waiting for a reply too long.</p>
+                                <p class="tl-toggle-row-title">Needs-response alert</p>
+                                <p class="tl-hint">Fires when a ticket has been waiting for a reply too long.</p>
                             </div>
                             <button
                                 type="button"
@@ -407,26 +407,22 @@ function goRulesPage(page) {
                                 :aria-checked="nrEnabled"
                                 :disabled="nrSaving"
                                 @click="toggleNeedsResponse"
-                                class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-slate-900 disabled:opacity-50"
-                                :class="nrEnabled ? 'bg-indigo-600' : 'bg-slate-700'"
+                                class="tl-switch"
                             >
-                                <span
-                                    class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
-                                    :class="nrEnabled ? 'translate-x-5' : 'translate-x-0'"
-                                />
+                                <span />
                             </button>
                         </div>
-                        <div class="flex items-center gap-2">
-                            <label class="text-xs text-slate-400 shrink-0">Cooldown</label>
+                        <div class="tl-row">
+                            <label class="tl-hint-inline tl-body--muted">Cooldown</label>
                             <input
                                 v-model.number="nrCooldown"
                                 type="number"
                                 min="1"
                                 max="720"
-                                class="tl-input w-20 text-sm py-1 px-2"
+                                class="tl-input tl-input--sm tl-input--cooldown"
                             />
-                            <span class="text-xs text-slate-400">hours</span>
-                            <div class="ml-auto flex items-center gap-2">
+                            <span class="tl-hint-inline tl-body--muted">hours</span>
+                            <div class="tl-push-end tl-row">
                                 <button
                                     type="button"
                                     :disabled="alertTestState['needs-response'] === 'pending'"
@@ -439,9 +435,9 @@ function goRulesPage(page) {
                                     type="button"
                                     :disabled="nrSaving"
                                     @click="saveNeedsResponse"
-                                    class="tl-btn tl-btn--secondary text-xs disabled:opacity-50"
+                                    class="tl-btn tl-btn--secondary tl-btn--sm"
                                 >
-                                    <TlIcon :name="nrSaving ? 'spinner' : 'check'" class="w-3.5 h-3.5" />
+                                    <TlIcon :name="nrSaving ? 'spinner' : 'check'" class="tl-ic tl-ic--sm" :class="{ 'tl-spin': nrSaving }" />
                                     {{ nrSaving ? 'Saving…' : 'Save' }}
                                 </button>
                             </div>
@@ -449,11 +445,11 @@ function goRulesPage(page) {
                     </div>
 
                     <!-- Aging row -->
-                    <div class="py-4 space-y-3">
-                        <div class="flex items-start justify-between gap-4">
+                    <div class="tl-setting-row">
+                        <div class="tl-row tl-row--between tl-row--top">
                             <div>
-                                <p class="text-sm font-medium text-slate-200">Aging ticket alert</p>
-                                <p class="text-xs text-slate-500 mt-0.5">Fires when a ticket has stalled without movement.</p>
+                                <p class="tl-toggle-row-title">Aging ticket alert</p>
+                                <p class="tl-hint">Fires when a ticket has stalled without movement.</p>
                             </div>
                             <button
                                 type="button"
@@ -461,26 +457,22 @@ function goRulesPage(page) {
                                 :aria-checked="agEnabled"
                                 :disabled="agSaving"
                                 @click="toggleAging"
-                                class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-slate-900 disabled:opacity-50"
-                                :class="agEnabled ? 'bg-indigo-600' : 'bg-slate-700'"
+                                class="tl-switch"
                             >
-                                <span
-                                    class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
-                                    :class="agEnabled ? 'translate-x-5' : 'translate-x-0'"
-                                />
+                                <span />
                             </button>
                         </div>
-                        <div class="flex items-center gap-2">
-                            <label class="text-xs text-slate-400 shrink-0">Cooldown</label>
+                        <div class="tl-row">
+                            <label class="tl-hint-inline tl-body--muted">Cooldown</label>
                             <input
                                 v-model.number="agCooldown"
                                 type="number"
                                 min="1"
                                 max="720"
-                                class="tl-input w-20 text-sm py-1 px-2"
+                                class="tl-input tl-input--sm tl-input--cooldown"
                             />
-                            <span class="text-xs text-slate-400">hours</span>
-                            <div class="ml-auto flex items-center gap-2">
+                            <span class="tl-hint-inline tl-body--muted">hours</span>
+                            <div class="tl-push-end tl-row">
                                 <button
                                     type="button"
                                     :disabled="alertTestState['aging'] === 'pending'"
@@ -493,9 +485,9 @@ function goRulesPage(page) {
                                     type="button"
                                     :disabled="agSaving"
                                     @click="saveAging"
-                                    class="tl-btn tl-btn--secondary text-xs disabled:opacity-50"
+                                    class="tl-btn tl-btn--secondary tl-btn--sm"
                                 >
-                                    <TlIcon :name="agSaving ? 'spinner' : 'check'" class="w-3.5 h-3.5" />
+                                    <TlIcon :name="agSaving ? 'spinner' : 'check'" class="tl-ic tl-ic--sm" :class="{ 'tl-spin': agSaving }" />
                                     {{ agSaving ? 'Saving…' : 'Save' }}
                                 </button>
                             </div>
@@ -503,11 +495,11 @@ function goRulesPage(page) {
                     </div>
 
                     <!-- Compliance gap row -->
-                    <div class="py-4 space-y-3">
-                        <div class="flex items-start justify-between gap-4">
+                    <div class="tl-setting-row">
+                        <div class="tl-row tl-row--between tl-row--top">
                             <div>
-                                <p class="text-sm font-medium text-slate-200">Compliance gap alert</p>
-                                <p class="text-xs text-slate-500 mt-0.5">Fires when a ticket is marked Done but has incomplete requirements.</p>
+                                <p class="tl-toggle-row-title">Compliance gap alert</p>
+                                <p class="tl-hint">Fires when a ticket is marked Done but has incomplete requirements.</p>
                             </div>
                             <button
                                 type="button"
@@ -515,26 +507,22 @@ function goRulesPage(page) {
                                 :aria-checked="cgEnabled"
                                 :disabled="cgSaving"
                                 @click="toggleComplianceGap"
-                                class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-slate-900 disabled:opacity-50"
-                                :class="cgEnabled ? 'bg-indigo-600' : 'bg-slate-700'"
+                                class="tl-switch"
                             >
-                                <span
-                                    class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
-                                    :class="cgEnabled ? 'translate-x-5' : 'translate-x-0'"
-                                />
+                                <span />
                             </button>
                         </div>
-                        <div class="flex items-center gap-2">
-                            <label class="text-xs text-slate-400 shrink-0">Cooldown</label>
+                        <div class="tl-row">
+                            <label class="tl-hint-inline tl-body--muted">Cooldown</label>
                             <input
                                 v-model.number="cgCooldown"
                                 type="number"
                                 min="1"
                                 max="720"
-                                class="tl-input w-20 text-sm py-1 px-2"
+                                class="tl-input tl-input--sm tl-input--cooldown"
                             />
-                            <span class="text-xs text-slate-400">hours</span>
-                            <div class="ml-auto flex items-center gap-2">
+                            <span class="tl-hint-inline tl-body--muted">hours</span>
+                            <div class="tl-push-end tl-row">
                                 <button
                                     type="button"
                                     :disabled="alertTestState['compliance-gap'] === 'pending'"
@@ -547,9 +535,9 @@ function goRulesPage(page) {
                                     type="button"
                                     :disabled="cgSaving"
                                     @click="saveComplianceGap"
-                                    class="tl-btn tl-btn--secondary text-xs disabled:opacity-50"
+                                    class="tl-btn tl-btn--secondary tl-btn--sm"
                                 >
-                                    <TlIcon :name="cgSaving ? 'spinner' : 'check'" class="w-3.5 h-3.5" />
+                                    <TlIcon :name="cgSaving ? 'spinner' : 'check'" class="tl-ic tl-ic--sm" :class="{ 'tl-spin': cgSaving }" />
                                     {{ cgSaving ? 'Saving…' : 'Save' }}
                                 </button>
                             </div>
@@ -560,45 +548,45 @@ function goRulesPage(page) {
             </div>
 
             <!-- ── Custom alerts ───────────────────────────────────────────── -->
-            <div class="tl-card p-6 space-y-4">
-                <div class="flex items-center justify-between">
-                    <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 rounded-lg bg-slate-700/60 flex items-center justify-center shrink-0">
-                            <TlIcon name="user-group" class="w-5 h-5 text-slate-400" />
+            <div class="tl-card tl-card--lg tl-form-stack">
+                <div class="tl-row tl-row--between">
+                    <div class="tl-row">
+                        <div class="tl-section-icon tl-section-icon--info">
+                            <TlIcon name="user-group" class="tl-ic" />
                         </div>
                         <div>
-                            <h2 class="text-sm font-semibold text-white">Custom alerts</h2>
-                            <p class="text-xs text-slate-400">DM specific team members when their tickets need attention</p>
+                            <h2 class="tl-title">Custom alerts</h2>
+                            <p class="tl-hint">DM specific team members when their tickets need attention</p>
                         </div>
                     </div>
                     <button
                         v-if="!showAddForm"
                         type="button"
                         @click="showAddForm = true"
-                        class="tl-btn tl-btn--secondary text-xs shrink-0"
+                        class="tl-btn tl-btn--secondary tl-btn--sm"
                     >
-                        <TlIcon name="plus" class="w-3.5 h-3.5" />
+                        <TlIcon name="plus" class="tl-ic tl-ic--sm" />
                         Add alert
                     </button>
                 </div>
 
                 <!-- Existing rules list -->
-                <div v-if="rules.data.length" class="divide-y divide-slate-700/50">
+                <div v-if="rules.data.length" class="tl-divide">
                     <div
                         v-for="rule in rules.data"
                         :key="rule.id"
-                        class="flex items-center gap-3 py-3"
+                        class="tl-row tl-rule-row"
                     >
                         <!-- Integration badge -->
-                        <span class="tl-badge tl-badge--neutral text-xs uppercase tracking-wide shrink-0">
+                        <span class="tl-badge tl-badge--neutral tl-badge--caps">
                             {{ rule.integration }}
                         </span>
                         <!-- Type badge -->
-                        <span class="tl-badge tl-badge--neutral text-xs shrink-0">
+                        <span class="tl-badge tl-badge--neutral">
                             {{ { needs_response: 'Needs response', aging: 'Aging', compliance_gap: 'Compliance gap' }[rule.alert_type] ?? rule.alert_type }}
                         </span>
                         <!-- Label -->
-                        <span class="text-sm text-slate-200 flex-1 truncate">{{ rule.target_label }}</span>
+                        <span class="tl-body tl-banner-fill">{{ rule.target_label }}</span>
                         <!-- Test -->
                         <button
                             type="button"
@@ -614,54 +602,51 @@ function goRulesPage(page) {
                             role="switch"
                             :aria-checked="rule.enabled"
                             @click="toggleRule(rule)"
-                            class="relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-slate-900"
-                            :class="rule.enabled ? 'bg-indigo-600' : 'bg-slate-700'"
+                            class="tl-switch tl-switch--sm"
                         >
-                            <span
-                                class="pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
-                                :class="rule.enabled ? 'translate-x-4' : 'translate-x-0'"
-                            />
+                            <span />
                         </button>
                         <!-- Delete -->
                         <button
                             type="button"
                             @click="destroyRule(rule)"
-                            class="tl-btn tl-btn--danger-ghost text-xs shrink-0"
+                            class="tl-icon-btn tl-icon-btn--snug tl-icon-btn--danger"
+                            title="Remove rule"
                         >
-                            <TlIcon name="trash" class="w-3.5 h-3.5" />
+                            <TlIcon name="trash" class="tl-ic tl-ic--sm" />
                         </button>
                     </div>
                 </div>
 
                 <!-- Rules pagination -->
-                <div v-if="rules.last_page > 1" class="flex items-center justify-between pt-3 border-t border-slate-700/50">
+                <div v-if="rules.last_page > 1" class="tl-pager tl-card-actions">
                     <button
                         type="button"
                         :disabled="rules.current_page === 1"
                         @click="goRulesPage(rules.current_page - 1)"
-                        class="tl-btn tl-btn--ghost text-xs disabled:opacity-40"
+                        class="tl-btn tl-btn--secondary tl-btn--sm"
                     >← Prev</button>
-                    <span class="text-xs text-slate-400">Page {{ rules.current_page }} of {{ rules.last_page }}</span>
+                    <span class="tl-pager-label">Page {{ rules.current_page }} of {{ rules.last_page }}</span>
                     <button
                         type="button"
                         :disabled="rules.current_page === rules.last_page"
                         @click="goRulesPage(rules.current_page + 1)"
-                        class="tl-btn tl-btn--ghost text-xs disabled:opacity-40"
+                        class="tl-btn tl-btn--secondary tl-btn--sm"
                     >Next →</button>
                 </div>
 
-                <p v-else-if="!showAddForm && !rules.data.length" class="text-xs text-slate-500 py-2">
+                <p v-else-if="!showAddForm && !rules.data.length" class="tl-hint">
                     No custom alerts yet. Add one to DM team members directly when their tickets flag.
                 </p>
 
                 <!-- Add form -->
-                <div v-if="showAddForm" class="border border-slate-700 rounded-lg p-4 space-y-4 bg-slate-800/50">
-                    <p class="text-xs font-medium text-slate-300 uppercase tracking-wider">New custom alert</p>
+                <div v-if="showAddForm" class="tl-info-box tl-form-stack">
+                    <p class="tl-label">New custom alert</p>
 
                     <!-- Alert type -->
-                    <div class="flex items-center gap-3">
-                        <label class="text-xs text-slate-400 w-24 shrink-0">Alert type</label>
-                        <select v-model="newRuleType" class="tl-input flex-1 text-sm">
+                    <div class="tl-row">
+                        <label class="tl-form-label-col">Alert type</label>
+                        <select v-model="newRuleType" class="tl-select tl-btn--grow">
                             <option value="needs_response">Needs-response</option>
                             <option value="aging">Aging ticket</option>
                             <option value="compliance_gap">Compliance gap</option>
@@ -670,92 +655,90 @@ function goRulesPage(page) {
 
                     <!-- Member picker -->
                     <div class="space-y-2">
-                        <div class="flex items-center gap-2">
-                            <label class="text-xs text-slate-400 w-24 shrink-0">Members</label>
+                        <div class="tl-row">
+                            <label class="tl-form-label-col">Members</label>
                             <button
                                 type="button"
                                 :disabled="membersLoading"
                                 @click="fetchMembers"
-                                class="tl-btn tl-btn--secondary text-xs"
+                                class="tl-btn tl-btn--secondary tl-btn--sm"
                             >
-                                <TlIcon :name="membersLoading ? 'spinner' : 'refresh'" class="w-3.5 h-3.5" />
+                                <TlIcon :name="membersLoading ? 'spinner' : 'refresh'" class="tl-ic tl-ic--sm" :class="{ 'tl-spin': membersLoading }" />
                                 {{ membersLoading ? 'Loading…' : (members.length ? 'Refresh' : 'Load members') }}
                             </button>
                         </div>
 
-                        <p v-if="membersError" class="text-xs text-red-400 pl-[6.5rem]">{{ membersError }}</p>
+                        <p v-if="membersError" class="tl-error tl-form-indent">{{ membersError }}</p>
 
-                        <div v-if="members.length" class="pl-[6.5rem] space-y-2">
+                        <div v-if="members.length" class="tl-form-indent tl-stack--sm">
                             <input
                                 v-model="memberSearch"
                                 type="text"
                                 placeholder="Search members…"
-                                class="tl-input w-full text-sm"
+                                class="tl-input tl-input--sm tl-input--full"
                             />
-                            <div class="max-h-48 overflow-y-auto rounded-md border border-slate-700 divide-y divide-slate-700/50">
+                            <div class="tl-scroll-list">
                                 <div
                                     v-for="member in filteredMembers"
                                     :key="member.id"
                                     @click="toggleMember(member.id)"
-                                    class="flex items-center gap-3 px-3 py-2 cursor-pointer hover:bg-slate-700/60 transition-colors"
+                                    class="tl-combo-item tl-row"
                                 >
                                     <!-- Avatar -->
                                     <img
                                         v-if="member.avatar"
                                         :src="member.avatar"
                                         :alt="member.name"
-                                        class="w-6 h-6 rounded-full shrink-0"
+                                        class="tl-avatar tl-avatar--xs"
                                     />
                                     <div
                                         v-else
-                                        class="w-6 h-6 rounded-full bg-slate-600 flex items-center justify-center text-xs text-slate-300 shrink-0"
+                                        class="tl-avatar tl-avatar--xs"
                                     >
                                         {{ (member.name || member.real_name || '?')[0].toUpperCase() }}
                                     </div>
                                     <!-- Name -->
-                                    <span class="text-sm text-slate-200 flex-1">{{ member.name }}</span>
-                                    <span v-if="member.real_name && member.real_name !== member.name" class="text-xs text-slate-500">
+                                    <span class="tl-body tl-banner-fill">{{ member.name }}</span>
+                                    <span v-if="member.real_name && member.real_name !== member.name" class="tl-hint">
                                         {{ member.real_name }}
                                     </span>
                                     <!-- Checkbox -->
                                     <div
-                                        class="w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 transition-colors"
-                                        :class="isMemberSelected(member.id)
-                                            ? 'bg-indigo-600 border-indigo-600'
-                                            : 'border-slate-600'"
+                                        class="tl-checkbox-visual"
+                                        :class="isMemberSelected(member.id) ? 'tl-checkbox-visual--checked' : ''"
                                     >
                                         <TlIcon
                                             v-if="isMemberSelected(member.id)"
                                             name="check"
-                                            class="w-2.5 h-2.5 text-white"
+                                            class="tl-ic tl-ic--xs"
                                         />
                                     </div>
                                 </div>
-                                <p v-if="filteredMembers.length === 0" class="px-3 py-3 text-xs text-slate-500 text-center">
+                                <p v-if="filteredMembers.length === 0" class="tl-scroll-list-empty">
                                     No members match "{{ memberSearch }}"
                                 </p>
                             </div>
-                            <p class="text-xs text-slate-500">{{ selectedCount }} selected</p>
+                            <p class="tl-hint">{{ selectedCount }} selected</p>
                         </div>
                     </div>
 
                     <!-- Actions -->
-                    <div class="flex items-center gap-2 pt-1">
+                    <div class="tl-row tl-form-actions">
                         <button
                             type="button"
                             :disabled="addingRules || selectedCount === 0"
                             @click="addRules"
-                            class="tl-btn tl-btn--primary text-sm disabled:opacity-50"
+                            class="tl-btn tl-btn--primary"
                         >
-                            <TlIcon :name="addingRules ? 'spinner' : 'check'" class="w-3.5 h-3.5" />
+                            <TlIcon :name="addingRules ? 'spinner' : 'check'" class="tl-ic tl-ic--sm" :class="{ 'tl-spin': addingRules }" />
                             {{ addingRules ? 'Adding…' : `Add ${selectedCount || ''} alert${selectedCount !== 1 ? 's' : ''}` }}
                         </button>
                         <button
                             type="button"
                             @click="cancelAdd"
-                            class="tl-btn tl-btn--secondary text-sm"
+                            class="tl-btn tl-btn--secondary"
                         >
-                            <TlIcon name="close" class="w-3.5 h-3.5" />
+                            <TlIcon name="close" class="tl-ic tl-ic--sm" />
                             Cancel
                         </button>
                     </div>
@@ -765,16 +748,16 @@ function goRulesPage(page) {
             <!-- ── Digest schedules link ─────────────────────────────────── -->
             <a
                 :href="alertUrl('/digests')"
-                class="tl-card p-6 flex items-center gap-4 hover:bg-slate-800/60 transition-colors group"
+                class="tl-card tl-card--btn tl-row"
             >
-                <div class="w-10 h-10 rounded-lg bg-emerald-600/20 flex items-center justify-center shrink-0">
-                    <TlIcon name="calendar" class="w-5 h-5 text-emerald-400" />
+                <div class="tl-section-icon tl-section-icon--success">
+                    <TlIcon name="calendar" class="tl-ic" />
                 </div>
-                <div class="flex-1 min-w-0">
-                    <p class="text-sm font-semibold text-white">Digest schedules</p>
-                    <p class="text-xs text-slate-400 mt-0.5">Manage weekly summaries posted to channels or DM'd to team members</p>
+                <div class="tl-card-head-body">
+                    <p class="tl-title">Digest schedules</p>
+                    <p class="tl-hint">Manage weekly summaries posted to channels or DM'd to team members</p>
                 </div>
-                <TlIcon name="chevron-right" class="w-4 h-4 text-slate-600 group-hover:text-slate-400 transition-colors shrink-0" />
+                <TlIcon name="chevron-right" class="tl-ic tl-cell-muted" />
             </a>
 
         </template>

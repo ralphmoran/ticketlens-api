@@ -258,3 +258,19 @@
   .tl-tier-features { @apply space-y-2 mb-6 flex-1; }
   .tl-tier-feature { @apply flex items-center gap-2 text-sm; color: var(--tl-text-secondary); }
 }
+
+@layer components {
+  /* Usage limit box */
+  .tl-usage-box {
+    @apply p-4;
+    border: 1px solid var(--tl-border);
+    border-radius: var(--tl-radius-xl);
+    background-color: var(--tl-card);
+  }
+  .tl-usage-box--warn {
+    border-color: var(--tl-warn-border);
+    background-color: var(--tl-warn-tint);
+  }
+  .tl-warn-hint { color: var(--tl-warn); opacity: 0.85; }
+  .tl-card-gap-xs { @apply mb-2; }
+}

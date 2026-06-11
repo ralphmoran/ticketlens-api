@@ -291,3 +291,9 @@
 @layer components {
   .tl-checkbox-visual--round { border-radius: var(--tl-radius-full); }
 }
+
+@layer components {
+  .tl-check-grid { @apply grid grid-cols-2 gap-y-2 gap-x-4; }
+  .tl-check-row  { @apply flex items-center gap-2.5 cursor-pointer select-none; }
+  .tl-input--mini { @apply w-14 py-0.5 px-1.5 text-xs text-center; }
+}

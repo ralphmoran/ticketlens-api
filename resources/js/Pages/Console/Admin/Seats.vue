@@ -18,48 +18,50 @@ const usagePercent = computed(() => {
 
 const barClass = computed(() => {
     const p = usagePercent.value
-    if (p >= 100) return 'bg-red-500'
-    if (p >= 80)  return 'bg-amber-500'
-    return 'bg-emerald-500'
+    if (p >= 100) return 'tl-meter-fill--danger'
+    if (p >= 80)  return 'tl-meter-fill--warn'
+    return 'tl-meter-fill--success'
 })
 </script>
 
 <template>
-    <div class="px-4 sm:px-6 lg:px-8 py-8 max-w-3xl mx-auto">
+    <div class="tl-page tl-page--narrow">
 
-        <div class="mb-6">
-            <h1 class="tl-heading">Seats</h1>
-            <p class="tl-subtext">{{ group.name }}</p>
+        <div class="tl-page-header">
+            <div>
+                <h1 class="tl-heading">Seats</h1>
+                <p class="tl-subtext">{{ group.name }}</p>
+            </div>
         </div>
 
-        <div v-if="!license" class="bg-amber-900/20 border border-amber-800/50 rounded-xl p-5 text-amber-200 text-sm">
+        <div v-if="!license" class="tl-banner tl-banner--warn">
             No active license found. Contact support.
         </div>
 
         <div v-else class="tl-card tl-card--lg">
-            <div class="flex items-baseline justify-between mb-4">
+            <div class="tl-row tl-row--between tl-label--spaced">
                 <div>
-                    <p class="text-xs text-slate-500 uppercase tracking-wider">Plan</p>
-                    <p class="text-base font-semibold text-white capitalize">{{ license.tier }}</p>
+                    <p class="tl-label">Plan</p>
+                    <p class="tl-modal-title tl-cap">{{ license.tier }}</p>
                 </div>
-                <div class="text-right">
-                    <p class="text-xs text-slate-500 uppercase tracking-wider">Used</p>
-                    <p class="text-2xl font-mono font-semibold text-white">{{ seats_used }} / {{ license.seats }}</p>
+                <div class="tl-text-right">
+                    <p class="tl-label">Used</p>
+                    <p class="tl-stat-value">{{ seats_used }} / {{ license.seats }}</p>
                 </div>
             </div>
 
-            <div class="h-2 bg-slate-800 rounded-full overflow-hidden mb-4">
-                <div :class="['h-full transition-all', barClass]" :style="{ width: usagePercent + '%' }"></div>
+            <div class="tl-meter tl-label--spaced">
+                <div class="tl-meter-fill" :class="barClass" :style="{ width: usagePercent + '%' }"></div>
             </div>
 
-            <dl class="grid grid-cols-2 gap-4 text-sm">
+            <dl class="tl-dl-grid">
                 <div>
-                    <dt class="text-xs text-slate-500 uppercase tracking-wider mb-1">Status</dt>
-                    <dd class="text-slate-200 capitalize">{{ license.status }}</dd>
+                    <dt class="tl-dt">Status</dt>
+                    <dd class="tl-dd tl-cap">{{ license.status }}</dd>
                 </div>
                 <div>
-                    <dt class="text-xs text-slate-500 uppercase tracking-wider mb-1">Expires</dt>
-                    <dd class="text-slate-200">{{ license.expires_at ? formatDate(license.expires_at) : 'Never' }}</dd>
+                    <dt class="tl-dt">Expires</dt>
+                    <dd class="tl-dd">{{ license.expires_at ? formatDate(license.expires_at) : 'Never' }}</dd>
                 </div>
             </dl>
         </div>

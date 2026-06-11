@@ -166,3 +166,9 @@
   .tl-bucket-label { @apply w-20 shrink-0 text-xs; }
   .tl-pct-col { @apply w-10 text-right shrink-0; }
 }
+
+@layer components {
+  .tl-page--mid { @apply max-w-4xl; }
+  .tl-text-right { @apply text-right; }
+  .tl-seat-count { @apply text-lg font-mono font-semibold; color: var(--tl-text); }
+}

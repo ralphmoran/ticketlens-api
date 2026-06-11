@@ -278,10 +278,10 @@ const destroy = async (profile) => {
                             <span class="tl-banner-text">
                                 Your API key or token is <strong class="tl-banner-title">never stored here</strong>.
                                 <template v-if="form.tracker_type === 'github'">
-                                    Get your PAT at <a href="https://github.com/settings/tokens?type=beta" target="_blank" class="tl-link">github.com/settings/tokens</a>.
+                                    Get your PAT at <a href="https://github.com/settings/tokens?type=beta" target="_blank" rel="noopener noreferrer" class="tl-link">github.com/settings/tokens</a>.
                                 </template>
                                 <template v-else-if="form.auth_method === 'cloud'">
-                                    Get your API token at <a href="https://id.atlassian.com/manage-profile/security/api-tokens" target="_blank" class="tl-link">id.atlassian.com</a>.
+                                    Get your API token at <a href="https://id.atlassian.com/manage-profile/security/api-tokens" target="_blank" rel="noopener noreferrer" class="tl-link">id.atlassian.com</a>.
                                 </template>
                                 <template v-else>
                                     Find Personal Access Tokens under your profile in your Jira instance.

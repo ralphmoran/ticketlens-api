@@ -91,7 +91,7 @@ function submitRegister() {
                 <button
                     type="submit"
                     :disabled="loginForm.processing"
-                    class="tl-btn--hero"
+                    class="tl-btn tl-btn--hero"
                 >
                     <TlIcon v-if="loginForm.processing" name="spinner" class="tl-ic tl-spin" />
                     Sign in
@@ -144,7 +144,7 @@ function submitRegister() {
                     {{ registerForm.errors.name || registerForm.errors.email || registerForm.errors.password }}
                 </p>
 
-                <button type="submit" :disabled="registerForm.processing" class="tl-btn--hero">
+                <button type="submit" :disabled="registerForm.processing" class="tl-btn tl-btn--hero">
                     <TlIcon v-if="registerForm.processing" name="spinner" class="tl-ic tl-spin" />
                     Create account
                 </button>

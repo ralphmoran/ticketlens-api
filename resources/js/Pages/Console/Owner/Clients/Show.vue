@@ -183,6 +183,7 @@ const TIER_LABELS = { free: 'Free', pro: 'Pro', team: 'Team', enterprise: 'Enter
                 <div v-else class="tl-row">
                     <button
                         v-if="!client.suspended_at"
+                        type="button"
                         @click="impersonate"
                         data-testid="impersonate-button"
                         class="tl-chip-btn tl-chip-btn--brand tl-row tl-row--tight"
@@ -211,6 +212,7 @@ const TIER_LABELS = { free: 'Free', pro: 'Pro', team: 'Team', enterprise: 'Enter
                     <option value="enterprise">Enterprise</option>
                 </select>
                 <button
+                    type="button"
                     @click="saveTier"
                     :disabled="form.processing || form.tier === client.tier"
                     class="tl-btn tl-btn--secondary tl-btn--sm"
@@ -344,7 +346,7 @@ const TIER_LABELS = { free: 'Free', pro: 'Pro', team: 'Team', enterprise: 'Enter
                         class="tl-info-box tl-banner-inset tl-card-gap-sm"
                     >
                         <p class="tl-label tl-card-gap-sm">
-                            Grant <span class="tl-link">{{ feature.label }}</span> to {{ client.name }}
+                            Grant <span class="tl-link tl-link--md">{{ feature.label }}</span> to {{ client.name }}
                         </p>
                         <div class="tl-row tl-row--wrap tl-row--bottom">
                             <div class="tl-field">

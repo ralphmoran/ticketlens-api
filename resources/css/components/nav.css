@@ -57,6 +57,7 @@
   }
 }
 
+@layer components {
 /* ── Tree-connector nav sub-items ─────────────────────────────────────────── *
  * ├─ / └─ style connectors via ::before (vertical) + ::after (branch).
  * ────────────────────────────────────────────────────────────────────────── */
@@ -100,4 +101,5 @@
 .tl-nav-tree--amber > ul > li::after {
     background-color: var(--tl-owner);
     opacity: 0.45;
+}
 }

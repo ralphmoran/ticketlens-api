@@ -270,6 +270,7 @@
   .tl-palette-item-group { @apply ml-auto text-xs; color: var(--tl-text-subtle); }
 }
 
+@layer components {
 /* ── Named Vue transitions ──────────────────────────────────────────── */
 .tl-fade-enter-active { transition: opacity 150ms ease-out; }
 .tl-fade-leave-active { transition: opacity 100ms ease-out; }
@@ -285,6 +286,8 @@
 .tl-pop-leave-active { transition: opacity 100ms ease-out, transform 100ms ease-out; transform-origin: top right; }
 .tl-pop-enter-from,
 .tl-pop-leave-to { opacity: 0; transform: scale(0.95); }
+}
+
 
 @layer components {
   /* Modal dialog */

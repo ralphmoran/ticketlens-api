@@ -72,7 +72,10 @@ onMounted(() => {
 onUnmounted(() => themeObserver?.disconnect())
 
 // Append alpha to a plain `oklch(L C H)` token string.
-const withAlpha = (color, alpha) => color.replace(/\)\s*$/, ` / ${alpha})`)
+const withAlpha = (color, alpha) => {
+    if (!color) return `oklch(0.5 0 0 / ${alpha})` // unresolved token — visible neutral, never invalid
+    return color.replace(/\)\s*$/, ` / ${alpha})`)
+}
 
 function resolveColor(dataset, index) {
     const named = tokens.value.semantic[dataset.color]

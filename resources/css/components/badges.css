@@ -74,3 +74,13 @@
     border-radius: var(--tl-radius-sm);
   }
 }
+
+@layer components {
+  /* Inline code snippet chip */
+  .tl-code-chip {
+    @apply text-xs font-mono px-2 py-0.5 inline-block;
+    color: var(--tl-brand-soft);
+    background-color: var(--tl-surface-2);
+    border-radius: var(--tl-radius-sm);
+  }
+}

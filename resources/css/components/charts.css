@@ -19,6 +19,12 @@
     height: 20rem;
   }
 
+  /* Empty state inside a chart frame (TlChart no-data fallback) */
+  .tl-chart-empty {
+    @apply h-full w-full flex items-center justify-center text-sm;
+    color: var(--tl-text-subtle);
+  }
+
   /* Legend row (custom HTML legends) */
   .tl-chart-legend {
     @apply flex flex-wrap items-center gap-4 text-xs;

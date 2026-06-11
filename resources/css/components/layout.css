@@ -75,3 +75,9 @@
     @apply space-y-6;
   }
 }
+
+@layer components {
+  /* Vertical gaps between page-level blocks */
+  .tl-section-gap { @apply mb-8; }
+  .tl-card-gap    { @apply mb-6; }
+}

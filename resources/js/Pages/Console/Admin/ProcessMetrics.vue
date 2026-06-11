@@ -87,11 +87,11 @@ onUnmounted(() => { clearInterval(timer); clearInterval(ticker) })
 
 // Age bucket labels and colour classes
 const BUCKETS = [
-    { key: 'fresh',     label: 'Fresh',     cls: 'text-emerald-400' },
-    { key: 'active',    label: 'Active',    cls: 'text-indigo-400'  },
-    { key: 'slowing',   label: 'Slowing',   cls: 'text-yellow-400'  },
-    { key: 'stale',     label: 'Stale',     cls: 'text-amber-400'   },
-    { key: 'abandoned', label: 'Abandoned', cls: 'text-red-400'     },
+    { key: 'fresh',     label: 'Fresh',     cls: 'tl-num--success' },
+    { key: 'active',    label: 'Active',    cls: 'tl-score--high'  },
+    { key: 'slowing',   label: 'Slowing',   cls: 'tl-num--stale'   },
+    { key: 'stale',     label: 'Stale',     cls: 'tl-num--warn'    },
+    { key: 'abandoned', label: 'Abandoned', cls: 'tl-num--danger'  },
 ]
 
 function bucketBar(count, rowTotal) {
@@ -114,44 +114,40 @@ const complianceAll0 = computed(() =>
 
         <!-- Owner: no manager selected — client search UI -->
         <div v-if="owner_mode && !selected_manager">
-            <div class="mb-6">
-                <h1 class="tl-heading">Process Metrics</h1>
-                <p class="tl-subtext">Select a team to inspect their ticket age, flow, and compliance data.</p>
+            <div class="tl-page-header">
+                <div>
+                    <h1 class="tl-heading">Process Metrics</h1>
+                    <p class="tl-subtext">Select a team to inspect their ticket age, flow, and compliance data.</p>
+                </div>
             </div>
-            <div class="max-w-md">
+            <div class="tl-picker">
                 <input
                     v-model="clientSearch"
                     type="search"
                     placeholder="Search by name or email…"
-                    class="tl-input w-full mb-4"
+                    class="tl-input tl-input--full tl-card-gap"
                 />
                 <div v-if="pagedClients.length === 0" class="tl-empty-state">
-                    <TlIcon name="users" class="w-8 h-8 text-slate-700 mb-3" />
+                    <TlIcon name="users" class="tl-empty-icon" />
                     <p class="tl-hint">No matching clients found.</p>
                 </div>
-                <ul v-else class="space-y-2">
+                <ul v-else class="tl-stack--sm">
                     <li v-for="client in pagedClients" :key="client.id">
-                        <button
-                            type="button"
-                            @click="selectManager(client.id)"
-                            class="w-full text-left tl-card hover:border-amber-500/40 hover:bg-slate-800/60 transition-colors cursor-pointer"
-                        >
-                            <p class="text-sm font-medium text-slate-200">{{ client.name }}</p>
-                            <p class="tl-hint text-xs font-mono">{{ client.email }}</p>
+                        <button type="button" @click="selectManager(client.id)" class="tl-card tl-card--btn">
+                            <p class="tl-cell-primary">{{ client.name }}</p>
+                            <p class="tl-hint tl-mono--xs">{{ client.email }}</p>
                         </button>
                     </li>
                 </ul>
-                <div v-if="totalPages > 1" class="flex items-center justify-between mt-4">
-                    <span class="text-xs text-slate-500">{{ filteredClients.length }} clients</span>
-                    <div class="flex items-center gap-1">
-                        <button type="button" :disabled="clientPage === 1" @click="clientPage--"
-                                class="p-1.5 text-slate-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
-                            <TlIcon name="chevron-left" class="w-4 h-4" />
+                <div v-if="totalPages > 1" class="tl-pager">
+                    <span class="tl-hint">{{ filteredClients.length }} clients</span>
+                    <div class="tl-pager-nav">
+                        <button type="button" :disabled="clientPage === 1" @click="clientPage--" class="tl-pager-btn">
+                            <TlIcon name="chevron-left" class="tl-ic" />
                         </button>
-                        <span class="text-xs text-slate-400 font-mono">{{ clientPage }} / {{ totalPages }}</span>
-                        <button type="button" :disabled="clientPage >= totalPages" @click="clientPage++"
-                                class="p-1.5 text-slate-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
-                            <TlIcon name="chevron-right" class="w-4 h-4" />
+                        <span class="tl-pager-label">{{ clientPage }} / {{ totalPages }}</span>
+                        <button type="button" :disabled="clientPage >= totalPages" @click="clientPage++" class="tl-pager-btn">
+                            <TlIcon name="chevron-right" class="tl-ic" />
                         </button>
                     </div>
                 </div>
@@ -162,14 +158,13 @@ const complianceAll0 = computed(() =>
         <template v-else>
 
         <!-- Owner: manager selected — action banner -->
-        <div v-if="owner_mode && selected_manager"
-             class="flex flex-wrap items-center gap-3 mb-6 px-4 py-3 rounded-lg bg-amber-500/10 border border-amber-500/30 text-sm">
-            <TlIcon name="building" class="w-4 h-4 text-amber-400 shrink-0" />
-            <span class="text-amber-300 font-medium flex-1 min-w-0 truncate">
+        <div v-if="owner_mode && selected_manager" class="tl-banner tl-banner--warn tl-card-gap tl-row--wrap">
+            <TlIcon name="building" class="tl-ic tl-banner-icon" />
+            <span class="tl-banner-title tl-banner-fill">
                 {{ selected_manager.name }}
-                <span class="text-amber-400/60 font-mono text-xs ml-1">{{ selected_manager.email }}</span>
+                <span class="tl-hint tl-mono--xs">{{ selected_manager.email }}</span>
             </span>
-            <div class="flex items-center gap-2 shrink-0">
+            <div class="tl-row">
                 <a :href="`/console/owner/clients/${selected_manager.id}`" class="tl-btn tl-btn--secondary tl-btn--sm">Manage</a>
                 <button type="button" class="tl-btn tl-btn--secondary tl-btn--sm"
                         @click="router.post(`/console/owner/impersonate/${selected_manager.id}`)">
@@ -183,65 +178,65 @@ const complianceAll0 = computed(() =>
         </div>
 
         <!-- Page header -->
-        <div class="flex items-start justify-between gap-4 mb-6">
+        <div class="tl-page-header">
             <div>
                 <h1 class="tl-heading">Process Metrics</h1>
                 <p class="tl-subtext">{{ group_name }} — ticket age, flow, and compliance snapshot</p>
             </div>
-            <div class="flex items-center gap-3">
+            <div class="tl-row">
                 <span v-if="refreshLabel" class="tl-hint">{{ refreshLabel }}</span>
                 <button class="tl-btn tl-btn--secondary tl-btn--sm" :disabled="refreshing" @click="manualRefresh">
-                    <TlIcon name="refresh" class="w-3.5 h-3.5" :class="{ 'animate-spin': refreshing }" />
+                    <TlIcon name="refresh" class="tl-ic tl-ic--sm" :class="{ 'tl-spin': refreshing }" />
                     Refresh
                 </button>
             </div>
         </div>
 
         <!-- Empty state -->
-        <div v-if="!hasData" class="tl-empty-state mb-8">
-            <TlIcon name="trending-up" class="w-10 h-10 text-slate-700 mb-4" />
-            <p class="text-slate-300 font-medium mb-1">No queue data yet.</p>
-            <p class="tl-hint mb-3">Ask team members to push their queues:</p>
+        <div v-if="!hasData" class="tl-empty-state tl-section-gap">
+            <TlIcon name="trending-up" class="tl-empty-icon" />
+            <p class="tl-body">No queue data yet.</p>
+            <p class="tl-hint tl-card-gap-sm">Ask team members to push their queues:</p>
             <code class="tl-kbd tl-kbd--brand">ticketlens triage --push</code>
         </div>
 
         <template v-else>
 
             <!-- Summary stats -->
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-                <div class="tl-card text-center">
-                    <p class="tl-hint mb-1">Total tickets</p>
-                    <p class="text-2xl font-semibold text-slate-100">{{ totalTickets }}</p>
+            <div class="tl-grid-stats tl-section-gap">
+                <div class="tl-stat-card">
+                    <p class="tl-stat-label">Total tickets</p>
+                    <p class="tl-stat-value">{{ totalTickets }}</p>
                 </div>
-                <div class="tl-card text-center">
-                    <p class="tl-hint mb-1">Needs response</p>
-                    <p class="text-2xl font-semibold" :class="response_latency.total > 0 ? 'text-amber-400' : 'text-slate-100'">
+                <div class="tl-stat-card">
+                    <p class="tl-stat-label">Needs response</p>
+                    <p class="tl-stat-value" :class="response_latency.total > 0 ? 'tl-num--warn' : ''">
                         {{ response_latency.total }}
                     </p>
                 </div>
-                <div class="tl-card text-center">
-                    <p class="tl-hint mb-1">Status categories</p>
-                    <p class="text-2xl font-semibold text-slate-100">{{ status_flow.length }}</p>
+                <div class="tl-stat-card">
+                    <p class="tl-stat-label">Status categories</p>
+                    <p class="tl-stat-value">{{ status_flow.length }}</p>
                 </div>
-                <div class="tl-card text-center">
-                    <p class="tl-hint mb-1">Active devs</p>
-                    <p class="text-2xl font-semibold text-slate-100">{{ velocity.length }}</p>
+                <div class="tl-stat-card">
+                    <p class="tl-stat-label">Active devs</p>
+                    <p class="tl-stat-value">{{ velocity.length }}</p>
                 </div>
             </div>
 
             <!-- Ticket Velocity (age breakdown per member) -->
-            <div class="mb-8">
-                <h2 class="tl-section-heading mb-1">Ticket velocity</h2>
-                <p class="tl-hint mb-3 text-xs">
+            <div class="tl-section-gap">
+                <h2 class="tl-section-heading">Ticket velocity</h2>
+                <p class="tl-hint tl-card-gap-sm">
                     Shows how recently each ticket was last updated in Jira — bucketed by age.
-                    <strong class="text-emerald-400">Fresh</strong> = updated today,
-                    <strong class="text-indigo-400">Active</strong> = 1–2 days,
-                    <strong class="text-yellow-400">Slowing</strong> = 3–6 days,
-                    <strong class="text-amber-400">Stale</strong> = 7–13 days,
-                    <strong class="text-red-400">Abandoned</strong> = 14+ days or no update date.
+                    <strong class="tl-num--success">Fresh</strong> = updated today,
+                    <strong class="tl-score--high">Active</strong> = 1–2 days,
+                    <strong class="tl-num--stale">Slowing</strong> = 3–6 days,
+                    <strong class="tl-num--warn">Stale</strong> = 7–13 days,
+                    <strong class="tl-num--danger">Abandoned</strong> = 14+ days or no update date.
                 </p>
                 <div class="tl-card tl-card--flush">
-                    <table class="w-full text-sm">
+                    <table class="tl-table">
                         <thead>
                             <tr class="tl-thead">
                                 <th class="tl-th">Developer</th>
@@ -253,12 +248,12 @@ const complianceAll0 = computed(() =>
                         </thead>
                         <tbody class="tl-divide">
                             <tr v-for="row in velocity" :key="row.member_id" class="tl-tr">
-                                <td class="px-5 py-3.5 text-slate-200 font-medium">{{ row.member_name }}</td>
-                                <td v-for="b in BUCKETS" :key="b.key" class="px-5 py-3.5 text-right">
-                                    <span v-if="row[b.key] > 0" class="font-mono" :class="b.cls">{{ row[b.key] }}</span>
+                                <td class="tl-td tl-cell-primary">{{ row.member_name }}</td>
+                                <td v-for="b in BUCKETS" :key="b.key" class="tl-td tl-td--right">
+                                    <span v-if="row[b.key] > 0" class="tl-mono" :class="b.cls">{{ row[b.key] }}</span>
                                     <span v-else class="tl-hint">—</span>
                                 </td>
-                                <td class="px-5 py-3.5 text-right font-mono text-slate-200">{{ row.total }}</td>
+                                <td class="tl-td tl-td--right tl-mono tl-value">{{ row.total }}</td>
                             </tr>
                         </tbody>
                     </table>
@@ -266,15 +261,15 @@ const complianceAll0 = computed(() =>
             </div>
 
             <!-- Status Flow × Age Heatmap -->
-            <div class="mb-8">
-                <h2 class="tl-section-heading mb-1">Status flow</h2>
-                <p class="tl-hint mb-3 text-xs">
+            <div class="tl-section-gap">
+                <h2 class="tl-section-heading">Status flow</h2>
+                <p class="tl-hint tl-card-gap-sm">
                     Each Jira status crossed with ticket age. Read across a row to see how long tickets sit in that status.
                     A large "Abandoned" column in a status like "In Review" signals a process bottleneck.
-                    Status values come from the Jira <code class="font-mono">status</code> field — only populated after a full triage push.
+                    Status values come from the Jira <code class="tl-mono">status</code> field — only populated after a full triage push.
                 </p>
                 <div class="tl-card tl-card--flush">
-                    <table class="w-full text-sm">
+                    <table class="tl-table">
                         <thead>
                             <tr class="tl-thead">
                                 <th class="tl-th">Status</th>
@@ -286,14 +281,14 @@ const complianceAll0 = computed(() =>
                         </thead>
                         <tbody class="tl-divide">
                             <tr v-for="row in status_flow" :key="row.status" class="tl-tr">
-                                <td class="px-5 py-3.5">
-                                    <span class="tl-badge tl-badge--neutral truncate max-w-[180px] inline-block">{{ row.status }}</span>
+                                <td class="tl-td">
+                                    <span class="tl-badge tl-badge--neutral tl-badge--clamp">{{ row.status }}</span>
                                 </td>
-                                <td v-for="b in BUCKETS" :key="b.key" class="px-5 py-3.5 text-right">
-                                    <span v-if="row[b.key] > 0" class="font-mono" :class="b.cls">{{ row[b.key] }}</span>
+                                <td v-for="b in BUCKETS" :key="b.key" class="tl-td tl-td--right">
+                                    <span v-if="row[b.key] > 0" class="tl-mono" :class="b.cls">{{ row[b.key] }}</span>
                                     <span v-else class="tl-hint">—</span>
                                 </td>
-                                <td class="px-5 py-3.5 text-right font-mono text-slate-200">{{ row.total }}</td>
+                                <td class="tl-td tl-td--right tl-mono tl-value">{{ row.total }}</td>
                             </tr>
                         </tbody>
                     </table>
@@ -301,29 +296,29 @@ const complianceAll0 = computed(() =>
             </div>
 
             <!-- Bottom row: Response Latency + Compliance Coverage -->
-            <div class="grid md:grid-cols-2 gap-6 mb-8">
+            <div class="tl-grid-2 tl-section-gap">
 
                 <!-- Response Latency -->
                 <div>
-                    <h2 class="tl-section-heading mb-1">Response latency</h2>
-                    <p class="tl-hint text-xs mb-3">
-                        Tickets flagged <strong class="text-slate-300">needs-response</strong> — bucketed by how old they are.
+                    <h2 class="tl-section-heading">Response latency</h2>
+                    <p class="tl-hint tl-card-gap-sm">
+                        Tickets flagged <strong class="tl-value">needs-response</strong> — bucketed by how old they are.
                         "{{ response_latency.total }} flagged" = that many tickets currently need a reply from someone on this team.
                         Zero means no one is waiting.
                     </p>
                     <div class="tl-card">
-                        <div v-if="response_latency.total === 0" class="tl-hint text-center py-4">No tickets need response — all clear</div>
-                        <div v-else class="space-y-3">
-                            <div v-for="b in latencyBuckets" :key="b.key" class="flex items-center gap-3">
-                                <span class="w-20 shrink-0 text-xs" :class="b.cls">{{ b.label }}</span>
-                                <div class="flex-1 h-1.5 rounded-full bg-slate-700">
+                        <div v-if="response_latency.total === 0" class="tl-card-empty tl-hint">No tickets need response — all clear</div>
+                        <div v-else class="tl-stack--sm">
+                            <div v-for="b in latencyBuckets" :key="b.key" class="tl-row">
+                                <span class="tl-bucket-label" :class="b.cls">{{ b.label }}</span>
+                                <div class="tl-meter tl-meter--thin tl-btn--grow">
                                     <div
-                                        class="h-1.5 rounded-full transition-all"
-                                        :class="b.key === 'stale' || b.key === 'abandoned' ? 'bg-red-500' : 'bg-indigo-500'"
+                                        class="tl-meter-fill"
+                                        :class="b.key === 'stale' || b.key === 'abandoned' ? 'tl-meter-fill--danger' : ''"
                                         :style="{ width: bucketBar(b.count, response_latency.total) + '%' }"
                                     />
                                 </div>
-                                <span class="font-mono text-xs text-slate-400 w-4 text-right shrink-0">{{ b.count }}</span>
+                                <span class="tl-mono--xs tl-cell-muted tl-count-col">{{ b.count }}</span>
                             </div>
                         </div>
                     </div>
@@ -331,30 +326,27 @@ const complianceAll0 = computed(() =>
 
                 <!-- Compliance Coverage -->
                 <div>
-                    <h2 class="tl-section-heading mb-1">Compliance coverage</h2>
-                    <p class="tl-hint text-xs mb-3">
-                        What percentage of each member's tickets have been run through <code class="font-mono">--compliance</code>.
+                    <h2 class="tl-section-heading">Compliance coverage</h2>
+                    <p class="tl-hint tl-card-gap-sm">
+                        What percentage of each member's tickets have been run through <code class="tl-mono">--compliance</code>.
                         Higher is better — 100% means every ticket has a compliance check result.
                     </p>
                     <div class="tl-card">
-                        <div v-if="complianceAll0" class="text-center py-2">
-                            <p class="tl-hint mb-3">No compliance data yet — populate it by running:</p>
-                            <code class="tl-kbd tl-kbd--brand text-xs">ticketlens TICKET-KEY --compliance --push</code>
+                        <div v-if="complianceAll0" class="tl-card-empty">
+                            <p class="tl-hint tl-card-gap-sm">No compliance data yet — populate it by running:</p>
+                            <code class="tl-kbd tl-kbd--brand">ticketlens TICKET-KEY --compliance --push</code>
                         </div>
-                        <div v-else class="space-y-3">
-                            <div v-for="row in compliance" :key="row.member_id" class="flex items-center gap-3">
-                                <span class="text-sm text-slate-300 truncate flex-1 min-w-0">{{ row.member_name }}</span>
-                                <div class="w-24 shrink-0 h-1.5 rounded-full bg-slate-700">
-                                    <div
-                                        class="h-1.5 rounded-full bg-indigo-500 transition-all"
-                                        :style="{ width: row.coverage_pct + '%' }"
-                                    />
+                        <div v-else class="tl-stack--sm">
+                            <div v-for="row in compliance" :key="row.member_id" class="tl-row">
+                                <span class="tl-body--secondary tl-trunc tl-banner-fill">{{ row.member_name }}</span>
+                                <div class="tl-meter tl-meter--thin tl-meter--fixed">
+                                    <div class="tl-meter-fill" :style="{ width: row.coverage_pct + '%' }" />
                                 </div>
-                                <span class="font-mono text-xs text-slate-400 w-10 text-right shrink-0">{{ row.coverage_pct }}%</span>
+                                <span class="tl-mono--xs tl-cell-muted tl-pct-col">{{ row.coverage_pct }}%</span>
                             </div>
                         </div>
-                        <p v-if="!complianceAll0" class="tl-hint text-xs mt-4 pt-4 border-t border-slate-700/60">
-                            Run <code class="font-mono">--compliance --push</code> to increase coverage
+                        <p v-if="!complianceAll0" class="tl-card-footnote">
+                            Run <code class="tl-mono">--compliance --push</code> to increase coverage
                         </p>
                     </div>
                 </div>

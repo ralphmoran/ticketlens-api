@@ -102,3 +102,7 @@
   .tl-th--snug { @apply px-3 py-2.5; }
   .tl-td--snug { @apply px-3 py-3 text-xs; }
 }
+
+@layer components {
+  .tl-th--meter { width: 8rem; }
+}

@@ -112,3 +112,11 @@
   .tl-label--field { @apply block mb-1.5; }
   .tl-hint-inline { font-weight: 400; color: var(--tl-text-subtle); }
 }
+
+@layer components {
+  /* Section heading outside cards (was referenced but never defined) */
+  .tl-section-heading {
+    @apply text-sm font-semibold;
+    color: var(--tl-text);
+  }
+}

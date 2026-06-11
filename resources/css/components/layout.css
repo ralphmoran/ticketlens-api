@@ -157,3 +157,12 @@
   .tl-field-key { @apply flex-1; min-width: 160px; }
   .tl-field-timeout { @apply w-20 shrink-0; }
 }
+
+@layer components {
+  .tl-count-col { @apply w-6 text-right shrink-0; }
+}
+
+@layer components {
+  .tl-bucket-label { @apply w-20 shrink-0 text-xs; }
+  .tl-pct-col { @apply w-10 text-right shrink-0; }
+}

@@ -108,3 +108,11 @@
   .tl-badge--btn { cursor: pointer; user-select: none; }
   .tl-badge--btn:hover { filter: brightness(1.15); }
 }
+
+@layer components {
+  .tl-badge--w-fixed { @apply w-36 shrink-0; display: inline-block; }
+}
+
+@layer components {
+  .tl-badge--clamp { @apply truncate inline-block; max-width: 180px; }
+}

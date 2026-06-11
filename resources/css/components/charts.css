@@ -71,3 +71,23 @@
     opacity: 0.75;
   }
 }
+
+@layer components {
+  /* Labeled meter rows (gap-rate breakdowns) */
+  .tl-meter-row { @apply flex items-center gap-4 px-5 py-3; }
+  .tl-meter-row-label { @apply text-sm w-24 shrink-0; color: var(--tl-text-secondary); }
+  .tl-meter-row-label--wide { @apply w-40; }
+  .tl-meter-row-track { @apply flex-1 min-w-0; }
+  .tl-meter-row-stats { @apply flex items-center gap-4 text-sm shrink-0; }
+  .tl-meter-row-pct { @apply font-semibold w-12 text-right; }
+  .tl-meter-row-detail { @apply w-28 text-right text-xs; color: var(--tl-text-subtle); }
+  .tl-meter-row-cov { @apply w-24 text-right text-xs; color: var(--tl-text-subtle); }
+}
+
+@layer components {
+  .tl-meter--thin { height: 0.375rem; }
+}
+
+@layer components {
+  .tl-meter--fixed { @apply w-24 shrink-0; }
+}

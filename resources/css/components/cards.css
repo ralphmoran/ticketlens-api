@@ -113,3 +113,22 @@
     color: var(--tl-text-muted);
   }
 }
+
+@layer components {
+  /* Clickable card (list pickers) */
+  .tl-card--btn {
+    @apply w-full text-left cursor-pointer;
+    transition: border-color var(--tl-transition), background-color var(--tl-transition);
+  }
+  .tl-card--btn:hover {
+    border-color: var(--tl-brand);
+    background-color: var(--tl-surface-2);
+  }
+}
+
+@layer components {
+  .tl-empty-icon {
+    @apply w-8 h-8 mb-3 mx-auto;
+    color: var(--tl-text-subtle);
+  }
+}

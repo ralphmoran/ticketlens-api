@@ -1,28 +1,9 @@
 <script setup>
 import ConsoleLayout from '@/Layouts/ConsoleLayout.vue'
 import TlIcon from '@/components/TlIcon.vue'
+import TlChart from '@/components/TlChart.vue'
 import { router } from '@inertiajs/vue3'
 import { computed, ref, watch } from 'vue'
-import {
-    Chart as ChartJS,
-    CategoryScale,
-    LinearScale,
-    PointElement,
-    LineElement,
-    BarElement,
-    Tooltip,
-    Legend,
-    Filler,
-} from 'chart.js'
-import { Line, Bar } from 'vue-chartjs'
-
-ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, Tooltip, Legend, Filler)
-
-// Colour palette for per-member lines (10 distinct hues)
-const MEMBER_COLORS = [
-    '#377EA5', '#22d3ee', '#f59e0b', '#34d399', '#f87171',
-    '#5BA3C8', '#38bdf8', '#fb923c', '#4ade80', '#f472b6',
-]
 
 defineOptions({ layout: ConsoleLayout })
 
@@ -95,216 +76,54 @@ function sortIcon(key) {
     return sortDesc.value ? '↓' : '↑'
 }
 
-// ── Urgency trend chart ────────────────────────────────────────────────────
+// ── Charts (themed via TlChart) ────────────────────────────────────────────
 
-const lineChartData = computed(() => ({
-    labels: props.daily_urgency.map(d => d.date.slice(5)), // MM-DD
-    datasets: [
-        {
-            label: 'Needs Response',
-            data: props.daily_urgency.map(d => d.needs_response),
-            borderColor: '#f87171',
-            backgroundColor: 'rgba(248,113,113,0.1)',
-            fill: true,
-            tension: 0.3,
-            pointRadius: 3,
-        },
-        {
-            label: 'Aging',
-            data: props.daily_urgency.map(d => d.aging),
-            borderColor: '#fbbf24',
-            backgroundColor: 'rgba(251,191,36,0.08)',
-            fill: true,
-            tension: 0.3,
-            pointRadius: 3,
-        },
-        {
-            label: 'Stale',
-            data: props.daily_urgency.map(d => d.stale ?? 0),
-            borderColor: '#fb923c',
-            backgroundColor: 'rgba(251,146,60,0.08)',
-            fill: true,
-            tension: 0.3,
-            pointRadius: 3,
-        },
-        {
-            label: 'Clear',
-            data: props.daily_urgency.map(d => d.clear),
-            borderColor: '#34d399',
-            backgroundColor: 'rgba(52,211,153,0.08)',
-            fill: true,
-            tension: 0.3,
-            pointRadius: 3,
-        },
-    ],
-}))
+const urgencyLabels   = computed(() => props.daily_urgency.map(d => d.date.slice(5))) // MM-DD
+const urgencyDatasets = computed(() => [
+    { label: 'Needs Response', data: props.daily_urgency.map(d => d.needs_response), color: 'danger',  fill: true },
+    { label: 'Aging',          data: props.daily_urgency.map(d => d.aging),          color: 'warn',    fill: true },
+    { label: 'Stale',          data: props.daily_urgency.map(d => d.stale ?? 0),     color: 'stale',   fill: true },
+    { label: 'Clear',          data: props.daily_urgency.map(d => d.clear),          color: 'success', fill: true },
+])
 
-const lineChartOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-        legend: {
-            labels: { color: '#94a3b8', boxWidth: 12, padding: 16 },
-        },
-        tooltip: { mode: 'index', intersect: false },
-    },
-    scales: {
-        x: {
-            ticks: { color: '#64748b', maxTicksLimit: 10 },
-            grid:  { color: 'rgba(255,255,255,0.04)' },
-        },
-        y: {
-            ticks: { color: '#64748b', stepSize: 1 },
-            grid:  { color: 'rgba(255,255,255,0.04)' },
-            min:   0,
-        },
-    },
-}
+const teamBarLabels   = computed(() => props.team_comparison.map(m => m.member_name.split(' ')[0]))
+const teamBarDatasets = computed(() => [
+    { label: 'Needs Response', data: props.team_comparison.map(m => m.needs_response), color: 'danger' },
+    { label: 'Aging',          data: props.team_comparison.map(m => m.aging),          color: 'warn' },
+    { label: 'Stale',          data: props.team_comparison.map(m => m.stale ?? 0),     color: 'stale' },
+    { label: 'Clear',          data: props.team_comparison.map(m => m.clear),          color: 'success' },
+])
+const stackedOptions = { scales: { x: { stacked: true }, y: { stacked: true } } }
 
-// ── Team urgency bar chart ─────────────────────────────────────────────────
+const hourLabels   = computed(() => props.hour_distribution.map(h => `${String(h.hour).padStart(2, '0')}:00`))
+const hourDatasets = computed(() => [
+    { label: 'Pushes', data: props.hour_distribution.map(h => h.count), color: 'brand' },
+])
 
-const barChartData = computed(() => ({
-    labels: props.team_comparison.map(m => m.member_name.split(' ')[0]),
-    datasets: [
-        {
-            label: 'Needs Response',
-            data: props.team_comparison.map(m => m.needs_response),
-            backgroundColor: '#f87171',
-            borderRadius: 3,
-        },
-        {
-            label: 'Aging',
-            data: props.team_comparison.map(m => m.aging),
-            backgroundColor: '#fbbf24',
-            borderRadius: 3,
-        },
-        {
-            label: 'Stale',
-            data: props.team_comparison.map(m => m.stale ?? 0),
-            backgroundColor: '#fb923c',
-            borderRadius: 3,
-        },
-        {
-            label: 'Clear',
-            data: props.team_comparison.map(m => m.clear),
-            backgroundColor: '#34d399',
-            borderRadius: 3,
-        },
-    ],
-}))
+const dowLabels   = computed(() => props.day_of_week_dist.map(d => d.day))
+const dowDatasets = computed(() => [{
+    label: 'Pushes',
+    data: props.day_of_week_dist.map(d => d.count),
+    color: 'brand',
+    alphas: props.day_of_week_dist.map(d => (d.day === 'Sat' || d.day === 'Sun') ? 0.35 : 1),
+}])
 
-const barChartOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-        legend: {
-            labels: { color: '#94a3b8', boxWidth: 12, padding: 16 },
-        },
-        tooltip: { mode: 'index', intersect: false },
-    },
-    scales: {
-        x: {
-            stacked: true,
-            ticks: { color: '#64748b' },
-            grid:  { color: 'rgba(255,255,255,0.04)' },
-        },
-        y: {
-            stacked: true,
-            ticks: { color: '#64748b', stepSize: 1 },
-            grid:  { color: 'rgba(255,255,255,0.04)' },
-            min:   0,
-        },
-    },
-}
-
-// ── Hour-of-day bar chart ──────────────────────────────────────────────────
-
-const hourChartData = computed(() => ({
-    labels: props.hour_distribution.map(h => `${String(h.hour).padStart(2, '0')}:00`),
-    datasets: [{
-        label: 'Pushes',
-        data: props.hour_distribution.map(h => h.count),
-        backgroundColor: 'rgba(99,102,241,0.6)',
-        borderRadius: 3,
-    }],
-}))
-
-const hourChartOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-        legend: { display: false },
-        tooltip: { mode: 'index', intersect: false },
-    },
-    scales: {
-        x: { ticks: { color: '#64748b', maxRotation: 45 }, grid: { color: 'rgba(255,255,255,0.04)' } },
-        y: { ticks: { color: '#64748b', stepSize: 1 }, grid: { color: 'rgba(255,255,255,0.04)' }, min: 0 },
-    },
-}
-
-// ── Day-of-week bar chart ──────────────────────────────────────────────────
-
-const dowChartData = computed(() => ({
-    labels: props.day_of_week_dist.map(d => d.day),
-    datasets: [{
-        label: 'Pushes',
-        data: props.day_of_week_dist.map(d => d.count),
-        backgroundColor: props.day_of_week_dist.map((d) => {
-            return (d.day === 'Sat' || d.day === 'Sun') ? 'rgba(99,102,241,0.3)' : 'rgba(99,102,241,0.65)'
-        }),
-        borderRadius: 3,
-    }],
-}))
-
-const dowChartOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-        legend: { display: false },
-        tooltip: { mode: 'index', intersect: false },
-    },
-    scales: {
-        x: { ticks: { color: '#64748b' }, grid: { color: 'rgba(255,255,255,0.04)' } },
-        y: { ticks: { color: '#64748b', stepSize: 1 }, grid: { color: 'rgba(255,255,255,0.04)' }, min: 0 },
-    },
-}
-
-// ── Ticket load trend (multi-line) ─────────────────────────────────────────
-
-const ticketTrendChartData = computed(() => {
-    const allDates = [...new Set(
-        props.ticket_load_trend.flatMap(m => m.data.map(d => d.date))
-    )].sort()
-
-    return {
-        labels: allDates.map(d => d.slice(5)),
-        datasets: props.ticket_load_trend.map((member, i) => {
-            const byDate = Object.fromEntries(member.data.map(d => [d.date, d.count]))
-            return {
-                label: member.member_name.split(' ')[0],
-                data: allDates.map(d => byDate[d] ?? null),
-                borderColor: MEMBER_COLORS[i % MEMBER_COLORS.length],
-                backgroundColor: 'transparent',
-                tension: 0.3,
-                pointRadius: 2,
-                spanGaps: true,
-            }
-        }),
-    }
+const trendLabels = computed(() => {
+    const allDates = [...new Set(props.ticket_load_trend.flatMap(m => m.data.map(d => d.date)))].sort()
+    return allDates
 })
-
-const ticketTrendChartOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-        legend: { labels: { color: '#94a3b8', boxWidth: 12, padding: 16 } },
-        tooltip: { mode: 'index', intersect: false },
-    },
-    scales: {
-        x: { ticks: { color: '#64748b', maxTicksLimit: 10 }, grid: { color: 'rgba(255,255,255,0.04)' } },
-        y: { ticks: { color: '#64748b', stepSize: 1 }, grid: { color: 'rgba(255,255,255,0.04)' }, min: 0 },
-    },
-}
+const trendDatasets = computed(() => {
+    const allDates = trendLabels.value
+    return props.ticket_load_trend.map(member => {
+        const byDate = Object.fromEntries(member.data.map(d => [d.date, d.count]))
+        return {
+            label: member.member_name.split(' ')[0],
+            data: allDates.map(d => byDate[d] ?? null),
+        }
+    })
+})
+const trendDisplayLabels = computed(() => trendLabels.value.map(d => d.slice(5)))
+const spanGapsOptions = { spanGaps: true }
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -318,11 +137,17 @@ function timeAgo(iso) {
 }
 
 function urgencyClass(count, type) {
-    if (count === 0) return 'text-slate-500'
-    if (type === 'needs_response') return 'text-red-400 font-semibold'
-    if (type === 'aging')          return 'text-amber-400'
-    if (type === 'stale')          return 'text-orange-400'
-    return 'text-emerald-400'
+    if (count === 0) return 'tl-num--zero'
+    if (type === 'needs_response') return 'tl-num--danger'
+    if (type === 'aging')          return 'tl-num--warn'
+    if (type === 'stale')          return 'tl-num--stale'
+    return 'tl-num--success'
+}
+
+function scoreClass(score) {
+    if (score > 0.5) return 'tl-score--high'
+    if (score > 0.2) return 'tl-score--mid'
+    return 'tl-score--low'
 }
 </script>
 
@@ -331,44 +156,44 @@ function urgencyClass(count, type) {
 
         <!-- Owner: no manager selected — client search picker -->
         <div v-if="owner_mode && !selected_manager">
-            <div class="mb-6">
-                <h1 class="tl-heading">Response Stats</h1>
-                <p class="tl-subtext">Select a team to view their urgency trends and response statistics.</p>
+            <div class="tl-page-header">
+                <div>
+                    <h1 class="tl-heading">Response Stats</h1>
+                    <p class="tl-subtext">Select a team to view their urgency trends and response statistics.</p>
+                </div>
             </div>
-            <div class="max-w-md">
+            <div class="tl-picker">
                 <input
                     v-model="clientSearch"
                     type="search"
                     placeholder="Search by name or email…"
-                    class="tl-input w-full mb-4"
+                    class="tl-input tl-input--full tl-card-gap"
                 />
                 <div v-if="pagedClients.length === 0" class="tl-empty-state">
-                    <TlIcon name="users" class="w-8 h-8 text-slate-700 mb-3" />
+                    <TlIcon name="users" class="tl-empty-icon" />
                     <p class="tl-hint">No matching clients found.</p>
                 </div>
-                <ul v-else class="space-y-2">
+                <ul v-else class="tl-stack--sm">
                     <li v-for="client in pagedClients" :key="client.id">
                         <button
                             type="button"
                             @click="selectManager(client.id)"
-                            class="w-full text-left tl-card hover:border-amber-500/40 hover:bg-slate-800/60 transition-colors cursor-pointer"
+                            class="tl-card tl-card--btn"
                         >
-                            <p class="text-sm font-medium text-slate-200">{{ client.name }}</p>
-                            <p class="tl-hint text-xs font-mono">{{ client.email }}</p>
+                            <p class="tl-cell-primary">{{ client.name }}</p>
+                            <p class="tl-hint tl-mono--xs">{{ client.email }}</p>
                         </button>
                     </li>
                 </ul>
-                <div v-if="totalPages > 1" class="flex items-center justify-between mt-4">
-                    <span class="text-xs text-slate-500">{{ filteredClients.length }} clients</span>
-                    <div class="flex items-center gap-1">
-                        <button type="button" :disabled="clientPage === 1" @click="clientPage--"
-                                class="p-1.5 text-slate-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
-                            <TlIcon name="chevron-left" class="w-4 h-4" />
+                <div v-if="totalPages > 1" class="tl-pager">
+                    <span class="tl-hint">{{ filteredClients.length }} clients</span>
+                    <div class="tl-pager-nav">
+                        <button type="button" :disabled="clientPage === 1" @click="clientPage--" class="tl-pager-btn">
+                            <TlIcon name="chevron-left" class="tl-ic" />
                         </button>
-                        <span class="text-xs text-slate-400 font-mono">{{ clientPage }} / {{ totalPages }}</span>
-                        <button type="button" :disabled="clientPage >= totalPages" @click="clientPage++"
-                                class="p-1.5 text-slate-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
-                            <TlIcon name="chevron-right" class="w-4 h-4" />
+                        <span class="tl-pager-label">{{ clientPage }} / {{ totalPages }}</span>
+                        <button type="button" :disabled="clientPage >= totalPages" @click="clientPage++" class="tl-pager-btn">
+                            <TlIcon name="chevron-right" class="tl-ic" />
                         </button>
                     </div>
                 </div>
@@ -378,14 +203,13 @@ function urgencyClass(count, type) {
         <!-- Owner: manager selected — action banner + content -->
         <template v-if="!owner_mode || selected_manager">
 
-        <div v-if="owner_mode && selected_manager"
-             class="flex flex-wrap items-center gap-3 mb-6 px-4 py-3 rounded-lg bg-amber-500/10 border border-amber-500/30 text-sm">
-            <TlIcon name="building" class="w-4 h-4 text-amber-400 shrink-0" />
-            <span class="text-amber-300 font-medium flex-1 min-w-0 truncate">
+        <div v-if="owner_mode && selected_manager" class="tl-banner tl-banner--warn tl-card-gap tl-row--wrap">
+            <TlIcon name="building" class="tl-ic tl-banner-icon" />
+            <span class="tl-banner-title tl-banner-fill">
                 {{ selected_manager.name }}
-                <span class="text-amber-400/60 font-mono text-xs ml-1">{{ selected_manager.email }}</span>
+                <span class="tl-hint tl-mono--xs">{{ selected_manager.email }}</span>
             </span>
-            <div class="flex items-center gap-2 shrink-0">
+            <div class="tl-row">
                 <a :href="`/console/owner/clients/${selected_manager.id}`" class="tl-btn tl-btn--secondary tl-btn--sm">Manage</a>
                 <button type="button" class="tl-btn tl-btn--secondary tl-btn--sm"
                         @click="router.get('/console/admin/stats')">← Back</button>
@@ -393,23 +217,23 @@ function urgencyClass(count, type) {
         </div>
 
         <!-- Page header -->
-        <div class="mb-6 flex items-center justify-between">
+        <div class="tl-page-header">
             <div>
-                <h1 class="tl-page-title">Response Stats</h1>
-                <p class="tl-page-subtitle mt-1">
+                <h1 class="tl-heading">Response Stats</h1>
+                <p class="tl-subtext">
                     {{ owner_mode ? selected_manager?.name : group_name }} ·
-                    <span class="text-slate-500">updated {{ timeAgo(last_updated) }}</span>
+                    <span class="tl-hint">updated {{ timeAgo(last_updated) }}</span>
                 </p>
             </div>
         </div>
 
         <!-- No-data empty state -->
-        <div v-if="!hasData" class="rounded-xl border border-slate-800 bg-slate-900/40 p-10 text-center">
-            <TlIcon name="chart-bar" class="mx-auto mb-3 h-8 w-8 text-slate-600" />
-            <p class="text-slate-400 font-medium">No data yet</p>
-            <p class="mt-1 text-sm text-slate-500">
+        <div v-if="!hasData" class="tl-empty-state">
+            <TlIcon name="chart-bar" class="tl-empty-icon" />
+            <p class="tl-body">No data yet</p>
+            <p class="tl-subtext">
                 Stats accumulate as team members run
-                <code class="rounded bg-slate-800 px-1 py-0.5 text-xs text-slate-300">ticketlens triage --push</code>
+                <code class="tl-code-chip">ticketlens triage --push</code>
                 each day.
             </p>
         </div>
@@ -417,202 +241,158 @@ function urgencyClass(count, type) {
         <template v-else>
 
             <!-- Urgency trend (30-day line chart) -->
-            <div class="mb-6 rounded-xl border border-slate-800 bg-slate-900/60 p-5">
-                <h2 class="mb-4 text-sm font-semibold text-slate-300 uppercase tracking-wide">
-                    Urgency Trend — last 30 days
-                </h2>
-                <div class="h-56">
-                    <Line :data="lineChartData" :options="lineChartOptions" />
+            <div class="tl-card tl-card-gap">
+                <h2 class="tl-title tl-title--spaced">Urgency Trend — last 30 days</h2>
+                <div class="tl-chart-frame">
+                    <TlChart type="line" :labels="urgencyLabels" :datasets="urgencyDatasets" legend="bottom" />
                 </div>
-                <p class="mt-3 pt-3 border-t border-slate-800 text-xs text-slate-500 leading-relaxed">
+                <p class="tl-card-footnote">
                     Daily count of flagged tickets across the team. "Needs Response" means a teammate is waiting — watch for spikes. "Aging" and "Stale" indicate tickets that have not been touched recently. "Clear" confirms healthy throughput.
                 </p>
             </div>
 
             <!-- Team urgency snapshot (stacked bar) -->
-            <div v-if="team_comparison.length > 1" class="mb-6 rounded-xl border border-slate-800 bg-slate-900/60 p-5">
-                <h2 class="mb-4 text-sm font-semibold text-slate-300 uppercase tracking-wide">
-                    Team Snapshot — current urgency by member
-                </h2>
-                <div class="h-48">
-                    <Bar :data="barChartData" :options="barChartOptions" />
+            <div v-if="team_comparison.length > 1" class="tl-card tl-card-gap">
+                <h2 class="tl-title tl-title--spaced">Team Snapshot — current urgency by member</h2>
+                <div class="tl-chart-frame">
+                    <TlChart type="bar" :labels="teamBarLabels" :datasets="teamBarDatasets" :options="stackedOptions" legend="bottom" />
                 </div>
-                <p class="mt-3 pt-3 border-t border-slate-800 text-xs text-slate-500 leading-relaxed">
+                <p class="tl-card-footnote">
                     Side-by-side urgency breakdown per team member from their most recent push. Useful for spotting who carries the highest "Needs Response" load or whose queue has stagnated.
                 </p>
             </div>
 
-                <!-- Response-time placeholder -->
-                <div class="mb-6 rounded-xl border border-slate-800 bg-slate-900/40 p-5">
-                    <h2 class="mb-2 text-sm font-semibold text-slate-300 uppercase tracking-wide">
-                        Response Time
-                    </h2>
-                    <p class="text-sm text-slate-500">
-                        Response-time metrics (avg hours to clear, clear-rate trend) accumulate after
-                        30 days of push history. Check back soon.
-                        <!-- TODO F19c follow-up: compute from last_comment_at once enough data exists -->
-                    </p>
-                </div>
+            <!-- Response-time placeholder -->
+            <div class="tl-info-box tl-card-gap">
+                <h2 class="tl-title">Response Time</h2>
+                <p class="tl-body--muted">
+                    Response-time metrics (avg hours to clear, clear-rate trend) accumulate after
+                    30 days of push history. Check back soon.
+                    <!-- TODO F19c follow-up: compute from last_comment_at once enough data exists -->
+                </p>
+            </div>
 
-                <!-- Team comparison table -->
-                <div class="rounded-xl border border-slate-800 bg-slate-900/60 overflow-hidden">
-                    <div class="px-5 py-4 border-b border-slate-800">
-                        <h2 class="text-sm font-semibold text-slate-300 uppercase tracking-wide">Team Comparison</h2>
-                    </div>
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-sm">
-                            <thead>
-                                <tr class="border-b border-slate-800 text-left text-xs text-slate-500 uppercase tracking-wide">
-                                    <th class="px-5 py-3 font-medium">Member</th>
-                                    <th
-                                        class="px-4 py-3 font-medium cursor-pointer hover:text-slate-300 select-none"
-                                        @click="setSort('needs_response')"
-                                    >Needs Response {{ sortIcon('needs_response') }}</th>
-                                    <th
-                                        class="px-4 py-3 font-medium cursor-pointer hover:text-slate-300 select-none"
-                                        @click="setSort('aging')"
-                                    >Aging {{ sortIcon('aging') }}</th>
-                                    <th
-                                        class="px-4 py-3 font-medium cursor-pointer hover:text-slate-300 select-none"
-                                        @click="setSort('stale')"
-                                    >Stale {{ sortIcon('stale') }}</th>
-                                    <th
-                                        class="px-4 py-3 font-medium cursor-pointer hover:text-slate-300 select-none"
-                                        @click="setSort('clear')"
-                                    >Clear {{ sortIcon('clear') }}</th>
-                                    <th
-                                        class="px-4 py-3 font-medium cursor-pointer hover:text-slate-300 select-none"
-                                        @click="setSort('total')"
-                                    >Total {{ sortIcon('total') }}</th>
-                                    <th class="px-5 py-3 font-medium">Last Push</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-slate-800/60">
-                                <tr
-                                    v-for="row in sortedTeam"
-                                    :key="row.member_id"
-                                    class="hover:bg-slate-800/30 transition-colors"
-                                >
-                                    <td class="px-5 py-3 text-slate-200 font-medium">{{ row.member_name }}</td>
-                                    <td class="px-4 py-3" :class="urgencyClass(row.needs_response, 'needs_response')">
-                                        {{ row.needs_response }}
-                                    </td>
-                                    <td class="px-4 py-3" :class="urgencyClass(row.aging, 'aging')">
-                                        {{ row.aging }}
-                                    </td>
-                                    <td class="px-4 py-3" :class="urgencyClass(row.stale ?? 0, 'stale')">
-                                        {{ row.stale ?? 0 }}
-                                    </td>
-                                    <td class="px-4 py-3" :class="urgencyClass(row.clear, 'clear')">
-                                        {{ row.clear }}
-                                    </td>
-                                    <td class="px-4 py-3 text-slate-300">{{ row.total }}</td>
-                                    <td class="px-5 py-3 text-slate-500 text-xs">{{ timeAgo(row.last_push) }}</td>
-                                </tr>
-                                <tr v-if="sortedTeam.length === 0">
-                                    <td colspan="7" class="px-5 py-6 text-center text-slate-500">
-                                        No team members found.
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
+            <!-- Team comparison table -->
+            <div class="tl-card tl-card--flush">
+                <div class="tl-table-header">
+                    <h2 class="tl-title">Team Comparison</h2>
                 </div>
-
-            <!-- ── Engagement Leaderboard ──────────────────────────────── -->
-            <div v-if="engagement_scores.length > 0" class="mt-6 rounded-xl border border-slate-800 bg-slate-900/60 overflow-hidden">
-                <div class="px-5 py-4 border-b border-slate-800">
-                    <h2 class="text-sm font-semibold text-slate-300 uppercase tracking-wide">Engagement Leaderboard — last 30 days</h2>
-                </div>
-                <div class="overflow-x-auto">
-                    <table class="w-full text-sm">
-                        <thead>
-                            <tr class="border-b border-slate-800 text-left text-xs text-slate-500 uppercase tracking-wide">
-                                <th class="px-5 py-3 font-medium">#</th>
-                                <th class="px-5 py-3 font-medium">Member</th>
-                                <th class="px-4 py-3 font-medium text-right">Active Days</th>
-                                <th class="px-4 py-3 font-medium text-right">Avg Tickets</th>
-                                <th class="px-5 py-3 font-medium text-right">Score</th>
+                <div class="tl-table-scroll">
+                    <table class="tl-table">
+                        <thead class="tl-thead">
+                            <tr>
+                                <th class="tl-th">Member</th>
+                                <th class="tl-th tl-th--sortable" @click="setSort('needs_response')">Needs Response {{ sortIcon('needs_response') }}</th>
+                                <th class="tl-th tl-th--sortable" @click="setSort('aging')">Aging {{ sortIcon('aging') }}</th>
+                                <th class="tl-th tl-th--sortable" @click="setSort('stale')">Stale {{ sortIcon('stale') }}</th>
+                                <th class="tl-th tl-th--sortable" @click="setSort('clear')">Clear {{ sortIcon('clear') }}</th>
+                                <th class="tl-th tl-th--sortable" @click="setSort('total')">Total {{ sortIcon('total') }}</th>
+                                <th class="tl-th">Last Push</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-slate-800/60">
-                            <tr v-for="(row, idx) in engagement_scores" :key="row.member_id"
-                                class="hover:bg-slate-800/30 transition-colors">
-                                <td class="px-5 py-3 text-slate-500 font-mono text-xs">{{ idx + 1 }}</td>
-                                <td class="px-5 py-3 text-slate-200 font-medium">{{ row.member_name }}</td>
-                                <td class="px-4 py-3 text-slate-300 text-right font-mono">{{ row.active_days_30d }}</td>
-                                <td class="px-4 py-3 text-slate-300 text-right font-mono">{{ row.avg_ticket_count }}</td>
-                                <td class="px-5 py-3 text-right">
-                                    <span class="font-mono font-semibold"
-                                          :class="row.score > 0.5 ? 'text-indigo-400' : row.score > 0.2 ? 'text-slate-300' : 'text-slate-500'">
-                                        {{ row.score.toFixed(2) }}
-                                    </span>
+                        <tbody class="tl-divide">
+                            <tr v-for="row in sortedTeam" :key="row.member_id" class="tl-tr">
+                                <td class="tl-td tl-cell-primary">{{ row.member_name }}</td>
+                                <td class="tl-td" :class="urgencyClass(row.needs_response, 'needs_response')">{{ row.needs_response }}</td>
+                                <td class="tl-td" :class="urgencyClass(row.aging, 'aging')">{{ row.aging }}</td>
+                                <td class="tl-td" :class="urgencyClass(row.stale ?? 0, 'stale')">{{ row.stale ?? 0 }}</td>
+                                <td class="tl-td" :class="urgencyClass(row.clear, 'clear')">{{ row.clear }}</td>
+                                <td class="tl-td">{{ row.total }}</td>
+                                <td class="tl-td tl-cell-muted">{{ timeAgo(row.last_push) }}</td>
+                            </tr>
+                            <tr v-if="sortedTeam.length === 0">
+                                <td colspan="7" class="tl-td--empty">No team members found.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- ── Engagement Leaderboard ──────────────────────────────── -->
+            <div v-if="engagement_scores.length > 0" class="tl-card tl-card--flush tl-section-start">
+                <div class="tl-table-header">
+                    <h2 class="tl-title">Engagement Leaderboard — last 30 days</h2>
+                </div>
+                <div class="tl-table-scroll">
+                    <table class="tl-table">
+                        <thead class="tl-thead">
+                            <tr>
+                                <th class="tl-th">#</th>
+                                <th class="tl-th">Member</th>
+                                <th class="tl-th tl-th--right">Active Days</th>
+                                <th class="tl-th tl-th--right">Avg Tickets</th>
+                                <th class="tl-th tl-th--right">Score</th>
+                            </tr>
+                        </thead>
+                        <tbody class="tl-divide">
+                            <tr v-for="(row, idx) in engagement_scores" :key="row.member_id" class="tl-tr">
+                                <td class="tl-td tl-cell-muted tl-mono--xs">{{ idx + 1 }}</td>
+                                <td class="tl-td tl-cell-primary">{{ row.member_name }}</td>
+                                <td class="tl-td tl-td--right tl-mono">{{ row.active_days_30d }}</td>
+                                <td class="tl-td tl-td--right tl-mono">{{ row.avg_ticket_count }}</td>
+                                <td class="tl-td tl-td--right">
+                                    <span :class="scoreClass(row.score)">{{ row.score.toFixed(2) }}</span>
                                 </td>
                             </tr>
                         </tbody>
                     </table>
                 </div>
-                <p class="px-5 py-3 border-t border-slate-800 text-xs text-slate-500">
+                <p class="tl-table-footnote">
                     Score = (active days / 30) × log(avg tickets + 1). Higher means more consistent, heavier triage usage.
                 </p>
             </div>
 
             <!-- ── Push Activity Heatmap ──────────────────────────────────── -->
-            <div v-if="push_heatmap.some(m => m.days.length > 0)" class="mt-6 rounded-xl border border-slate-800 bg-slate-900/60 p-5">
-                <h2 class="mb-4 text-sm font-semibold text-slate-300 uppercase tracking-wide">Push Activity — last 90 days</h2>
-                <div class="space-y-3">
-                    <div v-for="member in push_heatmap" :key="member.member_id" class="flex items-center gap-3">
-                        <span class="w-24 text-xs text-slate-400 truncate shrink-0">{{ member.member_name.split(' ')[0] }}</span>
-                        <div class="flex flex-wrap gap-0.5">
+            <div v-if="push_heatmap.some(m => m.days.length > 0)" class="tl-card tl-section-start">
+                <h2 class="tl-title tl-title--spaced">Push Activity — last 90 days</h2>
+                <div class="tl-stack--sm">
+                    <div v-for="member in push_heatmap" :key="member.member_id" class="tl-heat-row">
+                        <span class="tl-heat-name">{{ member.member_name.split(' ')[0] }}</span>
+                        <div class="tl-heat-grid">
                             <template v-for="day in member.days" :key="day">
-                                <div
-                                    class="w-2.5 h-2.5 rounded-sm bg-indigo-500/70"
-                                    :title="day"
-                                ></div>
+                                <div class="tl-heat-cell" :title="day"></div>
                             </template>
                         </div>
-                        <span class="text-xs text-slate-500 font-mono shrink-0">{{ member.days.length }}d</span>
+                        <span class="tl-pager-label">{{ member.days.length }}d</span>
                     </div>
                 </div>
-                <p class="mt-4 pt-3 border-t border-slate-800 text-xs text-slate-500">
+                <p class="tl-card-footnote">
                     Each block represents a day with at least one push. Consistent streaks indicate strong daily habits.
                 </p>
             </div>
 
             <!-- ── Hour-of-Day & Day-of-Week side by side ─────────────────── -->
             <div v-if="hour_distribution.some(h => h.count > 0) || day_of_week_dist.some(d => d.count > 0)"
-                 class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+                 class="tl-grid-2 tl-section-start">
 
-                <div v-if="hour_distribution.some(h => h.count > 0)"
-                     class="rounded-xl border border-slate-800 bg-slate-900/60 p-5">
-                    <h2 class="mb-4 text-sm font-semibold text-slate-300 uppercase tracking-wide">Hour of Day (UTC)</h2>
-                    <div class="h-40">
-                        <Bar :data="hourChartData" :options="hourChartOptions" />
+                <div v-if="hour_distribution.some(h => h.count > 0)" class="tl-card">
+                    <h2 class="tl-title tl-title--spaced">Hour of Day (UTC)</h2>
+                    <div class="tl-chart-frame tl-chart-frame--sm">
+                        <TlChart type="bar" :labels="hourLabels" :datasets="hourDatasets" />
                     </div>
-                    <p class="mt-3 pt-3 border-t border-slate-800 text-xs text-slate-500">
+                    <p class="tl-card-footnote">
                         When the team pushes most often (UTC). Note: one push per profile per day is counted.
                     </p>
                 </div>
 
-                <div v-if="day_of_week_dist.some(d => d.count > 0)"
-                     class="rounded-xl border border-slate-800 bg-slate-900/60 p-5">
-                    <h2 class="mb-4 text-sm font-semibold text-slate-300 uppercase tracking-wide">Day of Week</h2>
-                    <div class="h-40">
-                        <Bar :data="dowChartData" :options="dowChartOptions" />
+                <div v-if="day_of_week_dist.some(d => d.count > 0)" class="tl-card">
+                    <h2 class="tl-title tl-title--spaced">Day of Week</h2>
+                    <div class="tl-chart-frame tl-chart-frame--sm">
+                        <TlChart type="bar" :labels="dowLabels" :datasets="dowDatasets" />
                     </div>
-                    <p class="mt-3 pt-3 border-t border-slate-800 text-xs text-slate-500">
+                    <p class="tl-card-footnote">
                         Weekend bars are dimmed. Heavy weekend usage may indicate on-call rotation.
                     </p>
                 </div>
             </div>
 
             <!-- ── Ticket Load Trend (per member) ────────────────────────── -->
-            <div v-if="ticket_load_trend.length > 0" class="mt-6 mb-6 rounded-xl border border-slate-800 bg-slate-900/60 p-5">
-                <h2 class="mb-4 text-sm font-semibold text-slate-300 uppercase tracking-wide">Ticket Load — last 30 days</h2>
-                <div class="h-56">
-                    <Line :data="ticketTrendChartData" :options="ticketTrendChartOptions" />
+            <div v-if="ticket_load_trend.length > 0" class="tl-card tl-section-start tl-card-gap">
+                <h2 class="tl-title tl-title--spaced">Ticket Load — last 30 days</h2>
+                <div class="tl-chart-frame">
+                    <TlChart type="line" :labels="trendDisplayLabels" :datasets="trendDatasets" :options="spanGapsOptions" legend="bottom" />
                 </div>
-                <p class="mt-3 pt-3 border-t border-slate-800 text-xs text-slate-500">
+                <p class="tl-card-footnote">
                     Active ticket count per member over time. Members with a rising trend may need load balancing. Flat lines at zero indicate no push data in this window.
                 </p>
             </div>

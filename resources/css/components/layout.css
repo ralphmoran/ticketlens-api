@@ -81,3 +81,23 @@
   .tl-section-gap { @apply mb-8; }
   .tl-card-gap    { @apply mb-6; }
 }
+
+@layer components {
+  /* Inline pager (search pickers) */
+  .tl-pager { @apply flex items-center justify-between mt-4; }
+  .tl-pager-nav { @apply flex items-center gap-1; }
+  .tl-pager-label { @apply text-xs font-mono; color: var(--tl-text-muted); }
+  .tl-pager-btn {
+    @apply p-1.5 cursor-pointer;
+    color: var(--tl-text-muted);
+    border-radius: var(--tl-radius-sm);
+    transition: color var(--tl-transition);
+  }
+  .tl-pager-btn:hover:not(:disabled) { color: var(--tl-text); }
+  .tl-pager-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+}
+
+@layer components {
+  .tl-picker { @apply max-w-md; }
+  .tl-section-start { @apply mt-6; }
+}

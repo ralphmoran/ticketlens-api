@@ -51,6 +51,7 @@ function readTokens() {
             danger:  get('--tl-danger'),
             success: get('--tl-success'),
             info:    get('--tl-info'),
+            stale:   get('--tl-stale'),
         },
         grid:          get('--tl-chart-grid'),
         tick:          get('--tl-chart-tick'),
@@ -110,7 +111,11 @@ const chartData = computed(() => {
                 backgroundColor: filled ? withAlpha(color, 0.15) : color,
             }
             if (props.type === 'bar') {
-                return { ...base, borderRadius: 6, borderSkipped: false, maxBarThickness: 28, borderWidth: 0 }
+                // Per-point alpha dimming (e.g. weekend bars): dataset.alphas = [1, 1, …, 0.35]
+                const bg = Array.isArray(d.alphas)
+                    ? d.data.map((_, j) => withAlpha(color, d.alphas[j] ?? 1))
+                    : base.backgroundColor
+                return { ...base, backgroundColor: bg, borderRadius: 6, borderSkipped: false, maxBarThickness: 28, borderWidth: 0 }
             }
             return {
                 ...base,

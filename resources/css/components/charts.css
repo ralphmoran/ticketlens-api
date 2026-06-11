@@ -58,3 +58,16 @@
   .tl-meter-fill--warn    { background-color: var(--tl-warn); }
   .tl-meter-fill--danger  { background-color: var(--tl-danger); }
 }
+
+@layer components {
+  /* Push-activity heatmap */
+  .tl-heat-row  { @apply flex items-center gap-3; }
+  .tl-heat-name { @apply w-24 text-xs truncate shrink-0; color: var(--tl-text-muted); }
+  .tl-heat-grid { @apply flex flex-wrap gap-0.5; }
+  .tl-heat-cell {
+    @apply w-2.5 h-2.5;
+    border-radius: 2px;
+    background-color: var(--tl-brand);
+    opacity: 0.75;
+  }
+}

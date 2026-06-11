@@ -53,3 +53,7 @@
   .tl-banner--danger > svg,
   .tl-banner--danger > .tl-banner-icon { color: var(--tl-danger); }
 }
+
+@layer components {
+  .tl-banner-fill { @apply flex-1 min-w-0 truncate; }
+}

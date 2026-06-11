@@ -61,3 +61,25 @@
     color: var(--tl-text-muted);
   }
 }
+
+@layer components {
+  .tl-th--sortable {
+    @apply cursor-pointer select-none;
+    transition: color var(--tl-transition);
+  }
+  .tl-th--sortable:hover { color: var(--tl-text-secondary); }
+}
+
+@layer components {
+  .tl-table-header {
+    @apply px-5 py-4;
+    border-bottom: 1px solid var(--tl-border);
+  }
+  .tl-table-scroll { @apply overflow-x-auto; }
+  .tl-td--right { @apply text-right; }
+  .tl-table-footnote {
+    @apply px-5 py-3 text-xs;
+    border-top: 1px solid var(--tl-border);
+    color: var(--tl-text-muted);
+  }
+}

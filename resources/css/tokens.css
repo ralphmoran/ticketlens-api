@@ -46,6 +46,7 @@
   --tl-info:           oklch(0.74 0.100 228);
   --tl-info-tint:      oklch(0.74 0.100 228 / 0.10);
   --tl-info-border:    oklch(0.74 0.100 228 / 0.28);
+  --tl-stale:          oklch(0.74 0.150 50);
 
   /* Owner-panel accent (amber identity, distinct from member brand) */
   --tl-owner:        oklch(0.80 0.140 75);
@@ -138,6 +139,7 @@
   --tl-info:           oklch(0.42 0.090 228);
   --tl-info-tint:      oklch(0.42 0.090 228 / 0.08);
   --tl-info-border:    oklch(0.42 0.090 228 / 0.30);
+  --tl-stale:          oklch(0.52 0.140 50);
 
   --tl-owner:        oklch(0.50 0.130 70);
   --tl-owner-muted:  oklch(0.55 0.110 70);

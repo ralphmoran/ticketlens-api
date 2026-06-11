@@ -85,3 +85,20 @@
 @layer components {
   .tl-title--spaced { @apply mb-4; }
 }
+
+@layer components {
+  /* Urgency / metric number cells */
+  .tl-num--zero    { color: var(--tl-text-subtle); }
+  .tl-num--danger  { color: var(--tl-danger); font-weight: 600; }
+  .tl-num--warn    { color: var(--tl-warn); }
+  .tl-num--stale   { color: var(--tl-stale); }
+  .tl-num--success { color: var(--tl-success); }
+
+  /* Engagement score emphasis */
+  .tl-score--high { @apply font-mono font-semibold; color: var(--tl-brand-soft); }
+  .tl-score--mid  { @apply font-mono font-semibold; color: var(--tl-text-secondary); }
+  .tl-score--low  { @apply font-mono font-semibold; color: var(--tl-text-subtle); }
+
+  .tl-mono { @apply font-mono; }
+  .tl-mono--xs { @apply font-mono text-xs; }
+}

@@ -319,3 +319,7 @@
     color: white;
   }
 }
+
+@layer components {
+  .tl-field { @apply flex flex-col gap-1; }
+}

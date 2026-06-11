@@ -13,47 +13,49 @@ defineProps({
 
 <template>
     <div class="tl-page">
-        <div class="mb-6">
-            <h1 class="tl-heading">Teams</h1>
-            <p class="tl-subtext">All team groups and their membership.</p>
+        <div class="tl-page-header">
+            <div>
+                <h1 class="tl-heading">Teams</h1>
+                <p class="tl-subtext">All team groups and their membership.</p>
+            </div>
         </div>
 
         <div class="tl-card tl-card--flush">
-            <table class="w-full text-sm">
+            <table class="tl-table">
                 <thead>
                     <tr class="tl-thead">
                         <th class="tl-th">Team name</th>
                         <th class="tl-th">Owner</th>
-                        <th class="tl-th text-center">Members</th>
-                        <th class="tl-th text-center">Seats</th>
+                        <th class="tl-th tl-th--center">Members</th>
+                        <th class="tl-th tl-th--center">Seats</th>
                         <th class="tl-th">Created</th>
                         <th class="tl-th"></th>
                     </tr>
                 </thead>
                 <tbody class="tl-divide">
                     <tr v-for="team in teams" :key="team.id" class="tl-tr">
-                        <td class="px-4 py-3 text-slate-200 font-medium text-sm">{{ team.name }}</td>
-                        <td class="px-4 py-3">
+                        <td class="tl-td tl-cell-primary">{{ team.name }}</td>
+                        <td class="tl-td">
                             <template v-if="team.owner">
-                                <Link :href="`/console/owner/clients/${team.owner.id}`" class="text-slate-300 hover:text-white transition text-xs">
+                                <Link :href="`/console/owner/clients/${team.owner.id}`" class="tl-cell-link tl-body--secondary">
                                     {{ team.owner.name }}
                                 </Link>
-                                <p class="text-slate-500 text-[11px]">{{ team.owner.email }}</p>
+                                <p class="tl-hint">{{ team.owner.email }}</p>
                             </template>
-                            <span v-else class="text-slate-600 text-xs">—</span>
+                            <span v-else class="tl-hint">—</span>
                         </td>
-                        <td class="px-4 py-3 text-center text-slate-300 text-sm">{{ team.member_count }}</td>
-                        <td class="px-4 py-3 text-center">
-                            <span v-if="team.seats !== null" class="text-slate-300 text-sm">{{ team.seats }}</span>
-                            <span v-else class="text-slate-600 text-xs">—</span>
+                        <td class="tl-td tl-td--center">{{ team.member_count }}</td>
+                        <td class="tl-td tl-td--center">
+                            <span v-if="team.seats !== null">{{ team.seats }}</span>
+                            <span v-else class="tl-hint">—</span>
                         </td>
-                        <td class="px-4 py-3 text-slate-500 text-xs">{{ formatDate(team.created_at) }}</td>
-                        <td class="px-4 py-3 text-right">
+                        <td class="tl-td tl-cell-muted">{{ formatDate(team.created_at) }}</td>
+                        <td class="tl-td tl-td--right">
                             <Link
                                 :href="`/console/owner/teams/${team.id}`"
-                                class="inline-flex items-center gap-1 text-xs text-slate-400 hover:text-white transition"
+                                class="tl-btn-ghost tl-btn-ghost--neutral"
                             >
-                                <TlIcon name="eye" class="w-3.5 h-3.5 shrink-0" />
+                                <TlIcon name="eye" class="tl-ic tl-ic--sm" />
                                 View
                             </Link>
                         </td>

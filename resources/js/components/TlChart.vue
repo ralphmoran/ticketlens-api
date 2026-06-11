@@ -102,18 +102,18 @@ const chartData = computed(() => {
     return {
         labels: props.labels,
         datasets: props.datasets.map((d, i) => {
+            const { color: _color, alphas, fill, ...extras } = d
             const color  = resolveColor(d, i)
-            const filled = props.type === 'area' || d.fill === true
+            const filled = props.type === 'area' || fill === true
             const base = {
-                label: d.label,
-                data: d.data,
+                ...extras, // pass through Chart.js dataset options (yAxisID, spanGaps, …)
                 borderColor: color,
                 backgroundColor: filled ? withAlpha(color, 0.15) : color,
             }
             if (props.type === 'bar') {
                 // Per-point alpha dimming (e.g. weekend bars): dataset.alphas = [1, 1, …, 0.35]
-                const bg = Array.isArray(d.alphas)
-                    ? d.data.map((_, j) => withAlpha(color, d.alphas[j] ?? 1))
+                const bg = Array.isArray(alphas)
+                    ? d.data.map((_, j) => withAlpha(color, alphas[j] ?? 1))
                     : base.backgroundColor
                 return { ...base, backgroundColor: bg, borderRadius: 6, borderSkipped: false, maxBarThickness: 28, borderWidth: 0 }
             }

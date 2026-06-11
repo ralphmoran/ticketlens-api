@@ -94,3 +94,11 @@
     transform: translateX(1.375rem);
   }
 }
+
+@layer components {
+  /* Definition rows (label : value) */
+  .tl-def-row   { @apply flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4; }
+  .tl-def-label { @apply text-xs sm:w-24 shrink-0; color: var(--tl-text-subtle); }
+  .tl-def-value { @apply text-sm; color: var(--tl-text); }
+  .tl-def-value--mono { @apply text-sm font-mono; color: var(--tl-text-secondary); }
+}

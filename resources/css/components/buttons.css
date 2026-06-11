@@ -150,3 +150,24 @@
   }
   .tl-chip-btn--brand:hover { border-color: var(--tl-brand-hover); }
 }
+
+@layer components {
+  /* Outline button (brand border, transparent fill) */
+  .tl-btn--outline {
+    @apply px-4 py-2 text-sm;
+    border: 1px solid var(--tl-brand);
+    color: var(--tl-brand-soft);
+    background-color: transparent;
+  }
+  .tl-btn--outline:hover:not(:disabled) {
+    background-color: var(--tl-brand-tint);
+  }
+
+  /* Inverse button for solid-brand promo surfaces */
+  .tl-btn--inverse {
+    @apply px-4 py-2 text-sm font-semibold;
+    background-color: white;
+    color: var(--tl-brand);
+  }
+  .tl-btn--inverse:hover:not(:disabled) { filter: brightness(0.95); }
+}

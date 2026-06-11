@@ -132,3 +132,34 @@
     color: var(--tl-text-subtle);
   }
 }
+
+@layer components {
+  /* Tier-locked teaser: blurred preview + lock overlay */
+  .tl-stat-card--locked { @apply relative overflow-hidden; }
+  .tl-blurred { @apply blur-sm pointer-events-none select-none; }
+  .tl-lock-overlay {
+    @apply absolute inset-0 flex flex-col items-center justify-center gap-2;
+    color: var(--tl-text-muted);
+  }
+  .tl-lock-label { @apply text-xs font-medium; }
+
+  /* Upgrade CTA card */
+  .tl-cta-card {
+    @apply p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4;
+    background-color: var(--tl-card);
+    border: 1px solid var(--tl-info-border);
+    border-radius: var(--tl-radius-xl);
+    box-shadow: var(--tl-shadow-sm);
+  }
+}
+
+@layer components {
+  /* Solid-brand promo panel */
+  .tl-promo-card {
+    @apply p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4;
+    background-color: var(--tl-brand);
+    border-radius: var(--tl-radius-xl);
+    box-shadow: var(--tl-shadow-md);
+  }
+  .tl-promo-card > p { @apply text-sm font-medium; color: var(--tl-brand-fg); }
+}

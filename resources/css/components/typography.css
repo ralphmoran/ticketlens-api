@@ -102,3 +102,8 @@
   .tl-mono { @apply font-mono; }
   .tl-mono--xs { @apply font-mono text-xs; }
 }
+
+@layer components {
+  /* Standalone text link, body size */
+  .tl-link--md { @apply text-sm; }
+}

@@ -1,5 +1,6 @@
 <script setup>
 import ConsoleLayout from '@/Layouts/ConsoleLayout.vue'
+import TlChart from '@/components/TlChart.vue'
 import { computed } from 'vue'
 import { formatDate } from '@/composables/useDateFormat'
 
@@ -19,78 +20,95 @@ const conversionRate = computed(() => {
 })
 
 const tierBadge = {
-    free:       'bg-slate-800 text-slate-400 border-slate-700',
-    pro:        'bg-indigo-900/50 text-indigo-300 border-indigo-700',
-    team:       'bg-violet-900/50 text-violet-300 border-violet-700',
-    enterprise: 'bg-amber-900/50 text-amber-300 border-amber-700',
+    free:       'tl-badge--neutral',
+    pro:        'tl-badge--brand',
+    team:       'tl-badge--info',
+    enterprise: 'tl-badge--warn',
 }
 
 const statusBadge = {
-    active:    'bg-emerald-900/50 text-emerald-300 border-emerald-700',
-    cancelled: 'bg-red-900/50 text-red-300 border-red-700',
-    paused:    'bg-amber-900/50 text-amber-300 border-amber-700',
+    active:    'tl-badge--success',
+    cancelled: 'tl-badge--danger',
+    paused:    'tl-badge--warn',
 }
 
 function tierClass(tier)     { return tierBadge[tier]    ?? tierBadge.free }
-function statusClass(status) { return statusBadge[status] ?? 'bg-slate-800 text-slate-400 border-slate-700' }
+function statusClass(status) { return statusBadge[status] ?? 'tl-badge--neutral' }
+
+const TIERS = ['free', 'pro', 'team', 'enterprise']
+const tierLabels   = ['Free', 'Pro', 'Team', 'Enterprise']
+const tierDatasets = computed(() => [
+    { label: 'Users', data: TIERS.map(t => props.tier_breakdown[t] ?? 0) },
+])
+const hasTierData = computed(() => TIERS.some(t => (props.tier_breakdown[t] ?? 0) > 0))
 </script>
 
 <template>
     <div class="tl-page">
 
-        <div class="mb-8">
-            <h1 class="tl-heading">Revenue</h1>
-            <p class="tl-subtext">MRR and subscription overview</p>
+        <div class="tl-page-header">
+            <div>
+                <h1 class="tl-heading">Revenue</h1>
+                <p class="tl-subtext">MRR and subscription overview</p>
+            </div>
         </div>
 
         <!-- Top stat cards -->
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-8">
-            <div class="tl-card">
-                <p class="tl-label tl-label--spaced">Monthly Recurring Revenue</p>
-                <p class="text-3xl font-mono font-semibold text-indigo-400">${{ mrr.toFixed(2) }}</p>
+        <div class="tl-grid-3 tl-section-gap">
+            <div class="tl-stat-card">
+                <p class="tl-stat-label">Monthly Recurring Revenue</p>
+                <p class="tl-stat-value tl-score--high">${{ mrr.toFixed(2) }}</p>
                 <p class="tl-hint">active paid licenses</p>
             </div>
-            <div class="tl-card">
-                <p class="tl-label tl-label--spaced">Active Subscriptions</p>
-                <p class="text-3xl font-mono font-semibold text-emerald-400">{{ total_active }}</p>
+            <div class="tl-stat-card">
+                <p class="tl-stat-label">Active Subscriptions</p>
+                <p class="tl-stat-value tl-num--success">{{ total_active }}</p>
                 <p class="tl-hint">non-expired active licenses</p>
             </div>
-            <div class="tl-card">
-                <p class="tl-label tl-label--spaced">Conversion Rate</p>
-                <p class="text-3xl font-mono font-semibold text-violet-400">{{ conversionRate }}%</p>
+            <div class="tl-stat-card">
+                <p class="tl-stat-label">Conversion Rate</p>
+                <p class="tl-stat-value">{{ conversionRate }}%</p>
                 <p class="tl-hint">paid vs. total users</p>
             </div>
         </div>
 
-        <!-- Tier breakdown -->
-        <div class="mb-8">
-            <h2 class="text-sm font-semibold text-white mb-4">Users by tier</h2>
-            <div class="grid grid-cols-2 gap-4">
+        <!-- Tier breakdown: donut + counts -->
+        <div class="tl-section-gap">
+            <h2 class="tl-section-heading tl-title--spaced">Users by tier</h2>
+            <div class="tl-grid-2">
                 <div class="tl-card">
-                    <p class="text-xs font-medium text-slate-500 uppercase tracking-wider mb-3">Free</p>
-                    <p class="text-3xl font-mono font-semibold text-slate-400">{{ tier_breakdown.free }}</p>
+                    <div class="tl-chart-frame">
+                        <TlChart v-if="hasTierData" type="donut" :labels="tierLabels" :datasets="tierDatasets" />
+                        <div v-else class="tl-chart-empty">No users yet.</div>
+                    </div>
                 </div>
-                <div class="bg-slate-900 border border-indigo-900/50 rounded-xl p-5">
-                    <p class="text-xs font-medium text-indigo-400 uppercase tracking-wider mb-3">Pro</p>
-                    <p class="text-3xl font-mono font-semibold text-indigo-400">{{ tier_breakdown.pro }}</p>
-                </div>
-                <div class="bg-slate-900 border border-violet-900/50 rounded-xl p-5">
-                    <p class="text-xs font-medium text-violet-400 uppercase tracking-wider mb-3">Team</p>
-                    <p class="text-3xl font-mono font-semibold text-violet-400">{{ tier_breakdown.team }}</p>
-                </div>
-                <div class="bg-slate-900 border border-amber-900/50 rounded-xl p-5">
-                    <p class="text-xs font-medium text-amber-400 uppercase tracking-wider mb-3">Enterprise</p>
-                    <p class="text-3xl font-mono font-semibold text-amber-400">{{ tier_breakdown.enterprise }}</p>
+                <div class="tl-grid-stats tl-tier-count-grid">
+                    <div class="tl-stat-card">
+                        <p class="tl-stat-label">Free</p>
+                        <p class="tl-stat-value">{{ tier_breakdown.free }}</p>
+                    </div>
+                    <div class="tl-stat-card">
+                        <p class="tl-stat-label">Pro</p>
+                        <p class="tl-stat-value tl-score--high">{{ tier_breakdown.pro }}</p>
+                    </div>
+                    <div class="tl-stat-card">
+                        <p class="tl-stat-label">Team</p>
+                        <p class="tl-stat-value tl-score--high">{{ tier_breakdown.team }}</p>
+                    </div>
+                    <div class="tl-stat-card">
+                        <p class="tl-stat-label">Enterprise</p>
+                        <p class="tl-stat-value tl-num--warn">{{ tier_breakdown.enterprise }}</p>
+                    </div>
                 </div>
             </div>
         </div>
 
         <!-- Recent events -->
         <div class="tl-card tl-card--flush">
-            <div class="px-5 py-4 border-b border-slate-800">
-                <h2 class="text-sm font-semibold text-white">Recent license events</h2>
+            <div class="tl-table-header">
+                <h2 class="tl-title">Recent license events</h2>
             </div>
-            <table class="w-full text-sm">
+            <table class="tl-table">
                 <thead>
                     <tr class="tl-thead">
                         <th class="tl-th tl-th--muted">Client</th>
@@ -101,16 +119,14 @@ function statusClass(status) { return statusBadge[status] ?? 'bg-slate-800 text-
                 </thead>
                 <tbody class="tl-divide">
                     <tr v-for="event in recent_events" :key="event.id" class="tl-tr">
-                        <td class="px-5 py-3 font-mono text-xs text-slate-400">{{ event.user?.email ?? '—' }}</td>
-                        <td class="px-5 py-3">
-                            <span class="text-xs font-mono px-2 py-0.5 rounded border capitalize" :class="tierClass(event.tier)">{{ event.tier }}</span>
+                        <td class="tl-td tl-mono--xs tl-cell-muted">{{ event.user?.email ?? '—' }}</td>
+                        <td class="tl-td">
+                            <span class="tl-badge tl-cap" :class="tierClass(event.tier)">{{ event.tier }}</span>
                         </td>
-                        <td class="px-5 py-3">
-                            <span class="text-xs font-mono px-2 py-0.5 rounded border" :class="statusClass(event.status)">
-                                {{ event.status.charAt(0).toUpperCase() + event.status.slice(1) }}
-                            </span>
+                        <td class="tl-td">
+                            <span class="tl-badge tl-cap" :class="statusClass(event.status)">{{ event.status }}</span>
                         </td>
-                        <td class="px-5 py-3 text-xs text-slate-500 font-mono">{{ formatDate(event.created_at) }}</td>
+                        <td class="tl-td tl-mono--xs tl-cell-muted">{{ formatDate(event.created_at) }}</td>
                     </tr>
                 </tbody>
             </table>

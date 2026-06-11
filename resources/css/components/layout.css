@@ -1,10 +1,182 @@
 /*
- * Layout primitives — AUDIT §3.7
- * tl-page for the standard page container used 13× across Console pages.
+ * Layout primitives — structural classes used by every page so templates
+ * carry zero inline utilities.
  */
 
 @layer components {
   .tl-page {
     @apply px-4 sm:px-6 lg:px-8 py-8 max-w-6xl mx-auto;
   }
+
+  .tl-page--narrow {
+    @apply max-w-3xl;
+  }
+
+  .tl-page--wide {
+    @apply max-w-7xl;
+  }
+
+  /* Page header: title block left, actions right */
+  .tl-page-header {
+    @apply flex flex-wrap items-start justify-between gap-4 mb-6;
+  }
+
+  /* Vertical rhythm between page sections */
+  .tl-stack {
+    @apply space-y-6;
+  }
+
+  .tl-stack--sm {
+    @apply space-y-3;
+  }
+
+  .tl-stack--lg {
+    @apply space-y-8;
+  }
+
+  /* Horizontal flex rows */
+  .tl-row {
+    @apply flex items-center gap-3;
+  }
+
+  .tl-row--between {
+    @apply justify-between;
+  }
+
+  .tl-row--end {
+    @apply justify-end;
+  }
+
+  .tl-row--wrap {
+    @apply flex-wrap;
+  }
+
+  /* Stat / card grids */
+  .tl-grid-stats {
+    @apply grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4;
+  }
+
+  .tl-grid-2 {
+    @apply grid grid-cols-1 lg:grid-cols-2 gap-6;
+  }
+
+  .tl-grid-3 {
+    @apply grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4;
+  }
+
+  /* Two-column page layout: main content + side notes */
+  .tl-cols-main-side {
+    @apply grid grid-cols-1 lg:grid-cols-3 gap-6;
+  }
+  .tl-cols-main-side > .tl-col-main {
+    @apply lg:col-span-2 space-y-6;
+  }
+  .tl-cols-main-side > .tl-col-side {
+    @apply space-y-6;
+  }
+}
+
+@layer components {
+  /* Vertical gaps between page-level blocks */
+  .tl-section-gap { @apply mb-8; }
+  .tl-card-gap    { @apply mb-6; }
+}
+
+@layer components {
+  /* Inline pager (search pickers) */
+  .tl-pager { @apply flex items-center justify-between mt-4; }
+  .tl-pager-nav { @apply flex items-center gap-1; }
+  .tl-pager-label { @apply text-xs font-mono; color: var(--tl-text-muted); }
+  .tl-pager-btn {
+    @apply p-1.5 cursor-pointer;
+    color: var(--tl-text-muted);
+    border-radius: var(--tl-radius-sm);
+    transition: color var(--tl-transition);
+  }
+  .tl-pager-btn:hover:not(:disabled) { color: var(--tl-text); }
+  .tl-pager-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+}
+
+@layer components {
+  .tl-picker { @apply max-w-md; }
+  .tl-section-start { @apply mt-6; }
+}
+
+@layer components {
+  /* Generic structural helpers */
+  .tl-trunc    { @apply truncate; }
+  .tl-min-w-0  { @apply min-w-0; }
+  .tl-push-end { @apply ml-auto; }
+  .tl-spin     { @apply animate-spin; }
+  .tl-row--top { @apply items-start; }
+  .tl-grow-capped { @apply relative flex-1 max-w-xs; }
+  .tl-card-gap-sm { @apply mb-3; }
+
+  /* Form layout */
+  .tl-form-stack   { @apply space-y-4; }
+  .tl-form-actions { @apply pt-1; }
+  .tl-btn--grow    { @apply flex-1; }
+
+  /* Inline metadata row under a card title */
+  .tl-meta-row {
+    @apply flex flex-wrap items-center gap-x-4 gap-y-1 text-xs mb-3;
+    color: var(--tl-text-subtle);
+  }
+  .tl-meta-tz { max-width: 180px; }
+
+  /* Bordered action row at the bottom of a card */
+  .tl-card-actions {
+    @apply flex items-center gap-2 pt-3 mt-3;
+    border-top: 1px solid var(--tl-border);
+  }
+}
+
+@layer components {
+  .tl-row--snug { @apply gap-2 mb-1; }
+  .tl-meta-row--tight { @apply gap-x-3 gap-y-1 mt-2 mb-0; }
+}
+
+@layer components {
+  .tl-row--tight { @apply gap-1.5; }
+  .tl-italic { font-style: italic; }
+  .tl-nowrap { @apply whitespace-nowrap; }
+  .tl-mobile-row { @apply px-4 py-3 space-y-2; }
+
+  /* Legend grid inside info boxes */
+  .tl-legend-grid { @apply grid sm:grid-cols-3 gap-2 text-xs; color: var(--tl-text-muted); }
+  .tl-legend-item { @apply flex items-start gap-1.5; }
+  .tl-legend-item > svg { @apply mt-0.5; }
+  .tl-legend-ic { color: var(--tl-brand-soft); }
+  .tl-legend-ic--warn { color: var(--tl-warn); }
+  .tl-legend-ic--success { color: var(--tl-success); }
+}
+
+@layer components {
+  .tl-row--bottom { @apply items-end gap-3; }
+  .tl-field-provider { @apply w-32 shrink-0; }
+  .tl-field-key { @apply flex-1; min-width: 160px; }
+  .tl-field-timeout { @apply w-20 shrink-0; }
+}
+
+@layer components {
+  .tl-count-col { @apply w-6 text-right shrink-0; }
+}
+
+@layer components {
+  .tl-bucket-label { @apply w-20 shrink-0 text-xs; }
+  .tl-pct-col { @apply w-10 text-right shrink-0; }
+}
+
+@layer components {
+  .tl-page--mid { @apply max-w-4xl; }
+  .tl-text-right { @apply text-right; }
+  .tl-seat-count { @apply text-lg font-mono font-semibold; color: var(--tl-text); }
+}
+
+@layer components {
+  .tl-page--slim { @apply max-w-2xl; }
+}
+
+@layer components {
+  .tl-tier-count-grid { @apply grid-cols-2 xl:grid-cols-2; }
 }

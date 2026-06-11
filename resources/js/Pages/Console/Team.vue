@@ -64,7 +64,7 @@ function setPage(groupId, page) {
     <div class="tl-page">
 
         <!-- Page header -->
-        <div class="flex items-start justify-between gap-4 mb-6">
+        <div class="tl-page-header">
             <div>
                 <h1 class="tl-heading">Team Management</h1>
                 <p class="tl-subtext">Manage groups and member permissions</p>
@@ -72,50 +72,50 @@ function setPage(groupId, page) {
         </div>
 
         <!-- Search -->
-        <div class="max-w-sm mb-6">
-            <div class="relative">
-                <TlIcon name="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
+        <div class="tl-picker tl-card-gap">
+            <div class="tl-input-wrap">
+                <TlIcon name="search" class="tl-input-icon" />
                 <input
                     v-model="search"
                     type="search"
                     placeholder="Search by name or email…"
-                    class="tl-input w-full pl-9"
+                    class="tl-input tl-input--full tl-input--with-icon"
                 />
             </div>
         </div>
 
         <!-- Empty state (no groups) -->
         <div v-if="groups.length === 0" class="tl-empty-state">
-            <TlIcon name="user-group" class="w-10 h-10 text-slate-700 mb-4" />
-            <p class="text-slate-300 font-medium mb-1">No groups yet.</p>
-            <p class="text-slate-500 text-sm">Contact support to create a group.</p>
+            <TlIcon name="user-group" class="tl-empty-icon" />
+            <p class="tl-body">No groups yet.</p>
+            <p class="tl-subtext">Contact support to create a group.</p>
         </div>
 
         <!-- No search results -->
         <div v-else-if="filteredGroups.every(g => g.members.length === 0)" class="tl-empty-state">
-            <TlIcon name="search" class="w-8 h-8 text-slate-700 mb-3" />
-            <p class="text-slate-400 text-sm">No members match <strong class="text-slate-300">{{ search }}</strong>.</p>
+            <TlIcon name="search" class="tl-empty-icon" />
+            <p class="tl-body--muted">No members match <strong class="tl-value">{{ search }}</strong>.</p>
         </div>
 
         <!-- Groups list -->
-        <div v-else class="space-y-6">
+        <div v-else class="tl-stack">
             <div v-for="group in filteredGroups" :key="group.id" class="tl-card tl-card--flush">
 
                 <!-- Group header -->
-                <div class="flex items-center justify-between px-5 py-4 border-b border-slate-700/60">
-                    <h2 class="text-base font-semibold text-white">{{ group.name }}</h2>
+                <div class="tl-table-header tl-row tl-row--between">
+                    <h2 class="tl-modal-title">{{ group.name }}</h2>
                     <span class="tl-badge tl-badge--neutral">
                         {{ group.members.length }} {{ group.members.length === 1 ? 'member' : 'members' }}
                     </span>
                 </div>
 
                 <!-- Empty group -->
-                <div v-if="group.members.length === 0" class="px-5 py-4 text-xs text-slate-600">
+                <div v-if="group.members.length === 0" class="tl-td--empty">
                     No members in this group.
                 </div>
 
                 <!-- Members table -->
-                <table v-else class="w-full text-sm">
+                <table v-else class="tl-table">
                     <thead>
                         <tr class="tl-thead">
                             <th class="tl-th">Member</th>
@@ -126,25 +126,25 @@ function setPage(groupId, page) {
                     </thead>
                     <tbody class="tl-divide">
                         <tr v-for="member in pageMembers(group)" :key="member.id" class="tl-tr">
-                            <td class="px-5 py-3.5">
-                                <div class="flex items-center gap-3">
-                                    <div class="w-8 h-8 rounded-full bg-indigo-700 flex items-center justify-center shrink-0">
-                                        <span class="text-xs font-semibold text-white">{{ initials(member.name) }}</span>
+                            <td class="tl-td">
+                                <div class="tl-row">
+                                    <div class="tl-avatar tl-avatar--brand">
+                                        {{ initials(member.name) }}
                                     </div>
-                                    <div class="min-w-0">
-                                        <p class="text-sm text-slate-200 font-medium leading-tight truncate">{{ member.name }}</p>
-                                        <p class="text-xs text-slate-500 truncate">{{ member.email }}</p>
+                                    <div class="tl-min-w-0">
+                                        <p class="tl-cell-primary tl-trunc">{{ member.name }}</p>
+                                        <p class="tl-hint tl-trunc">{{ member.email }}</p>
                                     </div>
                                 </div>
                             </td>
-                            <td class="px-5 py-3.5 text-right">
-                                <span v-if="member.ticket_count > 0" class="font-mono text-slate-200">{{ member.ticket_count }}</span>
+                            <td class="tl-td tl-td--right">
+                                <span v-if="member.ticket_count > 0" class="tl-mono tl-value">{{ member.ticket_count }}</span>
                                 <span v-else class="tl-hint">—</span>
                             </td>
-                            <td class="px-5 py-3.5 text-right tl-hint">
+                            <td class="tl-td tl-td--right tl-cell-muted">
                                 {{ member.last_push ? timeAgo(member.last_push) : 'Never' }}
                             </td>
-                            <td v-if="is_owner" class="px-5 py-3.5 text-right">
+                            <td v-if="is_owner" class="tl-td tl-td--right">
                                 <a :href="`/console/owner/clients/${member.id}`"
                                    class="tl-btn tl-btn--secondary tl-btn--sm">
                                     View
@@ -156,12 +156,12 @@ function setPage(groupId, page) {
 
                 <!-- Pagination -->
                 <div v-if="totalPages(group) > 1"
-                     class="flex items-center justify-between px-5 py-3 border-t border-slate-700/60 text-xs text-slate-500">
+                     class="tl-table-footnote tl-row tl-row--between">
                     <span>
                         Showing {{ ((currentPage(group) - 1) * PAGE_SIZE) + 1 }}–{{ Math.min(currentPage(group) * PAGE_SIZE, group.members.length) }}
                         of {{ group.members.length }}
                     </span>
-                    <div class="flex items-center gap-1">
+                    <div class="tl-pager-nav">
                         <button
                             class="tl-btn tl-btn--secondary tl-btn--sm"
                             :disabled="currentPage(group) === 1"

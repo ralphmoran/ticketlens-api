@@ -1,12 +1,19 @@
 /*
- * Card primitives — AUDIT §3.1
+ * Card primitives.
  * tl-card base + --flush / --lg / --sm / --stack modifiers
  * tl-empty-state for centered placeholder states
+ * tl-info-box for feature description banners
+ * tl-stat-* family for KPI cards (icon chip + label + value + delta)
+ * All theme-bearing values come from tokens.css.
  */
 
 @layer components {
   .tl-card {
-    @apply bg-slate-900 border border-slate-800 rounded-xl p-5;
+    @apply p-5;
+    background-color: var(--tl-card);
+    border: 1px solid var(--tl-border);
+    border-radius: var(--tl-radius-xl);
+    box-shadow: var(--tl-shadow-sm);
   }
 
   .tl-card--flush {
@@ -27,6 +34,271 @@
   }
 
   .tl-empty-state {
-    @apply bg-slate-900 border border-slate-800 rounded-xl p-12 flex flex-col items-center justify-center text-center;
+    @apply p-12 flex flex-col items-center justify-center text-center;
+    background-color: var(--tl-card);
+    border: 1px solid var(--tl-border);
+    border-radius: var(--tl-radius-xl);
+    color: var(--tl-text-muted);
   }
+
+  /* Feature description / info box — consistent across all pages */
+  .tl-info-box {
+    @apply p-5 space-y-3;
+    border-radius: var(--tl-radius-xl);
+    border: 1px solid var(--tl-border-strong);
+    background-color: var(--tl-surface-2);
+  }
+
+  /* ── Stat / KPI cards ──────────────────────────────────────────────── */
+  .tl-stat-card {
+    @apply p-5 flex flex-col gap-2;
+    background-color: var(--tl-card);
+    border: 1px solid var(--tl-border);
+    border-radius: var(--tl-radius-xl);
+    box-shadow: var(--tl-shadow-sm);
+  }
+
+  .tl-stat-icon {
+    @apply w-9 h-9 flex items-center justify-center shrink-0;
+    border-radius: var(--tl-radius-lg);
+    background-color: var(--tl-brand-tint);
+    color: var(--tl-brand-soft);
+  }
+  .tl-stat-icon--success { background-color: var(--tl-success-tint); color: var(--tl-success); }
+  .tl-stat-icon--warn    { background-color: var(--tl-warn-tint);    color: var(--tl-warn); }
+  .tl-stat-icon--danger  { background-color: var(--tl-danger-tint);  color: var(--tl-danger); }
+  .tl-stat-icon--info    { background-color: var(--tl-info-tint);    color: var(--tl-info); }
+
+  .tl-stat-label {
+    @apply text-xs font-medium;
+    color: var(--tl-text-muted);
+  }
+
+  .tl-stat-value {
+    @apply text-2xl font-semibold tracking-tight;
+    color: var(--tl-text);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .tl-stat-delta {
+    @apply inline-flex items-center gap-1 text-xs font-medium;
+  }
+  .tl-stat-delta--up   { color: var(--tl-success); }
+  .tl-stat-delta--down { color: var(--tl-danger); }
+  .tl-stat-delta--flat { color: var(--tl-text-muted); }
+}
+
+@layer components {
+  /* Dashed teaser card for tier-gated features */
+  .tl-card--teaser {
+    @apply p-5 flex flex-col items-start justify-between;
+    background-color: var(--tl-surface-2);
+    border: 1px dashed var(--tl-border-strong);
+    border-radius: var(--tl-radius-xl);
+  }
+
+  /* Bordered footnote under card content (chart explanations) */
+  .tl-card-footnote {
+    @apply mt-3 pt-3 text-xs leading-relaxed;
+    border-top: 1px solid var(--tl-border);
+    color: var(--tl-text-muted);
+  }
+
+  /* Numbered step rows (quick start) */
+  .tl-step-row { @apply flex items-start gap-3; }
+  .tl-step-num {
+    @apply w-5 h-5 flex items-center justify-center text-[10px] font-mono shrink-0 mt-0.5;
+    border: 1px solid var(--tl-border-strong);
+    border-radius: var(--tl-radius-full);
+    color: var(--tl-text-muted);
+  }
+}
+
+@layer components {
+  /* Clickable card (list pickers) */
+  .tl-card--btn {
+    @apply w-full text-left cursor-pointer;
+    transition: border-color var(--tl-transition), background-color var(--tl-transition);
+  }
+  .tl-card--btn:hover {
+    border-color: var(--tl-brand);
+    background-color: var(--tl-surface-2);
+  }
+}
+
+@layer components {
+  .tl-empty-icon {
+    @apply w-8 h-8 mb-3 mx-auto;
+    color: var(--tl-text-subtle);
+  }
+}
+
+@layer components {
+  /* Tier-locked teaser: blurred preview + lock overlay */
+  .tl-stat-card--locked { @apply relative overflow-hidden; }
+  .tl-blurred { @apply blur-sm pointer-events-none select-none; }
+  .tl-lock-overlay {
+    @apply absolute inset-0 flex flex-col items-center justify-center gap-2;
+    color: var(--tl-text-muted);
+  }
+  .tl-lock-label { @apply text-xs font-medium; }
+
+  /* Upgrade CTA card */
+  .tl-cta-card {
+    @apply p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4;
+    background-color: var(--tl-card);
+    border: 1px solid var(--tl-info-border);
+    border-radius: var(--tl-radius-xl);
+    box-shadow: var(--tl-shadow-sm);
+  }
+}
+
+@layer components {
+  /* Solid-brand promo panel */
+  .tl-promo-card {
+    @apply p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4;
+    background-color: var(--tl-brand);
+    border-radius: var(--tl-radius-xl);
+    box-shadow: var(--tl-shadow-md);
+  }
+  .tl-promo-card > p { @apply text-sm font-medium; color: var(--tl-brand-fg); }
+}
+
+@layer components {
+  /* Card header row: section icon + title/subtitle + trailing actions */
+  .tl-card-head {
+    @apply flex items-center gap-3 px-5 py-4;
+    border-bottom: 1px solid var(--tl-border);
+  }
+  .tl-card-head-body { @apply flex-1 min-w-0; }
+
+  /* Section icon — tinted rounded box (canonical style from Workflow Rules) */
+  .tl-section-icon {
+    @apply flex h-8 w-8 shrink-0 items-center justify-center;
+    border-radius: var(--tl-radius-lg);
+    background-color: var(--tl-brand-tint);
+    color: var(--tl-brand-soft);
+  }
+  .tl-section-icon--warn    { background-color: var(--tl-warn-tint);    color: var(--tl-warn); }
+  .tl-section-icon--success { background-color: var(--tl-success-tint); color: var(--tl-success); }
+  .tl-section-icon--danger  { background-color: var(--tl-danger-tint);  color: var(--tl-danger); }
+  .tl-section-icon--info    { background-color: var(--tl-info-tint);    color: var(--tl-info); }
+}
+
+@layer components {
+  /* Card highlighted while its record is being edited */
+  .tl-card--editing { box-shadow: var(--tl-ring-brand); }
+}
+
+@layer components {
+  /* Full-width expander row (accordion card headers) */
+  .tl-expander {
+    @apply w-full flex items-center justify-between px-5 py-4 text-left cursor-pointer;
+    transition: background-color var(--tl-transition);
+  }
+  .tl-expander:hover { background-color: var(--tl-surface-2); }
+}
+
+@layer components {
+  /* Slack brand icon box (brand color is fixed by Slack guidelines) */
+  .tl-slack-icon {
+    @apply w-10 h-10 flex items-center justify-center shrink-0 text-sm font-bold;
+    border-radius: var(--tl-radius-lg);
+    background-color: #4A154B;
+    color: white;
+  }
+}
+
+@layer components {
+  /* Dashed future/coming-soon placeholder */
+  .tl-placeholder-box {
+    @apply mt-4 p-5 text-center;
+    border: 1px dashed var(--tl-border-strong);
+    border-radius: var(--tl-radius-xl);
+  }
+  .tl-placeholder-box > p { @apply text-xs; color: var(--tl-text-subtle); }
+}
+
+@layer components {
+  /* Dashed reference note box (side-column hints) */
+  .tl-note-box {
+    @apply px-4 py-3.5;
+    border: 1px dashed var(--tl-border-strong);
+    border-radius: var(--tl-radius-xl);
+    background-color: var(--tl-surface-2);
+  }
+  .tl-note-box-head {
+    @apply flex items-center gap-2 mb-3 text-xs font-medium uppercase tracking-wider;
+    color: var(--tl-text-muted);
+  }
+  .tl-note-row { @apply flex items-center gap-2 text-xs; color: var(--tl-text-subtle); }
+  .tl-note-row-key { @apply font-mono shrink-0; width: 72px; color: var(--tl-text-secondary); }
+  .tl-note-foot {
+    @apply mt-3 pt-3 text-xs leading-relaxed;
+    border-top: 1px solid var(--tl-border);
+    color: var(--tl-text-subtle);
+  }
+}
+
+@layer components {
+  .tl-card-body  { @apply p-5; }
+  .tl-card-empty { @apply py-10 px-5 text-center; }
+  /* Form footer attached to a flush card */
+  .tl-card-form-foot {
+    @apply p-5 mt-3;
+    border-top: 1px solid var(--tl-border);
+  }
+}
+
+@layer components {
+  /* Tier/pricing card internals */
+  .tl-tier-card { @apply flex flex-col; }
+  .tl-tier-price { @apply mt-1 flex items-baseline gap-1; }
+  .tl-tier-price-value { @apply text-3xl font-bold font-mono; color: var(--tl-text); }
+  .tl-tier-features { @apply space-y-2 mb-6 flex-1; }
+  .tl-tier-feature { @apply flex items-center gap-2 text-sm; color: var(--tl-text-secondary); }
+}
+
+@layer components {
+  /* Usage limit box */
+  .tl-usage-box {
+    @apply p-4;
+    border: 1px solid var(--tl-border);
+    border-radius: var(--tl-radius-xl);
+    background-color: var(--tl-card);
+  }
+  .tl-usage-box--warn {
+    border-color: var(--tl-warn-border);
+    background-color: var(--tl-warn-tint);
+  }
+  .tl-warn-hint { color: var(--tl-warn); opacity: 0.85; }
+  .tl-card-gap-xs { @apply mb-2; }
+}
+
+@layer components {
+  /* Quick-link tiles (owner dashboard) */
+  .tl-quick-grid { @apply grid grid-cols-2 sm:grid-cols-4 gap-3; }
+  .tl-quick-link {
+    @apply flex items-center gap-2.5 p-4 text-sm font-medium;
+    background-color: var(--tl-card);
+    border: 1px solid var(--tl-border);
+    border-radius: var(--tl-radius-lg);
+    color: var(--tl-text-primary);
+    box-shadow: var(--tl-shadow-sm);
+    transition: background-color var(--tl-transition), border-color var(--tl-transition);
+  }
+  .tl-quick-link:hover {
+    background-color: var(--tl-surface-2);
+    border-color: var(--tl-border-strong);
+  }
+  .tl-quick-link-ic { color: var(--tl-text-muted); }
+
+  /* Audit log rows */
+  .tl-log-row { @apply px-5 py-3 text-sm flex items-center gap-3; }
+  .tl-log-time { @apply text-xs w-36 shrink-0; color: var(--tl-text-subtle); }
+}
+
+@layer components {
+  .tl-log-row--xs { @apply text-xs; }
+  .tl-log-time--wide { @apply w-44; }
 }

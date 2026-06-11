@@ -1,0 +1,118 @@
+/*
+ * Auth screens (Login) — split layout, hero forms, OAuth buttons, and the
+ * decorative product-preview mockup. All theme-bearing values from tokens.css.
+ */
+
+@layer components {
+  .tl-auth-shell { @apply min-h-screen flex; background-color: var(--tl-bg); }
+  .tl-auth-panel { @apply flex flex-col justify-center w-full px-6 py-12 sm:px-12 lg:px-16; width: 100%; }
+  @media (min-width: 1024px) { .tl-auth-panel { width: 45%; } }
+
+  .tl-auth-wordmark { @apply mb-10 flex items-center gap-2; }
+  .tl-auth-heading { @apply text-2xl font-semibold mb-1; color: var(--tl-text); }
+  .tl-auth-sub { @apply text-sm mb-8; color: var(--tl-text-muted); }
+  .tl-auth-tabs { @apply flex mb-8; border-bottom: 1px solid var(--tl-border); }
+  .tl-tab--gap { @apply mr-6; }
+  .tl-auth-form { @apply space-y-5; }
+  .tl-auth-foot { @apply mt-8 text-xs text-center; color: var(--tl-text-subtle); }
+  .tl-field-head { @apply flex items-center justify-between mb-2; }
+  .tl-field-label--gap { @apply mb-2; }
+  .tl-form-alert { @apply text-sm; color: var(--tl-danger); }
+
+  /* Divider with centered label */
+  .tl-divider { @apply relative; }
+  .tl-divider-line { @apply absolute inset-0 flex items-center; }
+  .tl-divider-line > div { @apply w-full; border-top: 1px solid var(--tl-border); }
+  .tl-divider-label { @apply relative flex justify-center text-xs; }
+  .tl-divider-label > span { @apply px-3; background-color: var(--tl-bg); color: var(--tl-text-subtle); }
+
+  /* OAuth buttons */
+  .tl-oauth-grid { @apply grid grid-cols-2 gap-3; }
+  .tl-btn--oauth {
+    @apply flex items-center justify-center gap-2 font-medium py-3 text-sm cursor-pointer;
+    background-color: var(--tl-card);
+    border: 1px solid var(--tl-border-strong);
+    border-radius: var(--tl-radius);
+    color: var(--tl-text-secondary);
+    transition: background-color var(--tl-transition), border-color var(--tl-transition);
+  }
+  .tl-btn--oauth:hover { background-color: var(--tl-surface-2); }
+
+  /* ── Right-side product preview (decorative) ───────────────────────── */
+  .tl-auth-preview {
+    @apply hidden lg:flex flex-col items-center justify-center p-12 relative overflow-hidden;
+    width: 55%;
+    background-color: var(--tl-surface);
+    border-left: 1px solid var(--tl-border);
+  }
+  .tl-auth-grid-bg {
+    @apply absolute inset-0;
+    opacity: 0.05;
+    background-image: linear-gradient(var(--tl-brand) 1px, transparent 1px),
+      linear-gradient(90deg, var(--tl-brand) 1px, transparent 1px);
+    background-size: 32px 32px;
+  }
+  .tl-auth-preview-inner { @apply relative w-full max-w-lg; }
+
+  .tl-mock-browser {
+    @apply overflow-hidden;
+    background-color: var(--tl-bg);
+    border: 1px solid var(--tl-border-strong);
+    border-radius: var(--tl-radius-xl);
+    box-shadow: var(--tl-shadow-lg);
+  }
+  .tl-mock-bar {
+    @apply flex items-center gap-1.5 px-4 py-3;
+    border-bottom: 1px solid var(--tl-border);
+    background-color: var(--tl-surface);
+  }
+  .tl-mock-dot { @apply w-2.5 h-2.5; border-radius: var(--tl-radius-full); background-color: var(--tl-surface-3); }
+  .tl-mock-url {
+    @apply flex-1 mx-4 px-3 py-1 font-mono;
+    font-size: 10px;
+    border-radius: var(--tl-radius-sm);
+    background-color: var(--tl-surface-2);
+    color: var(--tl-text-subtle);
+  }
+  .tl-mock-body { @apply flex h-56; }
+  .tl-mock-side {
+    @apply w-14 flex flex-col items-center py-4 gap-4;
+    background-color: var(--tl-surface);
+    border-right: 1px solid var(--tl-border);
+  }
+  .tl-mock-logo {
+    @apply w-6 h-6;
+    border-radius: var(--tl-radius-sm);
+    background-color: var(--tl-brand-tint);
+    border: 1px solid var(--tl-brand);
+  }
+  .tl-mock-navline { @apply w-5 h-1; border-radius: var(--tl-radius-full); background-color: var(--tl-surface-3); }
+  .tl-mock-navline--active { background-color: var(--tl-brand-soft); }
+  .tl-mock-main { @apply flex-1 p-4; background-color: var(--tl-bg); }
+  .tl-mock-row { @apply flex items-center justify-between mb-4; }
+  .tl-mock-line { border-radius: var(--tl-radius-full); background-color: var(--tl-surface-3); }
+  .tl-mock-line--w20 { @apply w-20 h-2; }
+  .tl-mock-chip { @apply w-12 h-5; border-radius: var(--tl-radius-sm); background-color: var(--tl-brand-tint); border: 1px solid var(--tl-brand); }
+  .tl-mock-cards { @apply grid grid-cols-3 gap-2 mb-4; }
+  .tl-mock-card {
+    @apply p-2;
+    background-color: var(--tl-surface);
+    border: 1px solid var(--tl-border);
+    border-radius: var(--tl-radius);
+  }
+  .tl-mock-label { @apply w-8 h-1 mb-2; border-radius: var(--tl-radius-sm); background-color: var(--tl-surface-3); }
+  .tl-mock-value { @apply h-3 mb-1; border-radius: var(--tl-radius-sm); background-color: var(--tl-surface-3); }
+  .tl-mock-value--brand { background-color: var(--tl-brand-tint); }
+  .tl-mock-track { @apply w-full h-1; border-radius: var(--tl-radius-full); background-color: var(--tl-surface-2); }
+  .tl-mock-fill { @apply h-1; border-radius: var(--tl-radius-full); background-color: var(--tl-surface-3); }
+  .tl-mock-fill--brand { background-color: var(--tl-brand); }
+  .tl-mock-list { @apply space-y-2; }
+  .tl-mock-list-row { @apply flex items-center gap-2; }
+  .tl-mock-ic { @apply w-4 h-4; border-radius: var(--tl-radius-sm); background-color: var(--tl-surface-2); }
+  .tl-mock-pill { @apply h-1.5; border-radius: var(--tl-radius-full); background-color: var(--tl-surface-3); }
+  .tl-mock-pill--brand { background-color: var(--tl-brand-tint); }
+
+  .tl-auth-caption { @apply mt-6 text-center; }
+  .tl-auth-caption-title { @apply text-sm font-medium; color: var(--tl-text-muted); }
+  .tl-auth-caption-sub { @apply text-xs mt-1; color: var(--tl-text-subtle); }
+}

@@ -46,55 +46,54 @@ async function dismiss() {
 </script>
 
 <template>
-    <div class="px-4 sm:px-6 lg:px-8 py-8 max-w-2xl mx-auto">
+    <div class="tl-page tl-page--slim">
 
         <!-- Success banner -->
-        <div class="bg-emerald-900/20 border border-emerald-800/50 rounded-xl p-5 mb-5">
-            <div class="flex items-center gap-3">
-                <TlIcon name="check-circle" :stroke-width="2" class="w-6 h-6 text-emerald-400 shrink-0" />
-                <div>
-                    <h1 class="text-base font-semibold text-emerald-200">License issued</h1>
-                    <p class="text-xs text-emerald-400/80 mt-0.5">
+        <div class="tl-banner tl-banner--success tl-card-gap">
+            <TlIcon name="check-circle" :stroke-width="2" class="tl-ic tl-ic--lg tl-banner-icon" />
+            <div>
+                    <h1 class="tl-banner-title tl-modal-title">License issued</h1>
+                    <p class="tl-banner-text">
                         {{ license.tier }} · {{ license.seats }} seat{{ license.seats === 1 ? '' : 's' }} ·
                         {{ emailed ? 'Emailed to ' + license.user?.email : 'Not emailed — copy the key below' }}
                     </p>
-                </div>
             </div>
         </div>
 
         <!-- Key reveal -->
-        <div class="tl-card tl-card--lg mb-5">
-            <label class="tl-label block mb-2">License key (shown once)</label>
-            <div class="flex items-center gap-2">
+        <div class="tl-card tl-card--lg tl-card-gap">
+            <label class="tl-label tl-label--field">License key (shown once)</label>
+            <div class="tl-row">
                 <input
                     id="raw-key"
                     :value="raw_key"
                     readonly
-                    class="tl-input flex-1 font-mono text-emerald-300"
+                    class="tl-input tl-btn--grow tl-mono tl-num--success"
                     @focus="$event.target.select()"
                 />
                 <button
+                    type="button"
                     @click="copyKey"
-                    class="tl-btn tl-btn--primary min-w-24"
+                    class="tl-btn tl-btn--primary"
                 >
-                    <TlIcon :name="copied ? 'check' : 'copy'" class="w-3.5 h-3.5" />
+                    <TlIcon :name="copied ? 'check' : 'copy'" class="tl-ic tl-ic--sm" />
                     {{ copied ? 'Copied' : 'Copy' }}
                 </button>
             </div>
-            <p class="tl-hint mt-3">
-                Activation: <code class="text-slate-400">ticketlens activate {{ raw_key }}</code>
+            <p class="tl-hint tl-form-actions">
+                Activation: <code class="tl-mono">ticketlens activate {{ raw_key }}</code>
             </p>
         </div>
 
         <!-- Warning if not emailed -->
-        <div v-if="!emailed" class="bg-amber-900/20 border border-amber-800/50 rounded-xl p-4 mb-5 text-sm text-amber-200">
+        <div v-if="!emailed" class="tl-banner tl-banner--warn tl-card-gap">
             This key will not be shown again. Copy it now, or return and issue a new one. Revoking the license does NOT un-disclose this key — rotate by issuing a fresh one.
         </div>
 
         <!-- Dismiss -->
-        <div class="flex justify-end">
-            <button @click="dismiss" class="tl-btn tl-btn--neutral">
-                <TlIcon name="check" class="w-3.5 h-3.5" />
+        <div class="tl-row tl-row--end">
+            <button type="button" @click="dismiss" class="tl-btn tl-btn--secondary">
+                <TlIcon name="check" class="tl-ic tl-ic--sm" />
                 Done
             </button>
         </div>

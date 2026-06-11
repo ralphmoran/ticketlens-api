@@ -127,10 +127,10 @@ async function handleDelete(template) {
 </script>
 
 <template>
-    <div class="px-4 sm:px-6 lg:px-8 py-8 max-w-3xl mx-auto">
+    <div class="tl-page tl-page--narrow">
 
         <!-- Header -->
-        <div class="flex items-start justify-between gap-4 mb-6">
+        <div class="tl-page-header">
             <div>
                 <h1 class="tl-heading">Brief Templates</h1>
                 <p class="tl-subtext">Control which sections appear in your ticket briefs. System templates are read-only.</p>
@@ -138,37 +138,37 @@ async function handleDelete(template) {
             <button
                 v-if="canManage && !showForm"
                 type="button"
-                class="tl-btn tl-btn--primary shrink-0"
+                class="tl-btn tl-btn--primary"
                 @click="openForm"
             >
-                <TlIcon name="plus" class="w-4 h-4" />
+                <TlIcon name="plus" class="tl-ic" />
                 New Template
             </button>
         </div>
 
         <!-- Create form -->
-        <div v-if="showForm && canManage" class="tl-card p-6 space-y-5 mb-6">
-            <h2 class="text-sm font-semibold text-slate-200">New Template</h2>
+        <div v-if="showForm && canManage" class="tl-card tl-card--lg tl-form-stack tl-card-gap">
+            <h2 class="tl-title">New Template</h2>
 
-            <div class="space-y-4">
+            <div class="tl-form-stack">
                 <!-- Name -->
                 <div>
-                    <label class="block text-xs text-slate-500 uppercase tracking-wider mb-1.5">Name</label>
+                    <label class="tl-label tl-label--field">Name</label>
                     <input
                         v-model="form.name"
                         type="text"
                         maxlength="100"
                         placeholder="e.g. Bug Report"
                         class="tl-input w-full"
-                        :class="{ 'border-red-500/60 focus:border-red-500': formErrors.name }"
+                        :class="{ 'tl-input--error': formErrors.name }"
                     />
-                    <p v-if="formErrors.name" class="mt-1 text-xs text-red-400">{{ formErrors.name }}</p>
+                    <p v-if="formErrors.name" class="tl-error">{{ formErrors.name }}</p>
                 </div>
 
                 <!-- Description -->
                 <div>
-                    <label class="block text-xs text-slate-500 uppercase tracking-wider mb-1.5">
-                        Description <span class="normal-case text-slate-600">(optional)</span>
+                    <label class="tl-label tl-label--field">
+                        Description <span class="tl-hint-inline">(optional)</span>
                     </label>
                     <input
                         v-model="form.description"
@@ -181,28 +181,28 @@ async function handleDelete(template) {
 
                 <!-- Sections -->
                 <div>
-                    <label class="block text-xs text-slate-500 uppercase tracking-wider mb-2">Sections</label>
-                    <div class="grid grid-cols-2 gap-y-2 gap-x-4">
+                    <label class="tl-label tl-label--field">Sections</label>
+                    <div class="tl-check-grid">
                         <label
                             v-for="key in SECTION_KEYS"
                             :key="key"
-                            class="flex items-center gap-2.5 cursor-pointer select-none"
+                            class="tl-check-row"
                         >
                             <input
                                 type="checkbox"
-                                class="rounded border-slate-600 bg-slate-800 text-indigo-500 focus:ring-indigo-500/30"
+                                class="tl-checkbox"
                                 :checked="isSectionEnabled(key)"
                                 @change="toggleSection(key)"
                             />
-                            <span class="text-sm text-slate-300">{{ SECTION_LABELS[key] }}</span>
+                            <span class="tl-body--secondary">{{ SECTION_LABELS[key] }}</span>
                             <template v-if="key === 'comments' && form.sections.comments.enabled">
-                                <span class="text-xs text-slate-500">max</span>
+                                <span class="tl-hint-inline">max</span>
                                 <input
                                     v-model.number="form.sections.comments.max"
                                     type="number"
                                     min="1"
                                     max="50"
-                                    class="tl-input w-14 py-0.5 px-1.5 text-xs text-center"
+                                    class="tl-input tl-input--mini"
                                 />
                             </template>
                         </label>
@@ -211,19 +211,19 @@ async function handleDelete(template) {
             </div>
 
             <!-- Form actions -->
-            <div class="flex items-center gap-2 pt-1">
+            <div class="tl-row tl-form-actions">
                 <button
                     type="button"
-                    class="tl-btn tl-btn--primary text-sm"
+                    class="tl-btn tl-btn--primary"
                     :disabled="creating"
                     @click="submitCreate"
                 >
-                    <TlIcon v-if="creating" name="spinner" class="w-3.5 h-3.5 animate-spin" />
+                    <TlIcon :name="creating ? 'spinner' : 'check'" class="tl-ic tl-ic--sm" :class="{ 'tl-spin': creating }" />
                     {{ creating ? 'Saving…' : 'Save Template' }}
                 </button>
                 <button
                     type="button"
-                    class="tl-btn tl-btn--secondary text-sm"
+                    class="tl-btn tl-btn--secondary"
                     @click="cancelForm"
                 >
                     Cancel
@@ -232,62 +232,63 @@ async function handleDelete(template) {
         </div>
 
         <!-- System templates -->
-        <section class="mb-6">
-            <h2 class="text-xs font-medium text-slate-500 uppercase tracking-wider mb-3">System Templates</h2>
-            <div class="space-y-2">
+        <section class="tl-card-gap">
+            <h2 class="tl-label tl-card-gap-sm">System Templates</h2>
+            <div class="tl-stack--sm">
                 <div
                     v-for="tpl in systemTemplates"
                     :key="tpl.id"
-                    class="tl-card p-4 flex items-start justify-between gap-4"
+                    class="tl-card tl-card--sm tl-row tl-row--between tl-row--top"
                 >
-                    <div class="min-w-0 flex-1">
-                        <div class="flex items-center gap-2 mb-1">
-                            <span class="text-sm font-medium text-slate-200">{{ tpl.name }}</span>
-                            <span class="tl-badge tl-badge--neutral font-mono">{{ tpl.slug }}</span>
+                    <div class="tl-banner-fill">
+                        <div class="tl-row tl-row--snug">
+                            <span class="tl-cell-primary">{{ tpl.name }}</span>
+                            <span class="tl-badge tl-badge--neutral tl-mono">{{ tpl.slug }}</span>
                         </div>
-                        <p v-if="tpl.description" class="text-xs text-slate-400 mb-1">{{ tpl.description }}</p>
-                        <p class="text-xs text-slate-500">{{ sectionSummary(tpl.sections) }}</p>
+                        <p v-if="tpl.description" class="tl-body--muted">{{ tpl.description }}</p>
+                        <p class="tl-hint">{{ sectionSummary(tpl.sections) }}</p>
                     </div>
-                    <span class="text-xs text-slate-600 shrink-0 mt-0.5">read-only</span>
+                    <span class="tl-hint">read-only</span>
                 </div>
-                <p v-if="!systemTemplates.length" class="tl-card p-4 text-sm text-slate-500 text-center">
+                <p v-if="!systemTemplates.length" class="tl-card tl-card--sm tl-td--empty">
                     No system templates found.
                 </p>
             </div>
         </section>
 
         <!-- Custom templates -->
-        <section class="mb-8">
-            <h2 class="text-xs font-medium text-slate-500 uppercase tracking-wider mb-3">Custom Templates</h2>
-            <div class="space-y-2">
+        <section class="tl-section-gap">
+            <h2 class="tl-label tl-card-gap-sm">Custom Templates</h2>
+            <div class="tl-stack--sm">
                 <div
                     v-for="tpl in customTemplates"
                     :key="tpl.id"
-                    class="tl-card p-4 flex items-start justify-between gap-4"
+                    class="tl-card tl-card--sm tl-row tl-row--between tl-row--top"
                 >
-                    <div class="min-w-0 flex-1">
-                        <div class="flex items-center gap-2 mb-1">
-                            <span class="text-sm font-medium text-slate-200">{{ tpl.name }}</span>
-                            <span class="tl-badge tl-badge--neutral font-mono">{{ tpl.slug }}</span>
+                    <div class="tl-banner-fill">
+                        <div class="tl-row tl-row--snug">
+                            <span class="tl-cell-primary">{{ tpl.name }}</span>
+                            <span class="tl-badge tl-badge--neutral tl-mono">{{ tpl.slug }}</span>
                         </div>
-                        <p v-if="tpl.description" class="text-xs text-slate-400 mb-1">{{ tpl.description }}</p>
-                        <p class="text-xs text-slate-500">{{ sectionSummary(tpl.sections) }}</p>
+                        <p v-if="tpl.description" class="tl-body--muted">{{ tpl.description }}</p>
+                        <p class="tl-hint">{{ sectionSummary(tpl.sections) }}</p>
                     </div>
                     <button
                         v-if="canManage"
                         type="button"
-                        class="tl-btn tl-btn--danger-ghost text-xs shrink-0"
+                        class="tl-icon-btn tl-icon-btn--snug tl-icon-btn--danger"
                         :disabled="deleting === tpl.id"
                         @click="handleDelete(tpl)"
+                        title="Delete template"
                     >
-                        <TlIcon :name="deleting === tpl.id ? 'spinner' : 'trash'" class="w-3.5 h-3.5" :class="{ 'animate-spin': deleting === tpl.id }" />
+                        <TlIcon :name="deleting === tpl.id ? 'spinner' : 'trash'" class="tl-ic tl-ic--sm" :class="{ 'tl-spin': deleting === tpl.id }" />
                     </button>
                 </div>
 
-                <div v-if="!customTemplates.length" class="tl-card p-6 text-center">
-                    <TlIcon name="document-text" class="w-8 h-8 mx-auto mb-3 text-slate-600" />
-                    <p class="text-sm text-slate-400">
-                        <template v-if="canManage">No custom templates yet. Click <strong class="text-slate-300">New Template</strong> to create one.</template>
+                <div v-if="!customTemplates.length" class="tl-empty-state">
+                    <TlIcon name="document-text" class="tl-empty-icon" />
+                    <p class="tl-body--muted">
+                        <template v-if="canManage">No custom templates yet. Click <strong class="tl-value">New Template</strong> to create one.</template>
                         <template v-else>Custom templates require a Pro or higher plan.</template>
                     </p>
                 </div>
@@ -295,8 +296,8 @@ async function handleDelete(template) {
         </section>
 
         <!-- CLI hint -->
-        <div class="rounded-lg border border-slate-800 bg-slate-900/40 px-4 py-3">
-            <p class="text-xs text-slate-500">
+        <div class="tl-info-box">
+            <p class="tl-hint">
                 Use templates in the CLI:
                 <code class="tl-kbd tl-kbd--brand">ticketlens PROJ-123 --template=SLUG</code>
                 &nbsp;—&nbsp; system slugs:

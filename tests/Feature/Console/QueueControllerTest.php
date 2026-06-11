@@ -91,9 +91,29 @@ class QueueControllerTest extends TestCase
         $response = $this->actingAs($user)->get('/console/queue');
 
         $response->assertInertia(fn ($page) => $page
-            ->has('snapshots', 2)
-            ->where('snapshots.0.profile', 'production')
-            ->where('snapshots.0.ticket_count', 3)
+            ->has('snapshots.data', 2)
+            ->where('snapshots.data.0.profile', 'production')
+            ->where('snapshots.data.0.ticket_count', 3)
+            ->has('snapshots.current_page')
+            ->has('snapshots.total')
+        );
+    }
+
+    public function test_queue_paginates_at_10_per_page(): void
+    {
+        $user = $this->makeTeamUser();
+        for ($i = 0; $i < 12; $i++) {
+            TriageSnapshot::create(array_merge($this->snapshotData($user, 'production', 1), [
+                'captured_at' => now()->subMinutes($i),
+            ]));
+        }
+
+        $response = $this->actingAs($user)->get('/console/queue');
+
+        $response->assertInertia(fn ($page) => $page
+            ->has('snapshots.data', 10)
+            ->where('snapshots.total', 12)
+            ->where('snapshots.last_page', 2)
         );
     }
 
@@ -119,13 +139,29 @@ class QueueControllerTest extends TestCase
         ];
     }
 
+    public function test_per_page_param_is_respected(): void
+    {
+        $user = $this->makeTeamUser();
+        for ($i = 0; $i < 12; $i++) {
+            TriageSnapshot::create(array_merge($this->snapshotData($user, 'production', 1), [
+                'captured_at' => now()->subMinutes($i),
+            ]));
+        }
+
+        $this->actingAs($user)->get('/console/queue?per_page=25')
+            ->assertInertia(fn ($page) => $page
+                ->has('snapshots.data', 12)
+                ->where('snapshots.last_page', 1)
+            );
+    }
+
     public function test_empty_snapshots_passed_when_no_push_yet(): void
     {
         $user = $this->makeTeamUser();
 
         $response = $this->actingAs($user)->get('/console/queue');
 
-        $response->assertInertia(fn ($page) => $page->has('snapshots', 0));
+        $response->assertInertia(fn ($page) => $page->has('snapshots.data', 0));
     }
 
     public function test_only_own_snapshots_are_visible(): void
@@ -136,6 +172,6 @@ class QueueControllerTest extends TestCase
 
         $response = $this->actingAs($user)->get('/console/queue');
 
-        $response->assertInertia(fn ($page) => $page->has('snapshots', 0));
+        $response->assertInertia(fn ($page) => $page->has('snapshots.data', 0));
     }
 }

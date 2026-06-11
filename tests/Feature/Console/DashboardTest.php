@@ -163,4 +163,71 @@ class DashboardTest extends TestCase
                 ->where('ticket_trend', fn ($v) => count($v) >= 1)
             );
     }
+
+    public function test_dashboard_passes_daily_urgency_for_pro_plus(): void
+    {
+        $user = User::factory()->create(['tier' => 'pro', 'permissions' => 71]);
+
+        TriageSnapshot::create([
+            'user_id'      => $user->id,
+            'profile'      => 'production',
+            'tickets'      => [
+                ['key' => 'PROJ-1', 'flags' => ['needs-response']],
+                ['key' => 'PROJ-2', 'flags' => ['aging']],
+                ['key' => 'PROJ-3', 'flags' => []],
+            ],
+            'ticket_count' => 3,
+            'captured_at'  => now()->subDays(1),
+        ]);
+
+        $this->actingAs($user)->get('/console/dashboard')
+            ->assertInertia(fn ($page) => $page
+                ->has('daily_urgency')
+                ->where('daily_urgency', function ($v) {
+                    if (count($v) < 1) return false;
+                    $day = $v[0];
+                    return $day['needs_response'] === 1
+                        && $day['aging'] === 1
+                        && $day['clear'] === 1;
+                })
+            );
+    }
+
+    public function test_dashboard_daily_urgency_empty_for_free_tier(): void
+    {
+        $user = User::factory()->create(['tier' => 'free', 'permissions' => 64]);
+
+        TriageSnapshot::create([
+            'user_id'      => $user->id,
+            'profile'      => 'production',
+            'tickets'      => [['key' => 'PROJ-1', 'flags' => ['needs-response']]],
+            'ticket_count' => 1,
+            'captured_at'  => now()->subDays(1),
+        ]);
+
+        $this->actingAs($user)->get('/console/dashboard')
+            ->assertInertia(fn ($page) => $page
+                ->where('daily_urgency', [])
+            );
+    }
+
+    public function test_dashboard_daily_urgency_scoped_to_current_user(): void
+    {
+        $user  = User::factory()->create(['tier' => 'pro', 'permissions' => 71]);
+        $other = User::factory()->create(['tier' => 'pro', 'permissions' => 71]);
+
+        // Other user's snapshot — should not appear in user's daily_urgency
+        TriageSnapshot::create([
+            'user_id'      => $other->id,
+            'profile'      => 'production',
+            'tickets'      => [['key' => 'PROJ-99', 'flags' => ['needs-response']]],
+            'ticket_count' => 1,
+            'captured_at'  => now()->subDays(1),
+        ]);
+
+        $this->actingAs($user)->get('/console/dashboard')
+            ->assertInertia(fn ($page) => $page
+                ->where('daily_urgency', [])
+            );
+    }
 }

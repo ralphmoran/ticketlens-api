@@ -64,36 +64,36 @@ function submitEdit() {
 }
 
 const TIER_COLORS = {
-    pro:        'bg-indigo-900/40 text-indigo-300',
-    team:       'bg-violet-900/40 text-violet-300',
-    enterprise: 'bg-amber-900/40 text-amber-300',
-    free:       'bg-slate-700 text-slate-300',
+    pro:        'tl-badge--brand',
+    team:       'tl-badge--info',
+    enterprise: 'tl-badge--warn',
+    free:       'tl-badge--neutral',
 }
 
 const STATUS_COLORS = {
-    active:    'bg-emerald-900/40 text-emerald-300',
-    cancelled: 'bg-red-900/40 text-red-300',
-    paused:    'bg-amber-900/40 text-amber-300',
-    expired:   'bg-slate-800 text-slate-500',
+    active:    'tl-badge--success',
+    cancelled: 'tl-badge--danger',
+    paused:    'tl-badge--warn',
+    expired:   'tl-badge--neutral',
 }
 
 </script>
 
 <template>
     <div class="tl-page">
-        <div class="mb-6 flex items-center justify-between">
+        <div class="tl-page-header">
             <div>
                 <h1 class="tl-heading">Licenses</h1>
                 <p class="tl-subtext">{{ licenses.total }} issued</p>
             </div>
             <Link href="/console/owner/licenses/create" class="tl-btn tl-btn--primary">
-                <TlIcon name="plus" class="w-3.5 h-3.5" />
+                <TlIcon name="plus" class="tl-ic tl-ic--sm" />
                 Issue license
             </Link>
         </div>
 
         <!-- Filters -->
-        <div class="flex flex-wrap gap-3 mb-5">
+        <div class="tl-row tl-row--wrap tl-card-gap">
             <select v-model="filters.source" class="tl-select">
                 <option value="">All sources</option>
                 <option value="owner_issued">Owner-issued</option>
@@ -118,13 +118,13 @@ const STATUS_COLORS = {
         <div class="relative">
             <div
                 v-if="loading"
-                class="absolute inset-0 z-10 flex items-center justify-center rounded-lg bg-slate-950/60"
+                class="tl-loading-overlay"
             >
-                <TlIcon name="spinner" class="w-5 h-5 animate-spin text-indigo-400" />
+                <TlIcon name="spinner" class="tl-ic tl-ic--lg tl-spin tl-legend-ic" />
             </div>
 
-            <div class="tl-card tl-card--flush" :class="{ 'pointer-events-none': loading }">
-                <table class="w-full text-sm">
+            <div class="tl-card tl-card--flush" :class="{ 'tl-inert': loading }">
+                <table class="tl-table">
                     <thead>
                         <tr class="tl-thead">
                             <th class="tl-th">Client</th>
@@ -138,46 +138,48 @@ const STATUS_COLORS = {
                     </thead>
                     <tbody class="tl-divide">
                         <tr v-for="license in licenses.data" :key="license.id" class="tl-tr">
-                            <td class="px-4 py-3">
-                                <p class="text-slate-200">{{ license.user?.name ?? '—' }}</p>
-                                <p class="text-xs text-slate-500 font-mono">{{ license.user?.email }}</p>
+                            <td class="tl-td">
+                                <p class="tl-cell-primary">{{ license.user?.name ?? '—' }}</p>
+                                <p class="tl-hint tl-mono--xs">{{ license.user?.email }}</p>
                             </td>
-                            <td class="px-4 py-3">
-                                <span :class="['capitalize text-xs font-medium px-2 py-0.5 rounded', TIER_COLORS[license.tier] ?? 'bg-slate-700 text-slate-300']">{{ license.tier }}</span>
+                            <td class="tl-td">
+                                <span class="tl-badge tl-cap" :class="TIER_COLORS[license.tier] ?? 'tl-badge--neutral'">{{ license.tier }}</span>
                             </td>
-                            <td class="px-4 py-3 text-slate-300 font-mono text-xs">{{ license.seats }}</td>
-                            <td class="px-4 py-3 text-xs">
-                                <span v-if="license.issued_by_user_id" class="text-amber-400">Owner-issued</span>
-                                <span v-else class="text-slate-500">LemonSqueezy</span>
+                            <td class="tl-td tl-mono--xs">{{ license.seats }}</td>
+                            <td class="tl-td">
+                                <span v-if="license.issued_by_user_id" class="tl-badge tl-badge--warn">Owner-issued</span>
+                                <span v-else class="tl-badge tl-badge--neutral">LemonSqueezy</span>
                             </td>
-                            <td class="px-4 py-3">
-                                <span :class="['capitalize text-xs font-medium px-2 py-0.5 rounded', STATUS_COLORS[license.status] ?? 'bg-slate-700 text-slate-300']">{{ license.status }}</span>
+                            <td class="tl-td">
+                                <span class="tl-badge tl-cap" :class="STATUS_COLORS[license.status] ?? 'tl-badge--neutral'">{{ license.status }}</span>
                             </td>
-                            <td class="px-4 py-3 text-xs">
-                                <span :class="license.expires_at ? 'text-slate-300' : 'text-slate-500'">
+                            <td class="tl-td">
+                                <span :class="license.expires_at ? 'tl-body--secondary' : 'tl-cell-muted'">
                                     {{ license.expires_at ? formatDate(license.expires_at) : 'Never' }}
                                 </span>
                                 <span
                                     v-if="license.expires_at && expiryWarning(license.expires_at)"
-                                    :class="['ml-1.5 px-1.5 py-0.5 rounded font-medium', expiryWarning(license.expires_at).classes]"
+                                    :class="expiryWarning(license.expires_at).classes"
                                 >{{ expiryWarning(license.expires_at).label }}</span>
                             </td>
-                            <td class="px-4 py-3 text-right">
-                                <div v-if="license.status === 'active'" class="flex items-center justify-end gap-2">
+                            <td class="tl-td tl-td--right">
+                                <div v-if="license.status === 'active'" class="tl-row tl-row--end">
                                     <button
+                                        type="button"
                                         @click="openEdit(license)"
-                                        class="flex items-center gap-1 tl-btn-ghost"
+                                        class="tl-btn-ghost tl-btn-ghost--neutral"
                                         title="Edit expiry date"
                                     >
-                                        <TlIcon name="pencil" class="w-3.5 h-3.5 shrink-0" />
+                                        <TlIcon name="pencil" class="tl-ic tl-ic--sm" />
                                         Edit
                                     </button>
                                     <button
+                                        type="button"
                                         @click="revoke(license.id)"
-                                        class="flex items-center gap-1 tl-btn-ghost tl-btn-ghost--danger"
+                                        class="tl-btn-ghost tl-btn-ghost--danger"
                                         title="Revoke license"
                                     >
-                                        <TlIcon name="x-circle" class="w-3.5 h-3.5 shrink-0" />
+                                        <TlIcon name="x-circle" class="tl-ic tl-ic--sm" />
                                         Revoke
                                     </button>
                                 </div>
@@ -203,32 +205,31 @@ const STATUS_COLORS = {
     <Teleport to="body">
         <div
             v-if="editing"
-            class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70"
+            class="tl-modal-overlay"
             @click.self="closeEdit"
         >
-            <div class="w-full max-w-sm rounded-xl bg-slate-900 border border-slate-700 shadow-2xl p-6">
-                <h2 class="text-slate-100 font-semibold text-base mb-1">Edit expiry date</h2>
-                <p class="text-slate-500 text-sm mb-5">
+            <div class="tl-modal tl-modal--sm tl-card-body">
+                <h2 class="tl-modal-title">Edit expiry date</h2>
+                <p class="tl-subtext tl-label--spaced">
                     {{ editing.user?.name ?? editing.user?.email }} — {{ editing.tier }} license
                 </p>
 
-                <label class="block text-xs font-medium text-slate-400 mb-1">Expiry date</label>
+                <label class="tl-field-label tl-field-label--xs">Expiry date</label>
                 <input
                     v-model="editDate"
                     type="date"
-                    class="tl-input w-full mb-1"
+                    class="tl-input tl-input--full"
                     :min="new Date(Date.now() + 86400000).toISOString().substring(0, 10)"
                 />
-                <p class="text-xs text-slate-500 mb-5">Leave blank to set "Never expires".</p>
+                <p class="tl-hint tl-label--spaced">Leave blank to set "Never expires".</p>
 
-                <div class="flex justify-end gap-3">
-                    <button @click="closeEdit" class="tl-btn tl-btn--ghost" :disabled="editSaving">
-                        <TlIcon name="close" class="w-3.5 h-3.5" />
+                <div class="tl-modal-actions">
+                    <button type="button" @click="closeEdit" class="tl-btn tl-btn--secondary" :disabled="editSaving">
+                        <TlIcon name="close" class="tl-ic tl-ic--sm" />
                         Cancel
                     </button>
-                    <button @click="submitEdit" class="tl-btn tl-btn--primary" :disabled="editSaving">
-                        <TlIcon v-if="editSaving" name="spinner" class="w-3.5 h-3.5 animate-spin" />
-                        <TlIcon v-else name="check" class="w-3.5 h-3.5" />
+                    <button type="button" @click="submitEdit" class="tl-btn tl-btn--primary" :disabled="editSaving">
+                        <TlIcon :name="editSaving ? 'spinner' : 'check'" class="tl-ic tl-ic--sm" :class="{ 'tl-spin': editSaving }" />
                         {{ editSaving ? 'Saving…' : 'Save' }}
                     </button>
                 </div>

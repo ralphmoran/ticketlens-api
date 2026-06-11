@@ -33,23 +33,23 @@ function submit() {
 </script>
 
 <template>
-    <div class="px-4 sm:px-6 lg:px-8 py-8 max-w-2xl mx-auto">
+    <div class="tl-page tl-page--slim">
 
         <!-- Breadcrumb -->
-        <div class="mb-6 flex items-center gap-3">
-            <Link href="/console/owner/clients" class="text-slate-400 hover:text-white transition text-sm">← Clients</Link>
-            <span class="text-slate-700">/</span>
-            <span class="text-slate-300 text-sm font-medium">Register client</span>
+        <div class="tl-breadcrumb tl-card-gap">
+            <Link href="/console/owner/clients" class="tl-breadcrumb-group tl-cell-link">← Clients</Link>
+            <span class="tl-breadcrumb-sep">/</span>
+            <span class="tl-breadcrumb-page">Register client</span>
         </div>
 
         <div class="tl-card tl-card--lg">
-            <h1 class="text-base font-semibold text-white mb-1">Register new client</h1>
-            <p class="text-xs text-slate-500 mb-6">Creates an account and syncs the selected tier's permissions.</p>
+            <h1 class="tl-modal-title">Register new client</h1>
+            <p class="tl-hint tl-label--spaced">Creates an account and syncs the selected tier's permissions.</p>
 
-            <form @submit.prevent="submit" class="flex flex-col gap-5">
+            <form @submit.prevent="submit" class="tl-form-stack">
 
                 <!-- Name -->
-                <div class="flex flex-col gap-1">
+                <div class="tl-field">
                     <label class="tl-label">Name</label>
                     <input
                         v-model="form.name"
@@ -57,13 +57,13 @@ function submit() {
                         autocomplete="off"
                         placeholder="Jane Smith"
                         class="tl-input"
-                        :class="{ 'border-red-600': form.errors.name }"
+                        :class="{ 'tl-input--error': form.errors.name }"
                     />
-                    <p v-if="form.errors.name" class="text-red-400 text-xs">{{ form.errors.name }}</p>
+                    <p v-if="form.errors.name" class="tl-error">{{ form.errors.name }}</p>
                 </div>
 
                 <!-- Email -->
-                <div class="flex flex-col gap-1">
+                <div class="tl-field">
                     <label class="tl-label">Email</label>
                     <input
                         v-model="form.email"
@@ -71,13 +71,13 @@ function submit() {
                         autocomplete="off"
                         placeholder="jane@example.com"
                         class="tl-input"
-                        :class="{ 'border-red-600': form.errors.email }"
+                        :class="{ 'tl-input--error': form.errors.email }"
                     />
-                    <p v-if="form.errors.email" class="text-red-400 text-xs">{{ form.errors.email }}</p>
+                    <p v-if="form.errors.email" class="tl-error">{{ form.errors.email }}</p>
                 </div>
 
                 <!-- Password -->
-                <div class="flex flex-col gap-1">
+                <div class="tl-field">
                     <label class="tl-label">Initial password</label>
                     <input
                         v-model="form.password"
@@ -85,41 +85,40 @@ function submit() {
                         autocomplete="new-password"
                         placeholder="Min. 8 characters"
                         class="tl-input"
-                        :class="{ 'border-red-600': form.errors.password }"
+                        :class="{ 'tl-input--error': form.errors.password }"
                     />
-                    <p v-if="form.errors.password" class="text-red-400 text-xs">{{ form.errors.password }}</p>
+                    <p v-if="form.errors.password" class="tl-error">{{ form.errors.password }}</p>
                     <span class="tl-hint">The client can change this after first login.</span>
                 </div>
 
                 <!-- Tier -->
-                <div class="flex flex-col gap-1">
+                <div class="tl-field">
                     <label class="tl-label">Tier</label>
                     <select
                         v-model="form.tier"
                         class="tl-select"
-                        :class="{ 'border-red-600': form.errors.tier }"
+                        :class="{ 'tl-input--error': form.errors.tier }"
                     >
                         <option value="free">Free</option>
                         <option value="pro">Pro</option>
                         <option value="team">Team</option>
                         <option value="enterprise">Enterprise</option>
                     </select>
-                    <p v-if="form.errors.tier" class="text-red-400 text-xs">{{ form.errors.tier }}</p>
+                    <p v-if="form.errors.tier" class="tl-error">{{ form.errors.tier }}</p>
                 </div>
 
                 <!-- Actions -->
-                <div class="flex items-center gap-3 pt-2 border-t border-slate-800">
+                <div class="tl-card-actions">
                     <button
                         type="submit"
                         :disabled="form.processing"
-                        class="tl-btn tl-btn--primary disabled:opacity-40"
+                        class="tl-btn tl-btn--primary"
                     >
-                        <TlIcon v-if="form.processing" name="spinner" class="w-3.5 h-3.5 animate-spin" />
-                        <TlIcon v-else name="plus" class="w-3.5 h-3.5" />
+                        <TlIcon :name="form.processing ? 'spinner' : 'plus'" class="tl-ic tl-ic--sm" :class="{ 'tl-spin': form.processing }" />
                         {{ form.processing ? 'Creating…' : 'Register client' }}
                     </button>
                     <Link href="/console/owner/clients" class="tl-btn tl-btn--secondary">
-                        <TlIcon name="close" class="w-3.5 h-3.5" />
+                        <TlIcon name="close" class="tl-ic tl-ic--sm" />
                         Cancel
                     </Link>
                 </div>

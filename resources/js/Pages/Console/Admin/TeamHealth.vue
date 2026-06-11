@@ -71,10 +71,10 @@ function workloadBar(count) {
 }
 
 function attentionClass(score) {
-    if (score >= 8) return 'text-red-400 font-semibold'
-    if (score >= 5) return 'text-amber-400'
-    if (score >= 3) return 'text-yellow-400'
-    return 'text-slate-500'
+    if (score >= 8) return 'tl-num--danger'
+    if (score >= 5) return 'tl-num--warn'
+    if (score >= 3) return 'tl-num--stale'
+    return 'tl-num--zero'
 }
 
 function manualRefresh() {
@@ -100,44 +100,40 @@ onUnmounted(() => { clearInterval(timer); clearInterval(ticker) })
 
         <!-- Owner: no manager selected — client search UI -->
         <div v-if="owner_mode && !selected_manager">
-            <div class="mb-6">
-                <h1 class="tl-heading">Team Health</h1>
-                <p class="tl-subtext">Select a team to inspect their workload and response queue.</p>
+            <div class="tl-page-header">
+                <div>
+                    <h1 class="tl-heading">Team Health</h1>
+                    <p class="tl-subtext">Select a team to inspect their workload and response queue.</p>
+                </div>
             </div>
-            <div class="max-w-md">
+            <div class="tl-picker">
                 <input
                     v-model="clientSearch"
                     type="search"
                     placeholder="Search by name or email…"
-                    class="tl-input w-full mb-4"
+                    class="tl-input tl-input--full tl-card-gap"
                 />
                 <div v-if="pagedClients.length === 0" class="tl-empty-state">
-                    <TlIcon name="users" class="w-8 h-8 text-slate-700 mb-3" />
+                    <TlIcon name="users" class="tl-empty-icon" />
                     <p class="tl-hint">No matching clients found.</p>
                 </div>
-                <ul v-else class="space-y-2">
+                <ul v-else class="tl-stack--sm">
                     <li v-for="client in pagedClients" :key="client.id">
-                        <button
-                            type="button"
-                            @click="selectManager(client.id)"
-                            class="w-full text-left tl-card hover:border-amber-500/40 hover:bg-slate-800/60 transition-colors cursor-pointer"
-                        >
-                            <p class="text-sm font-medium text-slate-200">{{ client.name }}</p>
-                            <p class="tl-hint text-xs font-mono">{{ client.email }}</p>
+                        <button type="button" @click="selectManager(client.id)" class="tl-card tl-card--btn">
+                            <p class="tl-cell-primary">{{ client.name }}</p>
+                            <p class="tl-hint tl-mono--xs">{{ client.email }}</p>
                         </button>
                     </li>
                 </ul>
-                <div v-if="totalPages > 1" class="flex items-center justify-between mt-4">
-                    <span class="text-xs text-slate-500">{{ filteredClients.length }} clients</span>
-                    <div class="flex items-center gap-1">
-                        <button type="button" :disabled="clientPage === 1" @click="clientPage--"
-                                class="p-1.5 text-slate-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
-                            <TlIcon name="chevron-left" class="w-4 h-4" />
+                <div v-if="totalPages > 1" class="tl-pager">
+                    <span class="tl-hint">{{ filteredClients.length }} clients</span>
+                    <div class="tl-pager-nav">
+                        <button type="button" :disabled="clientPage === 1" @click="clientPage--" class="tl-pager-btn">
+                            <TlIcon name="chevron-left" class="tl-ic" />
                         </button>
-                        <span class="text-xs text-slate-400 font-mono">{{ clientPage }} / {{ totalPages }}</span>
-                        <button type="button" :disabled="clientPage >= totalPages" @click="clientPage++"
-                                class="p-1.5 text-slate-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
-                            <TlIcon name="chevron-right" class="w-4 h-4" />
+                        <span class="tl-pager-label">{{ clientPage }} / {{ totalPages }}</span>
+                        <button type="button" :disabled="clientPage >= totalPages" @click="clientPage++" class="tl-pager-btn">
+                            <TlIcon name="chevron-right" class="tl-ic" />
                         </button>
                     </div>
                 </div>
@@ -148,14 +144,13 @@ onUnmounted(() => { clearInterval(timer); clearInterval(ticker) })
         <template v-else>
 
         <!-- Owner: manager selected — action banner -->
-        <div v-if="owner_mode && selected_manager"
-             class="flex flex-wrap items-center gap-3 mb-6 px-4 py-3 rounded-lg bg-amber-500/10 border border-amber-500/30 text-sm">
-            <TlIcon name="building" class="w-4 h-4 text-amber-400 shrink-0" />
-            <span class="text-amber-300 font-medium flex-1 min-w-0 truncate">
+        <div v-if="owner_mode && selected_manager" class="tl-banner tl-banner--warn tl-card-gap tl-row--wrap">
+            <TlIcon name="building" class="tl-ic tl-banner-icon" />
+            <span class="tl-banner-title tl-banner-fill">
                 {{ selected_manager.name }}
-                <span class="text-amber-400/60 font-mono text-xs ml-1">{{ selected_manager.email }}</span>
+                <span class="tl-hint tl-mono--xs">{{ selected_manager.email }}</span>
             </span>
-            <div class="flex items-center gap-2 shrink-0">
+            <div class="tl-row">
                 <a :href="`/console/owner/clients/${selected_manager.id}`" class="tl-btn tl-btn--secondary tl-btn--sm">Manage</a>
                 <button type="button" class="tl-btn tl-btn--secondary tl-btn--sm"
                         @click="router.post(`/console/owner/impersonate/${selected_manager.id}`)">
@@ -169,60 +164,58 @@ onUnmounted(() => { clearInterval(timer); clearInterval(ticker) })
         </div>
 
         <!-- Page header -->
-        <div class="flex items-start justify-between gap-4 mb-6">
+        <div class="tl-page-header">
             <div>
                 <h1 class="tl-heading">Team Health</h1>
                 <p class="tl-subtext">{{ group_name }} — aggregated from member queue pushes</p>
             </div>
-            <div class="flex items-center gap-3">
+            <div class="tl-row">
                 <span v-if="refreshLabel" class="tl-hint">{{ refreshLabel }}</span>
                 <button class="tl-btn tl-btn--secondary tl-btn--sm" :disabled="refreshing" @click="manualRefresh">
-                    <TlIcon name="refresh" class="w-3.5 h-3.5" :class="{ 'animate-spin': refreshing }" />
+                    <TlIcon name="refresh" class="tl-ic tl-ic--sm" :class="{ 'tl-spin': refreshing }" />
                     Refresh
                 </button>
             </div>
         </div>
 
         <!-- Empty state -->
-        <div v-if="workload.every(m => m.ticket_count === 0)" class="tl-empty-state mb-8">
-            <TlIcon name="users" class="w-10 h-10 text-slate-700 mb-4" />
-            <p class="text-slate-300 font-medium mb-1">No queue data yet.</p>
-            <p class="tl-hint mb-3">Ask your team members to push their queues:</p>
+        <div v-if="workload.every(m => m.ticket_count === 0)" class="tl-empty-state tl-section-gap">
+            <TlIcon name="users" class="tl-empty-icon" />
+            <p class="tl-body">No queue data yet.</p>
+            <p class="tl-hint tl-card-gap-sm">Ask your team members to push their queues:</p>
             <code class="tl-kbd tl-kbd--brand">ticketlens triage --push</code>
         </div>
 
         <template v-else>
 
             <!-- Summary stats -->
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-                <div class="tl-card text-center">
-                    <p class="tl-hint mb-1">Total tickets</p>
-                    <p class="text-2xl font-semibold text-slate-100">{{ totalTickets }}</p>
+            <div class="tl-grid-stats tl-section-gap">
+                <div class="tl-stat-card">
+                    <p class="tl-stat-label">Total tickets</p>
+                    <p class="tl-stat-value">{{ totalTickets }}</p>
                 </div>
-                <div class="tl-card text-center">
-                    <p class="tl-hint mb-1">Needs response</p>
-                    <p class="text-2xl font-semibold" :class="totalNeedsResp > 0 ? 'text-amber-400' : 'text-slate-100'">
+                <div class="tl-stat-card">
+                    <p class="tl-stat-label">Needs response</p>
+                    <p class="tl-stat-value" :class="totalNeedsResp > 0 ? 'tl-num--warn' : ''">
                         {{ totalNeedsResp }}
                     </p>
                 </div>
-                <div class="tl-card text-center">
-                    <p class="tl-hint mb-1">Status buckets</p>
-                    <p class="text-2xl font-semibold text-slate-100">{{ bottlenecks.length }}</p>
+                <div class="tl-stat-card">
+                    <p class="tl-stat-label">Status buckets</p>
+                    <p class="tl-stat-value">{{ bottlenecks.length }}</p>
                 </div>
-                <div class="tl-card text-center">
-                    <p class="tl-hint mb-1">Active devs</p>
-                    <p class="text-2xl font-semibold text-slate-100">{{ workload.filter(m => m.ticket_count > 0).length }}</p>
+                <div class="tl-stat-card">
+                    <p class="tl-stat-label">Active devs</p>
+                    <p class="tl-stat-value">{{ workload.filter(m => m.ticket_count > 0).length }}</p>
                 </div>
             </div>
 
             <!-- Workload per dev -->
-            <div class="mb-8">
-                <div class="flex items-start justify-between gap-3 mb-1">
-                    <h2 class="tl-section-heading">Workload per dev</h2>
-                </div>
-                <p class="tl-hint text-xs mb-3">Ticket count per team member from their latest pushed snapshot. "Needs response" counts tickets with a teammate waiting on them.</p>
+            <div class="tl-section-gap">
+                <h2 class="tl-section-heading">Workload per dev</h2>
+                <p class="tl-hint tl-card-gap-sm">Ticket count per team member from their latest pushed snapshot. "Needs response" counts tickets with a teammate waiting on them.</p>
                 <div class="tl-card tl-card--flush">
-                    <table class="w-full text-sm">
+                    <table class="tl-table">
                         <thead>
                             <tr class="tl-thead">
                                 <th class="tl-th">Developer</th>
@@ -234,30 +227,25 @@ onUnmounted(() => { clearInterval(timer); clearInterval(ticker) })
                         </thead>
                         <tbody class="tl-divide">
                             <tr v-for="member in workload" :key="member.member_id" class="tl-tr">
-                                <td class="px-5 py-3.5">
-                                    <p class="text-slate-200 font-medium">{{ member.member_name }}</p>
-                                    <p class="tl-hint text-xs">{{ member.member_email }}</p>
+                                <td class="tl-td">
+                                    <p class="tl-cell-primary">{{ member.member_name }}</p>
+                                    <p class="tl-hint">{{ member.member_email }}</p>
                                 </td>
-                                <td class="px-5 py-3.5 w-40">
-                                    <div class="flex items-center gap-2">
-                                        <div class="flex-1 h-1.5 rounded-full bg-slate-700">
-                                            <div
-                                                class="h-1.5 rounded-full bg-indigo-500 transition-all"
-                                                :style="{ width: workloadBar(member.ticket_count) + '%' }"
-                                            />
-                                        </div>
+                                <td class="tl-td tl-th--meter">
+                                    <div class="tl-meter tl-meter--thin">
+                                        <div class="tl-meter-fill" :style="{ width: workloadBar(member.ticket_count) + '%' }" />
                                     </div>
                                 </td>
-                                <td class="px-5 py-3.5 text-right">
-                                    <span class="text-slate-200 font-mono">{{ member.ticket_count }}</span>
+                                <td class="tl-td tl-td--right">
+                                    <span class="tl-value tl-mono">{{ member.ticket_count }}</span>
                                 </td>
-                                <td class="px-5 py-3.5 text-right">
+                                <td class="tl-td tl-td--right">
                                     <span v-if="member.needs_response_count > 0" class="tl-badge tl-badge--brand">
                                         {{ member.needs_response_count }}
                                     </span>
                                     <span v-else class="tl-hint">—</span>
                                 </td>
-                                <td class="px-5 py-3.5 text-right tl-hint">
+                                <td class="tl-td tl-td--right tl-cell-muted">
                                     {{ member.last_push ? timeAgo(member.last_push) : 'No push' }}
                                 </td>
                             </tr>
@@ -267,54 +255,51 @@ onUnmounted(() => { clearInterval(timer); clearInterval(ticker) })
             </div>
 
             <!-- Bottlenecks + Needs response -->
-            <div class="grid md:grid-cols-2 gap-6 mb-8">
+            <div class="tl-grid-2 tl-section-gap">
 
                 <!-- Status bottlenecks -->
                 <div>
-                    <h2 class="tl-section-heading mb-1">Status bottlenecks</h2>
-                    <p class="tl-hint text-xs mb-3">
+                    <h2 class="tl-section-heading">Status bottlenecks</h2>
+                    <p class="tl-hint tl-card-gap-sm">
                         Tickets grouped by Jira status. A long bar means many tickets are sitting in that status —
                         useful for spotting where work stalls (e.g. "In Review" or "Blocked").
                     </p>
-                    <div class="tl-card space-y-2">
-                        <div v-if="bottlenecks.length === 0" class="py-4 text-center">
-                            <p class="tl-hint mb-2">No status data yet.</p>
-                            <p class="tl-hint text-xs">Status is populated when members run <code class="font-mono">ticketlens triage --push</code> with full Jira data.</p>
+                    <div class="tl-card tl-card--stack">
+                        <div v-if="bottlenecks.length === 0" class="tl-card-empty">
+                            <p class="tl-hint tl-card-gap-sm">No status data yet.</p>
+                            <p class="tl-hint">Status is populated when members run <code class="tl-mono">ticketlens triage --push</code> with full Jira data.</p>
                         </div>
-                        <div v-for="row in bottlenecks" :key="row.status" class="flex items-center gap-3">
-                            <span class="tl-badge tl-badge--neutral w-36 truncate shrink-0">{{ row.status }}</span>
-                            <div class="flex-1 h-1.5 rounded-full bg-slate-700">
-                                <div
-                                    class="h-1.5 rounded-full bg-indigo-500 transition-all"
-                                    :style="{ width: (row.count / totalTickets * 100) + '%' }"
-                                />
+                        <div v-for="row in bottlenecks" :key="row.status" class="tl-row">
+                            <span class="tl-badge tl-badge--neutral tl-badge--w-fixed tl-trunc">{{ row.status }}</span>
+                            <div class="tl-meter tl-meter--thin tl-btn--grow">
+                                <div class="tl-meter-fill" :style="{ width: (row.count / totalTickets * 100) + '%' }" />
                             </div>
-                            <span class="text-slate-400 font-mono text-xs w-6 text-right shrink-0">{{ row.count }}</span>
+                            <span class="tl-mono--xs tl-cell-muted tl-count-col">{{ row.count }}</span>
                         </div>
                     </div>
                 </div>
 
                 <!-- Needs-response tickets -->
                 <div>
-                    <h2 class="tl-section-heading mb-1">Needs response ({{ needs_response.length }})</h2>
-                    <p class="tl-hint text-xs mb-3">
+                    <h2 class="tl-section-heading">Needs response ({{ needs_response.length }})</h2>
+                    <p class="tl-hint tl-card-gap-sm">
                         Tickets where a teammate is waiting on a response. Sorted by attention score — highest first.
-                        Populated when members push with the <code class="font-mono">needs-response</code> flag set.
+                        Populated when members push with the <code class="tl-mono">needs-response</code> flag set.
                     </p>
-                    <div class="tl-card space-y-3">
-                        <div v-if="needs_response.length === 0" class="tl-hint text-center py-4">All clear</div>
-                        <div v-for="ticket in needs_response" :key="ticket.key" class="flex items-start gap-3">
+                    <div class="tl-card tl-stack--sm">
+                        <div v-if="needs_response.length === 0" class="tl-card-empty tl-hint">All clear</div>
+                        <div v-for="ticket in needs_response" :key="ticket.key" class="tl-row tl-row--top">
                             <a :href="ticket.url" target="_blank" rel="noopener"
-                               class="tl-kbd tl-kbd--brand shrink-0 hover:text-indigo-300 transition-colors text-xs">
+                               class="tl-kbd tl-kbd--brand tl-kbd--link">
                                 {{ ticket.key }}
                             </a>
-                            <div class="min-w-0 flex-1">
-                                <p class="text-sm text-slate-300 truncate" :title="ticket.summary">{{ ticket.summary }}</p>
-                                <p class="tl-hint text-xs">{{ ticket.member_name }} · {{ ticket.status }}</p>
+                            <div class="tl-banner-fill">
+                                <p class="tl-body--secondary tl-trunc" :title="ticket.summary">{{ ticket.summary }}</p>
+                                <p class="tl-hint">{{ ticket.member_name }} · {{ ticket.status }}</p>
                             </div>
                             <span v-if="ticket.attention_score != null"
                                   :class="attentionClass(ticket.attention_score)"
-                                  class="font-mono text-xs shrink-0">
+                                  class="tl-mono--xs">
                                 {{ ticket.attention_score.toFixed(1) }}
                             </span>
                         </div>

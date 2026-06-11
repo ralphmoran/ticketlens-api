@@ -1,15 +1,25 @@
 /*
- * Table primitives — AUDIT §3.3
- * tl-thead / tl-th (+ --right, --muted) / tl-tr / tl-divide / tl-td--empty
+ * Table primitives.
+ * tl-table / tl-thead / tl-th (+ --right, --muted) / tl-tr / tl-td /
+ * tl-divide / tl-td--empty / tl-cell-* content helpers
+ * All theme-bearing values come from tokens.css.
  */
 
 @layer components {
+  .tl-table {
+    @apply w-full text-sm;
+  }
+
   .tl-thead {
-    @apply border-b border-slate-800 text-slate-400 text-xs uppercase tracking-wider;
+    @apply text-xs uppercase tracking-wider;
+    border-bottom: 1px solid var(--tl-border);
+    color: var(--tl-text-muted);
+    background-color: var(--tl-surface-2);
   }
 
   .tl-th {
-    @apply text-left px-5 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider;
+    @apply text-left px-5 py-3 text-xs font-medium uppercase tracking-wider;
+    color: var(--tl-text-muted);
   }
 
   .tl-th--right {
@@ -17,18 +27,99 @@
   }
 
   .tl-th--muted {
-    @apply text-slate-500;
+    color: var(--tl-text-subtle);
   }
 
   .tl-tr {
-    @apply hover:bg-slate-800/30 transition-colors duration-100;
+    transition: background-color var(--tl-transition-fast);
+  }
+  .tl-tr:hover {
+    background-color: var(--tl-surface-2);
   }
 
-  .tl-divide {
-    @apply divide-y divide-slate-800/60;
+  .tl-td {
+    @apply px-5 py-3.5;
+    color: var(--tl-text-primary);
+  }
+
+  .tl-divide > :not(:last-child) {
+    border-bottom: 1px solid var(--tl-border);
   }
 
   .tl-td--empty {
-    @apply px-4 py-8 text-center text-slate-500 text-sm;
+    @apply px-4 py-8 text-center text-sm;
+    color: var(--tl-text-subtle);
   }
+
+  /* Cell content helpers */
+  .tl-cell-primary {
+    font-weight: 500;
+    color: var(--tl-text);
+  }
+
+  .tl-cell-muted {
+    color: var(--tl-text-muted);
+  }
+}
+
+@layer components {
+  .tl-th--sortable {
+    @apply cursor-pointer select-none;
+    transition: color var(--tl-transition);
+  }
+  .tl-th--sortable:hover { color: var(--tl-text-secondary); }
+}
+
+@layer components {
+  .tl-table-header {
+    @apply px-5 py-4;
+    border-bottom: 1px solid var(--tl-border);
+  }
+  .tl-table-scroll { @apply overflow-x-auto; }
+  .tl-td--right { @apply text-right; }
+  .tl-table-footnote {
+    @apply px-5 py-3 text-xs;
+    border-top: 1px solid var(--tl-border);
+    color: var(--tl-text-muted);
+  }
+}
+
+@layer components {
+  /* Responsive table/card splits inside flush cards */
+  .tl-mobile-list {
+    @apply md:hidden;
+    border-top: 1px solid var(--tl-border);
+  }
+  .tl-mobile-list > :not(:last-child) { border-bottom: 1px solid var(--tl-border); }
+  .tl-desktop-table {
+    @apply hidden md:block;
+    border-top: 1px solid var(--tl-border);
+  }
+  .tl-td--clamp { @apply max-w-xs truncate; }
+}
+
+@layer components {
+  .tl-th--snug { @apply px-3 py-2.5; }
+  .tl-td--snug { @apply px-3 py-3 text-xs; }
+}
+
+@layer components {
+  .tl-th--meter { width: 8rem; }
+}
+
+@layer components {
+  .tl-th--center { @apply text-center; }
+  .tl-td--center { @apply text-center; }
+}
+
+@layer components {
+  /* Loading overlay for async table refreshes */
+  .tl-loading-overlay {
+    @apply absolute inset-0 z-10 flex items-center justify-center;
+    border-radius: var(--tl-radius-xl);
+    background-color: oklch(0 0 0 / 0.35);
+  }
+  .tl-inert { @apply pointer-events-none; }
+  .tl-cell-link { cursor: pointer; transition: color var(--tl-transition); }
+  .tl-cell-link:hover { color: var(--tl-brand-soft); }
 }

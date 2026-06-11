@@ -61,43 +61,43 @@ const atLimit    = () => hasLicense() && props.seats_used >= props.seats_total
 </script>
 
 <template>
-    <div class="px-4 sm:px-6 lg:px-8 py-8 max-w-4xl mx-auto">
+    <div class="tl-page tl-page--mid">
 
-        <div class="mb-6 flex items-start justify-between">
+        <div class="tl-page-header">
             <div>
                 <h1 class="tl-heading">Members</h1>
                 <p class="tl-subtext">{{ group.name }}</p>
             </div>
-            <div class="text-right">
-                <p class="text-xs text-slate-500 uppercase tracking-wider">Seats</p>
-                <p v-if="hasLicense()" :class="['text-lg font-mono font-semibold', atLimit() ? 'text-amber-400' : 'text-white']">
+            <div class="tl-text-right">
+                <p class="tl-label">Seats</p>
+                <p v-if="hasLicense()" class="tl-seat-count" :class="atLimit() ? 'tl-num--warn' : ''">
                     {{ seats_used }} / {{ seats_total }}
                 </p>
-                <p v-else class="text-sm text-amber-400 font-medium">No active license</p>
+                <p v-else class="tl-num--warn tl-toggle-row-title">No active license</p>
             </div>
         </div>
 
         <!-- Invite form -->
-        <div class="tl-card mb-5">
-            <h2 class="text-sm font-medium text-slate-300 mb-3">Invite a member</h2>
-            <div v-if="!hasLicense()" class="bg-red-900/20 border border-red-800/50 rounded-lg p-3 text-xs text-red-200 mb-3">
+        <div class="tl-card tl-card-gap">
+            <h2 class="tl-title tl-title--spaced">Invite a member</h2>
+            <div v-if="!hasLicense()" class="tl-banner tl-banner--danger tl-banner--slim tl-card-gap-sm">
                 No active license found. Contact your platform administrator.
             </div>
-            <div v-else-if="atLimit()" class="bg-amber-900/20 border border-amber-800/50 rounded-lg p-3 text-xs text-amber-200 mb-3">
+            <div v-else-if="atLimit()" class="tl-banner tl-banner--warn tl-banner--slim tl-card-gap-sm">
                 Seat limit reached. Upgrade your plan or remove a member to invite more.
             </div>
-            <form @submit.prevent="invite" class="flex flex-wrap items-end gap-3">
-                <div class="flex-1 min-w-48">
-                    <label class="block text-[10px] uppercase tracking-wider text-slate-500 mb-1">Email</label>
-                    <input v-model="inviteForm.email" type="email" required placeholder="teammate@example.com" class="tl-input tl-input--sm tl-input--full" :class="{ 'border-red-600': inviteForm.errors.email }" />
-                    <p v-if="inviteForm.errors.email" class="text-red-400 text-xs mt-1">{{ inviteForm.errors.email }}</p>
+            <form @submit.prevent="invite" class="tl-row tl-row--wrap tl-row--bottom">
+                <div class="tl-field-key">
+                    <label class="tl-label tl-label--field">Email</label>
+                    <input v-model="inviteForm.email" type="email" required placeholder="teammate@example.com" class="tl-input tl-input--sm tl-input--full" :class="{ 'tl-input--error': inviteForm.errors.email }" />
+                    <p v-if="inviteForm.errors.email" class="tl-error">{{ inviteForm.errors.email }}</p>
                 </div>
-                <div class="flex-1 min-w-40">
-                    <label class="block text-[10px] uppercase tracking-wider text-slate-500 mb-1">Name (optional)</label>
+                <div class="tl-field-key">
+                    <label class="tl-label tl-label--field">Name (optional)</label>
                     <input v-model="inviteForm.name" type="text" maxlength="255" class="tl-input tl-input--sm tl-input--full" />
                 </div>
-                <button type="submit" :disabled="!inviteForm.email || inviteForm.processing || atLimit() || !hasLicense()" class="inline-flex items-center gap-1.5 tl-btn tl-btn--primary shrink-0">
-                    <TlIcon name="plus" class="w-3.5 h-3.5" />
+                <button type="submit" :disabled="!inviteForm.email || inviteForm.processing || atLimit() || !hasLicense()" class="tl-btn tl-btn--primary">
+                    <TlIcon name="plus" class="tl-ic tl-ic--sm" />
                     Invite
                 </button>
             </form>
@@ -105,48 +105,48 @@ const atLimit    = () => hasLicense() && props.seats_used >= props.seats_total
 
         <!-- Members table -->
         <div class="tl-card tl-card--flush">
-            <table class="w-full text-sm">
+            <table class="tl-table">
                 <thead>
                     <tr class="tl-thead">
-                        <th class="px-4 py-3 text-left">Member</th>
-                        <th class="px-4 py-3 text-left">Role</th>
-                        <th class="px-4 py-3 text-left">Joined</th>
-                        <th class="px-4 py-3 text-right">Actions</th>
+                        <th class="tl-th">Member</th>
+                        <th class="tl-th">Role</th>
+                        <th class="tl-th">Joined</th>
+                        <th class="tl-th tl-th--right">Actions</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-slate-800">
-                    <tr v-for="member in members" :key="member.id" class="hover:bg-slate-800/50">
-                        <td class="px-4 py-3">
-                            <p class="text-slate-200">{{ member.name }}</p>
-                            <p class="text-xs text-slate-500 font-mono">{{ member.email }}</p>
+                <tbody class="tl-divide">
+                    <tr v-for="member in members" :key="member.id" class="tl-tr">
+                        <td class="tl-td">
+                            <p class="tl-cell-primary">{{ member.name }}</p>
+                            <p class="tl-hint tl-mono--xs">{{ member.email }}</p>
                         </td>
-                        <td class="px-4 py-3">
+                        <td class="tl-td">
                             <span v-if="member.role === 'manager'" class="tl-badge tl-badge--warn">Manager</span>
                             <span v-else-if="member.role === 'lead'" class="tl-badge tl-badge--info">Lead</span>
                             <span v-else class="tl-badge tl-badge--neutral">Dev</span>
                         </td>
-                        <td class="px-4 py-3 text-slate-500 text-xs">{{ formatDate(member.created_at) }}</td>
-                        <td class="px-4 py-3 text-right">
-                            <div class="flex items-center justify-end gap-3">
+                        <td class="tl-td tl-cell-muted">{{ formatDate(member.created_at) }}</td>
+                        <td class="tl-td tl-td--right">
+                            <div class="tl-row tl-row--end">
                                 <template v-if="member.role !== 'manager'">
-                                    <button v-if="member.role === 'dev'" @click="setRole(member.id, 'lead')" class="flex items-center gap-1 tl-btn-ghost tl-btn-ghost--info">
-                                        <TlIcon name="arrow-up-circle" class="w-3.5 h-3.5 shrink-0" />
+                                    <button v-if="member.role === 'dev'" @click="setRole(member.id, 'lead')" class="tl-btn-ghost tl-btn-ghost--info">
+                                        <TlIcon name="arrow-up-circle" class="tl-ic tl-ic--sm" />
                                         Make lead
                                     </button>
-                                    <button v-else @click="setRole(member.id, 'dev')" class="flex items-center gap-1 tl-btn-ghost tl-btn-ghost--neutral">
-                                        <TlIcon name="arrow-down-circle" class="w-3.5 h-3.5 shrink-0" />
+                                    <button v-else @click="setRole(member.id, 'dev')" class="tl-btn-ghost tl-btn-ghost--neutral">
+                                        <TlIcon name="arrow-down-circle" class="tl-ic tl-ic--sm" />
                                         Remove lead
                                     </button>
-                                    <button @click="promote(member.id)" class="flex items-center gap-1 tl-btn-ghost tl-btn-ghost--warn">
-                                        <TlIcon name="badge-check" class="w-3.5 h-3.5 shrink-0" />
+                                    <button @click="promote(member.id)" class="tl-btn-ghost tl-btn-ghost--warn">
+                                        <TlIcon name="badge-check" class="tl-ic tl-ic--sm" />
                                         Make manager
                                     </button>
-                                    <button @click="remove(member.id)" class="flex items-center gap-1 tl-btn-ghost tl-btn-ghost--danger">
-                                        <TlIcon name="x-circle" class="w-3.5 h-3.5 shrink-0" />
+                                    <button @click="remove(member.id)" class="tl-btn-ghost tl-btn-ghost--danger">
+                                        <TlIcon name="x-circle" class="tl-ic tl-ic--sm" />
                                         Remove
                                     </button>
                                 </template>
-                                <span v-else class="text-xs text-slate-700">—</span>
+                                <span v-else class="tl-hint">—</span>
                             </div>
                         </td>
                     </tr>

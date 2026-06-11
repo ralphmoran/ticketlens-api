@@ -48,13 +48,12 @@ class AccountTest extends TestCase
         $response->assertInertia(fn ($page) => $page->component('Console/Account'));
     }
 
-    public function test_account_page_passes_key_presence_flags(): void
+    public function test_account_page_does_not_expose_ai_key_props(): void
     {
         $user = User::factory()->create([
             'tier'          => 'pro',
             'permissions'   => 71,
             'anthropic_key' => 'sk-ant-test-key',
-            'openai_key'    => null,
         ]);
 
         $response = $this->actingAs($user)->get('/console/account');
@@ -62,61 +61,32 @@ class AccountTest extends TestCase
         $response->assertStatus(200);
         $response->assertInertia(fn ($page) => $page
             ->component('Console/Account')
-            ->where('has_anthropic_key', true)
-            ->where('has_openai_key', false)
+            ->missing('has_anthropic_key')
+            ->missing('has_openai_key')
         );
     }
 
-    public function test_user_can_save_anthropic_key(): void
+    public function test_account_keys_route_no_longer_exists(): void
     {
         $user = User::factory()->create(['tier' => 'pro', 'permissions' => 71]);
 
         $response = $this->actingAs($user)->post('/console/account/keys', [
-            'anthropic_key' => 'sk-ant-test-key-123',
+            'anthropic_key' => 'sk-ant-test',
             'openai_key'    => '',
         ]);
 
-        $response->assertRedirect();
-
-        $user->refresh();
-        $this->assertSame('sk-ant-test-key-123', $user->anthropic_key);
-        $this->assertNull($user->openai_key);
+        $response->assertStatus(404); // Route removed — no longer registered
     }
 
-    public function test_user_can_save_openai_key(): void
+    public function test_account_page_does_not_expose_cli_token_prop(): void
     {
         $user = User::factory()->create(['tier' => 'pro', 'permissions' => 71]);
 
-        $response = $this->actingAs($user)->post('/console/account/keys', [
-            'anthropic_key' => '',
-            'openai_key'    => 'sk-openai-test-key-456',
-        ]);
-
-        $response->assertRedirect();
-
-        $user->refresh();
-        $this->assertNull($user->anthropic_key);
-        $this->assertSame('sk-openai-test-key-456', $user->openai_key);
-    }
-
-    public function test_user_can_clear_api_keys(): void
-    {
-        $user = User::factory()->create([
-            'tier'          => 'pro',
-            'permissions'   => 71,
-            'anthropic_key' => 'sk-ant-existing',
-            'openai_key'    => 'sk-openai-existing',
-        ]);
-
-        $response = $this->actingAs($user)->post('/console/account/keys', [
-            'anthropic_key' => '',
-            'openai_key'    => '',
-        ]);
-
-        $response->assertRedirect();
-
-        $user->refresh();
-        $this->assertNull($user->anthropic_key);
-        $this->assertNull($user->openai_key);
+        $this->actingAs($user)->get('/console/account')
+            ->assertStatus(200)
+            ->assertInertia(fn ($page) => $page
+                ->component('Console/Account')
+                ->missing('cli_token')
+            );
     }
 }

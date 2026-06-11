@@ -1,56 +1,122 @@
 /*
- * Badge / status primitives — AUDIT §3.6
- * tl-badge + --brand / --success / --neutral / --warn / --info color modifiers
- * tl-dot + --brand / --success / --neutral color modifiers
- * tl-kbd (code/keyboard chip) + --brand modifier
+ * Badge / status primitives.
+ * tl-badge + color modifiers — tinted pills with border
+ * tl-dot + color modifiers — status dots
+ * tl-kbd — code/keyboard chip
+ * All theme-bearing values come from tokens.css.
  */
 
 @layer components {
   .tl-badge {
-    @apply inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full border;
+    @apply inline-flex items-center gap-1 text-xs font-medium px-2.5 py-0.5;
+    border-radius: var(--tl-radius-full);
+    border: 1px solid transparent;
   }
 
   .tl-badge--brand {
-    @apply text-indigo-400 bg-indigo-400/10 border-indigo-400/20;
+    color: var(--tl-brand-soft);
+    background-color: var(--tl-brand-tint);
+    border-color: var(--tl-info-border);
   }
 
   .tl-badge--success {
-    @apply text-emerald-400 bg-emerald-400/10 border-emerald-400/20;
+    color: var(--tl-success);
+    background-color: var(--tl-success-tint);
+    border-color: var(--tl-success-border);
   }
 
   .tl-badge--neutral {
-    @apply text-slate-400 bg-slate-500/10 border-slate-500/20;
+    color: var(--tl-text-muted);
+    background-color: var(--tl-surface-2);
+    border-color: var(--tl-border);
   }
 
   .tl-badge--warn {
-    @apply text-amber-400 bg-amber-400/10 border-amber-400/20;
+    color: var(--tl-warn);
+    background-color: var(--tl-warn-tint);
+    border-color: var(--tl-warn-border);
+  }
+
+  .tl-badge--danger {
+    color: var(--tl-danger);
+    background-color: var(--tl-danger-tint);
+    border-color: var(--tl-danger-border);
   }
 
   .tl-badge--info {
-    @apply text-sky-400 bg-sky-400/10 border-sky-400/20;
+    color: var(--tl-info);
+    background-color: var(--tl-info-tint);
+    border-color: var(--tl-info-border);
   }
 
   .tl-dot {
-    @apply w-1.5 h-1.5 rounded-full inline-block;
+    @apply w-1.5 h-1.5 inline-block;
+    border-radius: var(--tl-radius-full);
   }
 
-  .tl-dot--brand {
-    @apply bg-indigo-400;
-  }
-
-  .tl-dot--success {
-    @apply bg-emerald-400;
-  }
-
-  .tl-dot--neutral {
-    @apply bg-slate-500;
-  }
+  .tl-dot--brand   { background-color: var(--tl-brand-soft); }
+  .tl-dot--success { background-color: var(--tl-success); }
+  .tl-dot--neutral { background-color: var(--tl-text-subtle); }
+  .tl-dot--warn    { background-color: var(--tl-warn); }
+  .tl-dot--danger  { background-color: var(--tl-danger); }
 
   .tl-kbd {
-    @apply text-xs font-mono text-slate-200 bg-slate-800 px-2 py-0.5 rounded;
+    @apply text-xs font-mono px-2 py-0.5;
+    color: var(--tl-text-primary);
+    background-color: var(--tl-surface-2);
+    border-radius: var(--tl-radius-sm);
   }
 
   .tl-kbd--brand {
-    @apply text-indigo-400 bg-slate-800 px-1.5 py-0.5 rounded font-mono;
+    @apply text-xs font-mono px-1.5 py-0.5;
+    color: var(--tl-brand-soft);
+    background-color: var(--tl-surface-2);
+    border-radius: var(--tl-radius-sm);
   }
+}
+
+@layer components {
+  /* Inline code snippet chip */
+  .tl-code-chip {
+    @apply text-xs font-mono px-2 py-0.5 inline-block;
+    color: var(--tl-brand-soft);
+    background-color: var(--tl-surface-2);
+    border-radius: var(--tl-radius-sm);
+  }
+}
+
+@layer components {
+  /* Inline code accent (brand-colored command text) */
+  .tl-code-inline { @apply font-mono; color: var(--tl-brand-soft); }
+
+  /* Command box (copyable CLI command) */
+  .tl-cmd-box {
+    @apply flex items-center gap-2 font-mono text-sm px-3 py-2;
+    background-color: var(--tl-bg);
+    border: 1px solid var(--tl-border);
+    border-radius: var(--tl-radius-sm);
+  }
+  .tl-cmd-box > span { @apply select-all; color: var(--tl-brand-soft); }
+}
+
+@layer components {
+  .tl-kbd--link { cursor: pointer; transition: color var(--tl-transition); }
+  .tl-kbd--link:hover { color: var(--tl-brand-soft); }
+}
+
+@layer components {
+  .tl-badge--btn { cursor: pointer; user-select: none; }
+  .tl-badge--btn:hover { filter: brightness(1.15); }
+}
+
+@layer components {
+  .tl-badge--w-fixed { @apply w-36 shrink-0; display: inline-block; }
+}
+
+@layer components {
+  .tl-badge--clamp { @apply truncate inline-block; max-width: 180px; }
+}
+
+@layer components {
+  .tl-badge--caps { @apply uppercase tracking-wide; }
 }

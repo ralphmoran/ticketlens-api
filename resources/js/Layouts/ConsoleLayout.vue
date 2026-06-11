@@ -12,6 +12,24 @@ const sidebarOpen = ref(false)
 const SIDEBAR_KEY = 'tl-sidebar-collapsed'
 const sidebarCollapsed = ref(localStorage.getItem(SIDEBAR_KEY) === 'true')
 
+// ── Theme toggle (dark / light) ───────────────────────────────────────────
+const THEME_KEY = 'tl-theme'
+const themeMode = ref(localStorage.getItem(THEME_KEY) ?? 'dark')
+
+function applyTheme(mode) {
+    if (mode === 'light') {
+        document.documentElement.setAttribute('data-theme', 'light')
+    } else {
+        document.documentElement.removeAttribute('data-theme')
+    }
+}
+
+function toggleTheme() {
+    themeMode.value = themeMode.value === 'dark' ? 'light' : 'dark'
+    localStorage.setItem(THEME_KEY, themeMode.value)
+    applyTheme(themeMode.value)
+}
+
 // Collapse is a desktop-only feature — on mobile the sidebar is a full-width drawer.
 const lgMql     = window.matchMedia('(min-width: 1024px)')
 const isDesktop = ref(lgMql.matches)
@@ -239,7 +257,7 @@ const navGroups = computed(() => [
             { label: 'Digests',              href: '/console/admin/digests',              icon: 'send',             managerOnly: true,  ownerExcluded: false, permission: null },
             { label: 'Workflow Rules',       href: '/console/admin/rules',                icon: 'git-branch',       managerOnly: true,  ownerExcluded: false, permission: Permission.WorkflowRules },
             { label: 'Brief Templates',      href: '/console/admin/templates',            icon: 'document-text',    managerOnly: false, ownerExcluded: false, permission: null, paidOnly: true },
-            { label: 'AI Settings',          href: '/console/admin/ai',                   icon: 'sparkles',         managerOnly: true,  ownerExcluded: false, permission: null },
+            { label: 'AI Settings',          href: '/console/admin/ai',                   icon: 'sparkles',         managerOnly: false, ownerExcluded: false, permission: Permission.Summarize },
         ]
     },
 ])
@@ -407,6 +425,7 @@ function slideAfterLeave(el) {
 }
 
 onMounted(() => {
+    applyTheme(themeMode.value)
     lgMql.addEventListener('change', onMqlChange)
     window.addEventListener('keydown', handleKeydown)
     window.addEventListener('resize', onWindowResize)
@@ -423,25 +442,25 @@ onUnmounted(() => {
 </script>
 
 <template>
-    <div class="min-h-screen bg-slate-950 text-slate-100 font-sans">
+    <div class="tl-shell">
 
         <!-- Impersonation banner -->
         <div
             v-if="impersonating"
             data-testid="impersonation-banner"
-            class="fixed top-0 inset-x-0 z-[60] bg-amber-500 text-slate-950 px-4 py-2 flex items-center justify-between gap-3 shadow-lg"
+            class="tl-imp-banner"
         >
-            <div class="flex items-center gap-2 text-sm font-medium min-w-0">
-                <TlIcon name="warning-triangle" class="w-4 h-4 shrink-0" :stroke-width="2" />
-                <span class="truncate">
-                    Viewing as <span class="font-semibold">{{ impersonating.name }}</span>
-                    <span class="hidden sm:inline text-slate-900/70">({{ impersonating.email }})</span>
+            <div class="tl-imp-banner-msg">
+                <TlIcon name="warning-triangle" class="tl-ic" :stroke-width="2" />
+                <span class="tl-trunc">
+                    Viewing as <span class="tl-imp-banner-name">{{ impersonating.name }}</span>
+                    <span class="tl-imp-banner-email">({{ impersonating.email }})</span>
                 </span>
             </div>
             <button
                 type="button"
                 @click="stopImpersonating"
-                class="shrink-0 text-xs px-3 py-1 rounded bg-slate-950 text-amber-400 hover:bg-slate-900 transition font-semibold cursor-pointer"
+                class="tl-imp-stop-btn"
             >
                 Stop impersonating
             </button>
@@ -449,108 +468,122 @@ onUnmounted(() => {
 
         <!-- Mobile/Tablet top header -->
         <header
-            class="lg:hidden fixed inset-x-0 z-30 flex items-center justify-between px-4 h-16 bg-slate-900 border-b border-slate-800"
-            :class="impersonating ? 'top-9' : 'top-0'"
+            class="tl-header tl-header--mobile"
+            :class="impersonating ? 'tl-top-imp' : 'tl-top-0'"
         >
             <button
                 type="button"
                 @click="sidebarOpen = true"
-                class="p-2 rounded-md text-slate-400 hover:text-white hover:bg-slate-800 transition-colors duration-150 cursor-pointer"
+                class="tl-icon-btn"
                 aria-label="Open navigation"
             >
-                <TlIcon name="menu" class="w-5 h-5" />
+                <TlIcon name="menu" class="tl-ic tl-ic--lg" />
             </button>
 
-            <span class="font-mono text-sm font-semibold text-indigo-400">TicketLens</span>
+            <span class="tl-brand-logo tl-brand-logo--sm">TicketLens</span>
 
-            <div class="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-xs font-semibold text-white">
-                {{ user?.name?.charAt(0)?.toUpperCase() ?? '?' }}
+            <div class="tl-header-actions">
+                <button
+                    type="button"
+                    @click="toggleTheme"
+                    class="tl-icon-btn"
+                    :aria-label="themeMode === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'"
+                >
+                    <TlIcon :name="themeMode === 'dark' ? 'sun' : 'moon'" class="tl-ic" />
+                </button>
+                <div class="tl-avatar">
+                    {{ user?.name?.charAt(0)?.toUpperCase() ?? '?' }}
+                </div>
             </div>
         </header>
 
         <!-- Desktop top header -->
         <header
-            class="hidden lg:flex fixed inset-x-0 z-30 items-center h-16 bg-slate-900 border-b border-slate-800 transition-all duration-200"
+            class="tl-header tl-header--desktop"
             :class="[
-                impersonating ? 'top-9' : 'top-0',
-                effectiveCollapsed ? 'lg:pl-16' : 'lg:pl-64',
+                impersonating ? 'tl-top-imp' : 'tl-top-0',
+                effectiveCollapsed ? 'tl-shift-collapsed' : 'tl-shift-expanded',
             ]"
         >
             <!-- Inner wrapper mirrors tl-page (max-w-6xl mx-auto px-8) so breadcrumb aligns with content -->
-            <div class="flex items-center justify-between w-full max-w-6xl mx-auto px-8">
+            <div class="tl-header-inner">
 
             <!-- Breadcrumb: (Owner Panel >) Page -->
-            <nav class="flex items-center gap-1.5 text-sm min-w-0" aria-label="Breadcrumb">
+            <nav class="tl-breadcrumb" aria-label="Breadcrumb">
                 <template v-if="currentBreadcrumb.group">
-                    <span class="text-slate-400 shrink-0">{{ currentBreadcrumb.group }}</span>
-                    <TlIcon name="chevron-right" class="w-3 h-3 text-slate-600 shrink-0" :stroke-width="2.5" />
+                    <span class="tl-breadcrumb-group">{{ currentBreadcrumb.group }}</span>
+                    <TlIcon name="chevron-right" class="tl-ic tl-ic--xs tl-breadcrumb-sep" :stroke-width="2.5" />
                 </template>
-                <span class="font-medium text-white truncate">{{ currentBreadcrumb.page }}</span>
+                <span class="tl-breadcrumb-page">{{ currentBreadcrumb.page }}</span>
             </nav>
 
-            <div class="flex items-center gap-2">
+            <div class="tl-header-actions">
                 <!-- Search trigger (⌘K) -->
                 <button
                     type="button"
                     @click="openPalette"
-                    class="flex items-center gap-2 px-3 py-1.5 text-xs text-slate-400 bg-slate-800 border border-slate-700 rounded-md hover:border-slate-600 hover:text-slate-300 transition-colors duration-150 cursor-pointer"
+                    class="tl-search-trigger"
                 >
-                    <TlIcon name="search" class="w-3.5 h-3.5 shrink-0" />
+                    <TlIcon name="search" class="tl-ic tl-ic--sm" />
                     <span>Search...</span>
-                    <kbd class="ml-1 font-mono text-slate-500">⌘K</kbd>
+                    <kbd>⌘K</kbd>
+                </button>
+
+                <!-- Theme toggle -->
+                <button
+                    type="button"
+                    @click="toggleTheme"
+                    class="tl-icon-btn"
+                    :aria-label="themeMode === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'"
+                    :title="themeMode === 'dark' ? 'Light mode' : 'Dark mode'"
+                >
+                    <TlIcon :name="themeMode === 'dark' ? 'sun' : 'moon'" class="tl-ic" />
                 </button>
 
                 <!-- Settings gear -->
                 <a
                     href="/console/account"
                     title="Settings"
-                    class="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-md transition-colors duration-150"
+                    class="tl-icon-btn"
                 >
-                    <TlIcon name="settings" class="w-4 h-4" />
+                    <TlIcon name="settings" class="tl-ic" />
                 </a>
 
                 <!-- Avatar with dropdown -->
-                <div class="relative" data-avatar-dropdown>
+                <div class="tl-avatar-wrap" data-avatar-dropdown>
                     <button
                         type="button"
                         @click="toggleAvatarDropdown"
-                        class="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-xs font-semibold text-white hover:bg-slate-600 transition-colors duration-150 cursor-pointer"
+                        class="tl-avatar"
                         :aria-expanded="avatarDropdownOpen"
                         aria-label="User menu"
                     >
                         {{ user?.name?.charAt(0)?.toUpperCase() ?? '?' }}
                     </button>
 
-                    <Transition
-                        enter-active-class="transition-all duration-150 origin-top-right"
-                        enter-from-class="opacity-0 scale-95"
-                        enter-to-class="opacity-100 scale-100"
-                        leave-active-class="transition-all duration-100 origin-top-right"
-                        leave-from-class="opacity-100 scale-100"
-                        leave-to-class="opacity-0 scale-95"
-                    >
+                    <Transition name="tl-pop">
                         <div
                             v-if="avatarDropdownOpen"
-                            class="absolute right-0 top-10 w-52 bg-slate-800 border border-slate-700 rounded-lg shadow-xl overflow-hidden z-50"
+                            class="tl-dropdown"
                         >
-                            <div class="px-3 py-2.5 border-b border-slate-700">
-                                <p class="text-xs font-semibold text-white truncate">{{ user?.name }}</p>
-                                <p class="text-xs text-slate-400 font-mono truncate capitalize">{{ user?.tier }}</p>
+                            <div class="tl-dropdown-header">
+                                <p class="tl-dropdown-name">{{ user?.name }}</p>
+                                <p class="tl-dropdown-tier">{{ user?.tier }}</p>
                             </div>
                             <a
                                 href="/console/account"
                                 @click="avatarDropdownOpen = false"
-                                class="flex items-center gap-2 px-3 py-2 text-sm text-slate-300 hover:bg-slate-700 hover:text-white transition-colors duration-150"
+                                class="tl-dropdown-item"
                             >
-                                <TlIcon name="settings" class="w-4 h-4 shrink-0" />
+                                <TlIcon name="settings" class="tl-ic" />
                                 Settings
                             </a>
                             <button
                                 type="button"
                                 @click="logout"
-                                class="flex w-full items-center gap-2 px-3 py-2 text-sm text-slate-300 hover:bg-slate-700 hover:text-white transition-colors duration-150 cursor-pointer"
+                                class="tl-dropdown-item"
                             >
-                                <TlIcon name="logout" class="w-4 h-4 shrink-0" />
+                                <TlIcon name="logout" class="tl-ic" />
                                 Sign out
                             </button>
                         </div>
@@ -562,17 +595,10 @@ onUnmounted(() => {
         </header>
 
         <!-- Sidebar backdrop (mobile) -->
-        <Transition
-            enter-active-class="transition-opacity duration-200"
-            enter-from-class="opacity-0"
-            enter-to-class="opacity-100"
-            leave-active-class="transition-opacity duration-200"
-            leave-from-class="opacity-100"
-            leave-to-class="opacity-0"
-        >
+        <Transition name="tl-fade-slow">
             <div
                 v-if="sidebarOpen"
-                class="fixed inset-0 z-40 bg-slate-950/80 lg:hidden"
+                class="tl-sidebar-backdrop"
                 @click="closeSidebar"
             ></div>
         </Transition>
@@ -580,64 +606,64 @@ onUnmounted(() => {
         <!-- Sidebar -->
         <aside
             :class="[
-                'fixed left-0 bottom-0 z-50 bg-slate-900 border-r border-slate-800 flex flex-col transition-all duration-200 overflow-hidden',
-                impersonating ? 'top-9' : 'top-0',
-                sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0',
-                effectiveCollapsed ? 'lg:w-16' : 'w-64',
+                'tl-sidebar',
+                impersonating ? 'tl-top-imp' : 'tl-top-0',
+                sidebarOpen ? 'tl-sidebar--open' : 'tl-sidebar--closed',
+                effectiveCollapsed ? 'tl-sidebar--collapsed' : 'tl-sidebar--expanded',
             ]"
         >
             <!-- Logo -->
             <div
-                class="flex items-center border-b border-slate-800 px-4 h-16 shrink-0"
-                :class="effectiveCollapsed ? 'justify-center' : 'justify-between px-5'"
+                class="tl-sidebar-logo"
+                :class="effectiveCollapsed ? 'tl-sidebar-logo--collapsed' : 'tl-sidebar-logo--expanded'"
             >
-                <div v-show="!effectiveCollapsed" class="flex items-center gap-2 overflow-hidden">
-                    <span class="font-mono text-base font-semibold text-indigo-400 whitespace-nowrap">TicketLens</span>
-                    <span class="text-[10px] font-mono bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded border border-slate-700">Console</span>
+                <div v-show="!effectiveCollapsed" class="tl-sidebar-logo-brand">
+                    <span class="tl-brand-logo">TicketLens</span>
+                    <span class="tl-brand-badge">Console</span>
                 </div>
                 <!-- Desktop collapse toggle -->
                 <button
                     type="button"
                     @click="toggleCollapsed"
-                    class="hidden lg:flex p-1 text-slate-500 hover:text-white cursor-pointer rounded transition-colors duration-150"
+                    class="tl-icon-btn tl-icon-btn--bare tl-collapse-btn"
                     :aria-label="sidebarCollapsed ? 'Expand navigation' : 'Collapse navigation'"
                 >
-                    <TlIcon :name="sidebarCollapsed ? 'chevron-right' : 'chevron-left'" class="w-4 h-4" :stroke-width="2" />
+                    <TlIcon :name="sidebarCollapsed ? 'chevron-right' : 'chevron-left'" class="tl-ic" :stroke-width="2" />
                 </button>
                 <!-- Close btn mobile -->
                 <button
                     type="button"
                     @click="closeSidebar"
-                    class="lg:hidden p-1 text-slate-500 hover:text-white cursor-pointer"
+                    class="tl-icon-btn tl-icon-btn--bare tl-mobile-close"
                     aria-label="Close navigation"
                 >
-                    <TlIcon name="close" class="w-4 h-4" :stroke-width="2" />
+                    <TlIcon name="close" class="tl-ic" :stroke-width="2" />
                 </button>
             </div>
 
             <!-- Nav groups -->
-            <nav class="flex-1 overflow-y-auto py-4 px-3">
+            <nav class="tl-sidebar-nav">
                 <template v-for="(group, gIndex) in visibleGroups" :key="group.label">
 
                     <!-- COLLAPSED (desktop only): one icon per group, hover reveals floating panel -->
                     <div
                         v-if="effectiveCollapsed"
-                        class="hidden lg:block"
+                        class="tl-desktop-only"
                         @mouseenter="showGroupSub(group.label, $event)"
                         @mouseleave="hideGroupSub"
                     >
-                        <ul class="mb-1 space-y-0.5">
+                        <ul class="tl-nav-list">
                             <li>
                                 <a
                                     :href="group.items[0].href"
                                     :title="group.label"
                                     @click="handleNavClick($event, group.items[0].href)"
-                                    class="tl-nav-link w-full"
+                                    class="tl-nav-link tl-nav-link--full"
                                     :class="group.items.some(i => page.url.startsWith(i.href))
                                         ? 'tl-nav-link--active'
                                         : 'tl-nav-link--inactive'"
                                 >
-                                    <TlIcon :name="group.collapseIcon" class="w-4 h-4 shrink-0" />
+                                    <TlIcon :name="group.collapseIcon" class="tl-ic" />
                                 </a>
                             </li>
                         </ul>
@@ -648,15 +674,15 @@ onUnmounted(() => {
                         <button
                             type="button"
                             @click="toggleGroup(group.label)"
-                            class="tl-nav-link tl-nav-link--inactive w-full"
-                            :class="group.items.some(i => page.url.startsWith(i.href)) ? 'text-white' : ''"
+                            class="tl-nav-link tl-nav-link--inactive tl-nav-link--full"
+                            :class="group.items.some(i => page.url.startsWith(i.href)) ? 'tl-nav-link--current' : ''"
                         >
-                            <TlIcon :name="group.collapseIcon" class="w-4 h-4 shrink-0" />
-                            <span class="flex-1 text-left">{{ group.label }}</span>
+                            <TlIcon :name="group.collapseIcon" class="tl-ic" />
+                            <span class="tl-nav-label">{{ group.label }}</span>
                             <TlIcon
                                 name="plus"
-                                class="w-3.5 h-3.5 shrink-0 transition-transform duration-200"
-                                :class="groupOpen[group.label] ? 'rotate-45' : ''"
+                                class="tl-ic tl-ic--sm tl-nav-chevron"
+                                :class="groupOpen[group.label] ? 'tl-nav-chevron--open' : ''"
                                 :stroke-width="2"
                             />
                         </button>
@@ -666,8 +692,8 @@ onUnmounted(() => {
                             @leave="slideLeave"
                             @after-leave="slideAfterLeave"
                         >
-                            <div v-if="groupOpen[group.label]" class="border-l border-slate-700/60 ml-[1.125rem] pl-2.5 mb-1">
-                                <ul class="mb-1 space-y-0.5">
+                            <div v-if="groupOpen[group.label]" class="tl-nav-tree">
+                                <ul class="tl-nav-list">
                                     <li v-for="item in group.items" :key="item.href">
                                         <a
                                             :href="item.href"
@@ -675,8 +701,8 @@ onUnmounted(() => {
                                             class="tl-nav-link"
                                             :class="page.url.startsWith(item.href) ? 'tl-nav-link--active' : 'tl-nav-link--inactive'"
                                         >
-                                            <TlIcon :name="item.icon" class="w-3.5 h-3.5 shrink-0" />
-                                            <span class="text-[13px]">{{ item.label }}</span>
+                                            <TlIcon :name="item.icon" class="tl-ic tl-ic--sm" />
+                                            <span class="tl-nav-sub-label">{{ item.label }}</span>
                                         </a>
                                     </li>
                                 </ul>
@@ -691,40 +717,40 @@ onUnmounted(() => {
                     <!-- Desktop collapsed: clicking navigates to first owner item; hover reveals sub-sidebar -->
                     <div
                         v-show="effectiveCollapsed"
-                        class="hidden lg:block"
+                        class="tl-desktop-only"
                         @mouseenter="showOwnerSub"
                         @mouseleave="hideOwnerSub"
                     >
-                        <ul class="mb-5 space-y-0.5">
+                        <ul class="tl-nav-list tl-nav-list--gap">
                             <li>
                                 <a
                                     :href="ownerPanelItems[0].href"
                                     ref="ownerIconRef"
                                     title="Owner Panel"
                                     @click="handleNavClick($event, ownerPanelItems[0].href)"
-                                    class="tl-nav-link w-full"
+                                    class="tl-nav-link tl-nav-link--full"
                                     :class="(ownerSubOpen || subSidebarPersistent) ? 'tl-nav-link--owner-active' : 'tl-nav-link--owner-inactive'"
                                 >
-                                    <TlIcon name="building" class="w-4 h-4 shrink-0" />
+                                    <TlIcon name="building" class="tl-ic" />
                                 </a>
                             </li>
                         </ul>
                     </div>
 
                     <!-- Desktop expanded: accordion sections (v-show keeps Transition alive — prevents spurious slideEnter on sidebar toggle) -->
-                    <div v-show="!effectiveCollapsed" class="hidden lg:block">
+                    <div v-show="!effectiveCollapsed" class="tl-desktop-only">
                         <button
                             type="button"
                             @click="toggleOwnerPanel"
-                            class="tl-nav-link tl-nav-link--owner-inactive w-full"
-                            :class="ownerPanelActive ? 'text-amber-300' : ''"
+                            class="tl-nav-link tl-nav-link--owner-inactive tl-nav-link--full"
+                            :class="ownerPanelActive ? 'tl-nav-link--owner-current' : ''"
                         >
-                            <TlIcon name="building" class="w-4 h-4 shrink-0" />
-                            <span class="flex-1 text-left truncate">Owner Panel</span>
+                            <TlIcon name="building" class="tl-ic" />
+                            <span class="tl-nav-label">Owner Panel</span>
                             <TlIcon
                                 name="plus"
-                                class="w-3.5 h-3.5 shrink-0 transition-transform duration-200"
-                                :class="ownerPanelOpen ? 'rotate-45' : ''"
+                                class="tl-ic tl-ic--sm tl-nav-chevron"
+                                :class="ownerPanelOpen ? 'tl-nav-chevron--open' : ''"
                                 :stroke-width="2"
                             />
                         </button>
@@ -734,8 +760,8 @@ onUnmounted(() => {
                             @leave="slideLeave"
                             @after-leave="slideAfterLeave"
                         >
-                            <div v-if="ownerPanelOpen" class="border-l border-amber-700/40 ml-[1.125rem] pl-2.5 mb-1">
-                                <ul class="mb-1 space-y-0.5">
+                            <div v-if="ownerPanelOpen" class="tl-nav-tree tl-nav-tree--amber">
+                                <ul class="tl-nav-list">
                                     <li v-for="item in ownerPanelItems" :key="item.href">
                                         <a
                                             :href="item.href"
@@ -743,8 +769,8 @@ onUnmounted(() => {
                                             class="tl-nav-link"
                                             :class="page.url.startsWith(item.href) ? 'tl-nav-link--owner-active' : 'tl-nav-link--owner-inactive'"
                                         >
-                                            <TlIcon :name="item.icon" class="w-3.5 h-3.5 shrink-0" />
-                                            <span class="text-[13px]">{{ item.label }}</span>
+                                            <TlIcon :name="item.icon" class="tl-ic tl-ic--sm" />
+                                            <span class="tl-nav-sub-label">{{ item.label }}</span>
                                         </a>
                                     </li>
                                 </ul>
@@ -753,19 +779,19 @@ onUnmounted(() => {
                     </div>
 
                     <!-- Mobile: accordion sections in drawer -->
-                    <div class="lg:hidden">
+                    <div class="tl-mobile-only">
                         <button
                             type="button"
                             @click="toggleOwnerPanel"
-                            class="tl-nav-link tl-nav-link--owner-inactive w-full"
-                            :class="ownerPanelActive ? 'text-amber-300' : ''"
+                            class="tl-nav-link tl-nav-link--owner-inactive tl-nav-link--full"
+                            :class="ownerPanelActive ? 'tl-nav-link--owner-current' : ''"
                         >
-                            <TlIcon name="building" class="w-4 h-4 shrink-0" />
-                            <span class="flex-1 text-left truncate">Owner Panel</span>
+                            <TlIcon name="building" class="tl-ic" />
+                            <span class="tl-nav-label">Owner Panel</span>
                             <TlIcon
                                 name="plus"
-                                class="w-3.5 h-3.5 shrink-0 transition-transform duration-200"
-                                :class="ownerPanelOpen ? 'rotate-45' : ''"
+                                class="tl-ic tl-ic--sm tl-nav-chevron"
+                                :class="ownerPanelOpen ? 'tl-nav-chevron--open' : ''"
                                 :stroke-width="2"
                             />
                         </button>
@@ -775,8 +801,8 @@ onUnmounted(() => {
                             @leave="slideLeave"
                             @after-leave="slideAfterLeave"
                         >
-                            <div v-if="ownerPanelOpen" class="border-l border-amber-700/40 ml-[1.125rem] pl-2.5 mb-1">
-                                <ul class="mb-1 space-y-0.5">
+                            <div v-if="ownerPanelOpen" class="tl-nav-tree tl-nav-tree--amber">
+                                <ul class="tl-nav-list">
                                     <li v-for="item in ownerPanelItems" :key="item.href">
                                         <a
                                             :href="item.href"
@@ -784,8 +810,8 @@ onUnmounted(() => {
                                             class="tl-nav-link"
                                             :class="page.url.startsWith(item.href) ? 'tl-nav-link--owner-active' : 'tl-nav-link--owner-inactive'"
                                         >
-                                            <TlIcon :name="item.icon" class="w-3.5 h-3.5 shrink-0" />
-                                            <span class="text-[13px]">{{ item.label }}</span>
+                                            <TlIcon :name="item.icon" class="tl-ic tl-ic--sm" />
+                                            <span class="tl-nav-sub-label">{{ item.label }}</span>
                                         </a>
                                     </li>
                                 </ul>
@@ -797,60 +823,50 @@ onUnmounted(() => {
 
             <!-- User footer -->
             <div
-                class="py-4 border-t border-slate-800 flex items-center"
-                :class="effectiveCollapsed ? 'flex-col gap-2 px-2' : 'flex-row gap-3 px-4'"
+                class="tl-sidebar-footer"
+                :class="effectiveCollapsed ? 'tl-sidebar-footer--collapsed' : 'tl-sidebar-footer--expanded'"
             >
-                <div class="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-xs font-semibold text-white shrink-0">
+                <div class="tl-avatar">
                     {{ user?.name?.charAt(0)?.toUpperCase() ?? '?' }}
                 </div>
-                <div v-show="!effectiveCollapsed" class="min-w-0 flex-1 overflow-hidden">
-                    <p class="text-sm font-medium text-white truncate">{{ user?.name }}</p>
-                    <p class="text-xs text-slate-500 truncate font-mono capitalize">{{ user?.tier }}</p>
+                <div v-show="!effectiveCollapsed" class="tl-sidebar-user">
+                    <p class="tl-sidebar-user-name">{{ user?.name }}</p>
+                    <p class="tl-sidebar-user-tier">{{ user?.tier }}</p>
                 </div>
                 <button
                     type="button"
                     @click="logout"
                     :title="effectiveCollapsed ? 'Sign out' : undefined"
-                    class="shrink-0 p-1.5 text-slate-500 hover:text-white hover:bg-slate-800 rounded-md transition-colors duration-150 cursor-pointer"
+                    class="tl-icon-btn tl-icon-btn--snug"
                     aria-label="Sign out"
                 >
-                    <TlIcon name="logout" class="w-4 h-4" />
+                    <TlIcon name="logout" class="tl-ic" />
                 </button>
             </div>
         </aside>
 
         <!-- Nav group floating panel (desktop collapsed only, hover-triggered) -->
-        <Transition
-            enter-active-class="transition-opacity duration-150"
-            enter-from-class="opacity-0"
-            enter-to-class="opacity-100"
-            leave-active-class="transition-opacity duration-100"
-            leave-from-class="opacity-100"
-            leave-to-class="opacity-0"
-            @enter="onEnterGroupPanel"
-        >
+        <Transition name="tl-fade" @enter="onEnterGroupPanel">
             <div
                 v-if="activeGroup && effectiveCollapsed"
                 id="tl-group-float-panel"
-                class="hidden lg:block fixed z-[49] w-48 bg-slate-800 border border-slate-700 rounded-lg shadow-2xl overflow-y-auto"
+                class="tl-float-panel"
                 :style="groupFloatStyle"
                 @mouseenter="keepGroupSubOpen"
                 @mouseleave="hideGroupSub"
             >
-                <p class="px-3 pt-2.5 pb-1 text-[10px] font-semibold tracking-widest text-slate-500 uppercase sticky top-0 bg-slate-800 z-10">
+                <p class="tl-float-panel-title">
                     {{ activeGroup.label }}
                 </p>
-                <ul class="pb-1.5">
+                <ul class="tl-float-list">
                     <li v-for="item in activeGroup.items" :key="item.href">
                         <a
                             :href="item.href"
                             @click="handleNavClick($event, item.href)"
-                            class="flex items-center gap-2.5 px-3 py-2 text-sm transition-colors duration-100"
-                            :class="page.url.startsWith(item.href)
-                                ? 'text-indigo-400 bg-indigo-500/10'
-                                : 'text-slate-300 hover:text-white hover:bg-slate-700'"
+                            class="tl-float-item"
+                            :class="page.url.startsWith(item.href) ? 'tl-float-item--active' : ''"
                         >
-                            <TlIcon :name="item.icon" class="w-4 h-4 shrink-0" />
+                            <TlIcon :name="item.icon" class="tl-ic" />
                             <span>{{ item.label }}</span>
                         </a>
                     </li>
@@ -863,23 +879,21 @@ onUnmounted(() => {
             <div
                 v-if="isOwner && ownerSubOpen && effectiveCollapsed"
                 id="tl-owner-float-panel"
-                class="hidden lg:block fixed z-[49] w-48 bg-slate-800 border border-slate-700 rounded-lg shadow-2xl overflow-y-auto"
+                class="tl-float-panel"
                 :style="ownerFloatStyle"
                 @mouseenter="keepOwnerSubOpen"
                 @mouseleave="hideOwnerSub"
             >
-                <p class="px-3 pt-2.5 pb-1 text-[10px] font-semibold tracking-widest text-slate-500 uppercase sticky top-0 bg-slate-800 z-10">Owner Panel</p>
-                <ul class="pb-1.5">
+                <p class="tl-float-panel-title">Owner Panel</p>
+                <ul class="tl-float-list">
                     <li v-for="item in ownerPanelItems" :key="item.href">
                         <a
                             :href="item.href"
                             @click="handleNavClick($event, item.href)"
-                            class="flex items-center gap-2.5 px-3 py-2 text-sm transition-colors duration-100"
-                            :class="page.url.startsWith(item.href)
-                                ? 'text-amber-400 bg-amber-500/10'
-                                : 'text-slate-300 hover:text-white hover:bg-slate-700'"
+                            class="tl-float-item"
+                            :class="page.url.startsWith(item.href) ? 'tl-float-item--owner-active' : ''"
                         >
-                            <TlIcon :name="item.icon" class="w-4 h-4 shrink-0" />
+                            <TlIcon :name="item.icon" class="tl-ic" />
                             <span>{{ item.label }}</span>
                         </a>
                     </li>
@@ -888,56 +902,49 @@ onUnmounted(() => {
         </Transition>
 
         <!-- Main content wrapper -->
-        <div :class="[effectiveCollapsed ? 'lg:pl-16' : 'lg:pl-64', { 'pt-9 lg:pt-9': impersonating }]" class="transition-all duration-200">
-            <main class="min-w-0 pt-16">
+        <div :class="[effectiveCollapsed ? 'tl-shift-collapsed' : 'tl-shift-expanded', { 'tl-main-wrap--imp': impersonating }]" class="tl-main-wrap">
+            <main class="tl-main">
                 <slot />
             </main>
         </div>
 
         <!-- Command palette (⌘K) -->
-        <Transition
-            enter-active-class="transition-opacity duration-150"
-            enter-from-class="opacity-0"
-            enter-to-class="opacity-100"
-            leave-active-class="transition-opacity duration-150"
-            leave-from-class="opacity-100"
-            leave-to-class="opacity-0"
-        >
+        <Transition name="tl-fade">
             <div
                 v-if="paletteOpen"
-                class="fixed inset-0 z-[70] flex items-start justify-center pt-[15vh] bg-slate-950/80 backdrop-blur-sm"
+                class="tl-palette-overlay"
                 @click.self="closePalette"
             >
-                <div class="w-full max-w-lg mx-4 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl overflow-hidden">
+                <div class="tl-palette">
                     <!-- Input row -->
-                    <div class="flex items-center gap-3 px-4 border-b border-slate-700">
-                        <TlIcon name="search" class="w-4 h-4 shrink-0 text-slate-400" />
+                    <div class="tl-palette-input-row">
+                        <TlIcon name="search" class="tl-ic" />
                         <input
                             ref="paletteInputRef"
                             v-model="paletteQuery"
                             type="text"
                             placeholder="Search sections..."
-                            class="flex-1 py-4 bg-transparent text-sm text-white placeholder-slate-500 outline-none"
+                            class="tl-palette-input"
                             @keydown.enter.prevent="paletteItems[0] && paletteNavigate(paletteItems[0].href)"
                             @keydown.escape.prevent="closePalette"
                         />
-                        <kbd class="text-xs text-slate-500 font-mono">ESC</kbd>
+                        <kbd class="tl-palette-kbd">ESC</kbd>
                     </div>
                     <!-- Results list -->
-                    <ul class="max-h-72 overflow-y-auto py-2">
-                        <li v-if="paletteItems.length === 0" class="px-4 py-3 text-sm text-slate-500">
+                    <ul class="tl-palette-list">
+                        <li v-if="paletteItems.length === 0" class="tl-palette-empty">
                             No results for "{{ paletteQuery }}"
                         </li>
                         <li v-for="item in paletteItems" :key="item.href">
                             <button
                                 type="button"
                                 @click="paletteNavigate(item.href)"
-                                class="flex items-center gap-3 w-full px-4 py-2.5 text-left text-sm hover:bg-slate-800 transition-colors duration-100 cursor-pointer"
-                                :class="page.url.startsWith(item.href) ? 'text-indigo-400' : 'text-slate-300'"
+                                class="tl-palette-item"
+                                :class="page.url.startsWith(item.href) ? 'tl-palette-item--active' : ''"
                             >
-                                <TlIcon :name="item.icon" class="w-4 h-4 shrink-0 text-slate-400" />
+                                <TlIcon :name="item.icon" class="tl-ic" />
                                 <span>{{ item.label }}</span>
-                                <span class="ml-auto text-xs text-slate-500">{{ item.group }}</span>
+                                <span class="tl-palette-item-group">{{ item.group }}</span>
                             </button>
                         </li>
                     </ul>

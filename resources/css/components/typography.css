@@ -1,21 +1,35 @@
 /*
- * Typography primitives — AUDIT §3.2
- * tl-heading / tl-subtext / tl-label (+ --spaced) / tl-hint / tl-lede
- *
- * tl-field-label lives in forms.css because AUDIT §6 groups it with form primitives.
+ * Typography primitives.
+ * tl-heading (+ --lg) / tl-title / tl-subtext / tl-label (+ --spaced) /
+ * tl-hint / tl-lede / tl-value
+ * All colors come from tokens.css — headings use --tl-text (not text-white),
+ * which keeps them correct in both themes without overrides.
  */
 
 @layer components {
   .tl-heading {
-    @apply text-xl font-semibold text-white;
+    @apply text-xl font-semibold tracking-tight;
+    color: var(--tl-text);
+  }
+
+  .tl-heading--lg {
+    @apply text-2xl;
+  }
+
+  /* Card / section title */
+  .tl-title {
+    @apply text-sm font-semibold;
+    color: var(--tl-text);
   }
 
   .tl-subtext {
-    @apply text-slate-400 text-sm mt-0.5;
+    @apply text-sm mt-0.5;
+    color: var(--tl-text-muted);
   }
 
   .tl-label {
-    @apply text-xs font-medium text-slate-400 uppercase tracking-wider;
+    @apply text-xs font-medium uppercase tracking-wider;
+    color: var(--tl-text-muted);
   }
 
   .tl-label--spaced {
@@ -23,10 +37,94 @@
   }
 
   .tl-hint {
-    @apply text-xs text-slate-500 mt-1;
+    @apply text-xs mt-1;
+    color: var(--tl-text-subtle);
   }
 
   .tl-lede {
-    @apply text-sm text-slate-400 mb-4;
+    @apply text-sm mb-4;
+    color: var(--tl-text-muted);
   }
+
+  /* Emphasized inline value (numbers, names) */
+  .tl-value {
+    font-weight: 500;
+    color: var(--tl-text);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Body copy helpers for full template extraction */
+  .tl-body {
+    @apply text-sm;
+    color: var(--tl-text-primary);
+  }
+
+  .tl-body--secondary {
+    @apply text-sm;
+    color: var(--tl-text-secondary);
+  }
+
+  .tl-body--muted {
+    @apply text-sm;
+    color: var(--tl-text-muted);
+  }
+}
+
+@layer components {
+  .tl-cap { text-transform: capitalize; }
+
+  /* Inline text link (brand accent) */
+  .tl-link {
+    @apply text-xs font-medium cursor-pointer;
+    color: var(--tl-brand-soft);
+    transition: color var(--tl-transition);
+  }
+  .tl-link:hover { color: var(--tl-brand-hover); }
+}
+
+@layer components {
+  .tl-title--spaced { @apply mb-4; }
+}
+
+@layer components {
+  /* Urgency / metric number cells */
+  .tl-num--zero    { color: var(--tl-text-subtle); }
+  .tl-num--danger  { color: var(--tl-danger); font-weight: 600; }
+  .tl-num--warn    { color: var(--tl-warn); }
+  .tl-num--stale   { color: var(--tl-stale); }
+  .tl-num--success { color: var(--tl-success); }
+
+  /* Engagement score emphasis */
+  .tl-score--high { @apply font-mono font-semibold; color: var(--tl-brand-soft); }
+  .tl-score--mid  { @apply font-mono font-semibold; color: var(--tl-text-secondary); }
+  .tl-score--low  { @apply font-mono font-semibold; color: var(--tl-text-subtle); }
+
+  .tl-mono { @apply font-mono; }
+  .tl-mono--xs { @apply font-mono text-xs; }
+}
+
+@layer components {
+  /* Standalone text link, body size */
+  .tl-link--md { @apply text-sm; }
+}
+
+@layer components {
+  .tl-label--field { @apply block mb-1.5; }
+  .tl-hint-inline { font-weight: 400; color: var(--tl-text-subtle); }
+}
+
+@layer components {
+  /* Section heading outside cards (was referenced but never defined) */
+  .tl-section-heading {
+    @apply text-sm font-semibold;
+    color: var(--tl-text);
+  }
+}
+
+@layer components {
+  .tl-link--underline { text-decoration: underline; text-underline-offset: 2px; }
+}
+
+@layer components {
+  .tl-foot-note { @apply mt-6 text-center text-sm; color: var(--tl-text-subtle); }
 }

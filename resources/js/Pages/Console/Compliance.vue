@@ -32,23 +32,25 @@ function formatDate(iso) {
     <div class="tl-page">
 
         <!-- Page header -->
-        <div class="mb-6">
-            <h1 class="tl-heading">Compliance History</h1>
-            <p class="tl-subtext">Ticket requirements checked against your local VCS diff</p>
+        <div class="tl-page-header">
+            <div>
+                <h1 class="tl-heading">Compliance History</h1>
+                <p class="tl-subtext">Ticket requirements checked against your local VCS diff</p>
+            </div>
         </div>
 
         <!-- Feature description -->
-        <div class="mb-8 rounded-xl border border-slate-800 bg-slate-900/60 p-5 space-y-3">
-            <p class="text-sm text-slate-300 leading-relaxed">
-                <strong class="text-slate-100">What it does:</strong>
+        <div class="tl-info-box tl-section-gap">
+            <p class="tl-body--secondary">
+                <strong class="tl-value">What it does:</strong>
                 Compares the acceptance criteria in a Jira ticket against your current VCS diff (git, SVN, or Mercurial). It flags missing requirements, partial implementations, and files touched that aren't mentioned in the ticket — giving you a pre-commit confidence check before code review.
             </p>
-            <p class="text-sm text-slate-400 leading-relaxed">
-                <strong class="text-slate-300">CLI command:</strong>
+            <p class="tl-body--muted">
+                <strong class="tl-value">CLI command:</strong>
                 <code class="tl-kbd tl-kbd--brand">ticketlens --check PROJ-123</code>
             </p>
-            <p class="text-sm text-slate-400 leading-relaxed">
-                <strong class="text-slate-300">Expected result:</strong>
+            <p class="tl-body--muted">
+                <strong class="tl-value">Expected result:</strong>
                 A pass/warn/fail report printed to your terminal listing each acceptance criterion with a status. Free tier: 3 checks per month. Pro: unlimited. Each check is logged here with the ticket key and token cost.
             </p>
         </div>
@@ -56,35 +58,35 @@ function formatDate(iso) {
         <!-- Monthly usage meter (free tier only — colors are dynamic, stays inline) -->
         <div
             v-if="monthlyLimit !== null"
-            class="mb-6 rounded-xl border p-4"
-            :class="atLimit ? 'bg-amber-500/5 border-amber-500/30' : 'bg-slate-900 border-slate-800'"
+            class="tl-usage-box tl-card-gap"
+            :class="atLimit ? 'tl-usage-box--warn' : ''"
         >
-            <div class="flex items-center justify-between mb-2">
-                <span class="text-sm font-medium" :class="atLimit ? 'text-amber-400' : 'text-slate-300'">
+            <div class="tl-row tl-row--between tl-card-gap-xs">
+                <span class="tl-toggle-row-title" :class="atLimit ? 'tl-num--warn' : ''">
                     {{ monthlyCount }} of {{ monthlyLimit }} checks used this month
                 </span>
-                <a v-if="atLimit" href="/console/account" class="inline-flex items-center gap-1.5 tl-btn-ghost tl-btn-ghost--warn font-medium">
+                <a v-if="atLimit" href="/console/account" class="tl-btn-ghost tl-btn-ghost--warn">
                     Upgrade for unlimited checks
-                    <TlIcon name="arrow-right" class="w-3.5 h-3.5" />
+                    <TlIcon name="arrow-right" class="tl-ic tl-ic--sm" />
                 </a>
             </div>
-            <div class="h-1.5 rounded-full bg-slate-800 overflow-hidden">
+            <div class="tl-meter tl-meter--thin">
                 <div
-                    class="h-full rounded-full transition-all duration-300"
-                    :class="atLimit ? 'bg-amber-400' : 'bg-indigo-500'"
+                    class="tl-meter-fill"
+                    :class="atLimit ? 'tl-meter-fill--warn' : ''"
                     :style="{ width: limitPercent + '%' }"
                 />
             </div>
-            <p v-if="atLimit" class="text-xs text-amber-500/80 mt-2">
+            <p v-if="atLimit" class="tl-hint tl-warn-hint">
                 You've reached your monthly limit. Upgrade to run unlimited checks.
             </p>
         </div>
 
         <!-- Empty state -->
         <div v-if="checks.length === 0" class="tl-empty-state">
-            <TlIcon name="shield-check" class="w-10 h-10 text-slate-700 mb-4" />
-            <p class="text-slate-300 font-medium mb-1">No compliance checks yet.</p>
-            <p class="text-slate-500 text-sm">
+            <TlIcon name="shield-check" class="tl-empty-icon" />
+            <p class="tl-body">No compliance checks yet.</p>
+            <p class="tl-subtext">
                 Run <code class="tl-kbd tl-kbd--brand">ticketlens --check</code> to run your first check.
             </p>
         </div>
@@ -92,31 +94,31 @@ function formatDate(iso) {
         <!-- Data -->
         <template v-else>
             <p class="tl-lede">
-                <span class="font-mono text-slate-300 font-semibold">{{ checks.length }}</span>
+                <span class="tl-mono tl-value">{{ checks.length }}</span>
                 {{ checks.length === 1 ? 'check' : 'checks' }} recorded
             </p>
 
             <!-- Mobile cards -->
-            <div class="md:hidden space-y-3">
+            <div class="tl-mobile-only tl-stack--sm">
                 <div v-for="row in checks" :key="row.id" class="tl-card tl-card--sm tl-card--stack">
-                    <div class="flex items-center justify-between">
+                    <div class="tl-row tl-row--between">
                         <code v-if="row.ticket_key" class="tl-kbd">{{ row.ticket_key }}</code>
-                        <span v-else class="text-slate-600 text-sm">—</span>
+                        <span v-else class="tl-hint">—</span>
                         <span class="tl-badge tl-badge--brand">
                             <span class="tl-dot tl-dot--brand"></span>
                             Checked
                         </span>
                     </div>
-                    <div class="flex items-center justify-between text-xs">
-                        <span class="font-mono text-slate-400">{{ formatDate(row.created_at) }}</span>
-                        <span class="font-mono text-indigo-400 font-semibold">{{ (row.tokens_used ?? 0).toLocaleString() }} tokens</span>
+                    <div class="tl-row tl-row--between tl-meta-row--tight">
+                        <span class="tl-mono--xs tl-cell-muted">{{ formatDate(row.created_at) }}</span>
+                        <span class="tl-mono tl-score--high">{{ (row.tokens_used ?? 0).toLocaleString() }} tokens</span>
                     </div>
                 </div>
             </div>
 
             <!-- Desktop table -->
-            <div class="hidden md:block tl-card tl-card--flush">
-                <table class="w-full text-sm">
+            <div class="tl-desktop-only tl-card tl-card--flush">
+                <table class="tl-table">
                     <thead>
                         <tr class="tl-thead">
                             <th class="tl-th">Ticket</th>
@@ -127,13 +129,13 @@ function formatDate(iso) {
                     </thead>
                     <tbody class="tl-divide">
                         <tr v-for="row in checks" :key="row.id" class="tl-tr">
-                            <td class="px-5 py-3.5">
+                            <td class="tl-td">
                                 <code v-if="row.ticket_key" class="tl-kbd">{{ row.ticket_key }}</code>
-                                <span v-else class="text-slate-600">—</span>
+                                <span v-else class="tl-hint">—</span>
                             </td>
-                            <td class="px-5 py-3.5 font-mono text-slate-400 text-xs whitespace-nowrap">{{ formatDate(row.created_at) }}</td>
-                            <td class="px-5 py-3.5 text-right font-mono text-indigo-400 font-semibold text-xs">{{ (row.tokens_used ?? 0).toLocaleString() }}</td>
-                            <td class="px-5 py-3.5 text-right">
+                            <td class="tl-td tl-mono--xs tl-cell-muted tl-nowrap">{{ formatDate(row.created_at) }}</td>
+                            <td class="tl-td tl-td--right tl-mono--xs tl-score--high">{{ (row.tokens_used ?? 0).toLocaleString() }}</td>
+                            <td class="tl-td tl-td--right">
                                 <span class="tl-badge tl-badge--brand">
                                     <span class="tl-dot tl-dot--brand"></span>
                                     Checked

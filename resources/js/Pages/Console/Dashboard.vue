@@ -1,28 +1,18 @@
 <script setup>
 import ConsoleLayout from '@/Layouts/ConsoleLayout.vue'
 import TlIcon from '@/components/TlIcon.vue'
+import TlChart from '@/components/TlChart.vue'
 import { usePermissions } from '@/composables/usePermissions'
 import { usePage } from '@inertiajs/vue3'
 import { computed } from 'vue'
 import { Permission } from '@/permissions'
-import {
-    Chart as ChartJS,
-    CategoryScale,
-    LinearScale,
-    PointElement,
-    LineElement,
-    Tooltip,
-    Filler,
-} from 'chart.js'
-import { Line } from 'vue-chartjs'
-
-ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Filler)
 
 defineOptions({ layout: ConsoleLayout })
 
 const props = defineProps({
-    stats:        { type: Object, default: () => ({}) },
-    ticket_trend: { type: Array,  default: () => [] },
+    stats:         { type: Object, default: () => ({}) },
+    ticket_trend:  { type: Array,  default: () => [] },
+    daily_urgency: { type: Array,  default: () => [] },
 })
 
 const { can } = usePermissions()
@@ -48,187 +38,173 @@ function timeAgo(iso) {
 const lastPushLabel = computed(() => timeAgo(props.stats.last_push))
 
 // Ticket trend (30-day) — Pro+ only, rendered when ticket_trend.length > 0
-const trendChartData = computed(() => ({
-    labels: props.ticket_trend.map(d => d.date.slice(5)), // MM-DD
-    datasets: [
-        {
-            label: 'Active Tickets',
-            data: props.ticket_trend.map(d => d.count),
-            borderColor: '#6366f1',
-            backgroundColor: 'rgba(99,102,241,0.12)',
-            fill: true,
-            tension: 0.35,
-            pointRadius: 3,
-            pointBackgroundColor: '#6366f1',
-        },
-    ],
-}))
+const trendLabels   = computed(() => props.ticket_trend.map(d => d.date.slice(5))) // MM-DD
+const trendDatasets = computed(() => [
+    { label: 'Active Tickets', data: props.ticket_trend.map(d => d.count), color: 'brand' },
+])
 
-const trendChartOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-        legend: { display: false },
-        tooltip: { mode: 'index', intersect: false },
-    },
-    scales: {
-        x: {
-            ticks: { color: '#64748b', maxTicksLimit: 10 },
-            grid:  { color: 'rgba(255,255,255,0.04)' },
-        },
-        y: {
-            ticks: { color: '#64748b', stepSize: 1 },
-            grid:  { color: 'rgba(255,255,255,0.04)' },
-            min: 0,
-        },
-    },
-}
+// Urgency trend (30-day) — Pro+ only
+const urgencyLabels   = computed(() => props.daily_urgency.map(d => d.date.slice(5)))
+const urgencyDatasets = computed(() => [
+    { label: 'Needs Response', data: props.daily_urgency.map(d => d.needs_response), color: 'danger' },
+    { label: 'Aging',          data: props.daily_urgency.map(d => d.aging),          color: 'warn' },
+    { label: 'Clear',          data: props.daily_urgency.map(d => d.clear),          color: 'success' },
+])
 </script>
 
 <template>
     <div class="tl-page">
 
         <!-- Page header -->
-        <div class="mb-8 flex items-center justify-between">
+        <div class="tl-page-header">
             <div>
                 <h1 class="tl-heading">Dashboard</h1>
                 <p class="tl-subtext">Welcome back, {{ user?.name?.split(' ')[0] }}.</p>
             </div>
-            <span class="text-xs font-mono bg-slate-800 text-slate-400 px-2.5 py-1 rounded-md border border-slate-700 capitalize">{{ tier }}</span>
+            <span class="tl-kbd tl-cap">{{ tier }}</span>
         </div>
 
         <!-- Trial notices -->
-        <div v-if="activeGrants.length" class="mb-6 space-y-2">
-            <div v-for="grant in activeGrants" :key="grant.label" class="flex items-center gap-3 px-4 py-3 rounded-lg bg-amber-950/40 border border-amber-800/50 text-sm">
-                <TlIcon name="clock" class="w-4 h-4 text-amber-400 shrink-0" />
-                <span class="text-amber-300 font-medium">{{ grant.label }}</span>
-                <span v-if="grant.expires_at" class="text-amber-500/80 text-xs">
+        <div v-if="activeGrants.length" class="tl-stack--sm tl-card-gap">
+            <div v-for="grant in activeGrants" :key="grant.label" class="tl-banner tl-banner--warn">
+                <TlIcon name="clock" class="tl-ic tl-banner-icon" />
+                <span class="tl-banner-title">{{ grant.label }}</span>
+                <span v-if="grant.expires_at" class="tl-hint">
                     trial access until {{ grant.expires_at }}
                 </span>
-                <span v-else class="text-amber-500/80 text-xs">trial access (no expiry)</span>
+                <span v-else class="tl-hint">trial access (no expiry)</span>
             </div>
         </div>
 
         <!-- Stat cards grid -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+        <div class="tl-grid-3 tl-section-gap">
 
             <!-- Pushes This Month -->
-            <div class="tl-card">
-                <div class="flex items-center justify-between mb-4">
-                    <p class="tl-label">Pushes This Month</p>
-                    <TlIcon name="upload-cloud" class="w-4 h-4 text-indigo-400" />
+            <div class="tl-stat-card">
+                <div class="tl-row tl-row--between">
+                    <p class="tl-stat-label">Pushes This Month</p>
+                    <span class="tl-stat-icon"><TlIcon name="upload-cloud" class="tl-ic" /></span>
                 </div>
-                <p class="text-3xl font-mono font-semibold text-white mb-1">{{ pushesMonth }}</p>
-                <p class="text-xs text-slate-500">triage runs synced to console</p>
+                <p class="tl-stat-value">{{ pushesMonth }}</p>
+                <p class="tl-hint">triage runs synced to console</p>
             </div>
 
             <!-- Active Tickets -->
-            <div class="tl-card">
-                <div class="flex items-center justify-between mb-4">
-                    <p class="tl-label">Active Tickets</p>
-                    <TlIcon name="trending-up" class="w-4 h-4 text-indigo-500" />
+            <div class="tl-stat-card">
+                <div class="tl-row tl-row--between">
+                    <p class="tl-stat-label">Active Tickets</p>
+                    <span class="tl-stat-icon"><TlIcon name="trending-up" class="tl-ic" /></span>
                 </div>
-                <p class="text-3xl font-mono font-semibold text-indigo-400 mb-1">{{ activeTickets }}</p>
-                <p class="text-xs text-slate-500">from most recent push</p>
+                <p class="tl-stat-value">{{ activeTickets }}</p>
+                <p class="tl-hint">from most recent push</p>
             </div>
 
             <!-- Push Streak -->
-            <div class="tl-card">
-                <div class="flex items-center justify-between mb-4">
-                    <p class="tl-label">Push Streak</p>
-                    <TlIcon name="zap" class="w-4 h-4 text-amber-400" />
+            <div class="tl-stat-card">
+                <div class="tl-row tl-row--between">
+                    <p class="tl-stat-label">Push Streak</p>
+                    <span class="tl-stat-icon tl-stat-icon--warn"><TlIcon name="zap" class="tl-ic" /></span>
                 </div>
-                <p class="text-3xl font-mono font-semibold text-amber-300 mb-1">{{ pushStreak }}</p>
-                <p class="text-xs text-slate-500">consecutive days with a push</p>
+                <p class="tl-stat-value">{{ pushStreak }}</p>
+                <p class="tl-hint">consecutive days with a push</p>
             </div>
 
             <!-- Last Push -->
-            <div class="tl-card">
-                <div class="flex items-center justify-between mb-4">
-                    <p class="tl-label">Last Push</p>
-                    <TlIcon name="clock" class="w-4 h-4 text-slate-600" />
+            <div class="tl-stat-card">
+                <div class="tl-row tl-row--between">
+                    <p class="tl-stat-label">Last Push</p>
+                    <span class="tl-stat-icon tl-stat-icon--info"><TlIcon name="clock" class="tl-ic" /></span>
                 </div>
-                <p class="text-sm font-mono font-semibold text-white mb-1">{{ lastPushLabel }}</p>
-                <p class="text-xs text-slate-500">{{ stats.last_push ? new Date(stats.last_push).toLocaleDateString() : 'Never' }}</p>
+                <p class="tl-stat-value">{{ lastPushLabel }}</p>
+                <p class="tl-hint">{{ stats.last_push ? new Date(stats.last_push).toLocaleDateString() : 'Never' }}</p>
             </div>
 
             <!-- Active License -->
-            <div class="tl-card">
-                <div class="flex items-center justify-between mb-4">
-                    <p class="tl-label">License</p>
-                    <TlIcon name="badge-check" class="w-4 h-4 text-slate-600" />
+            <div class="tl-stat-card">
+                <div class="tl-row tl-row--between">
+                    <p class="tl-stat-label">License</p>
+                    <span class="tl-stat-icon tl-stat-icon--success"><TlIcon name="badge-check" class="tl-ic" /></span>
                 </div>
-                <p class="text-sm font-mono font-semibold text-white mb-1 capitalize">{{ tier }} plan</p>
-                <p class="text-xs text-slate-500">Active</p>
+                <p class="tl-stat-value tl-cap">{{ tier }} plan</p>
+                <p class="tl-hint">Active</p>
             </div>
 
             <!-- Next Digest -->
-            <div v-if="can(Permission.Schedules)" class="tl-card">
-                <div class="flex items-center justify-between mb-4">
-                    <p class="tl-label">Next Digest</p>
-                    <TlIcon name="clock" class="w-4 h-4 text-slate-600" />
+            <div v-if="can(Permission.Schedules)" class="tl-stat-card">
+                <div class="tl-row tl-row--between">
+                    <p class="tl-stat-label">Next Digest</p>
+                    <span class="tl-stat-icon"><TlIcon name="clock" class="tl-ic" /></span>
                 </div>
-                <p class="text-3xl font-mono font-semibold text-white mb-3">—</p>
-                <p class="text-xs text-slate-600">No schedule configured</p>
+                <p class="tl-stat-value">—</p>
+                <p class="tl-hint">No schedule configured</p>
             </div>
 
             <!-- Usage Analytics teaser (non-Pro) -->
-            <div v-if="!can(Permission.Export)" class="bg-slate-900/50 border border-slate-800/50 border-dashed rounded-xl p-5 flex flex-col items-start justify-between">
+            <div v-if="!can(Permission.Export)" class="tl-card--teaser">
                 <div>
-                    <p class="text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">Trend Charts</p>
-                    <p class="text-sm text-slate-500 mt-2">Ticket trend charts available on Pro and above.</p>
+                    <p class="tl-stat-label">Trend Charts</p>
+                    <p class="tl-body--muted">Ticket trend charts available on Pro and above.</p>
                 </div>
-                <a href="#" class="mt-4 text-xs text-indigo-400 hover:text-indigo-300 font-medium transition-colors duration-150 cursor-pointer">Upgrade plan →</a>
+                <a href="#" class="tl-link">Upgrade plan →</a>
             </div>
 
             <!-- Team Seats (Team managers) -->
-            <div v-if="can(Permission.TeamManageMembers)" class="tl-card">
-                <div class="flex items-center justify-between mb-4">
-                    <p class="tl-label">Team Seats</p>
-                    <TlIcon name="users" class="w-4 h-4 text-slate-600" />
+            <div v-if="can(Permission.TeamManageMembers)" class="tl-stat-card">
+                <div class="tl-row tl-row--between">
+                    <p class="tl-stat-label">Team Seats</p>
+                    <span class="tl-stat-icon"><TlIcon name="users" class="tl-ic" /></span>
                 </div>
-                <p class="text-3xl font-mono font-semibold text-white mb-3">—</p>
-                <p class="text-xs text-slate-600">No team members yet</p>
+                <p class="tl-stat-value">—</p>
+                <p class="tl-hint">No team members yet</p>
             </div>
 
         </div>
 
         <!-- Ticket trend (Pro+, 30-day area chart) -->
-        <div v-if="ticket_trend.length > 0" class="mb-8 rounded-xl border border-slate-800 bg-slate-900/60 p-5">
-            <h2 class="mb-4 text-sm font-semibold text-slate-300 uppercase tracking-wide">
-                Ticket Load Trend — last 30 days
-            </h2>
-            <div class="h-48">
-                <Line :data="trendChartData" :options="trendChartOptions" />
+        <div v-if="ticket_trend.length > 0" class="tl-card tl-card-gap">
+            <h2 class="tl-title tl-title--spaced">Ticket Load Trend — last 30 days</h2>
+            <div class="tl-chart-frame">
+                <TlChart type="area" :labels="trendLabels" :datasets="trendDatasets" />
             </div>
-            <p class="mt-3 pt-3 border-t border-slate-800 text-xs text-slate-500 leading-relaxed">
+            <p class="tl-card-footnote">
                 Number of active tickets in your triage queue over time, based on your daily pushes. Upward trends may indicate accumulating backlog; drops confirm tickets are being resolved.
+            </p>
+        </div>
+
+        <!-- Urgency trend (Pro+, 30-day line chart) -->
+        <div v-if="daily_urgency.length > 0" class="tl-card tl-card-gap">
+            <h2 class="tl-title tl-title--spaced">Urgency Trend — last 30 days</h2>
+            <div class="tl-chart-frame">
+                <TlChart type="line" :labels="urgencyLabels" :datasets="urgencyDatasets" legend="bottom" />
+            </div>
+            <p class="tl-card-footnote">
+                Daily breakdown of your ticket urgency flags. "Needs Response" means a teammate is waiting on you. Aim to keep that line at zero.
             </p>
         </div>
 
         <!-- Quick start (shown when no push history) -->
         <div v-if="!hasPushHistory" class="tl-card tl-card--lg">
-            <h2 class="text-sm font-semibold text-white mb-4">Quick start</h2>
-            <div class="space-y-3">
-                <div class="flex items-start gap-3">
-                    <div class="w-5 h-5 rounded-full border border-slate-700 flex items-center justify-center text-[10px] font-mono text-slate-500 shrink-0 mt-0.5">1</div>
+            <h2 class="tl-title tl-title--spaced">Quick start</h2>
+            <div class="tl-stack--sm">
+                <div class="tl-step-row">
+                    <div class="tl-step-num">1</div>
                     <div>
-                        <p class="text-sm text-slate-300">Install the CLI</p>
-                        <code class="text-xs font-mono text-indigo-400 bg-slate-800 px-2 py-0.5 rounded mt-1 inline-block">npm install -g ticketlens</code>
+                        <p class="tl-body--secondary">Install the CLI</p>
+                        <code class="tl-code-chip">npm install -g ticketlens</code>
                     </div>
                 </div>
-                <div class="flex items-start gap-3">
-                    <div class="w-5 h-5 rounded-full border border-slate-700 flex items-center justify-center text-[10px] font-mono text-slate-500 shrink-0 mt-0.5">2</div>
+                <div class="tl-step-row">
+                    <div class="tl-step-num">2</div>
                     <div>
-                        <p class="text-sm text-slate-300">Connect your Jira</p>
-                        <code class="text-xs font-mono text-indigo-400 bg-slate-800 px-2 py-0.5 rounded mt-1 inline-block">tl config --profile work</code>
+                        <p class="tl-body--secondary">Connect your Jira</p>
+                        <code class="tl-code-chip">tl config --profile work</code>
                     </div>
                 </div>
-                <div class="flex items-start gap-3">
-                    <div class="w-5 h-5 rounded-full border border-slate-700 flex items-center justify-center text-[10px] font-mono text-slate-500 shrink-0 mt-0.5">3</div>
+                <div class="tl-step-row">
+                    <div class="tl-step-num">3</div>
                     <div>
-                        <p class="text-sm text-slate-300">Push your first triage</p>
-                        <code class="text-xs font-mono text-indigo-400 bg-slate-800 px-2 py-0.5 rounded mt-1 inline-block">tl triage --push</code>
+                        <p class="tl-body--secondary">Push your first triage</p>
+                        <code class="tl-code-chip">tl triage --push</code>
                     </div>
                 </div>
             </div>

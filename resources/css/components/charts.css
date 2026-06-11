@@ -1,0 +1,93 @@
+/*
+ * Chart primitives — frames and legends around <TlChart> (Chart.js).
+ * Chart.js colors are read from tokens.css (--tl-chart-*) at runtime by
+ * the TlChart wrapper; these classes style the surrounding DOM.
+ */
+
+@layer components {
+  /* Fixed-height positioning frame required by Chart.js responsive mode */
+  .tl-chart-frame {
+    @apply relative w-full;
+    height: 16rem;
+  }
+
+  .tl-chart-frame--sm {
+    height: 10rem;
+  }
+
+  .tl-chart-frame--lg {
+    height: 20rem;
+  }
+
+  /* Empty state inside a chart frame (TlChart no-data fallback) */
+  .tl-chart-empty {
+    @apply h-full w-full flex items-center justify-center text-sm;
+    color: var(--tl-text-subtle);
+  }
+
+  /* Legend row (custom HTML legends) */
+  .tl-chart-legend {
+    @apply flex flex-wrap items-center gap-4 text-xs;
+    color: var(--tl-text-muted);
+  }
+
+  .tl-chart-legend-item {
+    @apply inline-flex items-center gap-1.5;
+  }
+
+  .tl-chart-legend-swatch {
+    @apply w-2.5 h-2.5 inline-block;
+    border-radius: var(--tl-radius-sm);
+  }
+
+  /* Inline horizontal meter (progress-style bars inside tables/cards) */
+  .tl-meter {
+    @apply w-full overflow-hidden;
+    height: 0.5rem;
+    border-radius: var(--tl-radius-full);
+    background-color: var(--tl-surface-3);
+  }
+
+  .tl-meter-fill {
+    @apply h-full;
+    border-radius: var(--tl-radius-full);
+    background-color: var(--tl-brand);
+    transition: width var(--tl-transition-slow);
+  }
+  .tl-meter-fill--success { background-color: var(--tl-success); }
+  .tl-meter-fill--warn    { background-color: var(--tl-warn); }
+  .tl-meter-fill--danger  { background-color: var(--tl-danger); }
+}
+
+@layer components {
+  /* Push-activity heatmap */
+  .tl-heat-row  { @apply flex items-center gap-3; }
+  .tl-heat-name { @apply w-24 text-xs truncate shrink-0; color: var(--tl-text-muted); }
+  .tl-heat-grid { @apply flex flex-wrap gap-0.5; }
+  .tl-heat-cell {
+    @apply w-2.5 h-2.5;
+    border-radius: 2px;
+    background-color: var(--tl-brand);
+    opacity: 0.75;
+  }
+}
+
+@layer components {
+  /* Labeled meter rows (gap-rate breakdowns) */
+  .tl-meter-row { @apply flex items-center gap-4 px-5 py-3; }
+  .tl-meter-row-label { @apply text-sm w-24 shrink-0; color: var(--tl-text-secondary); }
+  .tl-meter-row-label--wide { @apply w-40; }
+  .tl-meter-row-track { @apply flex-1 min-w-0; }
+  .tl-meter-row-stats { @apply flex items-center gap-4 text-sm shrink-0; }
+  .tl-meter-row-pct { @apply font-semibold w-12 text-right; }
+  .tl-meter-row-detail { @apply w-28 text-right text-xs; color: var(--tl-text-subtle); }
+  .tl-meter-row-cov { @apply w-24 text-right text-xs; color: var(--tl-text-subtle); }
+}
+
+@layer components {
+  .tl-meter--thin { height: 0.375rem; }
+}
+
+@layer components {
+  .tl-meter--fixed { @apply w-24 shrink-0; }
+}

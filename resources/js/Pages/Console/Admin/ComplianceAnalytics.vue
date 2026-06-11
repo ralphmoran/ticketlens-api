@@ -1,6 +1,7 @@
 <script setup>
 import ConsoleLayout from '@/Layouts/ConsoleLayout.vue'
 import TlIcon from '@/components/TlIcon.vue'
+import TlChart from '@/components/TlChart.vue'
 import { router } from '@inertiajs/vue3'
 import { computed, ref, watch } from 'vue'
 
@@ -53,10 +54,16 @@ function timeAgo(iso) {
     return `${Math.floor(diff / 86400)}d ago`
 }
 
-function gapRateColor(rate) {
-    if (rate >= 60) return 'text-red-400'
-    if (rate >= 30) return 'text-amber-400'
-    return 'text-emerald-400'
+function gapRateClass(rate) {
+    if (rate >= 60) return 'tl-num--danger'
+    if (rate >= 30) return 'tl-num--warn'
+    return 'tl-num--success'
+}
+
+function gapMeterClass(rate) {
+    if (rate >= 60) return 'tl-meter-fill--danger'
+    if (rate >= 30) return 'tl-meter-fill--warn'
+    return 'tl-meter-fill--success'
 }
 
 function gapBarWidth(rate) {
@@ -66,49 +73,54 @@ function gapBarWidth(rate) {
 function formatPct(v) {
     return v === null || v === undefined ? '—' : v + '%'
 }
+
+// Weekly gap-rate trend chart
+const weeklyLabels   = computed(() => props.weekly_trend.map(w => w.week))
+const weeklyDatasets = computed(() => [
+    { label: 'Gap rate %', data: props.weekly_trend.map(w => w.gap_rate), color: 'danger', fill: true },
+])
+const weeklyOptions = { scales: { y: { max: 100, ticks: { callback: v => v + '%' } } } }
 </script>
 
 <template>
     <div class="tl-page">
 
-        <!-- Owner client picker -->
         <!-- Owner: no manager selected — client search picker -->
         <div v-if="owner_mode && !selected_manager">
-            <div class="mb-6">
-                <h1 class="tl-heading">Compliance Analytics</h1>
-                <p class="tl-subtext">Select a team to view their compliance analytics.</p>
+            <div class="tl-page-header">
+                <div>
+                    <h1 class="tl-heading">Compliance Analytics</h1>
+                    <p class="tl-subtext">Select a team to view their compliance analytics.</p>
+                </div>
             </div>
-            <div class="max-w-md">
+            <div class="tl-picker">
                 <input
                     v-model="clientSearch"
                     type="search"
                     placeholder="Search by name or email…"
-                    class="tl-input w-full mb-4"
+                    class="tl-input tl-input--full tl-card-gap"
                 />
                 <div v-if="pagedClients.length === 0" class="tl-empty-state">
-                    <TlIcon name="users" class="w-8 h-8 text-slate-700 mb-3" />
+                    <TlIcon name="users" class="tl-empty-icon" />
                     <p class="tl-hint">No matching clients found.</p>
                 </div>
-                <ul v-else class="space-y-2">
+                <ul v-else class="tl-stack--sm">
                     <li v-for="client in pagedClients" :key="client.id">
-                        <button type="button" @click="selectManager(client.id)"
-                                class="w-full text-left tl-card hover:border-amber-500/40 hover:bg-slate-800/60 transition-colors cursor-pointer">
-                            <p class="text-sm font-medium text-slate-200">{{ client.name }}</p>
-                            <p class="tl-hint text-xs font-mono">{{ client.email }}</p>
+                        <button type="button" @click="selectManager(client.id)" class="tl-card tl-card--btn">
+                            <p class="tl-cell-primary">{{ client.name }}</p>
+                            <p class="tl-hint tl-mono--xs">{{ client.email }}</p>
                         </button>
                     </li>
                 </ul>
-                <div v-if="totalPages > 1" class="flex items-center justify-between mt-4">
-                    <span class="text-xs text-slate-500">{{ filteredClients.length }} clients</span>
-                    <div class="flex items-center gap-1">
-                        <button type="button" :disabled="clientPage === 1" @click="clientPage--"
-                                class="p-1.5 text-slate-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
-                            <TlIcon name="chevron-left" class="w-4 h-4" />
+                <div v-if="totalPages > 1" class="tl-pager">
+                    <span class="tl-hint">{{ filteredClients.length }} clients</span>
+                    <div class="tl-pager-nav">
+                        <button type="button" :disabled="clientPage === 1" @click="clientPage--" class="tl-pager-btn">
+                            <TlIcon name="chevron-left" class="tl-ic" />
                         </button>
-                        <span class="text-xs text-slate-400 font-mono">{{ clientPage }} / {{ totalPages }}</span>
-                        <button type="button" :disabled="clientPage >= totalPages" @click="clientPage++"
-                                class="p-1.5 text-slate-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
-                            <TlIcon name="chevron-right" class="w-4 h-4" />
+                        <span class="tl-pager-label">{{ clientPage }} / {{ totalPages }}</span>
+                        <button type="button" :disabled="clientPage >= totalPages" @click="clientPage++" class="tl-pager-btn">
+                            <TlIcon name="chevron-right" class="tl-ic" />
                         </button>
                     </div>
                 </div>
@@ -119,14 +131,13 @@ function formatPct(v) {
         <template v-else>
 
         <!-- Owner: manager selected — action banner -->
-        <div v-if="owner_mode && selected_manager"
-             class="flex flex-wrap items-center gap-3 mb-6 px-4 py-3 rounded-lg bg-amber-500/10 border border-amber-500/30 text-sm">
-            <TlIcon name="building" class="w-4 h-4 text-amber-400 shrink-0" />
-            <span class="text-amber-300 font-medium flex-1 min-w-0 truncate">
+        <div v-if="owner_mode && selected_manager" class="tl-banner tl-banner--warn tl-card-gap tl-row--wrap">
+            <TlIcon name="building" class="tl-ic tl-banner-icon" />
+            <span class="tl-banner-title tl-banner-fill">
                 {{ selected_manager.name }}
-                <span class="text-amber-400/60 font-mono text-xs ml-1">{{ selected_manager.email }}</span>
+                <span class="tl-hint tl-mono--xs">{{ selected_manager.email }}</span>
             </span>
-            <div class="flex items-center gap-2 shrink-0">
+            <div class="tl-row">
                 <a :href="`/console/owner/clients/${selected_manager.id}`" class="tl-btn tl-btn--secondary tl-btn--sm">Manage</a>
                 <button type="button" class="tl-btn tl-btn--secondary tl-btn--sm"
                         @click="router.get('/console/admin/compliance-analytics')">← Back</button>
@@ -134,21 +145,21 @@ function formatPct(v) {
         </div>
 
         <!-- Page header -->
-        <div class="mb-6 flex items-start justify-between">
+        <div class="tl-page-header">
             <div>
                 <h1 class="tl-heading">Compliance Analytics</h1>
                 <p class="tl-subtext">
                     {{ group_name ? `${group_name} — ` : '' }}Process failure map across team tickets (last 90 days)
                 </p>
             </div>
-            <span v-if="last_updated" class="text-xs text-slate-500 mt-1">Updated {{ timeAgo(last_updated) }}</span>
+            <span v-if="last_updated" class="tl-hint">Updated {{ timeAgo(last_updated) }}</span>
         </div>
 
         <!-- No data state -->
-        <div v-if="!hasData" class="rounded-xl border border-slate-800 bg-slate-900/40 p-10 text-center">
-            <TlIcon name="shield-check" class="w-10 h-10 text-slate-600 mx-auto mb-3" />
-            <p class="text-slate-400 font-medium mb-1">No compliance data yet</p>
-            <p class="text-slate-500 text-sm">
+        <div v-if="!hasData" class="tl-empty-state">
+            <TlIcon name="shield-check" class="tl-empty-icon" />
+            <p class="tl-body">No compliance data yet</p>
+            <p class="tl-subtext">
                 Team members need to run
                 <code class="tl-kbd tl-kbd--brand">ticketlens compliance PROJ-123</code>
                 and then push a triage snapshot to see analytics here.
@@ -158,110 +169,101 @@ function formatPct(v) {
         <template v-else>
 
             <!-- Summary cards -->
-            <div class="grid grid-cols-3 gap-4 mb-8">
-                <div class="tl-card p-5">
-                    <p class="tl-label mb-1">Tickets Checked</p>
-                    <p class="text-3xl font-bold text-slate-100">{{ total_checked }}</p>
+            <div class="tl-grid-3 tl-section-gap">
+                <div class="tl-stat-card">
+                    <p class="tl-stat-label">Tickets Checked</p>
+                    <p class="tl-stat-value">{{ total_checked }}</p>
                 </div>
-                <div class="tl-card p-5">
-                    <p class="tl-label mb-1">Overall Gap Rate</p>
-                    <p class="text-3xl font-bold" :class="overall_gap_rate !== null ? gapRateColor(overall_gap_rate) : 'text-slate-500'">
+                <div class="tl-stat-card">
+                    <p class="tl-stat-label">Overall Gap Rate</p>
+                    <p class="tl-stat-value" :class="overall_gap_rate !== null ? gapRateClass(overall_gap_rate) : 'tl-num--zero'">
                         {{ formatPct(overall_gap_rate) }}
                     </p>
                 </div>
-                <div class="tl-card p-5">
-                    <p class="tl-label mb-1">Avg Coverage</p>
-                    <p class="text-3xl font-bold text-slate-100">{{ formatPct(avg_coverage) }}</p>
+                <div class="tl-stat-card">
+                    <p class="tl-stat-label">Avg Coverage</p>
+                    <p class="tl-stat-value">{{ formatPct(avg_coverage) }}</p>
                 </div>
             </div>
 
             <!-- Gap rate by project prefix -->
-            <div v-if="gap_by_prefix.length" class="tl-card mb-6">
-                <div class="p-5 border-b border-slate-800">
-                    <h2 class="tl-subheading">Gap Rate by Project</h2>
-                    <p class="tl-subtext text-xs mt-0.5">Which project areas have the most missing requirements — process signal, not individual blame</p>
+            <div v-if="gap_by_prefix.length" class="tl-card tl-card--flush tl-card-gap">
+                <div class="tl-table-header">
+                    <h2 class="tl-title">Gap Rate by Project</h2>
+                    <p class="tl-hint">Which project areas have the most missing requirements — process signal, not individual blame</p>
                 </div>
-                <div class="divide-y divide-slate-800">
-                    <div v-for="row in gap_by_prefix" :key="row.prefix" class="flex items-center gap-4 px-5 py-3">
-                        <span class="font-mono text-sm text-slate-300 w-24 shrink-0">{{ row.prefix }}-*</span>
-                        <div class="flex-1 min-w-0">
-                            <div class="h-2 bg-slate-800 rounded-full overflow-hidden">
-                                <div
-                                    class="h-full rounded-full transition-all"
-                                    :class="row.gap_rate >= 60 ? 'bg-red-500' : row.gap_rate >= 30 ? 'bg-amber-500' : 'bg-emerald-500'"
-                                    :style="{ width: gapBarWidth(row.gap_rate) }"
-                                />
+                <div class="tl-divide">
+                    <div v-for="row in gap_by_prefix" :key="row.prefix" class="tl-meter-row">
+                        <span class="tl-meter-row-label tl-mono">{{ row.prefix }}-*</span>
+                        <div class="tl-meter-row-track">
+                            <div class="tl-meter">
+                                <div class="tl-meter-fill" :class="gapMeterClass(row.gap_rate)" :style="{ width: gapBarWidth(row.gap_rate) }" />
                             </div>
                         </div>
-                        <div class="flex items-center gap-4 text-sm shrink-0">
-                            <span :class="gapRateColor(row.gap_rate)" class="font-semibold w-12 text-right">{{ row.gap_rate }}%</span>
-                            <span class="text-slate-500 w-28 text-right">{{ row.gap }} gap / {{ row.total }} checked</span>
-                            <span v-if="row.avg_coverage !== null" class="text-slate-500 w-24 text-right">
-                                avg {{ row.avg_coverage }}% cov
-                            </span>
+                        <div class="tl-meter-row-stats">
+                            <span :class="gapRateClass(row.gap_rate)" class="tl-meter-row-pct">{{ row.gap_rate }}%</span>
+                            <span class="tl-meter-row-detail">{{ row.gap }} gap / {{ row.total }} checked</span>
+                            <span v-if="row.avg_coverage !== null" class="tl-meter-row-cov">avg {{ row.avg_coverage }}% cov</span>
                         </div>
                     </div>
                 </div>
             </div>
 
             <!-- Gap rate by ticket status -->
-            <div v-if="gap_by_status.length" class="tl-card mb-6">
-                <div class="p-5 border-b border-slate-800">
-                    <h2 class="tl-subheading">Gap Rate by Ticket Status</h2>
-                    <p class="tl-subtext text-xs mt-0.5">Which workflow stages have uncovered requirements</p>
+            <div v-if="gap_by_status.length" class="tl-card tl-card--flush tl-card-gap">
+                <div class="tl-table-header">
+                    <h2 class="tl-title">Gap Rate by Ticket Status</h2>
+                    <p class="tl-hint">Which workflow stages have uncovered requirements</p>
                 </div>
-                <div class="divide-y divide-slate-800">
-                    <div v-for="row in gap_by_status" :key="row.status" class="flex items-center gap-4 px-5 py-3">
-                        <span class="text-sm text-slate-300 w-40 shrink-0 truncate">{{ row.status }}</span>
-                        <div class="flex-1 min-w-0">
-                            <div class="h-2 bg-slate-800 rounded-full overflow-hidden">
-                                <div
-                                    class="h-full rounded-full transition-all"
-                                    :class="row.gap_rate >= 60 ? 'bg-red-500' : row.gap_rate >= 30 ? 'bg-amber-500' : 'bg-emerald-500'"
-                                    :style="{ width: gapBarWidth(row.gap_rate) }"
-                                />
+                <div class="tl-divide">
+                    <div v-for="row in gap_by_status" :key="row.status" class="tl-meter-row">
+                        <span class="tl-meter-row-label tl-meter-row-label--wide tl-trunc">{{ row.status }}</span>
+                        <div class="tl-meter-row-track">
+                            <div class="tl-meter">
+                                <div class="tl-meter-fill" :class="gapMeterClass(row.gap_rate)" :style="{ width: gapBarWidth(row.gap_rate) }" />
                             </div>
                         </div>
-                        <div class="flex items-center gap-4 text-sm shrink-0">
-                            <span :class="gapRateColor(row.gap_rate)" class="font-semibold w-12 text-right">{{ row.gap_rate }}%</span>
-                            <span class="text-slate-500 w-28 text-right">{{ row.gap }} gap / {{ row.total }} checked</span>
+                        <div class="tl-meter-row-stats">
+                            <span :class="gapRateClass(row.gap_rate)" class="tl-meter-row-pct">{{ row.gap_rate }}%</span>
+                            <span class="tl-meter-row-detail">{{ row.gap }} gap / {{ row.total }} checked</span>
                         </div>
                     </div>
                 </div>
             </div>
 
             <!-- Weekly trend -->
-            <div v-if="weekly_trend.length" class="tl-card">
-                <div class="p-5 border-b border-slate-800">
-                    <h2 class="tl-subheading">Weekly Trend</h2>
-                    <p class="tl-subtext text-xs mt-0.5">Gap rate week over week — is the team improving?</p>
+            <div v-if="weekly_trend.length" class="tl-card tl-card--flush">
+                <div class="tl-table-header">
+                    <h2 class="tl-title">Weekly Trend</h2>
+                    <p class="tl-hint">Gap rate week over week — is the team improving?</p>
                 </div>
-                <div class="overflow-x-auto">
-                    <table class="w-full text-sm">
-                        <thead>
-                            <tr class="border-b border-slate-800 text-left">
-                                <th class="px-5 py-3 tl-label font-medium">Week of</th>
-                                <th class="px-5 py-3 tl-label font-medium text-right">Checked</th>
-                                <th class="px-5 py-3 tl-label font-medium text-right">Gap</th>
-                                <th class="px-5 py-3 tl-label font-medium text-right">Pass</th>
-                                <th class="px-5 py-3 tl-label font-medium text-right">Gap Rate</th>
-                                <th class="px-5 py-3 tl-label font-medium w-32">Trend</th>
+                <div class="tl-card-body">
+                    <div class="tl-chart-frame tl-chart-frame--sm">
+                        <TlChart type="area" :labels="weeklyLabels" :datasets="weeklyDatasets" :options="weeklyOptions" />
+                    </div>
+                </div>
+                <div class="tl-table-scroll">
+                    <table class="tl-table">
+                        <thead class="tl-thead">
+                            <tr>
+                                <th class="tl-th">Week of</th>
+                                <th class="tl-th tl-th--right">Checked</th>
+                                <th class="tl-th tl-th--right">Gap</th>
+                                <th class="tl-th tl-th--right">Pass</th>
+                                <th class="tl-th tl-th--right">Gap Rate</th>
+                                <th class="tl-th tl-th--meter">Trend</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-slate-800">
-                            <tr v-for="row in weekly_trend" :key="row.week">
-                                <td class="px-5 py-3 font-mono text-slate-300 text-xs">{{ row.week }}</td>
-                                <td class="px-5 py-3 text-slate-400 text-right">{{ row.total }}</td>
-                                <td class="px-5 py-3 text-red-400 text-right">{{ row.gap }}</td>
-                                <td class="px-5 py-3 text-emerald-400 text-right">{{ row.pass }}</td>
-                                <td class="px-5 py-3 font-semibold text-right" :class="gapRateColor(row.gap_rate)">{{ row.gap_rate }}%</td>
-                                <td class="px-5 py-3">
-                                    <div class="h-2 bg-slate-800 rounded-full overflow-hidden w-full">
-                                        <div
-                                            class="h-full rounded-full"
-                                            :class="row.gap_rate >= 60 ? 'bg-red-500' : row.gap_rate >= 30 ? 'bg-amber-500' : 'bg-emerald-500'"
-                                            :style="{ width: gapBarWidth(row.gap_rate) }"
-                                        />
+                        <tbody class="tl-divide">
+                            <tr v-for="row in weekly_trend" :key="row.week" class="tl-tr">
+                                <td class="tl-td tl-mono--xs tl-cell-muted">{{ row.week }}</td>
+                                <td class="tl-td tl-td--right tl-cell-muted">{{ row.total }}</td>
+                                <td class="tl-td tl-td--right tl-num--danger">{{ row.gap }}</td>
+                                <td class="tl-td tl-td--right tl-num--success">{{ row.pass }}</td>
+                                <td class="tl-td tl-td--right" :class="gapRateClass(row.gap_rate)">{{ row.gap_rate }}%</td>
+                                <td class="tl-td">
+                                    <div class="tl-meter">
+                                        <div class="tl-meter-fill" :class="gapMeterClass(row.gap_rate)" :style="{ width: gapBarWidth(row.gap_rate) }" />
                                     </div>
                                 </td>
                             </tr>

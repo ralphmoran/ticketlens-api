@@ -1,3 +1,3 @@
 <template>
-    <div class="p-8 text-green-400 font-mono">Inertia + Vue 3 ✓</div>
+    <div class="tl-card-body tl-mono tl-num--success">Inertia + Vue 3 ✓</div>
 </template>

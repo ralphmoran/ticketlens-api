@@ -81,7 +81,6 @@ Route::prefix('console')->name('console.')->group(function () {
 
         // Account — accessible to all authenticated users
         Route::get('/account', [\App\Http\Controllers\Console\AccountController::class, 'index'])->name('account');
-        Route::post('/account/keys', [\App\Http\Controllers\Console\AccountController::class, 'updateKeys'])->name('account.keys');
         Route::post('/account/cli-token', [\App\Http\Controllers\Console\AccountController::class, 'generateCliToken'])->name('account.cli-token.generate');
         Route::delete('/account/cli-token', [\App\Http\Controllers\Console\AccountController::class, 'revokeCliToken'])->name('account.cli-token.revoke');
 
@@ -128,6 +127,16 @@ Route::prefix('console')->name('console.')->group(function () {
             Route::get('/compliance-analytics',   [\App\Http\Controllers\Console\Admin\ComplianceAnalyticsController::class,   'index'])->name('compliance-analytics');
         });
 
+        // AI providers — any user with Summarize permission (Pro tier, owner grant, or owner god-mode)
+        Route::prefix('admin')->name('admin.')->middleware('permission:Summarize')->group(function () {
+            Route::get('/ai',                      [\App\Http\Controllers\Console\Admin\AiController::class, 'index'])->name('ai');
+            Route::get('/ai-providers',            [\App\Http\Controllers\Api\AiProviderController::class, 'index'])->name('ai-providers.index');
+            Route::post('/ai-providers',           [\App\Http\Controllers\Api\AiProviderController::class, 'store'])->name('ai-providers.store');
+            Route::put('/ai-providers/{id}',       [\App\Http\Controllers\Api\AiProviderController::class, 'update'])->name('ai-providers.update');
+            Route::delete('/ai-providers/{id}',    [\App\Http\Controllers\Api\AiProviderController::class, 'destroy'])->name('ai-providers.destroy');
+            Route::post('/ai-providers/{id}/test', [\App\Http\Controllers\Api\AiProviderController::class, 'test'])->name('ai-providers.test')->middleware('throttle:ai-test');
+        });
+
         // Admin — manager-only routes
         Route::prefix('admin')->name('admin.')->middleware('team.manager')->group(function () {
             Route::get('/members',                  [\App\Http\Controllers\Console\Admin\MembersController::class, 'index'])->name('members.index');
@@ -137,12 +146,6 @@ Route::prefix('console')->name('console.')->group(function () {
             Route::post('/members/{user}/role',     [\App\Http\Controllers\Console\Admin\MembersController::class, 'assignRole'])->name('members.role');
             Route::get('/seats',                    [\App\Http\Controllers\Console\Admin\SeatsController::class, 'index'])->name('seats.index');
             Route::get('/process-metrics',          [\App\Http\Controllers\Console\Admin\ProcessMetricsController::class, 'index'])->name('process-metrics');
-            Route::get('/ai',                          [\App\Http\Controllers\Console\Admin\AiController::class, 'index'])->name('ai');
-            Route::get('/ai-providers',                [\App\Http\Controllers\Api\AiProviderController::class, 'index'])->name('ai-providers.index');
-            Route::post('/ai-providers',               [\App\Http\Controllers\Api\AiProviderController::class, 'store'])->name('ai-providers.store');
-            Route::put('/ai-providers/{id}',           [\App\Http\Controllers\Api\AiProviderController::class, 'update'])->name('ai-providers.update');
-            Route::delete('/ai-providers/{id}',        [\App\Http\Controllers\Api\AiProviderController::class, 'destroy'])->name('ai-providers.destroy');
-            Route::post('/ai-providers/{id}/test',     [\App\Http\Controllers\Api\AiProviderController::class, 'test'])->name('ai-providers.test')->middleware('throttle:ai-test');
             Route::get('/integrations',             [\App\Http\Controllers\Console\Admin\IntegrationsController::class, 'index'])->name('integrations');
             Route::get('/integrations/channels',    [\App\Http\Controllers\Console\Admin\IntegrationsController::class, 'channels'])->name('integrations.channels');
             Route::post('/integrations/channel',    [\App\Http\Controllers\Console\Admin\IntegrationsController::class, 'saveChannel'])->name('integrations.channel');

@@ -179,21 +179,23 @@ function nextRunLabel(iso) {
     <div class="tl-page">
 
         <!-- Header -->
-        <div class="mb-6">
-            <h1 class="tl-heading">Digest Schedules</h1>
-            <p class="tl-subtext">Automate your daily triage digest delivery</p>
+        <div class="tl-page-header">
+            <div>
+                <h1 class="tl-heading">Digest Schedules</h1>
+                <p class="tl-subtext">Automate your daily triage digest delivery</p>
+            </div>
         </div>
 
         <!-- Feature description -->
-        <div class="mb-6 rounded-xl border border-slate-800 bg-slate-900/60 p-5 space-y-2">
-            <p class="text-sm text-slate-300 leading-relaxed">
-                <strong class="text-slate-100">What it does:</strong>
+        <div class="tl-info-box tl-card-gap">
+            <p class="tl-body--secondary">
+                <strong class="tl-value">What it does:</strong>
                 Schedules a daily digest email at the time you pick. TicketLens fetches your Jira backlog,
                 scores each ticket by urgency, and emails a prioritised list — so you start every day
                 knowing what needs attention.
             </p>
-            <p class="text-sm text-slate-400">
-                <strong class="text-slate-300">CLI:</strong>
+            <p class="tl-body--muted">
+                <strong class="tl-value">CLI:</strong>
                 <code class="tl-kbd tl-kbd--brand">ticketlens schedule --status</code>
                 &nbsp;·&nbsp;
                 <code class="tl-kbd tl-kbd--brand">ticketlens schedule --stop</code>
@@ -201,10 +203,10 @@ function nextRunLabel(iso) {
         </div>
 
         <!-- Prototype banner -->
-        <div class="mb-6 flex items-start gap-3 rounded-xl border border-amber-500/30 bg-amber-500/5 px-4 py-3">
-            <TlIcon name="beaker" class="w-4 h-4 text-amber-400 mt-0.5 shrink-0" />
-            <p class="text-xs text-amber-400/90 leading-relaxed">
-                <strong class="font-semibold">Prototype — pending marketing review.</strong>
+        <div class="tl-banner tl-banner--warn tl-card-gap">
+            <TlIcon name="beaker" class="tl-ic tl-banner-icon" />
+            <p class="tl-banner-text">
+                <strong class="tl-banner-title">Prototype — pending marketing review.</strong>
                 Web-based schedule management is experimental. For production use, run
                 <code class="tl-kbd">ticketlens schedule</code> from your terminal.
             </p>
@@ -212,92 +214,70 @@ function nextRunLabel(iso) {
 
         <!-- No-license state -->
         <div v-if="!hasLicense" class="tl-empty-state">
-            <TlIcon name="lock-closed" class="w-10 h-10 text-slate-700 mb-4" />
-            <p class="text-slate-300 font-medium mb-1">Active license required</p>
-            <p class="text-slate-500 text-sm mb-6">Upgrade to Pro to configure and manage digest schedules.</p>
-            <Link href="/console/account" class="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors duration-150">
+            <TlIcon name="lock-closed" class="tl-empty-icon" />
+            <p class="tl-body">Active license required</p>
+            <p class="tl-subtext tl-label--spaced">Upgrade to Pro to configure and manage digest schedules.</p>
+            <Link href="/console/account" class="tl-btn tl-btn--primary">
                 Upgrade to Pro
             </Link>
         </div>
 
         <!-- Two-panel layout -->
-        <div v-else class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+        <div v-else class="tl-cols-main-side">
 
             <!-- LEFT: Form -->
-            <div class="tl-card p-5 space-y-4">
-                <h2 class="text-sm font-semibold text-slate-200">
+            <div class="tl-col-side">
+            <div class="tl-card tl-form-stack">
+                <h2 class="tl-title">
                     {{ isEditing ? 'Edit schedule' : 'Add schedule' }}
                 </h2>
 
                 <!-- Owner client picker (create mode only) -->
                 <template v-if="isOwner && !isEditing">
                     <div>
-                        <label class="block text-xs text-slate-400 mb-1">
+                        <label class="tl-field-label tl-field-label--xs">
                             Assign to client
-                            <span class="text-slate-600">(leave blank for yourself)</span>
+                            <span class="tl-hint">(leave blank for yourself)</span>
                         </label>
 
                         <!-- Selected client badge -->
-                        <div
-                            v-if="selectedClient"
-                            class="flex items-center gap-2 mb-1.5 px-2.5 py-1.5 rounded-lg bg-indigo-950/60 border border-indigo-700/40 text-xs"
-                        >
-                            <span class="text-indigo-300 truncate min-w-0">
-                                {{ selectedClient.name }} &lt;{{ selectedClient.email }}&gt;
-                            </span>
-                            <button
-                                type="button"
-                                @click="clearClientSelection"
-                                class="ml-auto shrink-0 text-slate-500 hover:text-slate-300 transition-colors"
-                            >
-                                <TlIcon name="close" class="w-3 h-3" />
+                        <div v-if="selectedClient" class="tl-selected-chip">
+                            <span>{{ selectedClient.name }} &lt;{{ selectedClient.email }}&gt;</span>
+                            <button type="button" @click="clearClientSelection">
+                                <TlIcon name="close" class="tl-ic tl-ic--xs" />
                             </button>
                         </div>
 
                         <!-- Search input -->
-                        <div class="relative">
-                            <TlIcon name="search" class="absolute left-2.5 top-2.5 w-3.5 h-3.5 text-slate-500 pointer-events-none" />
+                        <div class="tl-input-wrap">
+                            <TlIcon name="search" class="tl-input-icon" />
                             <input
                                 v-model="clientSearch"
                                 type="text"
                                 placeholder="Search by name or email…"
-                                :class="[
-                                    'w-full bg-slate-800 border border-slate-700 text-slate-200 text-sm pl-8 pr-3 py-2 placeholder-slate-600 focus:outline-none focus:ring-1 focus:ring-indigo-500',
-                                    props.clients.length ? 'rounded-t-lg border-b-0' : 'rounded-lg',
-                                ]"
+                                class="tl-input tl-input--full tl-input--with-icon"
+                                :class="props.clients.length ? 'tl-combo-input--open' : ''"
                             />
-                            <TlIcon
-                                v-if="clientsLoading"
-                                name="spinner"
-                                class="absolute right-3 top-2.5 w-4 h-4 animate-spin text-slate-500"
-                            />
+                            <TlIcon v-if="clientsLoading" name="spinner" class="tl-input-spinner" />
                         </div>
 
                         <!-- Results list -->
-                        <div
-                            v-if="props.clients.length"
-                            class="rounded-b-lg border border-slate-700 border-t-0 bg-slate-800 divide-y divide-slate-700/50 overflow-hidden"
-                        >
+                        <div v-if="props.clients.length" class="tl-combo-list">
                             <button
                                 v-for="c in props.clients"
                                 :key="c.id"
                                 type="button"
                                 @click="selectClient(c)"
-                                class="w-full text-left px-3 py-2 text-sm transition-colors duration-100 hover:bg-slate-700"
-                                :class="form.clientUserId === c.id
-                                    ? 'bg-indigo-900/40 text-indigo-200'
-                                    : 'text-slate-200'"
+                                class="tl-combo-item"
+                                :class="form.clientUserId === c.id ? 'tl-combo-item--active' : ''"
                             >
                                 {{ c.name }}
-                                <span class="text-slate-500">&lt;{{ c.email }}&gt;</span>
+                                <span class="tl-combo-item-hint">&lt;{{ c.email }}&gt;</span>
                             </button>
                         </div>
 
                         <!-- No results -->
-                        <p
-                            v-else-if="clientSearch.trim() && !clientsLoading"
-                            class="text-xs text-slate-500 mt-1"
-                        >
+                        <p v-else-if="clientSearch.trim() && !clientsLoading" class="tl-hint">
                             No clients match "{{ clientSearch }}"
                         </p>
                     </div>
@@ -305,127 +285,116 @@ function nextRunLabel(iso) {
 
                 <!-- Email -->
                 <div>
-                    <label class="block text-xs text-slate-400 mb-1" for="sched-email">Delivery email</label>
-                    <div class="relative">
-                        <TlIcon name="mail" class="absolute left-3 top-2.5 w-3.5 h-3.5 text-slate-500 pointer-events-none" />
+                    <label class="tl-field-label tl-field-label--xs" for="sched-email">Delivery email</label>
+                    <div class="tl-input-wrap">
+                        <TlIcon name="mail" class="tl-input-icon" />
                         <input
                             id="sched-email"
                             v-model="form.email"
                             type="email"
                             required
                             placeholder="you@example.com"
-                            class="w-full rounded-lg bg-slate-800 border text-slate-200 text-sm pl-8 pr-3 py-2 placeholder-slate-600 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                            :class="form.errors.email ? 'border-red-500' : 'border-slate-700'"
+                            class="tl-input tl-input--full tl-input--with-icon"
+                            :class="form.errors.email ? 'tl-input--error' : ''"
                         />
                     </div>
-                    <p v-if="form.errors.email" class="text-xs text-red-400 mt-1">{{ form.errors.email }}</p>
+                    <p v-if="form.errors.email" class="tl-error">{{ form.errors.email }}</p>
                 </div>
 
                 <!-- Timezone -->
                 <div>
-                    <label class="block text-xs text-slate-400 mb-1" for="sched-tz">Timezone</label>
-                    <select
-                        id="sched-tz"
-                        v-model="form.timezone"
-                        class="w-full rounded-lg bg-slate-800 border border-slate-700 text-slate-200 text-sm px-3 py-2 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                    >
+                    <label class="tl-field-label tl-field-label--xs" for="sched-tz">Timezone</label>
+                    <select id="sched-tz" v-model="form.timezone" class="tl-select tl-input--full">
                         <option v-for="tz in timezones" :key="tz" :value="tz">{{ tz }}</option>
                     </select>
-                    <p v-if="form.errors.timezone" class="text-xs text-red-400 mt-1">{{ form.errors.timezone }}</p>
+                    <p v-if="form.errors.timezone" class="tl-error">{{ form.errors.timezone }}</p>
                 </div>
 
                 <!-- Delivery time -->
                 <div>
-                    <label class="block text-xs text-slate-400 mb-1" for="sched-time">Delivery time (24h)</label>
+                    <label class="tl-field-label tl-field-label--xs" for="sched-time">Delivery time (24h)</label>
                     <input
                         id="sched-time"
                         v-model="form.deliverAt"
                         type="time"
                         required
-                        class="w-full rounded-lg bg-slate-800 border text-slate-200 text-sm px-3 py-2 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                        :class="form.errors.deliverAt ? 'border-red-500' : 'border-slate-700'"
+                        class="tl-input tl-input--full"
+                        :class="form.errors.deliverAt ? 'tl-input--error' : ''"
                     />
-                    <p v-if="form.errors.deliverAt" class="text-xs text-red-400 mt-1">{{ form.errors.deliverAt }}</p>
+                    <p v-if="form.errors.deliverAt" class="tl-error">{{ form.errors.deliverAt }}</p>
                 </div>
 
-                <p v-if="form.errors.license" class="text-xs text-red-400">{{ form.errors.license }}</p>
+                <p v-if="form.errors.license" class="tl-error">{{ form.errors.license }}</p>
 
-                <div class="flex gap-2 pt-1">
+                <div class="tl-row tl-form-actions">
                     <button
                         @click.prevent="submit"
                         :disabled="form.processing"
-                        class="flex-1 inline-flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors duration-150"
+                        class="tl-btn tl-btn--primary tl-btn--grow"
                     >
-                        <TlIcon v-if="form.processing" name="spinner" class="w-3.5 h-3.5 animate-spin" />
-                        <TlIcon v-else :name="isEditing ? 'check' : 'plus'" class="w-3.5 h-3.5" />
+                        <TlIcon v-if="form.processing" name="spinner" class="tl-ic tl-ic--sm tl-spin" />
+                        <TlIcon v-else :name="isEditing ? 'check' : 'plus'" class="tl-ic tl-ic--sm" />
                         {{ form.processing ? 'Saving…' : (isEditing ? 'Update' : 'Add schedule') }}
                     </button>
                     <button
                         v-if="isEditing"
                         type="button"
                         @click="cancelEdit"
-                        class="text-sm text-slate-400 hover:text-slate-200 px-3 py-2 transition-colors"
+                        class="tl-btn-ghost tl-btn-ghost--neutral"
                     >
                         Cancel
                     </button>
                 </div>
             </div>
+            </div>
 
             <!-- RIGHT: Monitor -->
-            <div class="lg:col-span-2 space-y-3">
+            <div class="tl-col-main tl-stack--sm">
 
-                <div class="flex items-center justify-between gap-3 mb-4">
-                    <h2 class="text-sm font-semibold text-slate-300 shrink-0">
+                <div class="tl-row tl-row--between">
+                    <h2 class="tl-title">
                         Schedules
-                        <span v-if="schedules.total" class="text-slate-500 font-normal ml-1">({{ schedules.total }})</span>
+                        <span v-if="schedules.total" class="tl-hint">({{ schedules.total }})</span>
                     </h2>
-                    <div v-if="isOwner" class="relative flex-1 max-w-xs">
-                        <TlIcon name="search" class="absolute left-2.5 top-1.5 w-3.5 h-3.5 text-slate-500 pointer-events-none" />
+                    <div v-if="isOwner" class="tl-input-wrap tl-grow-capped">
+                        <TlIcon name="search" class="tl-input-icon" />
                         <input
                             v-model="scheduleSearch"
                             type="text"
                             placeholder="Filter by email or client…"
-                            class="w-full rounded-lg bg-slate-800 border border-slate-700 text-slate-200 text-xs pl-7 py-1.5 placeholder-slate-600 focus:outline-none focus:ring-1 focus:ring-indigo-500 pr-7"
+                            class="tl-input tl-input--sm tl-input--full tl-input--with-icon"
                         />
-                        <TlIcon
-                            v-if="schedulesLoading"
-                            name="spinner"
-                            class="absolute right-2.5 top-1.5 w-3.5 h-3.5 animate-spin text-slate-500"
-                        />
+                        <TlIcon v-if="schedulesLoading" name="spinner" class="tl-input-spinner" />
                         <button
                             v-else-if="scheduleSearch"
                             type="button"
                             @click="scheduleSearch = ''"
-                            class="absolute right-2.5 top-1.5 text-slate-500 hover:text-slate-300 transition-colors"
+                            class="tl-input-clear"
                         >
-                            <TlIcon name="close" class="w-3.5 h-3.5" />
+                            <TlIcon name="close" class="tl-ic tl-ic--sm" />
                         </button>
                     </div>
                 </div>
 
                 <!-- Idle state (owner, no search typed yet) -->
-                <div v-if="isOwner && !scheduleSearch.trim()" class="tl-card py-10 flex flex-col items-center">
-                    <TlIcon name="calendar" class="w-10 h-10 text-slate-700 mb-4" />
-                    <p class="text-slate-300 font-medium mb-1">Search to view schedules</p>
-                    <p class="text-slate-500 text-sm text-center max-w-xs">
+                <div v-if="isOwner && !scheduleSearch.trim()" class="tl-empty-state">
+                    <TlIcon name="calendar" class="tl-empty-icon" />
+                    <p class="tl-body">Search to view schedules</p>
+                    <p class="tl-subtext">
                         Type a client email or name in the search box above to find schedules.
                     </p>
                 </div>
 
                 <!-- Empty state -->
-                <div v-else-if="schedules.data.length === 0" class="tl-card py-10 flex flex-col items-center">
-                    <TlIcon name="inbox" class="w-10 h-10 text-slate-700 mb-4" />
+                <div v-else-if="schedules.data.length === 0" class="tl-empty-state">
+                    <TlIcon name="inbox" class="tl-empty-icon" />
                     <template v-if="scheduleSearch.trim()">
-                        <p class="text-slate-300 font-medium mb-1">No schedules match</p>
-                        <p class="text-slate-500 text-sm text-center">
-                            No results for "{{ scheduleSearch.trim() }}".
-                        </p>
+                        <p class="tl-body">No schedules match</p>
+                        <p class="tl-subtext">No results for "{{ scheduleSearch.trim() }}".</p>
                     </template>
                     <template v-else>
-                        <p class="text-slate-300 font-medium mb-1">No schedules yet</p>
-                        <p class="text-slate-500 text-sm text-center">
-                            Use the form to add your first delivery schedule.
-                        </p>
+                        <p class="tl-body">No schedules yet</p>
+                        <p class="tl-subtext">Use the form to add your first delivery schedule.</p>
                     </template>
                 </div>
 
@@ -433,99 +402,79 @@ function nextRunLabel(iso) {
                 <div
                     v-for="s in schedules.data"
                     :key="s.id"
-                    :class="[
-                        'tl-card p-4 transition-all duration-150',
-                        editingId === s.id ? 'ring-1 ring-indigo-500' : '',
-                    ]"
+                    class="tl-card tl-card--sm"
+                    :class="editingId === s.id ? 'tl-card--editing' : ''"
                 >
                     <!-- Header row -->
-                    <div class="flex items-start justify-between gap-3 mb-2">
-                        <div class="min-w-0">
-                            <p class="text-sm font-semibold text-slate-200 truncate">{{ s.email }}</p>
-                            <p v-if="s.assigned_to" class="text-xs text-slate-500 mt-0.5">
-                                For <span class="text-slate-400">{{ s.assigned_to.name }}</span>
-                                <span class="text-slate-600"> &lt;{{ s.assigned_to.email }}&gt;</span>
+                    <div class="tl-row tl-row--between tl-row--top">
+                        <div class="tl-min-w-0">
+                            <p class="tl-cell-primary tl-trunc">{{ s.email }}</p>
+                            <p v-if="s.assigned_to" class="tl-hint">
+                                For <span class="tl-body--muted">{{ s.assigned_to.name }}</span>
+                                <span class="tl-combo-item-hint"> &lt;{{ s.assigned_to.email }}&gt;</span>
                             </p>
                         </div>
-                        <span v-if="s.active" class="tl-badge tl-badge--success shrink-0">
+                        <span v-if="s.active" class="tl-badge tl-badge--success">
                             <span class="tl-dot tl-dot--success"></span>
                             Active
                         </span>
-                        <span v-else class="tl-badge tl-badge--neutral shrink-0">
+                        <span v-else class="tl-badge tl-badge--neutral">
                             <span class="tl-dot tl-dot--neutral"></span>
                             Paused
                         </span>
                     </div>
 
                     <!-- Stats -->
-                    <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500 mb-3">
+                    <div class="tl-meta-row">
                         <span>
-                            <span class="text-slate-400">Next run:</span>
-                            <span
-                                :class="s.active ? 'text-indigo-400' : 'text-slate-600'"
-                                class="ml-1 font-mono font-medium"
-                            >
+                            <span class="tl-body--muted">Next run:</span>
+                            <span class="tl-mono--xs" :class="s.active ? 'tl-score--high' : 'tl-num--zero'">
                                 {{ s.active ? nextRunLabel(s.next_delivery_at) : '—' }}
                             </span>
                         </span>
-                        <span class="font-mono">{{ s.deliver_at }}</span>
-                        <span class="truncate max-w-[180px]">{{ s.timezone }}</span>
+                        <span class="tl-mono--xs">{{ s.deliver_at }}</span>
+                        <span class="tl-trunc tl-meta-tz">{{ s.timezone }}</span>
                     </div>
 
-                    <p class="text-xs text-slate-600 mb-3">
-                        Last delivered: <span class="text-slate-500">{{ formatDate(s.last_delivered_at) }}</span>
+                    <p class="tl-hint tl-card-gap-sm">
+                        Last delivered: <span class="tl-body--muted">{{ formatDate(s.last_delivered_at) }}</span>
                     </p>
 
                     <!-- Actions -->
-                    <div class="flex items-center gap-2 pt-2 border-t border-slate-800">
-                        <button
-                            @click="toggle(s)"
-                            :class="s.active
-                                ? 'border-slate-700 text-slate-400 hover:text-amber-400 hover:border-amber-700'
-                                : 'border-slate-700 text-slate-400 hover:text-emerald-400 hover:border-emerald-700'"
-                            class="inline-flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-md border transition-colors duration-150"
-                        >
-                            <TlIcon :name="s.active ? 'pause' : 'play'" class="w-3 h-3" />
+                    <div class="tl-card-actions">
+                        <button type="button" @click="toggle(s)" class="tl-btn tl-btn--secondary tl-btn--sm">
+                            <TlIcon :name="s.active ? 'pause' : 'play'" class="tl-ic tl-ic--xs" />
                             {{ s.active ? 'Pause' : 'Resume' }}
                         </button>
 
-                        <button
-                            @click="startEdit(s)"
-                            class="inline-flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-md border border-slate-700 text-slate-400 hover:text-slate-200 hover:border-slate-500 transition-colors duration-150"
-                        >
-                            <TlIcon name="pencil" class="w-3 h-3" />
+                        <button type="button" @click="startEdit(s)" class="tl-btn tl-btn--secondary tl-btn--sm">
+                            <TlIcon name="pencil" class="tl-ic tl-ic--xs" />
                             Edit
                         </button>
 
-                        <button
-                            @click="remove(s)"
-                            class="inline-flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-md border border-slate-700 text-slate-400 hover:text-red-400 hover:border-red-700 transition-colors duration-150 ml-auto"
-                        >
-                            <TlIcon name="trash" class="w-3 h-3" />
+                        <button type="button" @click="remove(s)" class="tl-btn tl-btn--danger-outline tl-push-end">
+                            <TlIcon name="trash" class="tl-ic tl-ic--xs" />
                             Delete
                         </button>
                     </div>
                 </div>
 
                 <!-- Pagination -->
-                <div
-                    v-if="schedules.last_page > 1"
-                    class="flex items-center justify-between pt-1 text-xs text-slate-500"
-                >
+                <div v-if="schedules.last_page > 1" class="tl-pager">
                     <button
                         @click="goToPage(schedules.current_page - 1)"
                         :disabled="!schedules.prev_page_url"
-                        class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-slate-700 hover:border-slate-500 hover:text-slate-300 disabled:opacity-30 disabled:cursor-not-allowed transition-colors duration-150"
+                        class="tl-btn tl-btn--secondary tl-btn--sm"
                     >
                         ← Prev
                     </button>
-                    <span class="text-slate-500">
+                    <span class="tl-pager-label">
                         Page {{ schedules.current_page }} of {{ schedules.last_page }}
                     </span>
                     <button
                         @click="goToPage(schedules.current_page + 1)"
                         :disabled="!schedules.next_page_url"
-                        class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-slate-700 hover:border-slate-500 hover:text-slate-300 disabled:opacity-30 disabled:cursor-not-allowed transition-colors duration-150"
+                        class="tl-btn tl-btn--secondary tl-btn--sm"
                     >
                         Next →
                     </button>

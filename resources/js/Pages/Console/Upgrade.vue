@@ -18,7 +18,7 @@ const tiers = [
         period:   '/month',
         features: ['Digest Schedules', 'Digest History', 'Summarize History', 'Savings Analytics (full)'],
         cta:      'Upgrade to Pro',
-        style:    'bg-indigo-600 hover:bg-indigo-500 text-white',
+        style:    'tl-btn--primary',
     },
     {
         key:      'team',
@@ -27,7 +27,7 @@ const tiers = [
         period:   '/seat/month',
         features: ['Everything in Pro', 'Compliance Tracking', 'CSV/JSON Export', 'Team & Seat Management'],
         cta:      'Upgrade to Team',
-        style:    'bg-violet-600 hover:bg-violet-500 text-white',
+        style:    'tl-btn--primary',
     },
 ]
 
@@ -37,41 +37,43 @@ const relevantTiers = tiers.filter(t =>
 </script>
 
 <template>
-    <div class="tl-page max-w-3xl">
+    <div class="tl-page tl-page--narrow">
 
-        <div class="mb-8">
-            <h1 class="tl-heading">Upgrade Required</h1>
-            <p class="tl-subtext">This feature is not available on your current plan.</p>
+        <div class="tl-page-header">
+            <div>
+                <h1 class="tl-heading">Upgrade Required</h1>
+                <p class="tl-subtext">This feature is not available on your current plan.</p>
+            </div>
         </div>
 
-        <div class="grid gap-4 sm:grid-cols-2">
+        <div class="tl-grid-2">
             <div
                 v-for="tier in relevantTiers"
                 :key="tier.key"
-                class="tl-card tl-card--lg flex flex-col"
+                class="tl-card tl-card--lg tl-tier-card"
             >
-                <div class="mb-4">
-                    <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">{{ tier.name }}</span>
-                    <div class="mt-1 flex items-baseline gap-1">
-                        <span class="text-3xl font-bold text-white font-mono">{{ tier.price }}</span>
-                        <span class="text-slate-400 text-sm">{{ tier.period }}</span>
+                <div class="tl-label--spaced">
+                    <span class="tl-label">{{ tier.name }}</span>
+                    <div class="tl-tier-price">
+                        <span class="tl-tier-price-value">{{ tier.price }}</span>
+                        <span class="tl-subtext">{{ tier.period }}</span>
                     </div>
                 </div>
 
-                <ul class="space-y-2 mb-6 flex-1">
+                <ul class="tl-tier-features">
                     <li
                         v-for="feature in tier.features"
                         :key="feature"
-                        class="flex items-center gap-2 text-sm text-slate-300"
+                        class="tl-tier-feature"
                     >
-                        <TlIcon name="check" :stroke-width="2" class="w-4 h-4 text-indigo-400 shrink-0" />
+                        <TlIcon name="check" :stroke-width="2" class="tl-ic tl-legend-ic" />
                         {{ feature }}
                     </li>
                 </ul>
 
                 <Link
                     href="/console/account"
-                    class="inline-flex items-center justify-center w-full px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-150"
+                    class="tl-btn tl-btn--grow-x"
                     :class="tier.style"
                 >
                     {{ tier.cta }}
@@ -79,9 +81,9 @@ const relevantTiers = tiers.filter(t =>
             </div>
         </div>
 
-        <p class="mt-6 text-center text-sm text-slate-500">
+        <p class="tl-foot-note">
             Manage your subscription from the
-            <Link href="/console/account" class="text-indigo-400 hover:text-indigo-300">Account page</Link>.
+            <Link href="/console/account" class="tl-link tl-link--md">Account page</Link>.
         </p>
     </div>
 </template>

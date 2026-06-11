@@ -28,52 +28,52 @@ async function removeMember(member) {
 </script>
 
 <template>
-    <div class="px-4 sm:px-6 lg:px-8 py-8 max-w-4xl mx-auto">
+    <div class="tl-page tl-page--mid">
 
         <!-- Breadcrumb -->
-        <div class="mb-6 flex items-center gap-3">
-            <Link href="/console/owner/teams" class="text-slate-400 hover:text-white transition text-sm">← Teams</Link>
-            <span class="text-slate-700">/</span>
-            <span class="text-slate-300 text-sm font-medium">{{ team.name }}</span>
+        <div class="tl-breadcrumb tl-card-gap">
+            <Link href="/console/owner/teams" class="tl-breadcrumb-group tl-cell-link">← Teams</Link>
+            <span class="tl-breadcrumb-sep">/</span>
+            <span class="tl-breadcrumb-page">{{ team.name }}</span>
         </div>
 
         <!-- Team card -->
-        <div class="tl-card tl-card--lg mb-6">
-            <h1 class="text-lg font-semibold text-white mb-4">{{ team.name }}</h1>
+        <div class="tl-card tl-card--lg tl-card-gap">
+            <h1 class="tl-modal-title tl-label--spaced">{{ team.name }}</h1>
 
-            <dl class="grid grid-cols-2 gap-4 sm:grid-cols-4">
+            <dl class="tl-dl-grid tl-dl-grid--4">
                 <div>
-                    <dt class="tl-label mb-1">Owner</dt>
+                    <dt class="tl-dt">Owner</dt>
                     <dd>
                         <Link
                             v-if="team.owner"
                             :href="`/console/owner/clients/${team.owner.id}`"
-                            class="text-sm text-slate-300 hover:text-white transition"
+                            class="tl-dd tl-cell-link"
                         >{{ team.owner.name }}</Link>
-                        <span v-else class="text-slate-600 text-sm">—</span>
+                        <span v-else class="tl-hint">—</span>
                     </dd>
                 </div>
                 <div>
-                    <dt class="tl-label mb-1">Members</dt>
-                    <dd class="text-sm text-slate-300">{{ members.length }}</dd>
+                    <dt class="tl-dt">Members</dt>
+                    <dd class="tl-dd">{{ members.length }}</dd>
                 </div>
                 <div>
-                    <dt class="tl-label mb-1">Seats</dt>
-                    <dd class="text-sm text-slate-300">{{ team.seats ?? '—' }}</dd>
+                    <dt class="tl-dt">Seats</dt>
+                    <dd class="tl-dd">{{ team.seats ?? '—' }}</dd>
                 </div>
                 <div>
-                    <dt class="tl-label mb-1">Created</dt>
-                    <dd class="text-sm text-slate-300">{{ formatDate(team.created_at) }}</dd>
+                    <dt class="tl-dt">Created</dt>
+                    <dd class="tl-dd">{{ formatDate(team.created_at) }}</dd>
                 </div>
             </dl>
         </div>
 
         <!-- Members table -->
         <div class="tl-card tl-card--flush">
-            <div class="px-5 py-3 border-b border-slate-800">
-                <h2 class="text-sm font-medium text-slate-300">Members</h2>
+            <div class="tl-table-header">
+                <h2 class="tl-title">Members</h2>
             </div>
-            <table class="w-full text-sm">
+            <table class="tl-table">
                 <thead>
                     <tr class="tl-thead">
                         <th class="tl-th">Name</th>
@@ -84,29 +84,30 @@ async function removeMember(member) {
                 </thead>
                 <tbody class="tl-divide">
                     <tr v-for="member in members" :key="member.id" class="tl-tr">
-                        <td class="px-4 py-3 text-slate-300 text-sm">
+                        <td class="tl-td">
                             {{ member.name }}
                             <span
                                 v-if="team.owner?.id === member.id"
-                                class="ml-1.5 tl-badge tl-badge--neutral text-[10px] uppercase tracking-wider"
+                                class="tl-badge tl-badge--neutral tl-badge--caps"
                             >owner</span>
                         </td>
-                        <td class="px-4 py-3 text-slate-400 text-xs">
-                            <Link :href="`/console/owner/clients/${member.id}`" class="hover:text-white transition">
+                        <td class="tl-td tl-cell-muted">
+                            <Link :href="`/console/owner/clients/${member.id}`" class="tl-cell-link">
                                 {{ member.email }}
                             </Link>
                         </td>
-                        <td class="px-4 py-3 text-slate-400 text-xs capitalize">{{ member.tier }}</td>
-                        <td class="px-4 py-3 text-right">
+                        <td class="tl-td tl-cell-muted tl-cap">{{ member.tier }}</td>
+                        <td class="tl-td tl-td--right">
                             <button
                                 v-if="team.owner?.id !== member.id"
+                                type="button"
                                 @click="removeMember(member)"
-                                class="inline-flex items-center gap-1 text-xs text-red-400/60 hover:text-red-400 transition"
+                                class="tl-btn-ghost tl-btn-ghost--danger"
                             >
-                                <TlIcon name="x-circle" class="w-3.5 h-3.5 shrink-0" />
+                                <TlIcon name="x-circle" class="tl-ic tl-ic--sm" />
                                 Remove
                             </button>
-                            <span v-else class="text-xs text-slate-700">—</span>
+                            <span v-else class="tl-hint">—</span>
                         </td>
                     </tr>
                     <tr v-if="!members.length">

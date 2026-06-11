@@ -1,77 +1,228 @@
 /*
- * Button primitives — AUDIT §3.5
- * tl-btn + variants (primary/secondary/neutral/sm)
- * tl-btn-ghost + color modifiers
- * tl-chip-btn + color modifiers
+ * Button primitives.
+ * tl-btn base + variants (primary/secondary/neutral/danger/hero/sm)
+ * tl-btn-ghost + color modifiers — text buttons with hover-tint affordance
+ * tl-chip-btn + color modifiers — bordered pill actions
+ * All theme-bearing values come from tokens.css.
  */
 
 @layer components {
   .tl-btn {
     display: inline-flex;
     align-items: center;
-    gap: 0.375rem;
+    justify-content: center;
+    gap: 0.5rem;
     cursor: pointer;
     user-select: none;
+    font-weight: 500;
+    border-radius: var(--tl-radius);
+    transition: background-color var(--tl-transition), color var(--tl-transition),
+      border-color var(--tl-transition), box-shadow var(--tl-transition);
+  }
+
+  .tl-btn:focus-visible {
+    outline: none;
+    box-shadow: var(--tl-ring-brand);
   }
 
   .tl-btn:disabled {
-    opacity: 0.4;
+    opacity: 0.45;
     cursor: not-allowed;
   }
 
   .tl-btn--primary {
-    @apply px-4 py-2 rounded-lg bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-500 transition;
+    @apply px-4 py-2 text-sm;
+    background-color: var(--tl-brand);
+    color: var(--tl-brand-fg);
+    box-shadow: var(--tl-shadow-sm);
+  }
+  .tl-btn--primary:hover:not(:disabled) {
+    background-color: var(--tl-brand-hover);
+  }
+  .tl-btn--primary:active:not(:disabled) {
+    background-color: var(--tl-brand-active);
   }
 
   .tl-btn--secondary {
-    @apply px-3 py-1.5 rounded bg-slate-700 text-slate-200 hover:bg-slate-600 transition;
+    @apply px-3 py-1.5 text-sm;
+    background-color: var(--tl-surface-2);
+    border: 1px solid var(--tl-border);
+    color: var(--tl-text-primary);
+  }
+  .tl-btn--secondary:hover:not(:disabled) {
+    background-color: var(--tl-surface-3);
+    border-color: var(--tl-border-strong);
   }
 
   .tl-btn--neutral {
-    @apply px-4 py-2 rounded-lg bg-slate-800 text-slate-200 text-sm hover:bg-slate-700 transition;
+    @apply px-4 py-2 text-sm;
+    background-color: var(--tl-surface-2);
+    color: var(--tl-text-primary);
+  }
+  .tl-btn--neutral:hover:not(:disabled) {
+    background-color: var(--tl-surface-3);
+  }
+
+  .tl-btn--danger {
+    @apply px-4 py-2 text-sm;
+    background-color: var(--tl-danger);
+    color: var(--tl-brand-fg);
+  }
+  .tl-btn--danger:hover:not(:disabled) {
+    filter: brightness(1.08);
   }
 
   .tl-btn--sm {
-    @apply text-xs py-1.5;
+    @apply text-xs px-3 py-1.5;
   }
 
   .tl-btn--hero {
-    @apply w-full flex items-center justify-center gap-2 bg-indigo-500 hover:bg-indigo-400 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-lg text-sm transition-colors duration-150 cursor-pointer;
+    @apply w-full py-3 text-sm font-semibold;
+    background-color: var(--tl-brand);
+    color: var(--tl-brand-fg);
+    border-radius: var(--tl-radius);
+    box-shadow: var(--tl-shadow-sm);
+  }
+  .tl-btn--hero:hover:not(:disabled) {
+    background-color: var(--tl-brand-hover);
   }
 
+  /* Ghost buttons — text actions with a hover tint so they read as clickable */
   .tl-btn-ghost {
-    @apply text-xs transition cursor-pointer;
+    @apply text-xs font-medium px-2 py-1;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    cursor: pointer;
+    border-radius: var(--tl-radius-sm);
+    transition: background-color var(--tl-transition), color var(--tl-transition);
+  }
+  .tl-btn-ghost:focus-visible {
+    outline: none;
+    box-shadow: var(--tl-ring-brand);
   }
 
-  .tl-btn-ghost--danger {
-    @apply text-red-400 hover:text-red-300;
-  }
+  .tl-btn-ghost--danger { color: var(--tl-danger); }
+  .tl-btn-ghost--danger:hover { background-color: var(--tl-danger-tint); }
 
-  .tl-btn-ghost--warn {
-    @apply text-amber-400 hover:text-amber-300;
-  }
+  .tl-btn-ghost--warn { color: var(--tl-warn); }
+  .tl-btn-ghost--warn:hover { background-color: var(--tl-warn-tint); }
 
-  .tl-btn-ghost--success {
-    @apply text-emerald-400 hover:text-emerald-300;
-  }
+  .tl-btn-ghost--success { color: var(--tl-success); }
+  .tl-btn-ghost--success:hover { background-color: var(--tl-success-tint); }
 
-  .tl-btn-ghost--neutral {
-    @apply text-slate-400 hover:text-slate-300;
-  }
+  .tl-btn-ghost--neutral { color: var(--tl-text-muted); }
+  .tl-btn-ghost--neutral:hover { background-color: var(--tl-surface-2); color: var(--tl-text-primary); }
 
-  .tl-btn-ghost--info {
-    @apply text-sky-400 hover:text-sky-300;
-  }
+  .tl-btn-ghost--info { color: var(--tl-info); }
+  .tl-btn-ghost--info:hover { background-color: var(--tl-info-tint); }
 
+  .tl-btn-ghost--brand { color: var(--tl-brand-soft); }
+  .tl-btn-ghost--brand:hover { background-color: var(--tl-brand-tint); }
+
+  /* Chip buttons — bordered pill actions */
   .tl-chip-btn {
-    @apply text-xs px-3 py-1.5 rounded border transition;
+    @apply text-xs px-3 py-1.5;
+    border-radius: var(--tl-radius-full);
+    border: 1px solid var(--tl-border-strong);
+    cursor: pointer;
+    transition: background-color var(--tl-transition), border-color var(--tl-transition);
   }
 
   .tl-chip-btn--warn {
-    @apply bg-amber-900/30 text-amber-300 border-amber-800 hover:bg-amber-900/60;
+    background-color: var(--tl-warn-tint);
+    color: var(--tl-warn);
+    border-color: var(--tl-warn-border);
   }
+  .tl-chip-btn--warn:hover { border-color: var(--tl-warn); }
 
   .tl-chip-btn--success {
-    @apply bg-emerald-900/30 text-emerald-300 border-emerald-800 hover:bg-emerald-900/60;
+    background-color: var(--tl-success-tint);
+    color: var(--tl-success);
+    border-color: var(--tl-success-border);
   }
+  .tl-chip-btn--success:hover { border-color: var(--tl-success); }
+
+  .tl-chip-btn--brand {
+    background-color: var(--tl-brand-tint);
+    color: var(--tl-brand-soft);
+    border-color: var(--tl-brand);
+  }
+  .tl-chip-btn--brand:hover { border-color: var(--tl-brand-hover); }
+}
+
+@layer components {
+  /* Outline button (brand border, transparent fill) */
+  .tl-btn--outline {
+    @apply px-4 py-2 text-sm;
+    border: 1px solid var(--tl-brand);
+    color: var(--tl-brand-soft);
+    background-color: transparent;
+  }
+  .tl-btn--outline:hover:not(:disabled) {
+    background-color: var(--tl-brand-tint);
+  }
+
+  /* Inverse button for solid-brand promo surfaces */
+  .tl-btn--inverse {
+    @apply px-4 py-2 text-sm font-semibold;
+    background-color: white;
+    color: var(--tl-brand);
+  }
+  .tl-btn--inverse:hover:not(:disabled) { filter: brightness(0.95); }
+}
+
+@layer components {
+  /* Danger outline — destructive actions that must read as buttons */
+  .tl-btn--danger-outline {
+    @apply px-3 py-1.5 text-xs font-medium;
+    border: 1px solid var(--tl-danger-border);
+    color: var(--tl-danger);
+    background-color: var(--tl-danger-tint);
+  }
+  .tl-btn--danger-outline:hover:not(:disabled) {
+    border-color: var(--tl-danger);
+    filter: brightness(1.05);
+  }
+}
+
+@layer components {
+  /* Transient state text colors for action buttons (test feedback) */
+  .tl-btn--state-ok  { color: var(--tl-success) !important; }
+  .tl-btn--state-err { color: var(--tl-danger) !important; }
+}
+
+@layer components {
+  /* Pagination page-number buttons */
+  .tl-page-btn {
+    @apply px-2.5 py-1.5 text-xs cursor-pointer;
+    border-radius: var(--tl-radius-sm);
+    border: 1px solid var(--tl-border);
+    background-color: var(--tl-card);
+    color: var(--tl-text-secondary);
+    transition: background-color var(--tl-transition), border-color var(--tl-transition), color var(--tl-transition);
+  }
+  .tl-page-btn:hover:not(:disabled):not(.tl-page-btn--active) {
+    background-color: var(--tl-surface-2);
+    border-color: var(--tl-border-strong);
+    color: var(--tl-text);
+  }
+  .tl-page-btn--active {
+    background-color: var(--tl-brand);
+    border-color: var(--tl-brand);
+    color: var(--tl-brand-fg);
+    font-weight: 500;
+  }
+  .tl-page-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+  .tl-page-ellipsis {
+    @apply px-1.5 py-1.5 text-xs select-none;
+    color: var(--tl-text-subtle);
+  }
+}
+
+@layer components {
+  .tl-btn--grow-x { @apply w-full; }
 }

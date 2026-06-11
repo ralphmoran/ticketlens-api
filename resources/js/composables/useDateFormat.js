@@ -19,8 +19,8 @@ export function expiryWarning(dateStr) {
     const exp = new Date(dateStr.slice(0, 10) + 'T00:00:00')
     const days = Math.ceil((exp - now) / 86400000)
     if (days < 0 || days > 15) return null
-    if (days === 0) return { label: 'Today',               classes: 'bg-red-900/40 text-red-300' }
-    if (days <= 3)  return { label: `In ${days} day${days === 1 ? '' : 's'}`, classes: 'bg-red-900/40 text-red-300' }
-    if (days <= 7)  return { label: `In ${days} days`,     classes: 'bg-orange-900/40 text-orange-300' }
-    return                  { label: `In ${days} days`,     classes: 'bg-yellow-900/40 text-yellow-300' }
+    if (days === 0) return { label: 'Today',               classes: 'tl-badge tl-badge--danger' }
+    if (days <= 3)  return { label: `In ${days} day${days === 1 ? '' : 's'}`, classes: 'tl-badge tl-badge--danger' }
+    if (days <= 7)  return { label: `In ${days} days`,     classes: 'tl-badge tl-badge--warn' }
+    return                  { label: `In ${days} days`,     classes: 'tl-badge tl-badge--warn' }
 }

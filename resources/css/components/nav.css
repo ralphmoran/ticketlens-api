@@ -1,39 +1,105 @@
 /*
- * Nav / sidebar primitives — AUDIT §3.8
+ * Nav / sidebar primitives.
  * tl-nav-link base + 4 state modifiers (active/inactive × member/owner)
- * tl-nav-group-label (slate by default) + --owner amber override
- *
- * State modifiers were deferred from Phase 4 and added in Phase 6, lifted
- * verbatim from ConsoleLayout's :class binding so visual parity is preserved.
+ * tl-nav-group-label (+ --owner)
+ * tl-nav-tree (+ --amber) — ├─/└─ connector sub-items
+ * All theme-bearing values come from tokens.css. The active state uses
+ * --tl-nav-active-* so light mode renders a brand-tinted pill (reference
+ * style) while dark mode keeps a lifted surface fill.
  */
 
 @layer components {
   .tl-nav-link {
-    @apply flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors duration-150 cursor-pointer
-           focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900;
+    @apply flex items-center gap-3 px-3 py-2.5 text-sm cursor-pointer;
+    border-radius: var(--tl-radius);
+    transition: background-color var(--tl-transition), color var(--tl-transition);
+  }
+  .tl-nav-link:focus-visible {
+    outline: none;
+    box-shadow: var(--tl-ring-brand);
   }
 
   .tl-nav-link--active {
-    @apply bg-slate-800 text-white;
+    background-color: var(--tl-nav-active-bg);
+    color: var(--tl-nav-active-fg);
+    font-weight: 500;
   }
 
   .tl-nav-link--inactive {
-    @apply text-slate-400 hover:bg-slate-800/60 hover:text-white;
+    color: var(--tl-text-muted);
+  }
+  .tl-nav-link--inactive:hover {
+    background-color: var(--tl-nav-hover-bg);
+    color: var(--tl-text);
   }
 
   .tl-nav-link--owner-active {
-    @apply bg-amber-900/30 text-amber-300;
+    background-color: var(--tl-owner-tint);
+    color: var(--tl-owner);
+    font-weight: 500;
   }
 
   .tl-nav-link--owner-inactive {
-    @apply text-amber-500/70 hover:bg-amber-900/20 hover:text-amber-300;
+    color: var(--tl-owner-muted);
+  }
+  .tl-nav-link--owner-inactive:hover {
+    background-color: var(--tl-owner-tint);
+    color: var(--tl-owner);
   }
 
   .tl-nav-group-label {
-    @apply px-3 mb-1 text-[10px] font-semibold uppercase tracking-widest text-slate-500;
+    @apply px-3 mb-1 text-[10px] font-semibold uppercase tracking-widest;
+    color: var(--tl-text-subtle);
   }
 
   .tl-nav-group-label--owner {
-    @apply text-amber-500/70;
+    color: var(--tl-owner-muted);
   }
+}
+
+@layer components {
+/* ── Tree-connector nav sub-items ─────────────────────────────────────────── *
+ * ├─ / └─ style connectors via ::before (vertical) + ::after (branch).
+ * ────────────────────────────────────────────────────────────────────────── */
+.tl-nav-tree {
+    margin-left: 1.125rem;
+    margin-bottom: 0.25rem;
+}
+
+.tl-nav-tree > ul > li {
+    position: relative;
+    padding-left: 1rem; /* space for connector */
+}
+
+.tl-nav-tree > ul > li::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    background-color: var(--tl-border-strong);
+    opacity: 0.7;
+}
+
+.tl-nav-tree > ul > li:last-child::before {
+    bottom: 50%;
+}
+
+.tl-nav-tree > ul > li::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    width: 0.75rem;
+    height: 1px;
+    background-color: var(--tl-border-strong);
+    opacity: 0.7;
+}
+
+.tl-nav-tree--amber > ul > li::before,
+.tl-nav-tree--amber > ul > li::after {
+    background-color: var(--tl-owner);
+    opacity: 0.45;
+}
 }

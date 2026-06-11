@@ -150,93 +150,95 @@ const TIER_LABELS = { free: 'Free', pro: 'Pro', team: 'Team', enterprise: 'Enter
 </script>
 
 <template>
-    <div class="px-4 sm:px-6 lg:px-8 py-8 max-w-4xl mx-auto">
+    <div class="tl-page tl-page--mid">
 
         <!-- Breadcrumb -->
-        <div class="mb-6 flex items-center gap-3">
-            <Link href="/console/owner/clients" class="text-slate-400 hover:text-white transition text-sm">← Clients</Link>
-            <span class="text-slate-700">/</span>
-            <span class="text-slate-300 text-sm font-medium">{{ client.name }}</span>
+        <div class="tl-breadcrumb tl-card-gap">
+            <Link href="/console/owner/clients" class="tl-breadcrumb-group tl-cell-link">← Clients</Link>
+            <span class="tl-breadcrumb-sep">/</span>
+            <span class="tl-breadcrumb-page">{{ client.name }}</span>
         </div>
 
         <!-- Toast -->
         <div
             v-if="toast"
-            class="fixed top-4 right-4 z-50 px-4 py-2 rounded-lg bg-emerald-900/80 border border-emerald-700 text-emerald-200 text-sm font-medium shadow-xl"
+            class="tl-toast tl-toast--success"
         >
             {{ toast }}
         </div>
 
         <!-- ── Client card ──────────────────────────────────────────── -->
-        <div class="tl-card tl-card--lg mb-6">
-            <div class="flex items-start justify-between mb-4">
+        <div class="tl-card tl-card--lg tl-card-gap">
+            <div class="tl-row tl-row--between tl-row--top tl-label--spaced">
                 <div>
-                    <h1 class="text-lg font-semibold text-white">{{ client.name }}</h1>
-                    <p class="text-slate-400 text-sm">{{ client.email }}</p>
+                    <h1 class="tl-modal-title">{{ client.name }}</h1>
+                    <p class="tl-subtext">{{ client.email }}</p>
                 </div>
-                <div v-if="client.is_owner" class="flex items-center gap-2">
+                <div v-if="client.is_owner" class="tl-row">
                     <span
                         data-testid="owner-protected-badge"
-                        class="text-[10px] uppercase tracking-wider px-2 py-1 rounded bg-amber-900/30 text-amber-400 border border-amber-700/40"
+                        class="tl-badge tl-badge--warn tl-badge--caps"
                     >Platform owner — protected</span>
                 </div>
-                <div v-else class="flex gap-2">
+                <div v-else class="tl-row">
                     <button
                         v-if="!client.suspended_at"
+                        type="button"
                         @click="impersonate"
                         data-testid="impersonate-button"
-                        class="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded bg-indigo-900/30 text-indigo-300 border border-indigo-800 hover:bg-indigo-900/60 transition cursor-pointer"
+                        class="tl-chip-btn tl-chip-btn--brand tl-row tl-row--tight"
                     >
-                        <TlIcon name="user-circle" class="w-3.5 h-3.5 shrink-0" />
+                        <TlIcon name="user-circle" class="tl-ic tl-ic--sm" />
                         Impersonate
                     </button>
-                    <button v-if="!client.suspended_at" @click="suspend" class="inline-flex items-center gap-1.5 tl-chip-btn tl-chip-btn--warn">
-                        <TlIcon name="ban" class="w-3.5 h-3.5 shrink-0" />
+                    <button v-if="!client.suspended_at" type="button" @click="suspend" class="tl-chip-btn tl-chip-btn--warn tl-row tl-row--tight">
+                        <TlIcon name="ban" class="tl-ic tl-ic--sm" />
                         Suspend
                     </button>
-                    <button v-else @click="restore" class="inline-flex items-center gap-1.5 tl-chip-btn tl-chip-btn--success">
-                        <TlIcon name="refresh" class="w-3.5 h-3.5 shrink-0" />
+                    <button v-else type="button" @click="restore" class="tl-chip-btn tl-chip-btn--success tl-row tl-row--tight">
+                        <TlIcon name="refresh" class="tl-ic tl-ic--sm" />
                         Restore
                     </button>
                 </div>
             </div>
 
             <!-- Tier selector -->
-            <div v-if="!client.is_owner" class="flex items-center gap-3">
-                <label class="tl-label w-16">Tier</label>
-                <select v-model="form.tier" class="tl-select tl-select--sm min-w-32">
+            <div v-if="!client.is_owner" class="tl-row">
+                <label class="tl-label tl-tier-label-col">Tier</label>
+                <select v-model="form.tier" class="tl-select tl-select--sm tl-select--tier">
                     <option value="free">Free</option>
                     <option value="pro">Pro</option>
                     <option value="team">Team</option>
                     <option value="enterprise">Enterprise</option>
                 </select>
                 <button
+                    type="button"
                     @click="saveTier"
                     :disabled="form.processing || form.tier === client.tier"
-                    class="inline-flex items-center gap-1 tl-btn tl-btn--secondary tl-btn--sm disabled:opacity-40"
+                    class="tl-btn tl-btn--secondary tl-btn--sm"
                 >
-                    <TlIcon name="check" class="w-3.5 h-3.5" />
+                    <TlIcon name="check" class="tl-ic tl-ic--sm" />
                     Save
                 </button>
-                <p v-if="form.errors.tier" class="text-red-400 text-xs">{{ form.errors.tier }}</p>
+                <p v-if="form.errors.tier" class="tl-error">{{ form.errors.tier }}</p>
             </div>
-            <p v-else class="text-xs text-slate-500 italic">
+            <p v-else class="tl-hint tl-italic">
                 Tier and feature grants are not editable for the platform owner — god permissions are granted by the owner flag, not by tier or grants.
             </p>
         </div>
 
         <!-- ── Feature Access ──────────────────────────────────────── -->
-        <div v-if="!client.is_owner" class="tl-card tl-card--flush mb-6">
+        <div v-if="!client.is_owner" class="tl-card tl-card--flush tl-card-gap">
 
             <!-- Section header -->
-            <div class="px-5 py-4 border-b border-slate-800 flex items-start justify-between gap-4">
+            <div class="tl-table-header tl-row tl-row--between tl-row--top">
                 <div>
-                    <h2 class="text-sm font-semibold text-slate-200">Feature Access</h2>
-                    <p class="text-xs text-slate-500 mt-0.5">
+                    <h2 class="tl-title">Feature Access</h2>
+                    <p class="tl-hint">
                         Tier features are read-only — change the tier above to adjust them. Check any unchecked feature to grant it individually to this client.
                     </p>
                 </div>
-                <span class="shrink-0 mt-0.5 tl-badge tl-badge--neutral uppercase tracking-widest text-[10px]">
+                <span class="tl-badge tl-badge--neutral tl-badge--caps">
                     {{ TIER_LABELS[client.tier] ?? client.tier }}
                 </span>
             </div>
@@ -246,7 +248,7 @@ const TIER_LABELS = { free: 'Free', pro: 'Pro', team: 'Team', enterprise: 'Enter
                 <li v-for="feature in orderedFeatures" :key="feature.id">
 
                     <!-- Feature row -->
-                    <div class="px-5 py-3.5 flex items-start gap-3.5">
+                    <div class="tl-feature-row">
 
                         <!-- Checkbox indicator -->
                         <button
@@ -259,14 +261,14 @@ const TIER_LABELS = { free: 'Free', pro: 'Pro', team: 'Team', enterprise: 'Enter
                                                        `Grant ${feature.label}`
                             "
                             :class="[
-                                'group relative mt-0.5 shrink-0 w-5 h-5 rounded border flex items-center justify-center transition-all duration-150 focus:outline-none focus:ring-1 focus:ring-slate-500',
+                                'group tl-grant-check',
                                 inTier(feature)
-                                    ? 'bg-emerald-500/15 border-emerald-600/40 cursor-default'
+                                    ? 'tl-grant-check--tier'
                                     : activeGrant(feature)
-                                        ? 'bg-indigo-500/15 border-indigo-500/50 hover:bg-red-500/10 hover:border-red-500/40 cursor-pointer'
+                                        ? 'tl-grant-check--granted'
                                         : expandedId === feature.id
-                                            ? 'bg-slate-700/60 border-slate-500 cursor-pointer'
-                                            : 'bg-transparent border-slate-700 hover:border-slate-500 cursor-pointer',
+                                            ? 'tl-grant-check--open'
+                                            : '',
                             ]"
                         >
                             <!-- Tier: always-visible check -->
@@ -274,66 +276,66 @@ const TIER_LABELS = { free: 'Free', pro: 'Pro', team: 'Team', enterprise: 'Enter
                                 v-if="inTier(feature)"
                                 name="check"
                                 :strokeWidth="2.5"
-                                class="w-3.5 h-3.5 text-emerald-400"
+                                class="tl-ic tl-ic--sm tl-num--success"
                             />
                             <!-- Grant: check fades to X on hover -->
                             <template v-else-if="activeGrant(feature)">
-                                <TlIcon name="check"  :strokeWidth="2.5" class="w-3.5 h-3.5 text-indigo-400 transition-opacity duration-100 group-hover:opacity-0" />
-                                <TlIcon name="close"  :strokeWidth="2.5" class="w-3 h-3 text-red-400 absolute transition-opacity duration-100 opacity-0 group-hover:opacity-100" />
+                                <TlIcon name="check"  :strokeWidth="2.5" class="tl-ic tl-ic--sm tl-grant-check-on" />
+                                <TlIcon name="close"  :strokeWidth="2.5" class="tl-ic tl-ic--xs tl-grant-check-off" />
                             </template>
                             <!-- Expandable: dash when open -->
                             <template v-else>
-                                <span v-if="expandedId === feature.id" class="w-2.5 h-0.5 rounded-full bg-slate-400" />
+                                <span v-if="expandedId === feature.id" class="tl-grant-dash" />
                             </template>
                         </button>
 
                         <!-- Label + description + badges -->
-                        <div class="flex-1 min-w-0">
-                            <div class="flex flex-wrap items-center gap-2 min-w-0">
+                        <div class="tl-banner-fill">
+                            <div class="tl-row tl-row--wrap tl-row--tight tl-min-w-0">
                                 <span
-                                    class="text-sm font-medium"
-                                    :class="(inTier(feature) || activeGrant(feature)) ? 'text-slate-200' : 'text-slate-400'"
+                                    class="tl-toggle-row-title"
+                                    :class="(inTier(feature) || activeGrant(feature)) ? '' : 'tl-cell-muted'"
                                 >{{ feature.label }}</span>
 
                                 <!-- Tier badge -->
                                 <span
                                     v-if="inTier(feature)"
-                                    class="tl-badge tl-badge--success text-[10px] uppercase tracking-wider"
+                                    class="tl-badge tl-badge--success tl-badge--caps"
                                 >{{ TIER_LABELS[client.tier] ?? client.tier }}</span>
 
                                 <!-- Grant badge -->
                                 <template v-else-if="activeGrant(feature)">
                                     <span
                                         v-if="activeGrant(feature).expires_at"
-                                        class="tl-badge tl-badge--brand text-[10px]"
+                                        class="tl-badge tl-badge--brand"
                                     >
-                                        <TlIcon name="clock" :strokeWidth="2" class="w-3 h-3" />
+                                        <TlIcon name="clock" :strokeWidth="2" class="tl-ic tl-ic--xs" />
                                         expires {{ formatDate(activeGrant(feature).expires_at) }}
                                     </span>
-                                    <span v-else class="tl-badge tl-badge--brand text-[10px]">Permanent</span>
+                                    <span v-else class="tl-badge tl-badge--brand">Permanent</span>
                                 </template>
                             </div>
 
-                            <p v-if="feature.description" class="text-xs text-slate-500 mt-0.5">
+                            <p v-if="feature.description" class="tl-hint">
                                 {{ feature.description }}
                             </p>
 
                             <!-- Grant note -->
                             <p
                                 v-if="activeGrant(feature)?.note && !inTier(feature)"
-                                class="text-xs text-slate-600 mt-0.5 italic"
+                                class="tl-hint tl-italic"
                             >{{ activeGrant(feature).note }}</p>
                         </div>
 
                         <!-- Action hint (right side) -->
-                        <div class="shrink-0 mt-0.5">
+                        <div class="tl-grant-hint-col">
                             <span
                                 v-if="activeGrant(feature) && !inTier(feature)"
-                                class="text-[11px] text-red-400/50 group-hover:text-red-400 transition"
+                                class="tl-grant-hint tl-grant-hint--revoke"
                             >click to revoke</span>
                             <span
                                 v-else-if="!inTier(feature) && !activeGrant(feature) && expandedId !== feature.id"
-                                class="text-[11px] text-slate-600"
+                                class="tl-grant-hint"
                             >click to grant</span>
                         </div>
                     </div>
@@ -341,13 +343,13 @@ const TIER_LABELS = { free: 'Free', pro: 'Pro', team: 'Team', enterprise: 'Enter
                     <!-- Inline grant form (expands when checkbox is clicked) -->
                     <div
                         v-if="expandedId === feature.id"
-                        class="mx-5 mb-4 px-4 py-3 rounded-lg bg-slate-800/50 border border-slate-700/60"
+                        class="tl-info-box tl-banner-inset tl-card-gap-sm"
                     >
-                        <p class="text-xs font-medium text-slate-300 mb-3">
-                            Grant <span class="text-indigo-400">{{ feature.label }}</span> to {{ client.name }}
+                        <p class="tl-label tl-card-gap-sm">
+                            Grant <span class="tl-link tl-link--md">{{ feature.label }}</span> to {{ client.name }}
                         </p>
-                        <div class="flex flex-wrap items-end gap-3">
-                            <div class="flex flex-col gap-1">
+                        <div class="tl-row tl-row--wrap tl-row--bottom">
+                            <div class="tl-field">
                                 <label class="tl-label">Expires</label>
                                 <input
                                     type="date"
@@ -358,7 +360,7 @@ const TIER_LABELS = { free: 'Free', pro: 'Pro', team: 'Team', enterprise: 'Enter
                                 />
                                 <span class="tl-hint">Leave blank for a permanent grant</span>
                             </div>
-                            <div class="flex flex-col gap-1 flex-1 min-w-36">
+                            <div class="tl-field tl-field-key">
                                 <label class="tl-label">Note</label>
                                 <input
                                     type="text"
@@ -369,21 +371,22 @@ const TIER_LABELS = { free: 'Free', pro: 'Pro', team: 'Team', enterprise: 'Enter
                                 />
                                 <span class="tl-hint">Optional — visible in audit log</span>
                             </div>
-                            <div class="flex gap-2 pb-0.5">
+                            <div class="tl-row tl-row--tight">
                                 <button
+                                    type="button"
                                     @click="submitGrant(feature)"
                                     :disabled="expandForm.submitting"
-                                    class="tl-btn tl-btn--primary tl-btn--sm disabled:opacity-40"
+                                    class="tl-btn tl-btn--primary tl-btn--sm"
                                 >
-                                    <TlIcon v-if="expandForm.submitting" name="spinner" class="w-3.5 h-3.5 animate-spin" />
-                                    <TlIcon v-else name="check" class="w-3.5 h-3.5" />
+                                    <TlIcon :name="expandForm.submitting ? 'spinner' : 'check'" class="tl-ic tl-ic--sm" :class="{ 'tl-spin': expandForm.submitting }" />
                                     <span>{{ expandForm.submitting ? 'Granting…' : 'Grant' }}</span>
                                 </button>
                                 <button
+                                    type="button"
                                     @click="cancelGrantForm"
-                                    class="inline-flex items-center gap-1 tl-btn tl-btn--secondary tl-btn--sm"
+                                    class="tl-btn tl-btn--secondary tl-btn--sm"
                                 >
-                                    <TlIcon name="close" class="w-3.5 h-3.5" />
+                                    <TlIcon name="close" class="tl-ic tl-ic--sm" />
                                     Cancel
                                 </button>
                             </div>
@@ -394,33 +397,33 @@ const TIER_LABELS = { free: 'Free', pro: 'Pro', team: 'Team', enterprise: 'Enter
             </ul>
 
             <!-- Empty state (no grantable features) -->
-            <p v-if="!features.length" class="px-5 py-8 text-center text-slate-500 text-sm">
+            <p v-if="!features.length" class="tl-td--empty">
                 No grantable features configured.
             </p>
         </div>
 
         <!-- ── Audit history ────────────────────────────────────────── -->
         <div class="tl-card tl-card--flush">
-            <div class="px-5 py-3 border-b border-slate-800">
-                <h2 class="text-sm font-medium text-slate-300">Audit history</h2>
+            <div class="tl-table-header">
+                <h2 class="tl-title">Audit history</h2>
             </div>
             <ul v-if="logs.data?.length" class="tl-divide">
-                <li v-for="log in logs.data" :key="log.id" class="px-5 py-3 text-xs flex items-center gap-3 flex-wrap">
-                    <span class="text-slate-500 w-44 shrink-0">{{ formatDateTime(log.created_at) }}</span>
+                <li v-for="log in logs.data" :key="log.id" class="tl-log-row tl-row--wrap tl-log-row--xs">
+                    <span class="tl-log-time tl-log-time--wide">{{ formatDateTime(log.created_at) }}</span>
                     <span class="tl-kbd">{{ log.action }}</span>
-                    <span v-if="log.action === 'grant.created' && log.new_value?.feature_label" class="text-slate-400">
+                    <span v-if="log.action === 'grant.created' && log.new_value?.feature_label" class="tl-body--muted">
                         {{ log.new_value.feature_label }}
-                        <span v-if="log.new_value.expires_at" class="text-slate-500">until {{ formatDate(log.new_value.expires_at) }}</span>
-                        <span v-else class="text-slate-500">(permanent)</span>
-                        <span v-if="log.new_value.note" class="text-slate-600"> — {{ log.new_value.note }}</span>
+                        <span v-if="log.new_value.expires_at" class="tl-cell-muted">until {{ formatDate(log.new_value.expires_at) }}</span>
+                        <span v-else class="tl-cell-muted">(permanent)</span>
+                        <span v-if="log.new_value.note" class="tl-hint-inline"> — {{ log.new_value.note }}</span>
                     </span>
-                    <span v-else-if="log.action === 'grant.revoked' && log.old_value?.feature_label" class="text-slate-400">
+                    <span v-else-if="log.action === 'grant.revoked' && log.old_value?.feature_label" class="tl-body--muted">
                         {{ log.old_value.feature_label }}
                     </span>
-                    <span v-if="log.actor" class="text-slate-500 ml-auto">by {{ log.actor.name }}</span>
+                    <span v-if="log.actor" class="tl-cell-muted tl-push-end">by {{ log.actor.name }}</span>
                 </li>
             </ul>
-            <p v-else class="px-5 py-6 text-center text-slate-500 text-sm">No audit history.</p>
+            <p v-else class="tl-td--empty">No audit history.</p>
 
         </div>
 

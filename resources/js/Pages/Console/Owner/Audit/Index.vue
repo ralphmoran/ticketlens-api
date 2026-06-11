@@ -21,20 +21,22 @@ const { filters, loading, navigate } = useTableFilters({
 
 <template>
     <div class="tl-page">
-        <div class="mb-6">
-            <h1 class="tl-heading">Audit Log</h1>
-            <p class="tl-subtext">All owner-initiated actions.</p>
+        <div class="tl-page-header">
+            <div>
+                <h1 class="tl-heading">Audit Log</h1>
+                <p class="tl-subtext">All owner-initiated actions.</p>
+            </div>
         </div>
 
         <!-- Filter -->
-        <div class="mb-5">
-            <div class="relative w-full max-w-sm">
-                <TlIcon name="search" class="absolute left-2.5 top-2.5 w-3.5 h-3.5 text-slate-500 pointer-events-none" />
+        <div class="tl-picker tl-card-gap">
+            <div class="tl-input-wrap">
+                <TlIcon name="search" class="tl-input-icon" />
                 <input
                     v-model="filters.action"
                     type="text"
                     placeholder="Filter by action (e.g. user.suspended)…"
-                    class="tl-input w-full pl-8"
+                    class="tl-input tl-input--full tl-input--with-icon"
                 />
             </div>
         </div>
@@ -43,13 +45,13 @@ const { filters, loading, navigate } = useTableFilters({
         <div class="relative">
             <div
                 v-if="loading"
-                class="absolute inset-0 z-10 flex items-center justify-center rounded-lg bg-slate-950/60"
+                class="tl-loading-overlay"
             >
-                <TlIcon name="spinner" class="w-5 h-5 animate-spin text-indigo-400" />
+                <TlIcon name="spinner" class="tl-ic tl-ic--lg tl-spin tl-legend-ic" />
             </div>
 
-            <div class="tl-card tl-card--flush" :class="{ 'pointer-events-none': loading }">
-                <table class="w-full text-sm">
+            <div class="tl-card tl-card--flush" :class="{ 'tl-inert': loading }">
+                <table class="tl-table">
                     <thead>
                         <tr class="tl-thead">
                             <th class="tl-th">Time</th>
@@ -61,18 +63,18 @@ const { filters, loading, navigate } = useTableFilters({
                     </thead>
                     <tbody class="tl-divide">
                         <tr v-for="log in logs.data" :key="log.id" class="tl-tr">
-                            <td class="px-4 py-3 text-slate-500 text-xs whitespace-nowrap">{{ formatDateTime(log.created_at) }}</td>
-                            <td class="px-4 py-3 text-slate-300 text-xs">{{ log.actor?.name ?? '—' }}</td>
-                            <td class="px-5 py-3">
+                            <td class="tl-td tl-cell-muted tl-nowrap">{{ formatDateTime(log.created_at) }}</td>
+                            <td class="tl-td">{{ log.actor?.name ?? '—' }}</td>
+                            <td class="tl-td">
                                 <span class="tl-kbd">{{ log.action }}</span>
                             </td>
-                            <td class="px-4 py-3 text-xs text-slate-400">
-                                <Link v-if="log.target_user" :href="`/console/owner/clients/${log.target_user?.id}`" class="hover:text-white transition">
+                            <td class="tl-td tl-cell-muted">
+                                <Link v-if="log.target_user" :href="`/console/owner/clients/${log.target_user?.id}`" class="tl-cell-link">
                                     {{ log.target_user?.email }}
                                 </Link>
                                 <span v-else>—</span>
                             </td>
-                            <td class="px-4 py-3 text-xs text-slate-500 font-mono">{{ log.ip_address ?? '—' }}</td>
+                            <td class="tl-td tl-mono--xs tl-cell-muted">{{ log.ip_address ?? '—' }}</td>
                         </tr>
                         <tr v-if="!logs.data?.length">
                             <td colspan="5" class="tl-td--empty">No log entries.</td>

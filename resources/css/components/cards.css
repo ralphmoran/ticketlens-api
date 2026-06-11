@@ -297,3 +297,8 @@
   .tl-log-row { @apply px-5 py-3 text-sm flex items-center gap-3; }
   .tl-log-time { @apply text-xs w-36 shrink-0; color: var(--tl-text-subtle); }
 }
+
+@layer components {
+  .tl-log-row--xs { @apply text-xs; }
+  .tl-log-time--wide { @apply w-44; }
+}

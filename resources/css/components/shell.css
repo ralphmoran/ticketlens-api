@@ -324,3 +324,46 @@
 @layer components {
   .tl-avatar--brand { background-color: var(--tl-brand); color: var(--tl-brand-fg); }
 }
+
+@layer components {
+  .tl-modal--sm { @apply max-w-sm; }
+}
+
+@layer components {
+  /* Fullscreen status pages (suspended, errors) */
+  .tl-fullscreen-center {
+    @apply min-h-screen flex items-center justify-center px-4;
+    background-color: var(--tl-bg);
+  }
+  .tl-fullscreen-card { @apply max-w-md w-full text-center; }
+  .tl-status-bubble {
+    @apply inline-flex items-center justify-center w-14 h-14 mb-6;
+    border-radius: var(--tl-radius-full);
+    background-color: var(--tl-surface-2);
+    border: 1px solid var(--tl-border-strong);
+    color: var(--tl-text-muted);
+  }
+  .tl-status-bubble--sm { @apply w-10 h-10 mb-0 shrink-0; }
+  .tl-status-bubble--danger {
+    background-color: var(--tl-danger-tint);
+    border-color: var(--tl-danger-border);
+    color: var(--tl-danger);
+  }
+
+  /* Confirm dialog */
+  .tl-confirm-wrap {
+    @apply fixed inset-0 flex items-center justify-center p-4;
+    z-index: var(--tl-z-overlay);
+  }
+  .tl-confirm-backdrop {
+    @apply absolute inset-0 backdrop-blur-sm;
+    background-color: oklch(0 0 0 / 0.6);
+  }
+  .tl-confirm-panel {
+    @apply relative z-10 w-full max-w-sm p-6;
+    background-color: var(--tl-card);
+    border: 1px solid var(--tl-border);
+    border-radius: var(--tl-radius-xl);
+    box-shadow: var(--tl-shadow-lg);
+  }
+}

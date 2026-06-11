@@ -73,3 +73,18 @@
 @layer components {
   .tl-banner-inset { @apply mx-4 mt-3; }
 }
+
+@layer components {
+  /* Floating toast */
+  .tl-toast {
+    @apply fixed top-4 right-4 px-4 py-2 text-sm font-medium;
+    z-index: var(--tl-z-banner);
+    border-radius: var(--tl-radius);
+    box-shadow: var(--tl-shadow-lg);
+  }
+  .tl-toast--success {
+    background-color: var(--tl-success-tint);
+    border: 1px solid var(--tl-success-border);
+    color: var(--tl-success);
+  }
+}

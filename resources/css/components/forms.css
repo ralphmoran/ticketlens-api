@@ -323,3 +323,53 @@
 @layer components {
   .tl-field { @apply flex flex-col gap-1; }
 }
+
+@layer components {
+  /* Feature-grant checkbox — 4 states (tier / granted / open / available) */
+  .tl-feature-row { @apply px-5 py-3.5 flex items-start gap-3.5; }
+  .tl-grant-check {
+    @apply relative mt-0.5 shrink-0 w-5 h-5 flex items-center justify-center cursor-pointer;
+    border-radius: var(--tl-radius-sm);
+    border: 1px solid var(--tl-border-strong);
+    background-color: transparent;
+    transition: background-color var(--tl-transition), border-color var(--tl-transition);
+  }
+  .tl-grant-check:hover { border-color: var(--tl-border-strong); }
+  .tl-grant-check:focus-visible { outline: none; box-shadow: var(--tl-ring-brand); }
+  .tl-grant-check--tier {
+    background-color: var(--tl-success-tint);
+    border-color: var(--tl-success-border);
+    cursor: default;
+  }
+  .tl-grant-check--granted {
+    background-color: var(--tl-brand-tint);
+    border-color: var(--tl-brand);
+  }
+  .tl-grant-check--granted:hover {
+    background-color: var(--tl-danger-tint);
+    border-color: var(--tl-danger-border);
+  }
+  .tl-grant-check--open {
+    background-color: var(--tl-surface-3);
+    border-color: var(--tl-border-strong);
+  }
+  .tl-grant-check-on { color: var(--tl-brand-soft); transition: opacity var(--tl-transition-fast); }
+  .tl-grant-check--granted:hover .tl-grant-check-on { opacity: 0; }
+  .tl-grant-check-off {
+    @apply absolute;
+    color: var(--tl-danger);
+    opacity: 0;
+    transition: opacity var(--tl-transition-fast);
+  }
+  .tl-grant-check--granted:hover .tl-grant-check-off { opacity: 1; }
+  .tl-grant-dash { @apply w-2.5 h-0.5; border-radius: var(--tl-radius-full); background-color: var(--tl-text-muted); }
+  .tl-grant-hint-col { @apply shrink-0 mt-0.5; }
+  .tl-grant-hint { font-size: 11px; color: var(--tl-text-subtle); }
+  .tl-grant-hint--revoke { color: var(--tl-danger); opacity: 0.6; }
+  .tl-tier-label-col { @apply w-16; }
+  .tl-select--tier { min-width: 8rem; }
+}
+
+@layer components {
+  .tl-dl-grid--4 { @apply sm:grid-cols-4; }
+}

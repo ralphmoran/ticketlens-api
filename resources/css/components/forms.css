@@ -192,3 +192,60 @@
   .tl-option-desc  { @apply text-xs mt-0.5; opacity: 0.65; }
   .tl-hidden { @apply hidden; }
 }
+
+@layer components {
+  /* Definition grid (label-over-value columns) */
+  .tl-dl-grid { @apply grid grid-cols-3 gap-3 text-sm; }
+  .tl-dt { @apply text-xs uppercase tracking-wider mb-1; color: var(--tl-text-subtle); }
+  .tl-dd { color: var(--tl-text-primary); }
+  .tl-dd--warn { @apply text-xs; font-style: italic; color: var(--tl-warn); }
+}
+
+@layer components {
+  /* Setting row with trailing switch */
+  .tl-toggle-row {
+    @apply flex items-center justify-between px-4 py-3;
+    border: 1px solid var(--tl-border);
+    border-radius: var(--tl-radius);
+    background-color: var(--tl-surface-2);
+  }
+  .tl-toggle-row-title { @apply text-sm font-medium; color: var(--tl-text); }
+
+  /* Selectable pill chips (status pickers, filters) */
+  .tl-choice-chip {
+    @apply px-3 py-1 text-xs font-medium cursor-pointer;
+    border-radius: var(--tl-radius-full);
+    border: 1px solid var(--tl-border-strong);
+    background-color: var(--tl-surface-2);
+    color: var(--tl-text-muted);
+    transition: border-color var(--tl-transition), color var(--tl-transition), background-color var(--tl-transition);
+  }
+  .tl-choice-chip:hover:not(:disabled) { border-color: var(--tl-border-strong); color: var(--tl-text-secondary); }
+  .tl-choice-chip:disabled { opacity: 0.5; cursor: not-allowed; }
+  .tl-choice-chip--active {
+    border-color: var(--tl-brand);
+    background-color: var(--tl-brand-tint);
+    color: var(--tl-brand-soft);
+  }
+  .tl-choice-chip--pending {
+    border-color: var(--tl-warn-border);
+    background-color: var(--tl-warn-tint);
+    color: var(--tl-warn);
+  }
+  .tl-pending-dot { color: var(--tl-warn); }
+}
+
+@layer components {
+  .tl-input--num { @apply w-24; }
+  .tl-input-clear-inline {
+    @apply ml-0.5 cursor-pointer;
+    transition: color var(--tl-transition);
+  }
+  .tl-input-clear-inline:hover { color: var(--tl-text); }
+}
+
+@layer components {
+  /* One-time token reveal */
+  .tl-token-reveal-body { @apply space-y-2 min-w-0 flex-1; }
+  .tl-token-value { @apply flex-1 break-all; }
+}

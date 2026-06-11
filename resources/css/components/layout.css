@@ -150,3 +150,10 @@
   .tl-legend-ic--warn { color: var(--tl-warn); }
   .tl-legend-ic--success { color: var(--tl-success); }
 }
+
+@layer components {
+  .tl-row--bottom { @apply items-end gap-3; }
+  .tl-field-provider { @apply w-32 shrink-0; }
+  .tl-field-key { @apply flex-1; min-width: 160px; }
+  .tl-field-timeout { @apply w-20 shrink-0; }
+}

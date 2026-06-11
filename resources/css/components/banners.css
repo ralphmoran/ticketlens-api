@@ -61,3 +61,15 @@
 @layer components {
   .tl-banner-text { @apply text-xs leading-relaxed; color: var(--tl-text-secondary); }
 }
+
+@layer components {
+  .tl-banner--slim { @apply p-2.5 text-xs; }
+  /* Inline status feedback line (success/danger) */
+  .tl-feedback { @apply flex items-center gap-1.5 text-xs; }
+  .tl-feedback--success { color: var(--tl-success); }
+  .tl-feedback--danger  { color: var(--tl-danger); }
+}
+
+@layer components {
+  .tl-banner-inset { @apply mx-4 mt-3; }
+}

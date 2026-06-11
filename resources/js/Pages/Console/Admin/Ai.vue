@@ -126,22 +126,24 @@ async function testProvider(provider) {
     <div class="tl-page">
 
         <!-- Page header -->
-        <div class="mb-6">
-            <h1 class="tl-heading">AI Settings</h1>
-            <p class="tl-subtext">Register provider keys to enable cloud summarisation and handoff briefs.</p>
+        <div class="tl-page-header">
+            <div>
+                <h1 class="tl-heading">AI Settings</h1>
+                <p class="tl-subtext">Register provider keys to enable cloud summarisation and handoff briefs.</p>
+            </div>
         </div>
 
         <!-- Context box -->
-        <div class="mb-8 tl-info-box">
-            <p class="text-sm text-slate-300 leading-relaxed">
-                <strong class="text-slate-100">What it does:</strong>
+        <div class="tl-info-box tl-section-gap">
+            <p class="tl-body--secondary">
+                <strong class="tl-value">What it does:</strong>
                 Keys are encrypted and used when you run
                 <code class="tl-kbd tl-kbd--brand">ticketlens --summarize</code> or
                 <code class="tl-kbd tl-kbd--brand">ticketlens --handoff</code>.
                 Multiple providers are tried in priority order — lowest first.
             </p>
-            <p class="text-sm text-slate-400 leading-relaxed">
-                <strong class="text-slate-300">CLI alternative:</strong>
+            <p class="tl-body--muted">
+                <strong class="tl-value">CLI alternative:</strong>
                 <code class="tl-kbd">ticketlens cloud-keys add groq &lt;key&gt;</code>
                 manages keys directly from the terminal.
                 Keys added here and via CLI are shared — changes appear in both places.
@@ -149,79 +151,77 @@ async function testProvider(provider) {
         </div>
 
         <!-- Two-column layout -->
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="tl-cols-main-side">
 
             <!-- Left: AI Providers + CLI Access -->
-            <div class="lg:col-span-2 space-y-5">
+            <div class="tl-col-main">
                 <div class="tl-card tl-card--flush">
 
                     <!-- Card header -->
-                    <div class="flex items-center gap-3 px-5 py-4 border-b border-slate-800">
-                        <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-indigo-900/40">
-                            <TlIcon name="sparkles" class="h-4 w-4 text-indigo-400" />
+                    <div class="tl-card-head">
+                        <div class="tl-section-icon">
+                            <TlIcon name="sparkles" class="tl-ic" />
                         </div>
-                        <div class="flex-1 min-w-0">
-                            <h2 class="text-sm font-semibold text-slate-200">AI Providers</h2>
-                            <p class="text-xs text-slate-500 mt-0.5">Tried in priority order — lowest number first</p>
+                        <div class="tl-card-head-body">
+                            <h2 class="tl-title">AI Providers</h2>
+                            <p class="tl-hint">Tried in priority order — lowest number first</p>
                         </div>
-                        <span class="shrink-0 rounded-full px-2 py-0.5 text-xs font-medium"
-                              :class="localProviders.some(p => p.enabled)
-                                  ? 'bg-emerald-900/40 text-emerald-400'
-                                  : 'bg-slate-800 text-slate-500'">
+                        <span class="tl-badge"
+                              :class="localProviders.some(p => p.enabled) ? 'tl-badge--success' : 'tl-badge--neutral'">
                             {{ localProviders.some(p => p.enabled) ? 'Active' : 'Off' }}
                         </span>
                     </div>
 
                     <!-- Empty state -->
-                    <div v-if="localProviders.length === 0" class="py-10 text-center px-5">
-                        <TlIcon name="sparkles" class="w-8 h-8 mx-auto mb-3 text-slate-600" />
-                        <p class="text-sm text-slate-400">No providers configured yet.</p>
-                        <p class="tl-hint mt-1">Add one below to enable <strong class="text-slate-300">--summarize</strong> and <strong class="text-slate-300">--handoff</strong>.</p>
+                    <div v-if="localProviders.length === 0" class="tl-card-empty">
+                        <TlIcon name="sparkles" class="tl-empty-icon" />
+                        <p class="tl-body--muted">No providers configured yet.</p>
+                        <p class="tl-hint">Add one below to enable <strong class="tl-value">--summarize</strong> and <strong class="tl-value">--handoff</strong>.</p>
                     </div>
 
                     <!-- Provider table -->
-                    <table v-else class="w-full text-sm">
-                        <thead>
-                            <tr class="border-b border-slate-800">
-                                <th class="text-left text-xs text-slate-500 uppercase tracking-wider px-5 py-2.5 font-medium">Provider</th>
-                                <th class="text-left text-xs text-slate-500 uppercase tracking-wider px-3 py-2.5 font-medium">Key</th>
-                                <th class="text-left text-xs text-slate-500 uppercase tracking-wider px-3 py-2.5 font-medium">Pri.</th>
-                                <th class="text-left text-xs text-slate-500 uppercase tracking-wider px-3 py-2.5 font-medium">Timeout</th>
-                                <th class="text-left text-xs text-slate-500 uppercase tracking-wider px-3 py-2.5 font-medium">Status</th>
-                                <th class="px-5 py-2.5"></th>
+                    <table v-else class="tl-table">
+                        <thead class="tl-thead">
+                            <tr>
+                                <th class="tl-th">Provider</th>
+                                <th class="tl-th tl-th--snug">Key</th>
+                                <th class="tl-th tl-th--snug">Pri.</th>
+                                <th class="tl-th tl-th--snug">Timeout</th>
+                                <th class="tl-th tl-th--snug">Status</th>
+                                <th class="tl-th"></th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-slate-800">
-                            <tr v-for="provider in localProviders" :key="provider.id">
-                                <td class="px-5 py-3">
-                                    <span class="inline-flex items-center gap-1.5 font-medium text-white capitalize">
-                                        <TlIcon name="sparkles" class="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+                        <tbody class="tl-divide">
+                            <tr v-for="provider in localProviders" :key="provider.id" class="tl-tr">
+                                <td class="tl-td">
+                                    <span class="tl-row tl-row--tight tl-cell-primary tl-cap">
+                                        <TlIcon name="sparkles" class="tl-ic tl-ic--sm tl-legend-ic" />
                                         {{ provider.provider }}
                                     </span>
                                 </td>
-                                <td class="px-3 py-3 font-mono text-xs text-slate-400">{{ provider.masked_key }}</td>
-                                <td class="px-3 py-3 text-slate-400 text-xs">{{ provider.priority }}</td>
-                                <td class="px-3 py-3 text-slate-400 text-xs">{{ provider.timeout_seconds }}s</td>
-                                <td class="px-3 py-3">
+                                <td class="tl-td tl-td--snug tl-mono--xs tl-cell-muted">{{ provider.masked_key }}</td>
+                                <td class="tl-td tl-td--snug tl-cell-muted">{{ provider.priority }}</td>
+                                <td class="tl-td tl-td--snug tl-cell-muted">{{ provider.timeout_seconds }}s</td>
+                                <td class="tl-td tl-td--snug">
                                     <button
                                         @click="toggleEnabled(provider)"
-                                        :class="['tl-badge cursor-pointer select-none', provider.enabled ? 'tl-badge--success' : 'tl-badge--neutral']"
+                                        :class="['tl-badge tl-badge--btn', provider.enabled ? 'tl-badge--success' : 'tl-badge--neutral']"
                                     >
                                         {{ provider.enabled ? 'Active' : 'Disabled' }}
                                     </button>
                                 </td>
-                                <td class="px-5 py-3">
-                                    <div class="flex items-center justify-end gap-2">
+                                <td class="tl-td">
+                                    <div class="tl-row tl-row--end">
                                         <button
                                             @click="testProvider(provider)"
                                             :disabled="testing === provider.id"
-                                            class="tl-btn tl-btn--secondary text-xs"
+                                            class="tl-btn tl-btn--secondary tl-btn--sm"
                                         >
-                                            <TlIcon :name="testing === provider.id ? 'spinner' : 'play'" class="w-3.5 h-3.5" />
+                                            <TlIcon :name="testing === provider.id ? 'spinner' : 'play'" class="tl-ic tl-ic--sm" :class="{ 'tl-spin': testing === provider.id }" />
                                             {{ testing === provider.id ? 'Testing…' : 'Test' }}
                                         </button>
-                                        <button @click="removeProvider(provider)" class="tl-btn-ghost tl-btn-ghost--danger text-xs">
-                                            <TlIcon name="trash" class="w-3.5 h-3.5" />
+                                        <button @click="removeProvider(provider)" class="tl-icon-btn tl-icon-btn--snug tl-icon-btn--danger" title="Remove provider">
+                                            <TlIcon name="trash" class="tl-ic tl-ic--sm" />
                                         </button>
                                     </div>
                                 </td>
@@ -232,49 +232,47 @@ async function testProvider(provider) {
                     <!-- Test result (inline) -->
                     <div
                         v-if="testResult"
-                        :class="['mx-4 mt-3 rounded-lg border px-3 py-2.5 text-xs flex items-start gap-2',
-                            testResult.ok
-                                ? 'bg-emerald-900/20 border-emerald-800/40 text-emerald-300'
-                                : 'bg-red-900/20 border-red-800/40 text-red-300']"
+                        class="tl-banner tl-banner--slim tl-banner-inset"
+                        :class="testResult.ok ? 'tl-banner--success' : 'tl-banner--danger'"
                     >
-                        <TlIcon :name="testResult.ok ? 'check-circle' : 'x-circle'" class="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                        <TlIcon :name="testResult.ok ? 'check-circle' : 'x-circle'" class="tl-ic tl-ic--sm tl-banner-icon" />
                         <span v-if="testResult.ok">Provider responded: {{ testResult.response }}</span>
                         <span v-else>Test failed: {{ testResult.error ?? 'Unknown error' }}</span>
                     </div>
 
                     <!-- Add provider form -->
-                    <div class="border-t border-slate-800 p-5 mt-3">
-                        <form @submit.prevent="addProvider" class="flex flex-wrap gap-3 items-end">
-                            <div class="w-32 shrink-0">
-                                <label for="ai-provider" class="tl-label block mb-1">Provider</label>
-                                <select id="ai-provider" v-model="form.provider" class="tl-input w-full" required>
+                    <div class="tl-card-form-foot">
+                        <form @submit.prevent="addProvider" class="tl-row tl-row--wrap tl-row--bottom">
+                            <div class="tl-field-provider">
+                                <label for="ai-provider" class="tl-label tl-label--field">Provider</label>
+                                <select id="ai-provider" v-model="form.provider" class="tl-select tl-input--full" required>
                                     <option value="">Select…</option>
-                                    <option v-for="p in supported_providers" :key="p" :value="p" class="capitalize">{{ p }}</option>
+                                    <option v-for="p in supported_providers" :key="p" :value="p" class="tl-cap">{{ p }}</option>
                                 </select>
                             </div>
-                            <div class="flex-1 min-w-[160px]">
-                                <label for="ai-api-key" class="tl-label block mb-1">API key</label>
+                            <div class="tl-field-key">
+                                <label for="ai-api-key" class="tl-label tl-label--field">API key</label>
                                 <input
                                     id="ai-api-key"
                                     v-model="form.api_key"
                                     type="password"
-                                    class="tl-input w-full"
+                                    class="tl-input tl-input--full"
                                     placeholder="sk-ant-… / gsk_… / sk-…"
                                     autocomplete="off"
                                     required
                                 />
                             </div>
-                            <div class="w-20 shrink-0">
-                                <label for="ai-timeout" class="tl-label block mb-1">Timeout (s)</label>
-                                <input id="ai-timeout" v-model.number="form.timeout_seconds" type="number" min="1" max="60" class="tl-input w-full" />
+                            <div class="tl-field-timeout">
+                                <label for="ai-timeout" class="tl-label tl-label--field">Timeout (s)</label>
+                                <input id="ai-timeout" v-model.number="form.timeout_seconds" type="number" min="1" max="60" class="tl-input tl-input--full" />
                             </div>
-                            <button type="submit" class="tl-btn tl-btn--primary shrink-0 self-end" :disabled="saving">
-                                <TlIcon name="plus" class="w-3.5 h-3.5" />
+                            <button type="submit" class="tl-btn tl-btn--primary" :disabled="saving">
+                                <TlIcon name="plus" class="tl-ic tl-ic--sm" />
                                 {{ saving ? 'Saving…' : 'Add' }}
                             </button>
                         </form>
-                        <p v-if="formError" class="mt-2 text-xs text-red-400 flex items-center gap-1.5">
-                            <TlIcon name="x-circle" class="w-3.5 h-3.5 shrink-0" />
+                        <p v-if="formError" class="tl-error tl-feedback">
+                            <TlIcon name="x-circle" class="tl-ic tl-ic--sm" />
                             {{ formError }}
                         </p>
                     </div>
@@ -282,48 +280,55 @@ async function testProvider(provider) {
 
                 <!-- CLI Access -->
                 <div class="tl-card tl-card--flush">
-                    <div class="flex items-center gap-3 px-5 py-3.5 border-b border-slate-800">
-                        <div class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-slate-800">
-                            <TlIcon name="terminal" class="h-3.5 w-3.5 text-slate-400" />
+                    <div class="tl-card-head">
+                        <div class="tl-section-icon tl-section-icon--info">
+                            <TlIcon name="terminal" class="tl-ic" />
                         </div>
-                        <h2 class="text-sm font-medium text-slate-300">CLI Access</h2>
+                        <div class="tl-card-head-body">
+                            <h2 class="tl-title">CLI Access</h2>
+                            <p class="tl-hint">Token for <code class="tl-mono">ticketlens sync</code> on any machine</p>
+                        </div>
                     </div>
-                    <div class="p-5">
-                        <p class="tl-hint mb-4">Generate a token so <code class="tl-kbd">ticketlens sync</code> can pull your connections to any machine. Shown once — store it securely.</p>
+                    <div class="tl-card-body">
+                        <p class="tl-hint tl-label--spaced">Generate a token so <code class="tl-kbd">ticketlens sync</code> can pull your connections to any machine. Shown once — store it securely.</p>
 
                         <!-- Token just generated -->
-                        <div v-if="newToken" class="mb-4 rounded-lg bg-green-950/40 border border-green-700/40 px-3 py-3">
-                            <p class="text-xs font-medium text-green-400 mb-2">Copy now — won't be shown again.</p>
-                            <div class="flex items-center gap-2 font-mono text-xs bg-slate-950 rounded-md px-2.5 py-2 border border-slate-800">
-                                <span class="flex-1 text-indigo-300 select-all break-all">{{ newToken }}</span>
-                                <button
-                                    @click="copyToken(newToken)"
-                                    class="text-slate-400 hover:text-white transition-colors shrink-0"
-                                    :title="copied ? 'Copied!' : 'Copy'"
-                                >
-                                    <TlIcon :name="copied ? 'check' : 'copy'" class="w-3.5 h-3.5" :class="copied ? 'text-green-400' : ''" />
-                                </button>
+                        <div v-if="newToken" class="tl-banner tl-banner--success tl-token-reveal tl-card-gap-sm">
+                            <div class="tl-token-reveal-body">
+                                <p class="tl-banner-title">Copy now — won't be shown again.</p>
+                                <div class="tl-cmd-box">
+                                    <span class="tl-token-value">{{ newToken }}</span>
+                                    <button
+                                        @click="copyToken(newToken)"
+                                        class="tl-icon-btn tl-icon-btn--bare"
+                                        :title="copied ? 'Copied!' : 'Copy'"
+                                    >
+                                        <TlIcon :name="copied ? 'check' : 'copy'" class="tl-ic tl-ic--sm" :class="copied ? 'tl-feedback--success' : ''" />
+                                    </button>
+                                </div>
+                                <p class="tl-hint">Run <code class="tl-kbd">ticketlens login</code> to connect.</p>
                             </div>
-                            <p class="tl-hint mt-2">Run <code class="tl-kbd">ticketlens login</code> to connect.</p>
                         </div>
 
                         <!-- Existing token -->
-                        <div v-if="cli_token && !newToken" class="flex items-center justify-between rounded-lg border border-slate-800 bg-slate-800/40 px-4 py-3 mb-4">
+                        <div v-if="cli_token && !newToken" class="tl-toggle-row tl-card-gap-sm">
                             <div>
-                                <p class="text-sm font-medium text-slate-200">{{ cli_token.name }}</p>
-                                <p class="tl-hint mt-0.5">
+                                <p class="tl-toggle-row-title">{{ cli_token.name }}</p>
+                                <p class="tl-hint">
                                     Created {{ formatDate(cli_token.created_at) }}
                                     <template v-if="cli_token.last_used_at"> · Last used {{ formatDate(cli_token.last_used_at) }}</template>
                                 </p>
                             </div>
-                            <span class="shrink-0 rounded-full px-2 py-0.5 text-xs font-medium bg-emerald-900/40 text-emerald-400 ml-2">Active</span>
+                            <span class="tl-badge tl-badge--success">Active</span>
                         </div>
 
-                        <div class="flex gap-2">
-                            <button @click="generateToken" class="tl-btn tl-btn--primary text-xs">
+                        <div class="tl-row">
+                            <button @click="generateToken" class="tl-btn tl-btn--primary tl-btn--sm">
+                                <TlIcon name="key" class="tl-ic tl-ic--xs" />
                                 {{ cli_token ? 'Regenerate' : 'Generate token' }}
                             </button>
-                            <button v-if="cli_token" @click="revokeToken" class="tl-btn-ghost text-xs text-red-400 hover:text-red-300">
+                            <button v-if="cli_token" @click="revokeToken" class="tl-btn tl-btn--danger-outline">
+                                <TlIcon name="ban" class="tl-ic tl-ic--xs" />
                                 Revoke
                             </button>
                         </div>
@@ -333,28 +338,28 @@ async function testProvider(provider) {
             </div>
 
             <!-- Right column: Supported Providers reference note -->
-            <div>
-                <div class="rounded-xl border border-dashed border-slate-700/60 bg-slate-800/30 px-4 py-3.5">
-                    <div class="flex items-center gap-2 mb-3">
-                        <TlIcon name="info" class="w-3.5 h-3.5 text-slate-500 shrink-0" />
-                        <span class="text-xs font-medium text-slate-400 uppercase tracking-wider">Supported Providers</span>
+            <div class="tl-col-side">
+                <div class="tl-note-box">
+                    <div class="tl-note-box-head">
+                        <TlIcon name="info" class="tl-ic tl-ic--sm" />
+                        <span>Supported Providers</span>
                     </div>
-                    <div class="space-y-2">
-                        <div class="flex items-center gap-2">
-                            <span class="font-mono text-xs text-slate-300 w-[72px] shrink-0">groq</span>
-                            <span class="text-xs text-slate-500">Llama 3.x</span>
-                            <span class="text-xs text-indigo-400 ml-auto">free</span>
+                    <div class="tl-stack--sm">
+                        <div class="tl-note-row">
+                            <span class="tl-note-row-key">groq</span>
+                            <span>Llama 3.x</span>
+                            <span class="tl-link tl-push-end">free</span>
                         </div>
-                        <div class="flex items-center gap-2">
-                            <span class="font-mono text-xs text-slate-300 w-[72px] shrink-0">anthropic</span>
-                            <span class="text-xs text-slate-500">Claude Haiku / Sonnet</span>
+                        <div class="tl-note-row">
+                            <span class="tl-note-row-key">anthropic</span>
+                            <span>Claude Haiku / Sonnet</span>
                         </div>
-                        <div class="flex items-center gap-2">
-                            <span class="font-mono text-xs text-slate-300 w-[72px] shrink-0">openai</span>
-                            <span class="text-xs text-slate-500">GPT-4o mini</span>
+                        <div class="tl-note-row">
+                            <span class="tl-note-row-key">openai</span>
+                            <span>GPT-4o mini</span>
                         </div>
                     </div>
-                    <p class="mt-3 pt-3 border-t border-slate-700/50 text-xs text-slate-600 leading-relaxed">Keys encrypted AES-256. CLI: <code class="text-slate-500">cloud-keys add groq &lt;key&gt;</code></p>
+                    <p class="tl-note-foot">Keys encrypted AES-256. CLI: <code class="tl-mono">cloud-keys add groq &lt;key&gt;</code></p>
                 </div>
             </div>
 

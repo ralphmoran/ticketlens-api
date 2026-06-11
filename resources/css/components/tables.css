@@ -97,3 +97,8 @@
   }
   .tl-td--clamp { @apply max-w-xs truncate; }
 }
+
+@layer components {
+  .tl-th--snug { @apply px-3 py-2.5; }
+  .tl-td--snug { @apply px-3 py-3 text-xs; }
+}

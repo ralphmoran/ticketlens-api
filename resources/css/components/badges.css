@@ -103,3 +103,8 @@
   .tl-kbd--link { cursor: pointer; transition: color var(--tl-transition); }
   .tl-kbd--link:hover { color: var(--tl-brand-soft); }
 }
+
+@layer components {
+  .tl-badge--btn { cursor: pointer; user-select: none; }
+  .tl-badge--btn:hover { filter: brightness(1.15); }
+}

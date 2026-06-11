@@ -18,7 +18,7 @@ import {
   History, Layers, LoaderCircle, Lock, LockOpen, Mail, Pause, Pencil, Play, Plus,
   Link, RefreshCw, Search, Send, Settings, Sparkles, Trash2, TrendingUp, Plug,
   HeartPulse, Gauge, GitBranch, ClipboardCheck, Sliders, Activity, BarChart2,
-  Sun, Moon, Zap, UploadCloud, Info, Hash, Flag, ChevronUp, ChevronDown,
+  Sun, Moon, Zap, UploadCloud, Info, Hash, Flag, ChevronUp, ChevronDown, Terminal,
 } from '@lucide/vue'
 
 const ICONS = {
@@ -75,6 +75,7 @@ const ICONS = {
   'trending-up': TrendingUp,
   'zap': Zap,
   'info': Info,
+  'terminal': Terminal,
   'hash': Hash,
   'flag': Flag,
   'chevron-up': ChevronUp,

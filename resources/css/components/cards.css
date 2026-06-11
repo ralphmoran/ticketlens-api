@@ -198,3 +198,54 @@
   }
   .tl-expander:hover { background-color: var(--tl-surface-2); }
 }
+
+@layer components {
+  /* Slack brand icon box (brand color is fixed by Slack guidelines) */
+  .tl-slack-icon {
+    @apply w-10 h-10 flex items-center justify-center shrink-0 text-sm font-bold;
+    border-radius: var(--tl-radius-lg);
+    background-color: #4A154B;
+    color: white;
+  }
+}
+
+@layer components {
+  /* Dashed future/coming-soon placeholder */
+  .tl-placeholder-box {
+    @apply mt-4 p-5 text-center;
+    border: 1px dashed var(--tl-border-strong);
+    border-radius: var(--tl-radius-xl);
+  }
+  .tl-placeholder-box > p { @apply text-xs; color: var(--tl-text-subtle); }
+}
+
+@layer components {
+  /* Dashed reference note box (side-column hints) */
+  .tl-note-box {
+    @apply px-4 py-3.5;
+    border: 1px dashed var(--tl-border-strong);
+    border-radius: var(--tl-radius-xl);
+    background-color: var(--tl-surface-2);
+  }
+  .tl-note-box-head {
+    @apply flex items-center gap-2 mb-3 text-xs font-medium uppercase tracking-wider;
+    color: var(--tl-text-muted);
+  }
+  .tl-note-row { @apply flex items-center gap-2 text-xs; color: var(--tl-text-subtle); }
+  .tl-note-row-key { @apply font-mono shrink-0; width: 72px; color: var(--tl-text-secondary); }
+  .tl-note-foot {
+    @apply mt-3 pt-3 text-xs leading-relaxed;
+    border-top: 1px solid var(--tl-border);
+    color: var(--tl-text-subtle);
+  }
+}
+
+@layer components {
+  .tl-card-body  { @apply p-5; }
+  .tl-card-empty { @apply py-10 px-5 text-center; }
+  /* Form footer attached to a flush card */
+  .tl-card-form-foot {
+    @apply p-5 mt-3;
+    border-top: 1px solid var(--tl-border);
+  }
+}

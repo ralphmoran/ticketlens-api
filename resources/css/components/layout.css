@@ -1,10 +1,77 @@
 /*
- * Layout primitives — AUDIT §3.7
- * tl-page for the standard page container used 13× across Console pages.
+ * Layout primitives — structural classes used by every page so templates
+ * carry zero inline utilities.
  */
 
 @layer components {
   .tl-page {
     @apply px-4 sm:px-6 lg:px-8 py-8 max-w-6xl mx-auto;
+  }
+
+  .tl-page--narrow {
+    @apply max-w-3xl;
+  }
+
+  .tl-page--wide {
+    @apply max-w-7xl;
+  }
+
+  /* Page header: title block left, actions right */
+  .tl-page-header {
+    @apply flex flex-wrap items-start justify-between gap-4 mb-6;
+  }
+
+  /* Vertical rhythm between page sections */
+  .tl-stack {
+    @apply space-y-6;
+  }
+
+  .tl-stack--sm {
+    @apply space-y-3;
+  }
+
+  .tl-stack--lg {
+    @apply space-y-8;
+  }
+
+  /* Horizontal flex rows */
+  .tl-row {
+    @apply flex items-center gap-3;
+  }
+
+  .tl-row--between {
+    @apply justify-between;
+  }
+
+  .tl-row--end {
+    @apply justify-end;
+  }
+
+  .tl-row--wrap {
+    @apply flex-wrap;
+  }
+
+  /* Stat / card grids */
+  .tl-grid-stats {
+    @apply grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4;
+  }
+
+  .tl-grid-2 {
+    @apply grid grid-cols-1 lg:grid-cols-2 gap-6;
+  }
+
+  .tl-grid-3 {
+    @apply grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4;
+  }
+
+  /* Two-column page layout: main content + side notes */
+  .tl-cols-main-side {
+    @apply grid grid-cols-1 lg:grid-cols-3 gap-6;
+  }
+  .tl-cols-main-side > .tl-col-main {
+    @apply lg:col-span-2 space-y-6;
+  }
+  .tl-cols-main-side > .tl-col-side {
+    @apply space-y-6;
   }
 }

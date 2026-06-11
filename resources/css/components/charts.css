@@ -1,0 +1,54 @@
+/*
+ * Chart primitives — frames and legends around <TlChart> (Chart.js).
+ * Chart.js colors are read from tokens.css (--tl-chart-*) at runtime by
+ * the TlChart wrapper; these classes style the surrounding DOM.
+ */
+
+@layer components {
+  /* Fixed-height positioning frame required by Chart.js responsive mode */
+  .tl-chart-frame {
+    @apply relative w-full;
+    height: 16rem;
+  }
+
+  .tl-chart-frame--sm {
+    height: 10rem;
+  }
+
+  .tl-chart-frame--lg {
+    height: 20rem;
+  }
+
+  /* Legend row (custom HTML legends) */
+  .tl-chart-legend {
+    @apply flex flex-wrap items-center gap-4 text-xs;
+    color: var(--tl-text-muted);
+  }
+
+  .tl-chart-legend-item {
+    @apply inline-flex items-center gap-1.5;
+  }
+
+  .tl-chart-legend-swatch {
+    @apply w-2.5 h-2.5 inline-block;
+    border-radius: var(--tl-radius-sm);
+  }
+
+  /* Inline horizontal meter (progress-style bars inside tables/cards) */
+  .tl-meter {
+    @apply w-full overflow-hidden;
+    height: 0.5rem;
+    border-radius: var(--tl-radius-full);
+    background-color: var(--tl-surface-3);
+  }
+
+  .tl-meter-fill {
+    @apply h-full;
+    border-radius: var(--tl-radius-full);
+    background-color: var(--tl-brand);
+    transition: width var(--tl-transition-slow);
+  }
+  .tl-meter-fill--success { background-color: var(--tl-success); }
+  .tl-meter-fill--warn    { background-color: var(--tl-warn); }
+  .tl-meter-fill--danger  { background-color: var(--tl-danger); }
+}

@@ -1,0 +1,55 @@
+/*
+ * Banner / alert primitives.
+ * tl-banner base + --info / --success / --warn / --danger semantic variants.
+ * Tinted background + visible border + icon slot; readable in both themes
+ * via tokens.css semantic triplets. Color is never the only signal — pair
+ * with an icon (TlIcon) in the template.
+ */
+
+@layer components {
+  .tl-banner {
+    @apply flex items-start gap-3 p-4 text-sm;
+    border-radius: var(--tl-radius-lg);
+    border: 1px solid var(--tl-border);
+    background-color: var(--tl-surface-2);
+    color: var(--tl-text-primary);
+  }
+
+  .tl-banner > svg,
+  .tl-banner > .tl-banner-icon {
+    @apply w-4 h-4 mt-0.5 shrink-0;
+  }
+
+  .tl-banner-title {
+    @apply font-medium;
+    color: var(--tl-text);
+  }
+
+  .tl-banner--info {
+    background-color: var(--tl-info-tint);
+    border-color: var(--tl-info-border);
+  }
+  .tl-banner--info > svg,
+  .tl-banner--info > .tl-banner-icon { color: var(--tl-info); }
+
+  .tl-banner--success {
+    background-color: var(--tl-success-tint);
+    border-color: var(--tl-success-border);
+  }
+  .tl-banner--success > svg,
+  .tl-banner--success > .tl-banner-icon { color: var(--tl-success); }
+
+  .tl-banner--warn {
+    background-color: var(--tl-warn-tint);
+    border-color: var(--tl-warn-border);
+  }
+  .tl-banner--warn > svg,
+  .tl-banner--warn > .tl-banner-icon { color: var(--tl-warn); }
+
+  .tl-banner--danger {
+    background-color: var(--tl-danger-tint);
+    border-color: var(--tl-danger-border);
+  }
+  .tl-banner--danger > svg,
+  .tl-banner--danger > .tl-banner-icon { color: var(--tl-danger); }
+}

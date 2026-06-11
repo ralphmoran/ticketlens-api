@@ -9,6 +9,8 @@
 @import './components/typography.css';
 @import './components/layout.css';
 @import './components/tabs.css';
+@import './components/banners.css';
+@import './components/charts.css';
 
 @layer base {
     button { cursor: pointer; }
@@ -121,54 +123,21 @@
     --color-sky-300: oklch(0.28 0.080 228);
     --color-sky-400: oklch(0.35 0.090 228);
     --color-sky-500: oklch(0.42 0.095 228);
-    /* tl-* semantic tokens */
-    --tl-bg:             oklch(0.97 0.007 68);
-    --tl-surface:        oklch(0.93 0.009 68);
-    --tl-surface-2:      oklch(0.87 0.010 68);
-    --tl-surface-3:      oklch(0.82 0.011 68);
-    --tl-border:         oklch(0.80 0.011 68);
-    --tl-border-strong:  oklch(0.68 0.012 68);
-    --tl-text:           oklch(0.10 0.010 68);
-    --tl-text-primary:   oklch(0.14 0.010 68);
-    --tl-text-secondary: oklch(0.28 0.012 68);
-    --tl-text-muted:     oklch(0.40 0.012 68);
-    --tl-text-subtle:    oklch(0.55 0.013 68);
-    --tl-shadow-lg:      0 10px 15px -3px oklch(0 0 0 / 0.08);
+    /* NOTE: --tl-* semantic tokens live in tokens.css (:root[data-theme="light"]).
+       Do not redefine them here — `[data-theme="light"] *` would shadow them
+       on every descendant element. */
 }
 
 /* ── Light theme component fixes ─────────────────────────────────────────── *
- * These override compiled Tailwind utilities that use --color-* vars.
- * Higher specificity wins over the utility classes.
+ * tl-* component classes are token-driven (tokens.css) and need no fixes.
+ * The one remaining override targets raw role="switch" toggles still built
+ * from inline utilities — delete it once all toggles use .tl-switch.
  * ────────────────────────────────────────────────────────────────────────── */
 
-/* 1. Primary/hero buttons: keep foreground cream (not near-black via --color-white) */
-[data-theme="light"] .tl-btn--primary,
-[data-theme="light"] .tl-btn--hero {
-    color: oklch(0.97 0.007 68);
-}
-
-/* 2. Toggle switches (role="switch") */
-/* Thumb: always light/white regardless of track color */
-[data-theme="light"] button[role="switch"] > span {
+/* Toggle switches (role="switch") not yet migrated to .tl-switch */
+[data-theme="light"] button[role="switch"]:not(.tl-switch) > span {
     background-color: white;
 }
-/* Off-state track: visible medium-gray (slate-700 in light = too similar to page bg) */
-[data-theme="light"] button[role="switch"][aria-checked="false"] {
+[data-theme="light"] button[role="switch"][aria-checked="false"]:not(.tl-switch) {
     background-color: oklch(0.65 0.013 68);
-}
-
-/* 3. Form inputs: white background, visible border, dark text */
-[data-theme="light"] .tl-input,
-[data-theme="light"] .tl-select {
-    background-color: white;
-    border-color: oklch(0.75 0.012 68);
-    color: oklch(0.10 0.010 68);
-}
-
-/* 4. Chip buttons */
-[data-theme="light"] .tl-chip-btn--warn {
-    border-color: oklch(0.58 0.130 70);
-}
-[data-theme="light"] .tl-chip-btn--success {
-    border-color: oklch(0.45 0.130 155);
 }

@@ -1,12 +1,19 @@
 /*
- * Card primitives — AUDIT §3.1
+ * Card primitives.
  * tl-card base + --flush / --lg / --sm / --stack modifiers
  * tl-empty-state for centered placeholder states
+ * tl-info-box for feature description banners
+ * tl-stat-* family for KPI cards (icon chip + label + value + delta)
+ * All theme-bearing values come from tokens.css.
  */
 
 @layer components {
   .tl-card {
-    @apply bg-slate-900 border border-slate-800 rounded-xl p-5;
+    @apply p-5;
+    background-color: var(--tl-card);
+    border: 1px solid var(--tl-border);
+    border-radius: var(--tl-radius-xl);
+    box-shadow: var(--tl-shadow-sm);
   }
 
   .tl-card--flush {
@@ -27,11 +34,56 @@
   }
 
   .tl-empty-state {
-    @apply bg-slate-900 border border-slate-800 rounded-xl p-12 flex flex-col items-center justify-center text-center;
+    @apply p-12 flex flex-col items-center justify-center text-center;
+    background-color: var(--tl-card);
+    border: 1px solid var(--tl-border);
+    border-radius: var(--tl-radius-xl);
+    color: var(--tl-text-muted);
   }
 
   /* Feature description / info box — consistent across all pages */
   .tl-info-box {
-    @apply rounded-xl border border-slate-700/70 bg-slate-800/50 p-5 space-y-3;
+    @apply p-5 space-y-3;
+    border-radius: var(--tl-radius-xl);
+    border: 1px solid var(--tl-border-strong);
+    background-color: var(--tl-surface-2);
   }
+
+  /* ── Stat / KPI cards ──────────────────────────────────────────────── */
+  .tl-stat-card {
+    @apply p-5 flex flex-col gap-2;
+    background-color: var(--tl-card);
+    border: 1px solid var(--tl-border);
+    border-radius: var(--tl-radius-xl);
+    box-shadow: var(--tl-shadow-sm);
+  }
+
+  .tl-stat-icon {
+    @apply w-9 h-9 flex items-center justify-center shrink-0;
+    border-radius: var(--tl-radius-lg);
+    background-color: var(--tl-brand-tint);
+    color: var(--tl-brand-soft);
+  }
+  .tl-stat-icon--success { background-color: var(--tl-success-tint); color: var(--tl-success); }
+  .tl-stat-icon--warn    { background-color: var(--tl-warn-tint);    color: var(--tl-warn); }
+  .tl-stat-icon--danger  { background-color: var(--tl-danger-tint);  color: var(--tl-danger); }
+  .tl-stat-icon--info    { background-color: var(--tl-info-tint);    color: var(--tl-info); }
+
+  .tl-stat-label {
+    @apply text-xs font-medium;
+    color: var(--tl-text-muted);
+  }
+
+  .tl-stat-value {
+    @apply text-2xl font-semibold tracking-tight;
+    color: var(--tl-text);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .tl-stat-delta {
+    @apply inline-flex items-center gap-1 text-xs font-medium;
+  }
+  .tl-stat-delta--up   { color: var(--tl-success); }
+  .tl-stat-delta--down { color: var(--tl-danger); }
+  .tl-stat-delta--flat { color: var(--tl-text-muted); }
 }

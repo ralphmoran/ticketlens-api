@@ -1,23 +1,54 @@
 /*
  * Tab primitives — switcher controls (form/view toggles).
- * Distinct from nav (linking) and forms (input). Currently used by
- * Auth/Login.vue (signin / register switcher).
- *
- * tl-tab base + state modifiers --active / --inactive.
- * Tab spacing (e.g. mr-6 between tabs) is positioning, applied inline.
+ * tl-tab base + state modifiers --active / --inactive (underline style)
+ * tl-seg + tl-seg-btn — segmented pill control (reference style)
+ * All theme-bearing values come from tokens.css.
  */
 
 @layer components {
   .tl-tab {
-    @apply pb-3 px-1 text-sm font-medium border-b-2 transition-colors duration-150 cursor-pointer
-           focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950;
+    @apply pb-3 px-1 text-sm font-medium border-b-2 cursor-pointer;
+    transition: color var(--tl-transition), border-color var(--tl-transition);
+  }
+  .tl-tab:focus-visible {
+    outline: none;
+    box-shadow: var(--tl-ring-brand);
   }
 
   .tl-tab--active {
-    @apply border-indigo-400 text-indigo-400;
+    border-color: var(--tl-brand);
+    color: var(--tl-brand-soft);
   }
 
   .tl-tab--inactive {
-    @apply border-transparent text-slate-500 hover:text-slate-300;
+    border-color: transparent;
+    color: var(--tl-text-muted);
+  }
+  .tl-tab--inactive:hover {
+    color: var(--tl-text-primary);
+  }
+
+  /* Segmented pill control */
+  .tl-seg {
+    @apply inline-flex items-center gap-1 p-1;
+    background-color: var(--tl-surface-2);
+    border: 1px solid var(--tl-border);
+    border-radius: var(--tl-radius-full);
+  }
+
+  .tl-seg-btn {
+    @apply px-3 py-1 text-xs font-medium cursor-pointer;
+    border-radius: var(--tl-radius-full);
+    color: var(--tl-text-muted);
+    transition: background-color var(--tl-transition), color var(--tl-transition);
+  }
+  .tl-seg-btn:focus-visible {
+    outline: none;
+    box-shadow: var(--tl-ring-brand);
+  }
+  .tl-seg-btn--active {
+    background-color: var(--tl-card);
+    color: var(--tl-text);
+    box-shadow: var(--tl-shadow-sm);
   }
 }

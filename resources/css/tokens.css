@@ -1,56 +1,168 @@
 /*
- * TicketLens design-system tokens — warm dark (hue 68°, earthy near-black).
- * Migrated from cold steel-blue (228°) to warm parchment/earth aesthetic.
- * Aligns with the landing page DESIGN.md warm token system.
+ * TicketLens Console design tokens — the single source of truth for theming.
+ *
+ * Dark (default) lives in :root; light overrides in :root[data-theme="light"].
+ * Component classes (components/*.css) consume ONLY these tokens for anything
+ * theme-bearing, and Vue templates carry only tl-* classes — so a global
+ * visual change (brand color, card background, radius…) is a one-line edit here.
  */
 
 :root {
-  /* Surface — warm dark canvas (lifted from near-black for readability) */
-  --tl-bg:        oklch(0.11 0.010 68);   /* deepest canvas */
-  --tl-surface:   oklch(0.14 0.010 68);   /* lifted surface */
-  --tl-surface-2: oklch(0.18 0.011 68);   /* raised cards */
-  --tl-surface-3: oklch(0.22 0.012 68);   /* component card bg */
-  --tl-border:    oklch(0.23 0.011 68);
-  --tl-border-strong: oklch(0.29 0.012 68);
+  /* ── Surfaces — warm dark canvas (hue 68°) ─────────────────────────── */
+  --tl-bg:        oklch(0.11 0.010 68);   /* page canvas */
+  --tl-surface:   oklch(0.14 0.010 68);   /* sidebar, app header */
+  --tl-card:      oklch(0.16 0.010 68);   /* cards, panels, modals */
+  --tl-surface-2: oklch(0.20 0.011 68);   /* nested fills, table head, code chips */
+  --tl-surface-3: oklch(0.25 0.012 68);   /* hover fills, pressed states */
+  --tl-input-bg:  oklch(0.135 0.010 68);  /* form controls */
+  --tl-border:        oklch(0.25 0.011 68);
+  --tl-border-strong: oklch(0.32 0.012 68);
 
-  /* Text — warm parchment scale */
-  --tl-text:         oklch(0.91 0.011 68);   /* #e8e3db — warm parchment */
-  --tl-text-primary: oklch(0.88 0.013 68);   /* slightly dimmer */
-  --tl-text-secondary: oklch(0.72 0.015 68); /* muted secondary */
-  --tl-text-muted:   oklch(0.58 0.015 68);   /* rgba(232,227,219,.55) equiv */
-  --tl-text-subtle:  oklch(0.45 0.013 68);   /* rgba(232,227,219,.28) equiv */
+  /* ── Text — warm parchment scale (AA on --tl-card and --tl-bg) ─────── */
+  --tl-text:           oklch(0.93 0.011 68);  /* headings, key values */
+  --tl-text-primary:   oklch(0.88 0.013 68);  /* body */
+  --tl-text-secondary: oklch(0.75 0.015 68);  /* supporting copy */
+  --tl-text-muted:     oklch(0.63 0.015 68);  /* labels, captions */
+  --tl-text-subtle:    oklch(0.50 0.013 68);  /* placeholders, disabled */
 
-  /* Brand — Slate Blue #377EA5 (unchanged — single chromatic accent) */
-  --tl-brand:       oklch(0.53 0.083 228);
-  --tl-brand-hover: oklch(0.46 0.080 228);
-  --tl-brand-soft:  oklch(0.72 0.065 228);
-  --tl-brand-tint:  oklch(0.53 0.083 228 / 0.12);
+  /* ── Brand — Slate Blue #377EA5, single chromatic accent ───────────── */
+  --tl-brand:        oklch(0.53 0.083 228);
+  --tl-brand-hover:  oklch(0.58 0.086 228);
+  --tl-brand-active: oklch(0.47 0.080 228);
+  --tl-brand-soft:   oklch(0.74 0.070 228);   /* accent text on dark surfaces */
+  --tl-brand-tint:   oklch(0.53 0.083 228 / 0.14);
+  --tl-brand-fg:     oklch(0.97 0.007 68);    /* text/icons on brand fills — both themes */
 
-  /* Semantic */
-  --tl-warn:    oklch(0.82 0.15 75);
-  --tl-danger:  oklch(0.68 0.19 25);
-  --tl-success: oklch(0.72 0.17 155);
+  /* ── Semantic triplets: fg / tint / border ──────────────────────────── */
+  --tl-success:        oklch(0.74 0.150 155);
+  --tl-success-tint:   oklch(0.74 0.150 155 / 0.10);
+  --tl-success-border: oklch(0.74 0.150 155 / 0.28);
+  --tl-warn:           oklch(0.80 0.140 75);
+  --tl-warn-tint:      oklch(0.80 0.140 75 / 0.10);
+  --tl-warn-border:    oklch(0.80 0.140 75 / 0.28);
+  --tl-danger:         oklch(0.70 0.180 25);
+  --tl-danger-tint:    oklch(0.70 0.180 25 / 0.10);
+  --tl-danger-border:  oklch(0.70 0.180 25 / 0.28);
+  --tl-info:           oklch(0.74 0.100 228);
+  --tl-info-tint:      oklch(0.74 0.100 228 / 0.10);
+  --tl-info-border:    oklch(0.74 0.100 228 / 0.28);
 
-  /* Radius */
-  --tl-radius-sm:   0.25rem;
+  /* Owner-panel accent (amber identity, distinct from member brand) */
+  --tl-owner:        oklch(0.80 0.140 75);
+  --tl-owner-muted:  oklch(0.68 0.110 75);
+  --tl-owner-tint:   oklch(0.80 0.140 75 / 0.12);
+
+  /* ── Navigation ─────────────────────────────────────────────────────── */
+  --tl-nav-active-bg:  oklch(0.25 0.012 68);
+  --tl-nav-active-fg:  oklch(0.93 0.011 68);
+  --tl-nav-hover-bg:   oklch(0.20 0.011 68 / 0.80);
+
+  /* ── Charts (Chart.js reads these via getComputedStyle) ────────────── */
+  --tl-chart-1: oklch(0.62 0.100 228);   /* brand blue */
+  --tl-chart-2: oklch(0.76 0.130 75);    /* amber */
+  --tl-chart-3: oklch(0.71 0.140 155);   /* emerald */
+  --tl-chart-4: oklch(0.66 0.120 300);   /* violet */
+  --tl-chart-5: oklch(0.72 0.090 200);   /* cyan */
+  --tl-chart-6: oklch(0.66 0.150 25);    /* rose */
+  --tl-chart-grid:    oklch(0.93 0.011 68 / 0.07);
+  --tl-chart-tick:    oklch(0.63 0.015 68);
+  --tl-chart-tooltip-bg:     oklch(0.20 0.011 68);
+  --tl-chart-tooltip-fg:     oklch(0.93 0.011 68);
+  --tl-chart-tooltip-border: oklch(0.32 0.012 68);
+
+  /* ── Geometry ───────────────────────────────────────────────────────── */
+  --tl-radius-sm:   0.375rem;
   --tl-radius:      0.5rem;
   --tl-radius-lg:   0.75rem;
+  --tl-radius-xl:   1rem;      /* cards */
   --tl-radius-full: 9999px;
 
-  /* Shadow / focus ring */
-  --tl-ring-subtle: 0 0 0 1px oklch(0.25 0.012 68);
-  --tl-ring-brand:  0 0 0 2px oklch(0.53 0.083 228 / 0.55);
-  --tl-shadow-lg:   0 10px 15px -3px oklch(0 0 0 / 0.35);
+  /* ── Elevation ──────────────────────────────────────────────────────── */
+  --tl-shadow-sm: 0 1px 2px oklch(0 0 0 / 0.25);
+  --tl-shadow-md: 0 4px 10px -2px oklch(0 0 0 / 0.30);
+  --tl-shadow-lg: 0 12px 24px -6px oklch(0 0 0 / 0.40);
 
-  /* Transitions */
+  /* ── Focus rings ────────────────────────────────────────────────────── */
+  --tl-ring-subtle: 0 0 0 1px oklch(0.32 0.012 68);
+  --tl-ring-brand:  0 0 0 2px oklch(0.53 0.083 228 / 0.55);
+
+  /* ── Motion ─────────────────────────────────────────────────────────── */
   --tl-transition-fast: 100ms ease-out;
   --tl-transition:      150ms ease-out;
   --tl-transition-slow: 200ms ease-out;
 
-  /* Z-index scale */
+  /* ── Z-index scale ──────────────────────────────────────────────────── */
   --tl-z-base:    10;
   --tl-z-nav:     30;
   --tl-z-sidebar: 40;
   --tl-z-overlay: 50;
   --tl-z-banner:  60;
+}
+
+/*
+ * Light theme — airy professional SaaS: warm off-white canvas, pure-white
+ * cards with soft diffuse shadows, near-black headings, darker accents that
+ * hold WCAG AA (≥4.5:1) on white.
+ */
+:root[data-theme="light"] {
+  --tl-bg:        oklch(0.965 0.006 75);
+  --tl-surface:   oklch(1 0 0);
+  --tl-card:      oklch(1 0 0);
+  --tl-surface-2: oklch(0.955 0.006 75);
+  --tl-surface-3: oklch(0.92 0.008 75);
+  --tl-input-bg:  oklch(1 0 0);
+  --tl-border:        oklch(0.905 0.006 75);
+  --tl-border-strong: oklch(0.82 0.009 75);
+
+  --tl-text:           oklch(0.16 0.010 68);
+  --tl-text-primary:   oklch(0.22 0.011 68);
+  --tl-text-secondary: oklch(0.38 0.012 68);
+  --tl-text-muted:     oklch(0.48 0.013 68);
+  --tl-text-subtle:    oklch(0.60 0.012 68);
+
+  --tl-brand:        oklch(0.48 0.085 228);
+  --tl-brand-hover:  oklch(0.43 0.082 228);
+  --tl-brand-active: oklch(0.39 0.078 228);
+  --tl-brand-soft:   oklch(0.40 0.080 228);
+  --tl-brand-tint:   oklch(0.48 0.085 228 / 0.10);
+
+  --tl-success:        oklch(0.46 0.130 155);
+  --tl-success-tint:   oklch(0.46 0.130 155 / 0.10);
+  --tl-success-border: oklch(0.46 0.130 155 / 0.30);
+  --tl-warn:           oklch(0.50 0.130 70);
+  --tl-warn-tint:      oklch(0.50 0.130 70 / 0.10);
+  --tl-warn-border:    oklch(0.50 0.130 70 / 0.30);
+  --tl-danger:         oklch(0.45 0.170 25);
+  --tl-danger-tint:    oklch(0.45 0.170 25 / 0.08);
+  --tl-danger-border:  oklch(0.45 0.170 25 / 0.30);
+  --tl-info:           oklch(0.42 0.090 228);
+  --tl-info-tint:      oklch(0.42 0.090 228 / 0.08);
+  --tl-info-border:    oklch(0.42 0.090 228 / 0.30);
+
+  --tl-owner:        oklch(0.50 0.130 70);
+  --tl-owner-muted:  oklch(0.55 0.110 70);
+  --tl-owner-tint:   oklch(0.50 0.130 70 / 0.10);
+
+  --tl-nav-active-bg:  oklch(0.48 0.085 228 / 0.10);
+  --tl-nav-active-fg:  oklch(0.43 0.082 228);
+  --tl-nav-hover-bg:   oklch(0.94 0.006 75);
+
+  --tl-chart-1: oklch(0.52 0.095 228);
+  --tl-chart-2: oklch(0.66 0.130 70);
+  --tl-chart-3: oklch(0.56 0.130 155);
+  --tl-chart-4: oklch(0.56 0.130 300);
+  --tl-chart-5: oklch(0.58 0.095 200);
+  --tl-chart-6: oklch(0.56 0.160 25);
+  --tl-chart-grid:    oklch(0.16 0.010 68 / 0.07);
+  --tl-chart-tick:    oklch(0.48 0.013 68);
+  --tl-chart-tooltip-bg:     oklch(0.22 0.011 68);
+  --tl-chart-tooltip-fg:     oklch(0.97 0.007 68);
+  --tl-chart-tooltip-border: oklch(0.30 0.012 68);
+
+  --tl-shadow-sm: 0 1px 2px oklch(0.25 0.02 260 / 0.06), 0 1px 3px oklch(0.25 0.02 260 / 0.05);
+  --tl-shadow-md: 0 4px 10px -2px oklch(0.25 0.02 260 / 0.08);
+  --tl-shadow-lg: 0 12px 24px -6px oklch(0.25 0.02 260 / 0.10);
+
+  --tl-ring-subtle: 0 0 0 1px oklch(0.82 0.009 75);
+  --tl-ring-brand:  0 0 0 2px oklch(0.48 0.085 228 / 0.45);
 }

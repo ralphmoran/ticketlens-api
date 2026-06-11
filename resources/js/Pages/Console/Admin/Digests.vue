@@ -57,9 +57,9 @@ function testLabel(state) {
 }
 
 function testClass(state) {
-    if (state === 'ok')    return 'tl-btn tl-btn--secondary text-xs shrink-0 !text-emerald-400'
-    if (state === 'error') return 'tl-btn tl-btn--secondary text-xs shrink-0 !text-red-400'
-    return 'tl-btn tl-btn--secondary text-xs shrink-0'
+    if (state === 'ok')    return 'tl-btn tl-btn--secondary tl-btn--sm tl-btn--state-ok'
+    if (state === 'error') return 'tl-btn tl-btn--secondary tl-btn--sm tl-btn--state-err'
+    return 'tl-btn tl-btn--secondary tl-btn--sm'
 }
 
 // ── Digest schedule state ─────────────────────────────────────────────────────
@@ -237,7 +237,7 @@ function goSchedulesPage(page) {
 </script>
 
 <template>
-    <div class="px-4 sm:px-6 lg:px-8 py-8 max-w-3xl mx-auto space-y-6">
+    <div class="tl-page tl-page--narrow tl-stack">
 
         <div>
             <h1 class="tl-heading">Digests</h1>
@@ -245,11 +245,11 @@ function goSchedulesPage(page) {
         </div>
 
         <!-- No group (owner without ?group_id) -->
-        <div v-if="!group" class="tl-card p-8 text-center">
-            <TlIcon name="inbox" class="w-8 h-8 mx-auto mb-3 text-slate-600" />
-            <p class="text-sm text-slate-400">
+        <div v-if="!group" class="tl-empty-state">
+            <TlIcon name="inbox" class="tl-empty-icon" />
+            <p class="tl-body--muted">
                 Select a client team from the
-                <a href="/console/owner/clients" class="text-indigo-400 hover:underline">Clients</a>
+                <a href="/console/owner/clients" class="tl-link tl-link--md">Clients</a>
                 page to manage their digest schedules.
             </p>
         </div>
@@ -257,17 +257,17 @@ function goSchedulesPage(page) {
         <template v-else>
 
             <!-- Digest schedules card -->
-            <div class="tl-card p-6 space-y-4">
-                <div class="flex items-center justify-between">
-                    <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 rounded-lg bg-emerald-600/20 flex items-center justify-center shrink-0">
-                            <TlIcon name="calendar" class="w-5 h-5 text-emerald-400" />
+            <div class="tl-card tl-card--lg tl-form-stack">
+                <div class="tl-row tl-row--between">
+                    <div class="tl-row">
+                        <div class="tl-section-icon tl-section-icon--success">
+                            <TlIcon name="calendar" class="tl-ic" />
                         </div>
                         <div>
-                            <h2 class="text-sm font-semibold text-white">Digest schedules</h2>
-                            <p class="text-xs text-slate-400">
+                            <h2 class="tl-title">Digest schedules</h2>
+                            <p class="tl-hint">
                                 Summaries posted to one or more channels or DM'd to a team member
-                                <span v-if="slackChannel" class="text-slate-500"> via <span class="text-indigo-300 font-mono">#{{ slackChannel.name }}</span></span>
+                                <span v-if="slackChannel"> via <span class="tl-code-inline">#{{ slackChannel.name }}</span></span>
                             </p>
                         </div>
                     </div>
@@ -275,24 +275,24 @@ function goSchedulesPage(page) {
                         v-if="!showDigestForm"
                         type="button"
                         @click="showDigestForm = true"
-                        class="tl-btn tl-btn--secondary text-xs shrink-0"
+                        class="tl-btn tl-btn--secondary tl-btn--sm"
                     >
-                        <TlIcon name="plus" class="w-3.5 h-3.5" />
+                        <TlIcon name="plus" class="tl-ic tl-ic--sm" />
                         Add schedule
                     </button>
                 </div>
 
                 <!-- Existing schedules list -->
-                <div v-if="digestSchedules.data.length" class="divide-y divide-slate-700/50">
+                <div v-if="digestSchedules.data.length" class="tl-divide">
                     <div
                         v-for="s in digestSchedules.data"
                         :key="s.id"
-                        class="flex items-center gap-3 py-3"
+                        class="tl-row tl-rule-row"
                     >
-                        <span class="tl-badge tl-badge--neutral text-xs uppercase tracking-wide shrink-0">
+                        <span class="tl-badge tl-badge--neutral tl-badge--caps">
                             {{ s.target_type === 'channel' ? 'channel' : 'DM' }}
                         </span>
-                        <span class="text-sm text-slate-200 flex-1 truncate">
+                        <span class="tl-body tl-banner-fill">
                             {{ s.target_label }} — {{ formatDigestSchedule(s) }}
                         </span>
                         <button
@@ -308,69 +308,66 @@ function goSchedulesPage(page) {
                             role="switch"
                             :aria-checked="s.active"
                             @click="toggleDigestSchedule(s)"
-                            class="relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 focus:ring-offset-slate-900"
-                            :class="s.active ? 'bg-emerald-600' : 'bg-slate-700'"
+                            class="tl-switch tl-switch--sm"
                         >
-                            <span
-                                class="pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
-                                :class="s.active ? 'translate-x-4' : 'translate-x-0'"
-                            />
+                            <span />
                         </button>
                         <button
                             type="button"
                             @click="destroyDigestSchedule(s)"
-                            class="tl-btn tl-btn--danger-ghost text-xs shrink-0"
+                            class="tl-icon-btn tl-icon-btn--snug tl-icon-btn--danger"
+                            title="Remove schedule"
                         >
-                            <TlIcon name="trash" class="w-3.5 h-3.5" />
+                            <TlIcon name="trash" class="tl-ic tl-ic--sm" />
                         </button>
                     </div>
                 </div>
 
                 <!-- Pagination -->
-                <div v-if="digestSchedules.last_page > 1" class="flex items-center justify-between pt-3 border-t border-slate-700/50">
+                <div v-if="digestSchedules.last_page > 1" class="tl-pager tl-card-actions">
                     <button
                         type="button"
                         :disabled="digestSchedules.current_page === 1"
                         @click="goSchedulesPage(digestSchedules.current_page - 1)"
-                        class="tl-btn tl-btn--ghost text-xs disabled:opacity-40"
+                        class="tl-btn tl-btn--secondary tl-btn--sm"
                     >← Prev</button>
-                    <span class="text-xs text-slate-400">Page {{ digestSchedules.current_page }} of {{ digestSchedules.last_page }}</span>
+                    <span class="tl-pager-label">Page {{ digestSchedules.current_page }} of {{ digestSchedules.last_page }}</span>
                     <button
                         type="button"
                         :disabled="digestSchedules.current_page === digestSchedules.last_page"
                         @click="goSchedulesPage(digestSchedules.current_page + 1)"
-                        class="tl-btn tl-btn--ghost text-xs disabled:opacity-40"
+                        class="tl-btn tl-btn--secondary tl-btn--sm"
                     >Next →</button>
                 </div>
 
-                <p v-else-if="!showDigestForm && !digestSchedules.data.length" class="text-xs text-slate-500 py-2">
+                <p v-else-if="!showDigestForm && !digestSchedules.data.length" class="tl-hint">
                     No digest schedules yet. Add one to receive a weekly summary in Slack.
                 </p>
 
                 <!-- Add form -->
-                <div v-if="showDigestForm" class="border border-slate-700 rounded-lg p-4 space-y-4 bg-slate-800/50">
-                    <p class="text-xs font-medium text-slate-300 uppercase tracking-wider">New digest schedule</p>
+                <div v-if="showDigestForm" class="tl-info-box tl-form-stack">
+                    <p class="tl-label">New digest schedule</p>
 
                     <!-- Target type -->
-                    <div class="flex items-center gap-3">
-                        <label class="text-xs text-slate-400 w-24 shrink-0">Deliver to</label>
-                        <div class="flex gap-2">
+                    <div class="tl-row">
+                        <label class="tl-form-label-col">Deliver to</label>
+                        <div class="tl-row tl-row--tight">
                             <button
                                 type="button"
                                 @click="digestTargetType = 'channel'; digestSelectedId = null"
-                                class="tl-btn text-xs"
+                                class="tl-btn tl-btn--sm"
                                 :class="digestTargetType === 'channel' ? 'tl-btn--primary' : 'tl-btn--secondary'"
                             >
-                                <TlIcon name="hash" class="w-3 h-3" />
+                                <TlIcon name="hash" class="tl-ic tl-ic--xs" />
                                 Channel
                             </button>
                             <button
                                 type="button"
                                 @click="digestTargetType = 'user'; selectedChannelIds = []"
-                                class="tl-btn text-xs"
+                                class="tl-btn tl-btn--sm"
                                 :class="digestTargetType === 'user' ? 'tl-btn--primary' : 'tl-btn--secondary'"
                             >
-                                <TlIcon name="user" class="w-3 h-3" />
+                                <TlIcon name="users" class="tl-ic tl-ic--xs" />
                                 Member DM
                             </button>
                         </div>
@@ -378,51 +375,49 @@ function goSchedulesPage(page) {
 
                     <!-- Channel picker (multi-select) -->
                     <div v-if="digestTargetType === 'channel'" class="space-y-2">
-                        <div class="flex items-center gap-2">
-                            <label class="text-xs text-slate-400 w-24 shrink-0">Channels</label>
+                        <div class="tl-row">
+                            <label class="tl-form-label-col">Channels</label>
                             <button
                                 type="button"
                                 :disabled="channelsLoading"
                                 @click="fetchChannels"
-                                class="tl-btn tl-btn--secondary text-xs"
+                                class="tl-btn tl-btn--secondary tl-btn--sm"
                             >
-                                <TlIcon :name="channelsLoading ? 'spinner' : 'refresh'" class="w-3.5 h-3.5" />
+                                <TlIcon :name="channelsLoading ? 'spinner' : 'refresh'" class="tl-ic tl-ic--sm" :class="{ 'tl-spin': channelsLoading }" />
                                 {{ channelsLoading ? 'Loading…' : (channels.length ? 'Refresh' : 'Load channels') }}
                             </button>
-                            <span v-if="selectedChannelCount" class="text-xs text-emerald-400">
+                            <span v-if="selectedChannelCount" class="tl-feedback tl-feedback--success">
                                 {{ selectedChannelCount }} selected
                             </span>
                         </div>
-                        <p v-if="channelsError" class="text-xs text-red-400 pl-[6.5rem]">{{ channelsError }}</p>
-                        <div v-if="channels.length" class="pl-[6.5rem] space-y-2">
+                        <p v-if="channelsError" class="tl-error tl-form-indent">{{ channelsError }}</p>
+                        <div v-if="channels.length" class="tl-form-indent tl-stack--sm">
                             <input
                                 v-model="channelSearch"
                                 type="text"
                                 placeholder="Search channels…"
-                                class="tl-input w-full text-sm"
+                                class="tl-input tl-input--sm tl-input--full"
                             />
-                            <div class="max-h-48 overflow-y-auto rounded-md border border-slate-700 divide-y divide-slate-700/50">
+                            <div class="tl-scroll-list">
                                 <div
                                     v-for="ch in filteredChannels"
                                     :key="ch.id"
                                     @click="toggleChannel(ch.id)"
-                                    class="flex items-center gap-3 px-3 py-2 cursor-pointer hover:bg-slate-700/60 transition-colors"
+                                    class="tl-combo-item tl-row"
                                 >
-                                    <span class="text-sm text-slate-200 flex-1 font-mono">#{{ ch.name }}</span>
-                                    <span v-if="ch.is_private" class="text-xs text-slate-500">private</span>
+                                    <span class="tl-mono--xs tl-banner-fill">#{{ ch.name }}</span>
+                                    <span v-if="ch.is_private" class="tl-hint">private</span>
                                     <div
-                                        class="w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 transition-colors"
-                                        :class="isChannelSelected(ch.id)
-                                            ? 'bg-emerald-600 border-emerald-600'
-                                            : 'border-slate-600'"
+                                        class="tl-checkbox-visual"
+                                        :class="isChannelSelected(ch.id) ? 'tl-checkbox-visual--checked' : ''"
                                     >
-                                        <TlIcon v-if="isChannelSelected(ch.id)" name="check" class="w-2.5 h-2.5 text-white" />
+                                        <TlIcon v-if="isChannelSelected(ch.id)" name="check" class="tl-ic tl-ic--xs" />
                                     </div>
                                 </div>
-                                <p v-if="filteredChannels.length === 0" class="px-3 py-3 text-xs text-slate-500 text-center">
+                                <p v-if="filteredChannels.length === 0" class="tl-scroll-list-empty">
                                     No channels match "{{ channelSearch }}"
                                 </p>
-                                <p v-else-if="channelsOverflow > 0" class="px-3 py-1.5 text-xs text-slate-500 text-center border-t border-slate-700/50">
+                                <p v-else-if="channelsOverflow > 0" class="tl-scroll-list-empty">
                                     {{ channelsOverflow }} more — type to narrow
                                 </p>
                             </div>
@@ -431,41 +426,41 @@ function goSchedulesPage(page) {
 
                     <!-- Member picker for DM -->
                     <div v-if="digestTargetType === 'user'" class="space-y-2">
-                        <div class="flex items-center gap-2">
-                            <label class="text-xs text-slate-400 w-24 shrink-0">Member</label>
+                        <div class="tl-row">
+                            <label class="tl-form-label-col">Member</label>
                             <button
                                 type="button"
                                 :disabled="digestMembersLoading"
                                 @click="fetchDigestMembers"
-                                class="tl-btn tl-btn--secondary text-xs"
+                                class="tl-btn tl-btn--secondary tl-btn--sm"
                             >
-                                <TlIcon :name="digestMembersLoading ? 'spinner' : 'refresh'" class="w-3.5 h-3.5" />
+                                <TlIcon :name="digestMembersLoading ? 'spinner' : 'refresh'" class="tl-ic tl-ic--sm" :class="{ 'tl-spin': digestMembersLoading }" />
                                 {{ digestMembersLoading ? 'Loading…' : (digestMembers.length ? 'Refresh' : 'Load members') }}
                             </button>
-                            <span v-if="digestSelectedLabel" class="text-xs text-emerald-400">✓ {{ digestSelectedLabel }}</span>
+                            <span v-if="digestSelectedLabel" class="tl-feedback tl-feedback--success">✓ {{ digestSelectedLabel }}</span>
                         </div>
-                        <p v-if="digestMembersError" class="text-xs text-red-400 pl-[6.5rem]">{{ digestMembersError }}</p>
-                        <div v-if="digestMembers.length" class="pl-[6.5rem] space-y-2">
+                        <p v-if="digestMembersError" class="tl-error tl-form-indent">{{ digestMembersError }}</p>
+                        <div v-if="digestMembers.length" class="tl-form-indent tl-stack--sm">
                             <input
                                 v-model="digestMemberSearch"
                                 type="text"
                                 placeholder="Search members…"
-                                class="tl-input w-full text-sm"
+                                class="tl-input tl-input--sm tl-input--full"
                             />
-                            <div class="max-h-40 overflow-y-auto rounded-md border border-slate-700 divide-y divide-slate-700/50">
+                            <div class="tl-scroll-list">
                                 <div
                                     v-for="member in digestFilteredMembers"
                                     :key="member.id"
                                     @click="selectDigestMember(member)"
-                                    class="flex items-center gap-3 px-3 py-2 cursor-pointer hover:bg-slate-700/60 transition-colors"
-                                    :class="digestSelectedId === member.id ? 'bg-slate-700/80' : ''"
+                                    class="tl-combo-item tl-row"
+                                    :class="digestSelectedId === member.id ? 'tl-combo-item--active' : ''"
                                 >
-                                    <span class="text-sm text-slate-200 flex-1">{{ member.name }}</span>
+                                    <span class="tl-body tl-banner-fill">{{ member.name }}</span>
                                     <div
-                                        class="w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors"
-                                        :class="digestSelectedId === member.id ? 'bg-emerald-600 border-emerald-600' : 'border-slate-600'"
+                                        class="tl-checkbox-visual tl-checkbox-visual--round"
+                                        :class="digestSelectedId === member.id ? 'tl-checkbox-visual--checked' : ''"
                                     >
-                                        <TlIcon v-if="digestSelectedId === member.id" name="check" class="w-2.5 h-2.5 text-white" />
+                                        <TlIcon v-if="digestSelectedId === member.id" name="check" class="tl-ic tl-ic--xs" />
                                     </div>
                                 </div>
                             </div>
@@ -473,53 +468,53 @@ function goSchedulesPage(page) {
                     </div>
 
                     <!-- Day of week -->
-                    <div class="flex items-center gap-3">
-                        <label class="text-xs text-slate-400 w-24 shrink-0">Day</label>
-                        <select v-model.number="digestDayOfWeek" class="tl-input flex-1 text-sm">
+                    <div class="tl-row">
+                        <label class="tl-form-label-col">Day</label>
+                        <select v-model.number="digestDayOfWeek" class="tl-select tl-btn--grow">
                             <option v-for="(name, idx) in DAY_NAMES" :key="idx" :value="idx">{{ name }}</option>
                         </select>
                     </div>
 
                     <!-- Time -->
-                    <div class="flex items-center gap-3">
-                        <label class="text-xs text-slate-400 w-24 shrink-0">Time</label>
+                    <div class="tl-row">
+                        <label class="tl-form-label-col">Time</label>
                         <input
                             v-model="digestDeliverAt"
                             type="time"
-                            class="tl-input flex-1 text-sm"
+                            class="tl-input tl-btn--grow"
                         />
                     </div>
 
                     <!-- Timezone -->
-                    <div class="flex items-center gap-3">
-                        <label class="text-xs text-slate-400 w-24 shrink-0">Timezone</label>
+                    <div class="tl-row">
+                        <label class="tl-form-label-col">Timezone</label>
                         <input
                             v-model="digestTimezone"
                             type="text"
                             placeholder="America/New_York"
-                            class="tl-input flex-1 text-sm font-mono"
+                            class="tl-input tl-btn--grow tl-mono"
                         />
                     </div>
 
                     <!-- Actions -->
-                    <div class="flex items-center gap-2 pt-1">
+                    <div class="tl-row tl-form-actions">
                         <button
                             type="button"
                             :disabled="digestSaving
                                 || (digestTargetType === 'channel' && selectedChannelCount === 0)
                                 || (digestTargetType === 'user' && !digestSelectedId)"
                             @click="saveDigestSchedule"
-                            class="tl-btn tl-btn--primary text-sm disabled:opacity-50"
+                            class="tl-btn tl-btn--primary"
                         >
-                            <TlIcon :name="digestSaving ? 'spinner' : 'check'" class="w-3.5 h-3.5" />
+                            <TlIcon :name="digestSaving ? 'spinner' : 'check'" class="tl-ic tl-ic--sm" :class="{ 'tl-spin': digestSaving }" />
                             {{ digestSaving ? 'Saving…' : 'Save schedule' }}
                         </button>
                         <button
                             type="button"
                             @click="cancelDigestForm"
-                            class="tl-btn tl-btn--secondary text-sm"
+                            class="tl-btn tl-btn--secondary"
                         >
-                            <TlIcon name="close" class="w-3.5 h-3.5" />
+                            <TlIcon name="close" class="tl-ic tl-ic--sm" />
                             Cancel
                         </button>
                     </div>

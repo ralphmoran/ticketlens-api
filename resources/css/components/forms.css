@@ -287,3 +287,7 @@
   .tl-form-label-col { @apply text-xs w-24 shrink-0; color: var(--tl-text-muted); }
   .tl-form-indent { padding-left: 6.5rem; }
 }
+
+@layer components {
+  .tl-checkbox-visual--round { border-radius: var(--tl-radius-full); }
+}

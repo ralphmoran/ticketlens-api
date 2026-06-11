@@ -124,3 +124,7 @@
 @layer components {
   .tl-link--underline { text-decoration: underline; text-underline-offset: 2px; }
 }
+
+@layer components {
+  .tl-foot-note { @apply mt-6 text-center text-sm; color: var(--tl-text-subtle); }
+}

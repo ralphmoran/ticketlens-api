@@ -320,3 +320,7 @@
 @layer components {
   .tl-avatar--xs { @apply w-6 h-6; font-size: 0.7rem; }
 }
+
+@layer components {
+  .tl-avatar--brand { background-color: var(--tl-brand); color: var(--tl-brand-fg); }
+}

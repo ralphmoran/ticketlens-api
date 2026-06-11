@@ -212,7 +212,7 @@ function cancelDigestForm() {
 }
 
 function toggleDigestSchedule(schedule) {
-    router.patch(alertUrl(`/alerts/digest-schedules/${schedule.id}`), { active: !schedule.active }, { preserveScroll: true })
+    router.patch(alertUrl(`/alerts/digest-schedules/${schedule.id}`), { active: !schedule.active }, { preserveScroll: true, preserveState: true })
 }
 
 const { confirm } = useConfirm()
@@ -308,7 +308,7 @@ function goSchedulesPage(page) {
                             role="switch"
                             :aria-checked="s.active"
                             @click="toggleDigestSchedule(s)"
-                            class="tl-switch tl-switch--sm"
+                            class="tl-switch"
                         >
                             <span />
                         </button>

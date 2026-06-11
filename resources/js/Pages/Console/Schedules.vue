@@ -442,17 +442,17 @@ function nextRunLabel(iso) {
 
                     <!-- Actions -->
                     <div class="tl-card-actions">
-                        <button @click="toggle(s)" class="tl-btn tl-btn--secondary tl-btn--sm">
+                        <button type="button" @click="toggle(s)" class="tl-btn tl-btn--secondary tl-btn--sm">
                             <TlIcon :name="s.active ? 'pause' : 'play'" class="tl-ic tl-ic--xs" />
                             {{ s.active ? 'Pause' : 'Resume' }}
                         </button>
 
-                        <button @click="startEdit(s)" class="tl-btn tl-btn--secondary tl-btn--sm">
+                        <button type="button" @click="startEdit(s)" class="tl-btn tl-btn--secondary tl-btn--sm">
                             <TlIcon name="pencil" class="tl-ic tl-ic--xs" />
                             Edit
                         </button>
 
-                        <button @click="remove(s)" class="tl-btn tl-btn--danger-outline tl-push-end">
+                        <button type="button" @click="remove(s)" class="tl-btn tl-btn--danger-outline tl-push-end">
                             <TlIcon name="trash" class="tl-ic tl-ic--xs" />
                             Delete
                         </button>

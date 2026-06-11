@@ -278,7 +278,7 @@ function cancelAdd() {
 }
 
 function toggleRule(rule) {
-    router.patch(alertUrl(`/alerts/rules/${rule.id}`), { enabled: !rule.enabled }, { preserveScroll: true })
+    router.patch(alertUrl(`/alerts/rules/${rule.id}`), { enabled: !rule.enabled }, { preserveScroll: true, preserveState: true })
 }
 
 const { confirm } = useConfirm()
@@ -602,7 +602,7 @@ function goRulesPage(page) {
                             role="switch"
                             :aria-checked="rule.enabled"
                             @click="toggleRule(rule)"
-                            class="tl-switch tl-switch--sm"
+                            class="tl-switch"
                         >
                             <span />
                         </button>

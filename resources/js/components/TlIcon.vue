@@ -18,7 +18,7 @@ import {
   History, Layers, LoaderCircle, Lock, LockOpen, Mail, Pause, Pencil, Play, Plus,
   Link, RefreshCw, Search, Send, Settings, Sparkles, Trash2, TrendingUp, Plug,
   HeartPulse, Gauge, GitBranch, ClipboardCheck, Sliders, Activity, BarChart2,
-  Sun, Moon,
+  Sun, Moon, Zap, UploadCloud,
 } from '@lucide/vue'
 
 const ICONS = {
@@ -73,6 +73,8 @@ const ICONS = {
   'sparkles': Sparkles,
   'spinner': LoaderCircle,
   'trending-up': TrendingUp,
+  'zap': Zap,
+  'upload-cloud': UploadCloud,
   'x-circle': CircleX,
   'bell': Bell,
   'link': Link,

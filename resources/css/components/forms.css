@@ -102,3 +102,73 @@
   .tl-def-value { @apply text-sm; color: var(--tl-text); }
   .tl-def-value--mono { @apply text-sm font-mono; color: var(--tl-text-secondary); }
 }
+
+@layer components {
+  /* Compact field label */
+  .tl-field-label--xs { @apply text-xs mb-1; font-weight: 400; }
+
+  /* Input with leading icon */
+  .tl-input-wrap { @apply relative; }
+  .tl-input-icon {
+    @apply absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 pointer-events-none;
+    color: var(--tl-text-subtle);
+  }
+  .tl-input--with-icon { @apply pl-8; }
+  .tl-input-spinner {
+    @apply absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin;
+    color: var(--tl-text-subtle);
+  }
+  .tl-input-clear {
+    @apply absolute right-2.5 top-1/2 -translate-y-1/2 cursor-pointer;
+    color: var(--tl-text-subtle);
+    transition: color var(--tl-transition);
+  }
+  .tl-input-clear:hover { color: var(--tl-text-secondary); }
+
+  /* Validation */
+  .tl-error { @apply text-xs mt-1; color: var(--tl-danger); }
+  .tl-input--error { border-color: var(--tl-danger) !important; }
+
+  /* Combo search (input + attached results list) */
+  .tl-combo-input--open {
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+    border-bottom: 0;
+  }
+  .tl-combo-list {
+    @apply overflow-hidden;
+    border: 1px solid var(--tl-border-strong);
+    border-top: 0;
+    border-bottom-left-radius: var(--tl-radius);
+    border-bottom-right-radius: var(--tl-radius);
+    background-color: var(--tl-input-bg);
+  }
+  .tl-combo-list > :not(:last-child) { border-bottom: 1px solid var(--tl-border); }
+  .tl-combo-item {
+    @apply w-full text-left px-3 py-2 text-sm cursor-pointer;
+    color: var(--tl-text-primary);
+    transition: background-color var(--tl-transition-fast);
+  }
+  .tl-combo-item:hover { background-color: var(--tl-surface-2); }
+  .tl-combo-item--active {
+    background-color: var(--tl-brand-tint);
+    color: var(--tl-brand-soft);
+  }
+  .tl-combo-item-hint { color: var(--tl-text-subtle); }
+
+  /* Selected entity chip (above combo input) */
+  .tl-selected-chip {
+    @apply flex items-center gap-2 mb-1.5 px-2.5 py-1.5 text-xs;
+    border-radius: var(--tl-radius);
+    background-color: var(--tl-brand-tint);
+    border: 1px solid var(--tl-info-border);
+    color: var(--tl-brand-soft);
+  }
+  .tl-selected-chip > span { @apply truncate min-w-0; }
+  .tl-selected-chip > button {
+    @apply ml-auto shrink-0 cursor-pointer;
+    color: var(--tl-text-subtle);
+    transition: color var(--tl-transition);
+  }
+  .tl-selected-chip > button:hover { color: var(--tl-text-secondary); }
+}

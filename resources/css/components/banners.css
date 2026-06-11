@@ -57,3 +57,7 @@
 @layer components {
   .tl-banner-fill { @apply flex-1 min-w-0 truncate; }
 }
+
+@layer components {
+  .tl-banner-text { @apply text-xs leading-relaxed; color: var(--tl-text-secondary); }
+}

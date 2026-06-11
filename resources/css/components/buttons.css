@@ -171,3 +171,17 @@
   }
   .tl-btn--inverse:hover:not(:disabled) { filter: brightness(0.95); }
 }
+
+@layer components {
+  /* Danger outline — destructive actions that must read as buttons */
+  .tl-btn--danger-outline {
+    @apply px-3 py-1.5 text-xs font-medium;
+    border: 1px solid var(--tl-danger-border);
+    color: var(--tl-danger);
+    background-color: var(--tl-danger-tint);
+  }
+  .tl-btn--danger-outline:hover:not(:disabled) {
+    border-color: var(--tl-danger);
+    filter: brightness(1.05);
+  }
+}

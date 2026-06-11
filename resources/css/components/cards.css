@@ -163,3 +163,29 @@
   }
   .tl-promo-card > p { @apply text-sm font-medium; color: var(--tl-brand-fg); }
 }
+
+@layer components {
+  /* Card header row: section icon + title/subtitle + trailing actions */
+  .tl-card-head {
+    @apply flex items-center gap-3 px-5 py-4;
+    border-bottom: 1px solid var(--tl-border);
+  }
+  .tl-card-head-body { @apply flex-1 min-w-0; }
+
+  /* Section icon — tinted rounded box (canonical style from Workflow Rules) */
+  .tl-section-icon {
+    @apply flex h-8 w-8 shrink-0 items-center justify-center;
+    border-radius: var(--tl-radius-lg);
+    background-color: var(--tl-brand-tint);
+    color: var(--tl-brand-soft);
+  }
+  .tl-section-icon--warn    { background-color: var(--tl-warn-tint);    color: var(--tl-warn); }
+  .tl-section-icon--success { background-color: var(--tl-success-tint); color: var(--tl-success); }
+  .tl-section-icon--danger  { background-color: var(--tl-danger-tint);  color: var(--tl-danger); }
+  .tl-section-icon--info    { background-color: var(--tl-info-tint);    color: var(--tl-info); }
+}
+
+@layer components {
+  /* Card highlighted while its record is being edited */
+  .tl-card--editing { box-shadow: var(--tl-ring-brand); }
+}

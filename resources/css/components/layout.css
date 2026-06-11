@@ -101,3 +101,32 @@
   .tl-picker { @apply max-w-md; }
   .tl-section-start { @apply mt-6; }
 }
+
+@layer components {
+  /* Generic structural helpers */
+  .tl-trunc    { @apply truncate; }
+  .tl-min-w-0  { @apply min-w-0; }
+  .tl-push-end { @apply ml-auto; }
+  .tl-spin     { @apply animate-spin; }
+  .tl-row--top { @apply items-start; }
+  .tl-grow-capped { @apply relative flex-1 max-w-xs; }
+  .tl-card-gap-sm { @apply mb-3; }
+
+  /* Form layout */
+  .tl-form-stack   { @apply space-y-4; }
+  .tl-form-actions { @apply pt-1; }
+  .tl-btn--grow    { @apply flex-1; }
+
+  /* Inline metadata row under a card title */
+  .tl-meta-row {
+    @apply flex flex-wrap items-center gap-x-4 gap-y-1 text-xs mb-3;
+    color: var(--tl-text-subtle);
+  }
+  .tl-meta-tz { max-width: 180px; }
+
+  /* Bordered action row at the bottom of a card */
+  .tl-card-actions {
+    @apply flex items-center gap-2 pt-3 mt-3;
+    border-top: 1px solid var(--tl-border);
+  }
+}

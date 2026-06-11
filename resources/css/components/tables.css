@@ -83,3 +83,17 @@
     color: var(--tl-text-muted);
   }
 }
+
+@layer components {
+  /* Responsive table/card splits inside flush cards */
+  .tl-mobile-list {
+    @apply md:hidden;
+    border-top: 1px solid var(--tl-border);
+  }
+  .tl-mobile-list > :not(:last-child) { border-bottom: 1px solid var(--tl-border); }
+  .tl-desktop-table {
+    @apply hidden md:block;
+    border-top: 1px solid var(--tl-border);
+  }
+  .tl-td--clamp { @apply max-w-xs truncate; }
+}

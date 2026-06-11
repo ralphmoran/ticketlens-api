@@ -189,3 +189,12 @@
   /* Card highlighted while its record is being edited */
   .tl-card--editing { box-shadow: var(--tl-ring-brand); }
 }
+
+@layer components {
+  /* Full-width expander row (accordion card headers) */
+  .tl-expander {
+    @apply w-full flex items-center justify-between px-5 py-4 text-left cursor-pointer;
+    transition: background-color var(--tl-transition);
+  }
+  .tl-expander:hover { background-color: var(--tl-surface-2); }
+}

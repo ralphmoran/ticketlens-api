@@ -107,3 +107,8 @@
   /* Standalone text link, body size */
   .tl-link--md { @apply text-sm; }
 }
+
+@layer components {
+  .tl-label--field { @apply block mb-1.5; }
+  .tl-hint-inline { font-weight: 400; color: var(--tl-text-subtle); }
+}

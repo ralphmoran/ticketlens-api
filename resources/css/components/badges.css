@@ -84,3 +84,22 @@
     border-radius: var(--tl-radius-sm);
   }
 }
+
+@layer components {
+  /* Inline code accent (brand-colored command text) */
+  .tl-code-inline { @apply font-mono; color: var(--tl-brand-soft); }
+
+  /* Command box (copyable CLI command) */
+  .tl-cmd-box {
+    @apply flex items-center gap-2 font-mono text-sm px-3 py-2;
+    background-color: var(--tl-bg);
+    border: 1px solid var(--tl-border);
+    border-radius: var(--tl-radius-sm);
+  }
+  .tl-cmd-box > span { @apply select-all; color: var(--tl-brand-soft); }
+}
+
+@layer components {
+  .tl-kbd--link { cursor: pointer; transition: color var(--tl-transition); }
+  .tl-kbd--link:hover { color: var(--tl-brand-soft); }
+}

@@ -130,3 +130,23 @@
     border-top: 1px solid var(--tl-border);
   }
 }
+
+@layer components {
+  .tl-row--snug { @apply gap-2 mb-1; }
+  .tl-meta-row--tight { @apply gap-x-3 gap-y-1 mt-2 mb-0; }
+}
+
+@layer components {
+  .tl-row--tight { @apply gap-1.5; }
+  .tl-italic { font-style: italic; }
+  .tl-nowrap { @apply whitespace-nowrap; }
+  .tl-mobile-row { @apply px-4 py-3 space-y-2; }
+
+  /* Legend grid inside info boxes */
+  .tl-legend-grid { @apply grid sm:grid-cols-3 gap-2 text-xs; color: var(--tl-text-muted); }
+  .tl-legend-item { @apply flex items-start gap-1.5; }
+  .tl-legend-item > svg { @apply mt-0.5; }
+  .tl-legend-ic { color: var(--tl-brand-soft); }
+  .tl-legend-ic--warn { color: var(--tl-warn); }
+  .tl-legend-ic--success { color: var(--tl-success); }
+}

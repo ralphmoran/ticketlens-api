@@ -172,3 +172,23 @@
   }
   .tl-selected-chip > button:hover { color: var(--tl-text-secondary); }
 }
+
+@layer components {
+  /* Selectable option cards (radio groups) */
+  .tl-option-card {
+    @apply flex-1 flex items-center gap-3 px-3 py-2.5 cursor-pointer;
+    border: 1px solid var(--tl-border-strong);
+    border-radius: var(--tl-radius);
+    color: var(--tl-text-muted);
+    transition: border-color var(--tl-transition), background-color var(--tl-transition), color var(--tl-transition);
+  }
+  .tl-option-card:hover { border-color: var(--tl-border-strong); color: var(--tl-text-secondary); }
+  .tl-option-card--active {
+    border-color: var(--tl-brand);
+    background-color: var(--tl-brand-tint);
+    color: var(--tl-brand-soft);
+  }
+  .tl-option-title { @apply text-sm font-medium leading-none; }
+  .tl-option-desc  { @apply text-xs mt-0.5; opacity: 0.65; }
+  .tl-hidden { @apply hidden; }
+}

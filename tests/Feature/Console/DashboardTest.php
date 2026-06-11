@@ -367,4 +367,122 @@ class DashboardTest extends TestCase
                 ->where('ticket_trend', fn ($v) => count($v) === 1)
             );
     }
+
+    // ── LOCK: free/pro never get team props ───────────────────────────────────
+
+    public function test_lock_pro_user_does_not_get_kpi_stats(): void
+    {
+        $user = User::factory()->create(['tier' => 'pro', 'permissions' => 71]);
+
+        $this->actingAs($user)->get('/console/dashboard')
+            ->assertInertia(fn ($page) => $page->missing('kpi_stats'));
+    }
+
+    public function test_lock_free_user_does_not_get_kpi_stats(): void
+    {
+        $user = User::factory()->create(['tier' => 'free', 'permissions' => 64]);
+
+        $this->actingAs($user)->get('/console/dashboard')
+            ->assertInertia(fn ($page) => $page->missing('kpi_stats'));
+    }
+
+    public function test_lock_team_member_without_owned_group_does_not_get_kpi_stats(): void
+    {
+        $user = User::factory()->create(['tier' => 'team', 'permissions' => 2687]);
+
+        $this->actingAs($user)->get('/console/dashboard')
+            ->assertInertia(fn ($page) => $page->missing('kpi_stats'));
+    }
+
+    // ── RED: team manager dashboard — team aggregate data ─────────────────────
+
+    public function test_team_manager_gets_kpi_stats(): void
+    {
+        $manager = User::factory()->create(['tier' => 'team', 'permissions' => 2687]);
+        $group   = \App\Models\Group::create(['name' => 'Test Team', 'owner_id' => $manager->id]);
+        $member  = User::factory()->create(['tier' => 'team', 'permissions' => 2687]);
+        $group->members()->attach($member->id);
+
+        TriageSnapshot::create([
+            'user_id'      => $member->id,
+            'profile'      => 'production',
+            'tickets'      => [['key' => 'PROJ-1', 'flags' => ['needs-response']]],
+            'ticket_count' => 1,
+            'captured_at'  => now()->subHours(1),
+        ]);
+
+        $this->actingAs($manager)->get('/console/dashboard')
+            ->assertInertia(fn ($page) => $page
+                ->has('kpi_stats')
+                ->where('kpi_stats', fn ($v) => count($v) === 4)
+            );
+    }
+
+    public function test_team_manager_gets_team_hour_distribution(): void
+    {
+        $manager = User::factory()->create(['tier' => 'team', 'permissions' => 2687]);
+        $group   = \App\Models\Group::create(['name' => 'Test Team', 'owner_id' => $manager->id]);
+        $member  = User::factory()->create(['tier' => 'team', 'permissions' => 2687]);
+        $group->members()->attach($member->id);
+
+        TriageSnapshot::create([
+            'user_id'      => $member->id,
+            'profile'      => 'production',
+            'tickets'      => [],
+            'ticket_count' => 2,
+            'captured_at'  => now()->subDays(1)->setHour(10),
+        ]);
+
+        $this->actingAs($manager)->get('/console/dashboard')
+            ->assertInertia(fn ($page) => $page
+                ->has('team_hour_distribution')
+                ->where('team_hour_distribution', fn ($v) => count($v) === 24)
+            );
+    }
+
+    public function test_team_manager_gets_team_dow_distribution(): void
+    {
+        $manager = User::factory()->create(['tier' => 'team', 'permissions' => 2687]);
+        $group   = \App\Models\Group::create(['name' => 'Test Team', 'owner_id' => $manager->id]);
+        $member  = User::factory()->create(['tier' => 'team', 'permissions' => 2687]);
+        $group->members()->attach($member->id);
+
+        TriageSnapshot::create([
+            'user_id'      => $member->id,
+            'profile'      => 'production',
+            'tickets'      => [],
+            'ticket_count' => 2,
+            'captured_at'  => now()->subDays(1),
+        ]);
+
+        $this->actingAs($manager)->get('/console/dashboard')
+            ->assertInertia(fn ($page) => $page
+                ->has('team_dow_distribution')
+                ->where('team_dow_distribution', fn ($v) => count($v) === 7)
+            );
+    }
+
+    public function test_team_manager_gets_team_push_heatmap(): void
+    {
+        $manager = User::factory()->create(['tier' => 'team', 'permissions' => 2687]);
+        $group   = \App\Models\Group::create(['name' => 'Test Team', 'owner_id' => $manager->id]);
+        $member  = User::factory()->create(['tier' => 'team', 'permissions' => 2687]);
+        $group->members()->attach($member->id);
+
+        TriageSnapshot::create([
+            'user_id'      => $member->id,
+            'profile'      => 'production',
+            'tickets'      => [],
+            'ticket_count' => 2,
+            'captured_at'  => now()->subDays(1),
+        ]);
+
+        $this->actingAs($manager)->get('/console/dashboard')
+            ->assertInertia(fn ($page) => $page
+                ->has('team_push_heatmap')
+                ->where('team_push_heatmap', fn ($v) =>
+                    count($v) >= 1 && isset($v[0]['member_id']) && isset($v[0]['days'])
+                )
+            );
+    }
 }

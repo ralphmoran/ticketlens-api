@@ -10,11 +10,15 @@ import { Permission } from '@/permissions'
 defineOptions({ layout: ConsoleLayout })
 
 const props = defineProps({
-    stats:             { type: Object, default: () => ({}) },
-    ticket_trend:      { type: Array,  default: () => [] },
-    daily_urgency:     { type: Array,  default: () => [] },
-    hour_distribution: { type: Array,  default: () => null },
-    day_of_week_dist:  { type: Array,  default: () => null },
+    stats:                  { type: Object, default: () => ({}) },
+    ticket_trend:           { type: Array,  default: () => [] },
+    daily_urgency:          { type: Array,  default: () => [] },
+    hour_distribution:      { type: Array,  default: () => null },
+    day_of_week_dist:       { type: Array,  default: () => null },
+    kpi_stats:              { type: Array,  default: () => null },
+    team_hour_distribution: { type: Array,  default: () => null },
+    team_dow_distribution:  { type: Array,  default: () => null },
+    team_push_heatmap:      { type: Array,  default: () => [] },
 })
 
 const { can } = usePermissions()
@@ -63,24 +67,53 @@ const urgencyDatasets = computed(() => [
     { label: 'Clear',          data: props.daily_urgency.map(d => d.clear),          color: 'success' },
 ])
 
-// Hour-of-day distribution — Pro+ only (24 buckets, index = hour)
+// Individual hour/dow — shown only when team charts are absent
 const hourLabels   = computed(() => Array.from({ length: 24 }, (_, i) => `${i}h`))
 const hourDatasets = computed(() => [{
     label: 'Pushes',
     data:  props.hour_distribution ?? [],
     color: 'info',
 }])
-
-// Day-of-week distribution — Pro+ only (7 buckets: Sun–Sat)
-const DOW_LABELS     = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
-const dowLabels      = computed(() => DOW_LABELS)
-const dowDatasets    = computed(() => [{
-    label: 'Pushes',
-    data:  props.day_of_week_dist ?? [],
-    color: 'brand',
-    // dim weekend bars slightly
+const DOW_LABELS  = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+const dowDatasets = computed(() => [{
+    label:  'Pushes',
+    data:   props.day_of_week_dist ?? [],
+    color:  'brand',
     alphas: [0.45, 1, 1, 1, 1, 1, 0.45],
 }])
+
+// Team aggregate hour/dow
+const teamHourDatasets = computed(() => [{
+    label: 'Pushes',
+    data:  props.team_hour_distribution ?? [],
+    color: 'info',
+}])
+const teamDowDatasets = computed(() => [{
+    label:  'Pushes',
+    data:   props.team_dow_distribution ?? [],
+    color:  'brand',
+    alphas: [0.45, 1, 1, 1, 1, 1, 0.45],
+}])
+
+const showTeamCharts     = computed(() => Array.isArray(props.team_hour_distribution))
+const showIndividualHour = computed(() => !showTeamCharts.value && props.hour_distribution !== null)
+const showHeatmap        = computed(() => props.team_push_heatmap.length > 0)
+
+// Heatmap helpers — last 90 days grid
+const heatmapDays = computed(() => {
+    const days = []
+    for (let i = 89; i >= 0; i--) {
+        const d = new Date()
+        d.setDate(d.getDate() - i)
+        days.push(d.toISOString().slice(0, 10))
+    }
+    return days
+})
+
+function memberHeatmapClass(memberId, day) {
+    const entry = props.team_push_heatmap.find(e => e.member_id === memberId)
+    return entry?.days.includes(day) ? 'tl-heatmap-cell--active' : 'tl-heatmap-cell--empty'
+}
 </script>
 
 <template>
@@ -117,8 +150,17 @@ const dowDatasets    = computed(() => [{
             </div>
         </div>
 
-        <!-- Stat cards grid -->
-        <div class="tl-grid-3 tl-section-gap">
+        <!-- ── Compact KPI strip (team manager / owner) ─────────────────────── -->
+        <div v-if="kpi_stats" class="tl-kpi-strip tl-section-gap">
+            <div v-for="kpi in kpi_stats" :key="kpi.label" class="tl-kpi-card">
+                <p class="tl-kpi-label">{{ kpi.label }}</p>
+                <p class="tl-kpi-value">{{ kpi.value }}</p>
+                <p class="tl-kpi-hint">{{ kpi.hint }}</p>
+            </div>
+        </div>
+
+        <!-- ── Individual stat cards (free / pro / team member) ─────────────── -->
+        <div v-else class="tl-grid-3 tl-section-gap">
 
             <!-- Pushes This Month -->
             <div class="tl-stat-card">
@@ -189,8 +231,8 @@ const dowDatasets    = computed(() => [{
                 <a href="#" class="tl-link">Upgrade plan →</a>
             </div>
 
-            <!-- Team Seats (Team managers) -->
-            <div v-if="can(Permission.TeamManageMembers)" class="tl-stat-card">
+            <!-- Team Seats (Team managers without kpi_stats — edge case) -->
+            <div v-if="can(Permission.TeamManageMembers) && !kpi_stats" class="tl-stat-card">
                 <div class="tl-row tl-row--between">
                     <p class="tl-stat-label">Team Seats</p>
                     <span class="tl-stat-icon"><TlIcon name="users" class="tl-ic" /></span>
@@ -201,30 +243,72 @@ const dowDatasets    = computed(() => [{
 
         </div>
 
-        <!-- Ticket trend (Pro+) -->
+        <!-- Ticket trend (Pro+, own data) -->
         <div v-if="ticket_trend.length > 0" class="tl-card tl-card-gap">
             <h2 class="tl-title tl-title--spaced">Ticket Load Trend — last {{ period }} days</h2>
             <div class="tl-chart-frame">
                 <TlChart type="area" :labels="trendLabels" :datasets="trendDatasets" />
             </div>
             <p class="tl-card-footnote">
-                Number of active tickets in your triage queue over time, based on your daily pushes. Upward trends may indicate accumulating backlog; drops confirm tickets are being resolved.
+                Number of active tickets in your triage queue over time, based on your daily pushes.
             </p>
         </div>
 
-        <!-- Urgency trend (Pro+) -->
+        <!-- Urgency trend (Pro+, own data) -->
         <div v-if="daily_urgency.length > 0" class="tl-card tl-card-gap">
             <h2 class="tl-title tl-title--spaced">Urgency Trend — last {{ period }} days</h2>
             <div class="tl-chart-frame">
                 <TlChart type="line" :labels="urgencyLabels" :datasets="urgencyDatasets" legend="bottom" />
             </div>
             <p class="tl-card-footnote">
-                Daily breakdown of your ticket urgency flags. "Needs Response" means a teammate is waiting on you. Aim to keep that line at zero.
+                "Needs Response" means a teammate is waiting on you. Aim to keep that line at zero.
             </p>
         </div>
 
-        <!-- Hour-of-day + day-of-week (Pro+) -->
-        <div v-if="hour_distribution" class="tl-grid-2 tl-card-gap">
+        <!-- ── Team push activity heatmap ─────────────────────────────────────── -->
+        <div v-if="showHeatmap" class="tl-card tl-card-gap tl-section-gap">
+            <h2 class="tl-title tl-title--spaced">Push Activity — last 90 days</h2>
+            <div class="tl-heatmap-wrap">
+                <div
+                    v-for="entry in team_push_heatmap"
+                    :key="entry.member_id"
+                    class="tl-heatmap-row"
+                >
+                    <span class="tl-heatmap-label">{{ entry.member_id }}</span>
+                    <div class="tl-heatmap-cells">
+                        <div
+                            v-for="day in heatmapDays"
+                            :key="day"
+                            class="tl-heatmap-cell"
+                            :class="memberHeatmapClass(entry.member_id, day)"
+                            :title="day"
+                        />
+                    </div>
+                </div>
+            </div>
+            <p class="tl-card-footnote">Each cell is one day. Filled = team member pushed that day.</p>
+        </div>
+
+        <!-- ── Team hour + DOW (team manager / owner) ─────────────────────────── -->
+        <div v-if="showTeamCharts" class="tl-grid-2 tl-card-gap">
+            <div class="tl-card tl-card-gap">
+                <h2 class="tl-title tl-title--spaced">Hour of Day (UTC) — team</h2>
+                <div class="tl-chart-frame">
+                    <TlChart type="bar" :labels="hourLabels" :datasets="teamHourDatasets" :legend="false" />
+                </div>
+                <p class="tl-card-footnote">When your team typically runs triage.</p>
+            </div>
+            <div class="tl-card tl-card-gap">
+                <h2 class="tl-title tl-title--spaced">Day of Week — team</h2>
+                <div class="tl-chart-frame">
+                    <TlChart type="bar" :labels="DOW_LABELS" :datasets="teamDowDatasets" :legend="false" />
+                </div>
+                <p class="tl-card-footnote">Weekend bars dimmed.</p>
+            </div>
+        </div>
+
+        <!-- ── Individual hour + DOW (pro / team member without team charts) ──── -->
+        <div v-if="showIndividualHour" class="tl-grid-2 tl-card-gap">
             <div class="tl-card tl-card-gap">
                 <h2 class="tl-title tl-title--spaced">Push Activity by Hour</h2>
                 <div class="tl-chart-frame">
@@ -235,7 +319,7 @@ const dowDatasets    = computed(() => [{
             <div class="tl-card tl-card-gap">
                 <h2 class="tl-title tl-title--spaced">Push Activity by Day</h2>
                 <div class="tl-chart-frame">
-                    <TlChart type="bar" :labels="dowLabels" :datasets="dowDatasets" :legend="false" />
+                    <TlChart type="bar" :labels="DOW_LABELS" :datasets="dowDatasets" :legend="false" />
                 </div>
                 <p class="tl-card-footnote">Weekend bars dimmed — workday patterns visible at a glance.</p>
             </div>
@@ -245,7 +329,7 @@ const dowDatasets    = computed(() => [{
         <div v-if="!isPro" class="tl-card tl-card--teaser tl-card-gap">
             <div class="tl-stack--sm">
                 <p class="tl-title">Unlock Trend Charts &amp; Activity Patterns</p>
-                <p class="tl-body--muted">Pro includes ticket trend, urgency trend, push-time heatmaps, and day-of-week patterns. See exactly when and how your queue grows.</p>
+                <p class="tl-body--muted">Pro includes ticket trend, urgency trend, push-time heatmaps, and day-of-week patterns.</p>
             </div>
             <a href="#" class="tl-btn tl-btn--primary tl-btn--sm">Upgrade to Pro →</a>
         </div>

@@ -422,17 +422,6 @@ function scoreClass(score) {
                 </div>
             </div>
 
-            <!-- ── Ticket Load Trend (per member) ────────────────────────── -->
-            <div v-if="ticket_load_trend.length > 0" class="tl-card tl-section-start tl-card-gap">
-                <h2 class="tl-title tl-title--spaced">Ticket Load — last {{ period }} days</h2>
-                <div class="tl-chart-frame">
-                    <TlChart type="line" :labels="trendDisplayLabels" :datasets="trendDatasets" :options="spanGapsOptions" legend="bottom" />
-                </div>
-                <p class="tl-card-footnote">
-                    Active ticket count per member over time. Members with a rising trend may need load balancing. Flat lines at zero indicate no push data in this window.
-                </p>
-            </div>
-
         </template><!-- /v-else hasData -->
 
         </template><!-- /owner_mode || selected_manager -->

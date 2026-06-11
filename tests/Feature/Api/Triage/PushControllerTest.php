@@ -386,4 +386,51 @@ class PushControllerTest extends TestCase
         $this->withToken($token)->postJson('/v1/triage/push', $payload)
             ->assertStatus(422);
     }
+
+    // ── LOCK: no commands → snapshot created, usage_logs untouched ───────────
+
+    public function test_lock_push_without_commands_creates_snapshot_only(): void
+    {
+        [, $token] = $this->makeUserWithToken();
+
+        $this->withToken($token)->postJson('/v1/triage/push', $this->validPayload())
+            ->assertStatus(200);
+
+        $this->assertSame(1, TriageSnapshot::count());
+        $this->assertSame(0, \Illuminate\Support\Facades\DB::table('usage_logs')->count());
+    }
+
+    // ── RED: cli_activity.commands → rows written to usage_logs ──────────────
+
+    public function test_push_with_command_activity_writes_usage_logs(): void
+    {
+        [$user, $token] = $this->makeUserWithToken();
+
+        $payload = $this->validPayload([
+            'cli_activity' => [
+                'fetch_count'      => 5,
+                'triage_run_count' => 2,
+                'invocations'      => 10,
+                'commands'         => [
+                    'triage'     => ['count' => 2, '--push' => 2],
+                    'compliance' => ['count' => 1],
+                ],
+            ],
+        ]);
+
+        $this->withToken($token)->postJson('/v1/triage/push', $payload)
+            ->assertStatus(200);
+
+        $this->assertSame(2, \Illuminate\Support\Facades\DB::table('usage_logs')->count());
+
+        $triageLog = \Illuminate\Support\Facades\DB::table('usage_logs')
+            ->where('user_id', $user->id)
+            ->where('action', 'triage')
+            ->first();
+
+        $this->assertNotNull($triageLog);
+        $metadata = json_decode($triageLog->metadata, true);
+        $this->assertSame(2, $metadata['count']);
+        $this->assertSame(2, $metadata['flags']['--push']);
+    }
 }

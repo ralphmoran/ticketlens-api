@@ -64,6 +64,46 @@
     @apply grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4;
   }
 
+  /* Compact 4-col KPI strip — team manager / owner */
+  .tl-kpi-strip {
+    @apply grid grid-cols-2 lg:grid-cols-4 gap-3;
+  }
+  .tl-kpi-card {
+    @apply bg-[var(--tl-surface)] border border-[var(--tl-border)] rounded-lg px-4 py-3;
+  }
+  .tl-kpi-label {
+    @apply text-xs font-medium text-[var(--tl-text-muted)] uppercase tracking-wide;
+  }
+  .tl-kpi-value {
+    @apply text-2xl font-bold text-[var(--tl-text)] mt-1;
+  }
+  .tl-kpi-hint {
+    @apply text-xs text-[var(--tl-text-muted)] mt-1;
+  }
+
+  /* Push activity heatmap */
+  .tl-heatmap-wrap {
+    @apply space-y-1 overflow-x-auto;
+  }
+  .tl-heatmap-row {
+    @apply flex items-center gap-2;
+  }
+  .tl-heatmap-label {
+    @apply text-xs text-[var(--tl-text-muted)] w-8 shrink-0 truncate;
+  }
+  .tl-heatmap-cells {
+    @apply flex gap-px;
+  }
+  .tl-heatmap-cell {
+    @apply w-2.5 h-2.5 rounded-[2px];
+  }
+  .tl-heatmap-cell--active {
+    @apply bg-[var(--tl-brand)];
+  }
+  .tl-heatmap-cell--empty {
+    @apply bg-[var(--tl-border)];
+  }
+
   /* Two-column page layout: main content + side notes */
   .tl-cols-main-side {
     @apply grid grid-cols-1 lg:grid-cols-3 gap-6;

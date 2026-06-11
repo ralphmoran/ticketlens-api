@@ -8,6 +8,7 @@ use App\Jobs\EvaluateAlertsJob;
 use App\Models\TriageSnapshot;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\DB;
 
 class PushController
 {
@@ -65,6 +66,31 @@ class PushController
         }
 
         EvaluateAlertsJob::dispatch($user->id, $snapshot->id);
+
+        $commands = $request->input('cli_activity.commands', []);
+        if (!empty($commands)) {
+            $now  = now();
+            $rows = [];
+            foreach ($commands as $cmd => $counters) {
+                $flags = array_filter(
+                    $counters,
+                    fn ($v, $k) => $k !== 'count' && str_starts_with($k, '-'),
+                    ARRAY_FILTER_USE_BOTH,
+                );
+                $rows[] = [
+                    'user_id'      => $user->id,
+                    'action'       => $cmd,
+                    'ticket_key'   => null,
+                    'tokens_used'  => 0,
+                    'metadata'     => json_encode([
+                        'count' => $counters['count'] ?? 0,
+                        'flags' => $flags,
+                    ]),
+                    'created_at'   => $now,
+                ];
+            }
+            DB::table('usage_logs')->insert($rows);
+        }
 
         return response()->json(['pushed' => true, 'ticket_count' => $ticketCount]);
     }

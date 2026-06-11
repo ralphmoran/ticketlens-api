@@ -301,3 +301,21 @@
   .tl-check-row  { @apply flex items-center gap-2.5 cursor-pointer select-none; }
   .tl-input--mini { @apply w-14 py-0.5 px-1.5 text-xs text-center; }
 }
+
+@layer components {
+  /* Feature-matrix checkbox cells (Tiers & Features) */
+  .tl-matrix-check {
+    @apply inline-flex w-5 h-5 items-center justify-center cursor-pointer;
+    border-radius: var(--tl-radius-sm);
+    border: 1px solid var(--tl-border-strong);
+    background-color: var(--tl-input-bg);
+    transition: background-color var(--tl-transition), border-color var(--tl-transition);
+  }
+  .tl-matrix-check:hover { border-color: var(--tl-brand); }
+  .tl-matrix-check:focus-visible { outline: none; box-shadow: var(--tl-ring-brand); }
+  .tl-matrix-check--on {
+    background-color: var(--tl-success);
+    border-color: var(--tl-success);
+    color: white;
+  }
+}

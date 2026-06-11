@@ -106,3 +106,20 @@
 @layer components {
   .tl-th--meter { width: 8rem; }
 }
+
+@layer components {
+  .tl-th--center { @apply text-center; }
+  .tl-td--center { @apply text-center; }
+}
+
+@layer components {
+  /* Loading overlay for async table refreshes */
+  .tl-loading-overlay {
+    @apply absolute inset-0 z-10 flex items-center justify-center;
+    border-radius: var(--tl-radius-xl);
+    background-color: oklch(0 0 0 / 0.35);
+  }
+  .tl-inert { @apply pointer-events-none; }
+  .tl-cell-link { cursor: pointer; transition: color var(--tl-transition); }
+  .tl-cell-link:hover { color: var(--tl-brand-soft); }
+}

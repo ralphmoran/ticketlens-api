@@ -45,17 +45,17 @@ function impersonate(clientId) {
 }
 
 const TIER_COLORS = {
-    free:       'bg-slate-700 text-slate-300',
-    pro:        'bg-blue-900/40 text-blue-300',
-    team:       'bg-violet-900/40 text-violet-300',
-    enterprise: 'bg-amber-900/40 text-amber-300',
-    owner:      'bg-amber-500/20 text-amber-300 border border-amber-700/40',
+    free:       'tl-badge--neutral',
+    pro:        'tl-badge--brand',
+    team:       'tl-badge--info',
+    enterprise: 'tl-badge--warn',
+    owner:      'tl-badge--warn',
 }
 </script>
 
 <template>
     <div class="tl-page">
-        <div class="mb-6 flex items-center justify-between">
+        <div class="tl-page-header">
             <div>
                 <h1 class="tl-heading">Clients</h1>
                 <p class="tl-subtext">{{ clients.total }} accounts</p>
@@ -63,14 +63,14 @@ const TIER_COLORS = {
         </div>
 
         <!-- Filters -->
-        <div class="flex gap-3 mb-5">
-            <div class="relative flex-1">
-                <TlIcon name="search" class="absolute left-2.5 top-2.5 w-3.5 h-3.5 text-slate-500 pointer-events-none" />
+        <div class="tl-row tl-card-gap">
+            <div class="tl-input-wrap tl-btn--grow">
+                <TlIcon name="search" class="tl-input-icon" />
                 <input
                     v-model="filters.search"
                     type="text"
                     placeholder="Search by email or name…"
-                    class="tl-input w-full pl-8"
+                    class="tl-input tl-input--full tl-input--with-icon"
                 />
             </div>
             <select v-model="filters.tier" class="tl-select">
@@ -86,13 +86,13 @@ const TIER_COLORS = {
         <div class="relative">
             <div
                 v-if="loading"
-                class="absolute inset-0 z-10 flex items-center justify-center rounded-lg bg-slate-950/60"
+                class="tl-loading-overlay"
             >
-                <TlIcon name="spinner" class="w-5 h-5 animate-spin text-indigo-400" />
+                <TlIcon name="spinner" class="tl-ic tl-ic--lg tl-spin tl-legend-ic" />
             </div>
 
-            <div class="tl-card tl-card--flush" :class="{ 'pointer-events-none': loading }">
-                <table class="w-full text-sm">
+            <div class="tl-card tl-card--flush" :class="{ 'tl-inert': loading }">
+                <table class="tl-table">
                     <thead>
                         <tr class="tl-thead">
                             <th class="tl-th">Client</th>
@@ -104,32 +104,32 @@ const TIER_COLORS = {
                     </thead>
                     <tbody class="tl-divide">
                         <tr v-for="client in clients.data" :key="client.id" class="tl-tr">
-                            <td class="px-4 py-3">
-                                <Link :href="`/console/owner/clients/${client.id}`" class="text-slate-200 hover:text-white font-medium">
+                            <td class="tl-td">
+                                <Link :href="`/console/owner/clients/${client.id}`" class="tl-cell-primary tl-cell-link">
                                     {{ client.name }}
                                 </Link>
-                                <p class="text-slate-500 text-xs">{{ client.email }}</p>
+                                <p class="tl-hint">{{ client.email }}</p>
                             </td>
-                            <td class="px-4 py-3">
-                                <span :class="['capitalize text-xs font-medium px-2 py-0.5 rounded', TIER_COLORS[client.tier] ?? 'bg-slate-700 text-slate-300']">
+                            <td class="tl-td">
+                                <span class="tl-badge tl-cap" :class="TIER_COLORS[client.tier] ?? 'tl-badge--neutral'">
                                     {{ client.tier }}
                                 </span>
                             </td>
-                            <td class="px-4 py-3">
-                                <span v-if="client.deleted_at" class="text-xs text-slate-500">Deleted</span>
-                                <span v-else-if="client.suspended_at" class="text-xs text-red-400">Suspended</span>
-                                <span v-else class="text-xs text-emerald-400">Active</span>
+                            <td class="tl-td">
+                                <span v-if="client.deleted_at" class="tl-badge tl-badge--neutral">Deleted</span>
+                                <span v-else-if="client.suspended_at" class="tl-badge tl-badge--danger">Suspended</span>
+                                <span v-else class="tl-badge tl-badge--success">Active</span>
                             </td>
-                            <td class="px-4 py-3 text-slate-500 text-xs">{{ formatDate(client.created_at) }}</td>
-                            <td class="px-4 py-3 text-right">
-                                <div class="flex items-center justify-end gap-2">
+                            <td class="tl-td tl-cell-muted">{{ formatDate(client.created_at) }}</td>
+                            <td class="tl-td tl-td--right">
+                                <div class="tl-row tl-row--end">
                                     <!-- View -->
                                     <Link
                                         :href="`/console/owner/clients/${client.id}`"
-                                        class="flex items-center gap-1 text-xs text-slate-400 hover:text-white transition"
+                                        class="tl-btn-ghost tl-btn-ghost--neutral"
                                         title="View client"
                                     >
-                                        <TlIcon name="eye" class="w-3.5 h-3.5 shrink-0" />
+                                        <TlIcon name="eye" class="tl-ic tl-ic--sm" />
                                         View
                                     </Link>
 
@@ -137,7 +137,7 @@ const TIER_COLORS = {
                                     <span
                                         v-if="client.is_owner"
                                         data-testid="owner-protected-badge"
-                                        class="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-900/30 text-amber-400 border border-amber-700/40"
+                                        class="tl-badge tl-badge--warn tl-badge--caps"
                                     >Protected</span>
 
                                     <template v-else>
@@ -145,11 +145,11 @@ const TIER_COLORS = {
                                         <button
                                             v-if="!client.deleted_at"
                                             @click="impersonate(client.id)"
-                                            class="flex items-center gap-1 tl-btn-ghost text-indigo-400 hover:text-indigo-300"
+                                            class="tl-btn-ghost tl-btn-ghost--brand"
                                             title="Impersonate this client"
                                             data-testid="impersonate-button"
                                         >
-                                            <TlIcon name="user-circle" class="w-3.5 h-3.5 shrink-0" />
+                                            <TlIcon name="user-circle" class="tl-ic tl-ic--sm" />
                                             Impersonate
                                         </button>
 
@@ -157,10 +157,10 @@ const TIER_COLORS = {
                                         <button
                                             v-if="!client.suspended_at && !client.deleted_at"
                                             @click="suspend(client.id)"
-                                            class="flex items-center gap-1 tl-btn-ghost tl-btn-ghost--warn"
+                                            class="tl-btn-ghost tl-btn-ghost--warn"
                                             title="Suspend client"
                                         >
-                                            <TlIcon name="ban" class="w-3.5 h-3.5 shrink-0" />
+                                            <TlIcon name="ban" class="tl-ic tl-ic--sm" />
                                             Suspend
                                         </button>
 
@@ -168,10 +168,10 @@ const TIER_COLORS = {
                                         <button
                                             v-if="client.suspended_at && !client.deleted_at"
                                             @click="restore(client.id)"
-                                            class="flex items-center gap-1 tl-btn-ghost tl-btn-ghost--success"
+                                            class="tl-btn-ghost tl-btn-ghost--success"
                                             title="Restore client"
                                         >
-                                            <TlIcon name="refresh" class="w-3.5 h-3.5 shrink-0" />
+                                            <TlIcon name="refresh" class="tl-ic tl-ic--sm" />
                                             Restore
                                         </button>
 
@@ -179,10 +179,10 @@ const TIER_COLORS = {
                                         <button
                                             v-if="!client.deleted_at"
                                             @click="destroy(client.id)"
-                                            class="flex items-center gap-1 tl-btn-ghost tl-btn-ghost--danger"
+                                            class="tl-btn-ghost tl-btn-ghost--danger"
                                             title="Soft-delete client"
                                         >
-                                            <TlIcon name="x-circle" class="w-3.5 h-3.5 shrink-0" />
+                                            <TlIcon name="x-circle" class="tl-ic tl-ic--sm" />
                                             Delete
                                         </button>
                                     </template>

@@ -13,47 +13,49 @@ defineProps({
 
 <template>
     <div class="tl-page">
-        <div class="mb-8">
-            <h1 class="tl-heading">Owner Panel</h1>
-            <p class="tl-subtext">Full administrative control.</p>
-        </div>
-
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-            <div class="tl-card">
-                <p class="tl-label mb-1">Total users</p>
-                <p class="text-2xl font-semibold text-white">{{ stats.total_users }}</p>
-            </div>
-            <div class="tl-card">
-                <p class="tl-label mb-1">Suspended</p>
-                <p class="text-2xl font-semibold text-red-400">{{ stats.suspended_users }}</p>
+        <div class="tl-page-header">
+            <div>
+                <h1 class="tl-heading">Owner Panel</h1>
+                <p class="tl-subtext">Full administrative control.</p>
             </div>
         </div>
 
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
-            <Link href="/console/owner/clients" class="flex items-center gap-2.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg p-4 text-sm font-medium text-slate-200 transition">
-                <TlIcon name="users" class="w-4 h-4 text-slate-400 shrink-0" />
+        <div class="tl-grid-3 tl-section-gap">
+            <div class="tl-stat-card">
+                <p class="tl-stat-label">Total users</p>
+                <p class="tl-stat-value">{{ stats.total_users }}</p>
+            </div>
+            <div class="tl-stat-card">
+                <p class="tl-stat-label">Suspended</p>
+                <p class="tl-stat-value" :class="stats.suspended_users > 0 ? 'tl-num--danger' : ''">{{ stats.suspended_users }}</p>
+            </div>
+        </div>
+
+        <div class="tl-quick-grid tl-section-gap">
+            <Link href="/console/owner/clients" class="tl-quick-link">
+                <TlIcon name="users" class="tl-ic tl-quick-link-ic" />
                 Clients
             </Link>
-            <Link href="/console/owner/tiers" class="flex items-center gap-2.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg p-4 text-sm font-medium text-slate-200 transition">
-                <TlIcon name="layers" class="w-4 h-4 text-slate-400 shrink-0" />
+            <Link href="/console/owner/tiers" class="tl-quick-link">
+                <TlIcon name="layers" class="tl-ic tl-quick-link-ic" />
                 Tiers &amp; Features
             </Link>
-            <Link href="/console/owner/audit" class="flex items-center gap-2.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg p-4 text-sm font-medium text-slate-200 transition">
-                <TlIcon name="history" class="w-4 h-4 text-slate-400 shrink-0" />
+            <Link href="/console/owner/audit" class="tl-quick-link">
+                <TlIcon name="history" class="tl-ic tl-quick-link-ic" />
                 Audit Log
             </Link>
         </div>
 
         <div v-if="stats.recent_actions?.length" class="tl-card tl-card--flush">
-            <div class="px-5 py-3 border-b border-slate-800">
-                <h2 class="text-sm font-medium text-slate-300">Recent actions</h2>
+            <div class="tl-table-header">
+                <h2 class="tl-title">Recent actions</h2>
             </div>
-            <ul class="divide-y divide-slate-800">
-                <li v-for="log in stats.recent_actions" :key="log.id" class="px-5 py-3 text-sm flex items-center gap-3">
-                    <span class="text-xs text-slate-500 w-36 shrink-0">{{ formatDateTime(log.created_at) }}</span>
-                    <span class="text-slate-400">{{ log.actor?.name ?? '—' }}</span>
+            <ul class="tl-divide">
+                <li v-for="log in stats.recent_actions" :key="log.id" class="tl-log-row">
+                    <span class="tl-log-time">{{ formatDateTime(log.created_at) }}</span>
+                    <span class="tl-body--muted">{{ log.actor?.name ?? '—' }}</span>
                     <span class="tl-kbd">{{ log.action }}</span>
-                    <span v-if="log.target_user" class="text-slate-500 text-xs">→ {{ log.target_user?.email }}</span>
+                    <span v-if="log.target_user" class="tl-hint">→ {{ log.target_user?.email }}</span>
                 </li>
             </ul>
         </div>

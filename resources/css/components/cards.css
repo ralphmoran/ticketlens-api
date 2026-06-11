@@ -274,3 +274,26 @@
   .tl-warn-hint { color: var(--tl-warn); opacity: 0.85; }
   .tl-card-gap-xs { @apply mb-2; }
 }
+
+@layer components {
+  /* Quick-link tiles (owner dashboard) */
+  .tl-quick-grid { @apply grid grid-cols-2 sm:grid-cols-4 gap-3; }
+  .tl-quick-link {
+    @apply flex items-center gap-2.5 p-4 text-sm font-medium;
+    background-color: var(--tl-card);
+    border: 1px solid var(--tl-border);
+    border-radius: var(--tl-radius-lg);
+    color: var(--tl-text-primary);
+    box-shadow: var(--tl-shadow-sm);
+    transition: background-color var(--tl-transition), border-color var(--tl-transition);
+  }
+  .tl-quick-link:hover {
+    background-color: var(--tl-surface-2);
+    border-color: var(--tl-border-strong);
+  }
+  .tl-quick-link-ic { color: var(--tl-text-muted); }
+
+  /* Audit log rows */
+  .tl-log-row { @apply px-5 py-3 text-sm flex items-center gap-3; }
+  .tl-log-time { @apply text-xs w-36 shrink-0; color: var(--tl-text-subtle); }
+}

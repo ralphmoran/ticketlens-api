@@ -30,9 +30,10 @@ class PushRequest extends FormRequest
             'cli_activity.fetch_count'           => ['sometimes', 'integer', 'min:0', 'max:50000'],
             'cli_activity.triage_run_count'      => ['sometimes', 'integer', 'min:0', 'max:50000'],
             'cli_activity.invocations'           => ['sometimes', 'integer', 'min:0', 'max:50000'],
-            'cli_activity.commands'              => ['sometimes', 'nullable', 'array'],
-            'cli_activity.commands.*'            => ['array'],
-            'cli_activity.commands.*.count'      => ['required_with:cli_activity.commands.*', 'integer', 'min:0', 'max:50000'],
+            'cli_activity.commands'                    => ['sometimes', 'nullable', 'array'],
+            'cli_activity.commands.*'                  => ['array'],
+            'cli_activity.commands.*.count'            => ['required_with:cli_activity.commands.*', 'integer', 'min:0', 'max:50000'],
+            'cli_activity.commands.*.tokens_saved'     => ['sometimes', 'integer', 'min:0', 'max:100000000'],
         ];
     }
 }

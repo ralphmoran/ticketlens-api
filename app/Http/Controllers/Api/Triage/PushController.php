@@ -81,7 +81,7 @@ class PushController
                     'user_id'      => $user->id,
                     'action'       => $cmd,
                     'ticket_key'   => null,
-                    'tokens_used'  => 0,
+                    'tokens_used'  => (int) ($counters['tokens_saved'] ?? 0),
                     'metadata'     => json_encode([
                         'count' => $counters['count'] ?? 0,
                         'flags' => $flags,

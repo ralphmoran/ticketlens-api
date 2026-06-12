@@ -27,11 +27,13 @@ class AnalyticsController
         }
 
         $logs = UsageLog::where('user_id', $user->id)
+            ->whereNull('metadata')
             ->selectRaw('action, SUM(tokens_used) as total_tokens, COUNT(*) as call_count')
             ->groupBy('action')
             ->get();
 
         $daily = UsageLog::where('user_id', $user->id)
+            ->whereNull('metadata')
             ->where('created_at', '>=', now()->subDays(14))
             ->selectRaw('DATE(created_at) as date, SUM(tokens_used) as tokens, COUNT(*) as calls')
             ->groupBy('date')

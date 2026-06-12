@@ -209,6 +209,9 @@ Route::prefix('console')->name('console.')->group(function () {
             Route::get('/teams/{group}',                            [\App\Http\Controllers\Owner\TeamController::class, 'show'])->name('teams.show');
             Route::delete('/teams/{group}/members/{user}',          [\App\Http\Controllers\Owner\TeamController::class, 'removeMember'])->name('teams.members.destroy');
 
+            // Platform insights — usage trends, popular commands, ROI per account
+            Route::get('/insights', [\App\Http\Controllers\Owner\InsightsController::class, 'index'])->name('insights');
+
             // Revenue dashboard (MRR, tier breakdown, recent license events)
             Route::get('/revenue', [\App\Http\Controllers\Owner\RevenueController::class, 'index'])->name('revenue');
 

@@ -1,0 +1,185 @@
+<?php
+
+namespace Tests\Feature\Owner;
+
+use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
+use Tests\TestCase;
+
+class InsightsControllerTest extends TestCase
+{
+    use RefreshDatabase;
+
+    private function makeOwner(): User
+    {
+        return User::factory()->create(['is_owner' => true]);
+    }
+
+    private function insertCliLog(int $userId, string $action, int $tokensSaved, int $count = 1, int $daysAgo = 0): void
+    {
+        DB::table('usage_logs')->insert([
+            'user_id'    => $userId,
+            'action'     => $action,
+            'ticket_key' => null,
+            'tokens_used'=> $tokensSaved,
+            'metadata'   => json_encode(['count' => $count, 'flags' => []]),
+            'created_at' => now()->subDays($daysAgo)->toDateTimeString(),
+        ]);
+    }
+
+    // ── LOCK ───────────────────────────────────────────────────────────────
+
+    public function test_lock_non_owner_redirected_from_insights(): void
+    {
+        $user = User::factory()->create(['tier' => 'pro']);
+        $this->actingAs($user)->get('/console/owner/insights')->assertRedirect('/console/dashboard');
+    }
+
+    public function test_lock_guest_redirected_from_insights(): void
+    {
+        $this->get('/console/owner/insights')->assertRedirect('/console/login');
+    }
+
+    // ── RED → GREEN ────────────────────────────────────────────────────────
+
+    public function test_owner_can_view_insights_page(): void
+    {
+        $owner = $this->makeOwner();
+        $this->actingAs($owner)->get('/console/owner/insights')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page->component('Console/Owner/Insights'));
+    }
+
+    public function test_insights_returns_popular_commands(): void
+    {
+        $owner = $this->makeOwner();
+        $user  = User::factory()->create(['tier' => 'pro']);
+
+        $this->insertCliLog($user->id, 'fetch', 100, 5);
+        $this->insertCliLog($user->id, 'triage', 50, 2);
+
+        $this->actingAs($owner)->get('/console/owner/insights')
+            ->assertInertia(fn ($page) => $page
+                ->has('popular_commands')
+                ->where('popular_commands.0.action', 'fetch')
+                ->where('popular_commands.0.total_runs', 5)
+            );
+    }
+
+    public function test_insights_returns_tokens_saved_total(): void
+    {
+        $owner = $this->makeOwner();
+        $user  = User::factory()->create(['tier' => 'pro']);
+
+        $this->insertCliLog($user->id, 'fetch', 2000, 10);
+        $this->insertCliLog($user->id, 'triage', 500, 5);
+
+        $this->actingAs($owner)->get('/console/owner/insights')
+            ->assertInertia(fn ($page) => $page
+                ->has('tokens_saved_total')
+                ->where('tokens_saved_total', 2500)
+            );
+    }
+
+    public function test_insights_returns_roi_per_account(): void
+    {
+        $owner = $this->makeOwner();
+        $pro   = User::factory()->create(['tier' => 'pro']);
+
+        $this->insertCliLog($pro->id, 'fetch', 1_000_000, 1);
+
+        $this->actingAs($owner)->get('/console/owner/insights')
+            ->assertInertia(fn ($page) => $page
+                ->has('roi_per_account')
+                ->where('roi_per_account.0.user_id', $pro->id)
+                ->where('roi_per_account.0.tokens_saved', 1_000_000)
+            );
+    }
+
+    public function test_insights_free_user_roi_is_null(): void
+    {
+        $owner = $this->makeOwner();
+        $free  = User::factory()->create(['tier' => 'free']);
+
+        $this->insertCliLog($free->id, 'fetch', 999_999, 1);
+
+        $this->actingAs($owner)->get('/console/owner/insights')
+            ->assertInertia(fn ($page) => $page
+                ->has('roi_per_account')
+                ->where('roi_per_account.0.roi', null)
+            );
+    }
+
+    public function test_insights_returns_feature_adoption(): void
+    {
+        $owner = $this->makeOwner();
+        $u1    = User::factory()->create(['tier' => 'pro']);
+        $u2    = User::factory()->create(['tier' => 'pro']);
+
+        $this->insertCliLog($u1->id, 'fetch', 100, 1);
+        $this->insertCliLog($u2->id, 'triage', 50, 1);
+        $this->insertCliLog($u1->id, 'triage', 50, 1);
+
+        $this->actingAs($owner)->get('/console/owner/insights')
+            ->assertInertia(fn ($page) => $page
+                ->has('feature_adoption')
+                ->where('feature_adoption.triage', 2)
+            );
+    }
+
+    public function test_insights_returns_top_accounts(): void
+    {
+        $owner = $this->makeOwner();
+        $u1    = User::factory()->create(['tier' => 'pro', 'email' => 'top@example.com']);
+        $u2    = User::factory()->create(['tier' => 'pro', 'email' => 'low@example.com']);
+
+        $this->insertCliLog($u1->id, 'fetch', 5000, 50);
+        $this->insertCliLog($u2->id, 'fetch', 100,  5);
+
+        $this->actingAs($owner)->get('/console/owner/insights')
+            ->assertInertia(fn ($page) => $page
+                ->has('top_accounts')
+                ->where('top_accounts.0.email', 'top@example.com')
+                ->where('top_accounts.0.commands_run', 50)
+            );
+    }
+
+    public function test_insights_excludes_byok_rows_from_tokens_saved(): void
+    {
+        $owner = $this->makeOwner();
+        $user  = User::factory()->create(['tier' => 'pro']);
+
+        // CLI row (metadata not null) — should be included
+        $this->insertCliLog($user->id, 'fetch', 1000, 5);
+
+        // BYOK row (metadata null) — must be excluded from tokens_saved_total
+        DB::table('usage_logs')->insert([
+            'user_id'    => $user->id,
+            'action'     => 'digest',
+            'ticket_key' => null,
+            'tokens_used'=> 99999,
+            'metadata'   => null,
+            'created_at' => now()->toDateTimeString(),
+        ]);
+
+        $this->actingAs($owner)->get('/console/owner/insights')
+            ->assertInertia(fn ($page) => $page
+                ->where('tokens_saved_total', 1000)
+            );
+    }
+
+    public function test_insights_period_param_all_returns_all_time(): void
+    {
+        $owner = $this->makeOwner();
+        $user  = User::factory()->create(['tier' => 'pro']);
+
+        $this->insertCliLog($user->id, 'fetch', 999, 1, 200);
+
+        // Without ?period=all, 200-day-old row may fall outside window
+        $this->actingAs($owner)->get('/console/owner/insights?period=all')
+            ->assertInertia(fn ($page) => $page
+                ->where('tokens_saved_total', 999)
+            );
+    }
+}

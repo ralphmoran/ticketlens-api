@@ -7,6 +7,8 @@ use App\Models\TriageSnapshot;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -112,6 +114,7 @@ class DashboardController
             'stats'         => $stats,
             'ticket_trend'  => $ticketTrend,
             'daily_urgency' => $dailyUrgency,
+            'insights'      => $this->individualInsights($user),
         ];
 
         if ($hourDist !== null) {
@@ -243,6 +246,7 @@ class DashboardController
             'team_hour_distribution' => array_values($hourBuckets),
             'team_dow_distribution'  => array_values($dowBuckets),
             'team_push_heatmap'      => $heatmap,
+            'insights'               => $this->managerInsights($user, $group),
         ]);
     }
 
@@ -298,6 +302,103 @@ class DashboardController
             'team_dow_distribution'  => array_values($dowBuckets),
             'team_push_heatmap'      => [],
         ]);
+    }
+
+    private function individualInsights(mixed $user): array
+    {
+        $window  = config('tiers.windows')[$user->tier] ?? 30;
+        $cutoff  = now()->subDays($window);
+        $isPro   = in_array($user->tier, ['pro', 'team']);
+
+        $logs = DB::table('usage_logs')
+            ->where('user_id', $user->id)
+            ->where('created_at', '>=', $cutoff)
+            ->whereNotNull('metadata')
+            ->get(['action', 'tokens_used', 'metadata', 'created_at']);
+
+        $commandsRun = $this->sumCommandCount($logs);
+        $activeDays  = $logs->map(fn ($r) => substr($r->created_at, 0, 10))->unique()->count();
+        $commandMix  = $this->commandMix($logs);
+
+        $insights = [
+            'commands_run' => $commandsRun,
+            'active_days'  => $activeDays,
+            'command_mix'  => $commandMix,
+            'tokens_saved' => null,
+            'window_days'  => $window,
+        ];
+
+        if ($isPro) {
+            $tokensSaved                = (int) $logs->sum('tokens_used');
+            $rate                       = config('tiers.token_rate_per_million');
+            $insights['tokens_saved']   = $tokensSaved;
+            $insights['estimated_savings'] = round($tokensSaved / 1_000_000 * $rate, 4);
+        }
+
+        return $insights;
+    }
+
+    private function managerInsights(mixed $user, Group $group): array
+    {
+        $self        = $this->individualInsights($user);
+        $memberIds   = $group->members()->pluck('users.id')->toArray();
+        $window      = config('tiers.windows')[$user->tier] ?? 90;
+        $cutoff      = now()->subDays($window);
+        $weekCutoff  = now()->subDays(7);
+
+        if (empty($memberIds)) {
+            $self['team'] = [
+                'tokens_saved'    => 0,
+                'active_this_week'=> 0,
+                'adoption_rate'   => 0,
+                'command_mix'     => [],
+            ];
+            return $self;
+        }
+
+        $teamLogs = DB::table('usage_logs')
+            ->whereIn('user_id', $memberIds)
+            ->where('created_at', '>=', $cutoff)
+            ->whereNotNull('metadata')
+            ->get(['user_id', 'action', 'tokens_used', 'metadata', 'created_at']);
+
+        $activeThisWeek = DB::table('usage_logs')
+            ->whereIn('user_id', $memberIds)
+            ->where('created_at', '>=', $weekCutoff)
+            ->whereNotNull('metadata')
+            ->distinct()
+            ->count('user_id');
+
+        $teamCommandMix = $this->commandMix($teamLogs);
+
+        $self['team'] = [
+            'tokens_saved'     => (int) $teamLogs->sum('tokens_used'),
+            'active_this_week' => $activeThisWeek,
+            'adoption_rate'    => count($memberIds) > 0
+                ? round($activeThisWeek / count($memberIds), 4)
+                : 0,
+            'command_mix'      => $teamCommandMix,
+        ];
+
+        return $self;
+    }
+
+    /**
+     * Sum the per-row command counts stored in each usage log's JSON metadata.
+     */
+    private function sumCommandCount(Collection $logs): int
+    {
+        return (int) $logs->sum(fn ($r) => json_decode($r->metadata, true)['count'] ?? 0);
+    }
+
+    /**
+     * Total command runs per action, keyed by action name.
+     */
+    private function commandMix(Collection $logs): array
+    {
+        return $logs->groupBy('action')
+            ->map(fn ($rows) => $this->sumCommandCount($rows))
+            ->toArray();
     }
 
     private function computeStreak($snapshots): int

@@ -433,4 +433,82 @@ class PushControllerTest extends TestCase
         $this->assertSame(2, $metadata['count']);
         $this->assertSame(2, $metadata['flags']['--push']);
     }
+
+    // ── LOCK: tokens_saved never leaks into metadata.flags ───────────────────
+
+    public function test_lock_tokens_saved_key_not_in_metadata_flags(): void
+    {
+        [$user, $token] = $this->makeUserWithToken();
+
+        $payload = $this->validPayload([
+            'cli_activity' => [
+                'commands' => [
+                    'fetch' => ['count' => 3, 'tokens_saved' => 1000],
+                ],
+            ],
+        ]);
+
+        $this->withToken($token)->postJson('/v1/triage/push', $payload)
+            ->assertStatus(200);
+
+        $log      = \Illuminate\Support\Facades\DB::table('usage_logs')->where('action', 'fetch')->first();
+        $metadata = json_decode($log->metadata, true);
+        $this->assertArrayNotHasKey('tokens_saved', $metadata['flags']);
+    }
+
+    // ── RED: tokens_saved written to usage_logs.tokens_used ──────────────────
+
+    public function test_push_tokens_saved_written_to_usage_log(): void
+    {
+        [$user, $token] = $this->makeUserWithToken();
+
+        $payload = $this->validPayload([
+            'cli_activity' => [
+                'commands' => [
+                    'fetch' => ['count' => 2, 'tokens_saved' => 1500],
+                ],
+            ],
+        ]);
+
+        $this->withToken($token)->postJson('/v1/triage/push', $payload)
+            ->assertStatus(200);
+
+        $log = \Illuminate\Support\Facades\DB::table('usage_logs')->where('action', 'fetch')->first();
+        $this->assertSame(1500, (int) $log->tokens_used);
+    }
+
+    public function test_push_tokens_saved_above_max_returns_422(): void
+    {
+        [, $token] = $this->makeUserWithToken();
+
+        $payload = $this->validPayload([
+            'cli_activity' => [
+                'commands' => [
+                    'fetch' => ['count' => 1, 'tokens_saved' => 100_000_001],
+                ],
+            ],
+        ]);
+
+        $this->withToken($token)->postJson('/v1/triage/push', $payload)
+            ->assertStatus(422);
+    }
+
+    public function test_push_tokens_saved_absent_defaults_to_zero(): void
+    {
+        [$user, $token] = $this->makeUserWithToken();
+
+        $payload = $this->validPayload([
+            'cli_activity' => [
+                'commands' => [
+                    'fetch' => ['count' => 1],
+                ],
+            ],
+        ]);
+
+        $this->withToken($token)->postJson('/v1/triage/push', $payload)
+            ->assertStatus(200);
+
+        $log = \Illuminate\Support\Facades\DB::table('usage_logs')->where('action', 'fetch')->first();
+        $this->assertSame(0, (int) $log->tokens_used);
+    }
 }

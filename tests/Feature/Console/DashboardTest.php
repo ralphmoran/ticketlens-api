@@ -4,6 +4,7 @@ namespace Tests\Feature\Console;
 
 use App\Models\TriageSnapshot;
 use App\Models\User;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
@@ -483,6 +484,91 @@ class DashboardTest extends TestCase
                 ->where('team_push_heatmap', fn ($v) =>
                     count($v) >= 1 && isset($v[0]['member_id']) && isset($v[0]['days'])
                 )
+            );
+    }
+
+    // ── LOCK: existing stats keys present for all tiers after insights added ──
+
+    public function test_lock_individual_stats_shape_unchanged(): void
+    {
+        $user = User::factory()->create(['tier' => 'free', 'permissions' => 64]);
+
+        $this->actingAs($user)->get('/console/dashboard')
+            ->assertInertia(fn ($page) => $page
+                ->has('stats.pushes_this_month')
+                ->has('stats.current_ticket_count')
+                ->has('stats.push_streak')
+                ->has('stats.last_push')
+            );
+    }
+
+    // ── RED → GREEN: insights payload per tier ────────────────────────────────
+
+    private function insertCliLog(int $userId, string $action, int $tokensSaved, int $daysAgo = 0): void
+    {
+        DB::table('usage_logs')->insert([
+            'user_id'     => $userId,
+            'action'      => $action,
+            'ticket_key'  => null,
+            'tokens_used' => $tokensSaved,
+            'metadata'    => json_encode(['count' => 1, 'flags' => []]),
+            'created_at'  => now()->subDays($daysAgo),
+        ]);
+    }
+
+    public function test_free_user_gets_insights_with_commands_run_and_null_tokens(): void
+    {
+        $user = User::factory()->create(['tier' => 'free', 'permissions' => 64]);
+        $this->insertCliLog($user->id, 'fetch', 1000, 5);
+
+        $this->actingAs($user)->get('/console/dashboard')
+            ->assertInertia(fn ($page) => $page
+                ->has('insights')
+                ->has('insights.commands_run')
+                ->where('insights.tokens_saved', null)
+            );
+    }
+
+    public function test_pro_user_gets_insights_with_tokens_saved(): void
+    {
+        $user = User::factory()->create(['tier' => 'pro', 'permissions' => 71]);
+        $this->insertCliLog($user->id, 'fetch', 2000, 10);
+
+        $this->actingAs($user)->get('/console/dashboard')
+            ->assertInertia(fn ($page) => $page
+                ->has('insights')
+                ->where('insights.tokens_saved', 2000)
+                ->has('insights.estimated_savings')
+                ->has('insights.command_mix')
+            );
+    }
+
+    public function test_free_insights_scoped_to_30_days(): void
+    {
+        $user = User::factory()->create(['tier' => 'free', 'permissions' => 64]);
+        $this->insertCliLog($user->id, 'fetch', 500, 5);    // within 30d — included
+        $this->insertCliLog($user->id, 'fetch', 500, 40);   // older than 30d — excluded
+
+        $this->actingAs($user)->get('/console/dashboard')
+            ->assertInertia(fn ($page) => $page
+                ->where('insights.commands_run', 1)
+            );
+    }
+
+    public function test_team_manager_gets_team_insights_section(): void
+    {
+        $manager = User::factory()->create(['tier' => 'team', 'permissions' => 2687]);
+        $group   = \App\Models\Group::create(['name' => 'Team A', 'owner_id' => $manager->id]);
+        $member  = User::factory()->create(['tier' => 'team', 'permissions' => 2687]);
+        $group->members()->attach($member->id);
+        $this->insertCliLog($member->id, 'fetch', 800, 3);
+
+        $this->actingAs($manager)->get('/console/dashboard')
+            ->assertInertia(fn ($page) => $page
+                ->has('insights.team')
+                ->has('insights.team.tokens_saved')
+                ->has('insights.team.active_this_week')
+                ->has('insights.team.adoption_rate')
             );
     }
 }

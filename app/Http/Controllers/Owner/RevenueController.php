@@ -12,15 +12,15 @@ use Inertia\Response;
 
 class RevenueController extends Controller
 {
-    private const TIER_PRICES = ['free' => 0, 'pro' => 8, 'team' => 15, 'enterprise' => 0];
-
     public function index(): Response
     {
+        $tierPrices = config('tiers.prices');
+
         $activeLicenses = License::where('status', 'active')
             ->where(fn ($q) => $q->whereNull('expires_at')->orWhere('expires_at', '>', now()))
             ->get(['tier']);
 
-        $mrr         = $activeLicenses->sum(fn ($l) => self::TIER_PRICES[$l->tier] ?? 0);
+        $mrr         = $activeLicenses->sum(fn ($l) => $tierPrices[$l->tier] ?? 0);
         $totalActive = $activeLicenses->count();
 
         $tierBreakdown = array_merge(

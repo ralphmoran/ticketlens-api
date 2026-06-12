@@ -363,48 +363,66 @@ function memberHeatmapClass(memberId, day) {
             </div>
         </div>
 
-        <!-- ── Usage Insights ─────────────────────────────────────────────────── -->
-        <div v-if="insights" class="tl-section mt-8">
-            <h2 class="tl-heading-2 mb-4">CLI Usage Insights</h2>
+        <!-- ── CLI Usage Insights ─────────────────────────────────────────────── -->
+        <div v-if="insights" class="tl-section-gap">
+            <h2 class="tl-section-heading tl-title--spaced">CLI Usage Insights</h2>
 
-            <!-- Commands run + active days -->
-            <div class="tl-grid tl-grid--3 tl-gap-4 mb-4">
-                <div class="tl-card tl-card--padded">
-                    <p class="tl-label">Commands Run</p>
-                    <p class="tl-stat">{{ insights.commands_run?.toLocaleString() ?? '—' }}</p>
-                    <p class="tl-text-muted text-sm">last {{ insights.window_days }}d</p>
+            <div class="tl-grid-3 tl-section-gap">
+                <div class="tl-stat-card">
+                    <p class="tl-stat-label">Commands Run</p>
+                    <p class="tl-stat-value">{{ (insights.commands_run ?? 0).toLocaleString() }}</p>
+                    <p class="tl-hint">
+                        {{ insights.commands_run > 0 ? `last ${insights.window_days}d` : 'run ticketlens to get started' }}
+                    </p>
                 </div>
-                <div class="tl-card tl-card--padded">
-                    <p class="tl-label">Active CLI Days</p>
-                    <p class="tl-stat">{{ insights.active_days ?? '—' }}</p>
-                    <p class="tl-text-muted text-sm">days with at least one push</p>
+                <div class="tl-stat-card">
+                    <p class="tl-stat-label">Active CLI Days</p>
+                    <p class="tl-stat-value">{{ insights.active_days ?? 0 }}</p>
+                    <p class="tl-hint">
+                        {{ insights.active_days > 0 ? 'days with at least one push' : 'no pushes yet — you good?' }}
+                    </p>
                 </div>
                 <!-- Tokens saved — Pro+ only; blurred teaser for Free -->
-                <div class="tl-card tl-card--padded" :class="{ 'opacity-50 select-none': insights.tokens_saved === null }">
-                    <p class="tl-label">Tokens Saved (est.)</p>
-                    <p class="tl-stat" :class="{ 'blur-sm': insights.tokens_saved === null }">
+                <div class="tl-stat-card" :class="{ 'opacity-50 select-none': insights.tokens_saved === null }">
+                    <p class="tl-stat-label">Tokens Saved (est.)</p>
+                    <p class="tl-stat-value" :class="{ 'blur-sm': insights.tokens_saved === null }">
                         {{ insights.tokens_saved !== null ? insights.tokens_saved.toLocaleString() : '99,999' }}
                     </p>
-                    <p v-if="insights.tokens_saved === null" class="tl-text-muted text-sm">Upgrade to Pro to unlock</p>
-                    <p v-else class="tl-text-muted text-sm">${{ (insights.estimated_savings ?? 0).toFixed(2) }} est. value</p>
+                    <p v-if="insights.tokens_saved === null" class="tl-hint">
+                        <a href="/console/billing" class="tl-link">Upgrade to Pro</a> to unlock
+                    </p>
+                    <p v-else class="tl-hint">
+                        {{ insights.tokens_saved > 0
+                            ? `~$${(insights.estimated_savings ?? 0).toFixed(2)} est. value`
+                            : 'push tickets to accumulate savings' }}
+                    </p>
                 </div>
             </div>
 
             <!-- Team section (team managers only) -->
-            <div v-if="insights.team" class="tl-card tl-card--padded mb-4">
-                <h3 class="tl-heading-3 mb-3">Team CLI Usage</h3>
-                <div class="tl-grid tl-grid--3 tl-gap-4">
-                    <div>
-                        <p class="tl-label">Team Tokens Saved</p>
-                        <p class="tl-stat">{{ insights.team.tokens_saved?.toLocaleString() }}</p>
+            <div v-if="insights.team" class="tl-section-gap">
+                <h2 class="tl-section-heading tl-title--spaced">Team CLI Usage</h2>
+                <div class="tl-grid-3 tl-section-gap">
+                    <div class="tl-stat-card">
+                        <p class="tl-stat-label">Team Tokens Saved</p>
+                        <p class="tl-stat-value">{{ (insights.team.tokens_saved ?? 0).toLocaleString() }}</p>
+                        <p class="tl-hint">
+                            {{ insights.team.tokens_saved > 0 ? 'combined CLI savings' : 'hmmm... quiet team so far' }}
+                        </p>
                     </div>
-                    <div>
-                        <p class="tl-label">Active This Week</p>
-                        <p class="tl-stat">{{ insights.team.active_this_week }}</p>
+                    <div class="tl-stat-card">
+                        <p class="tl-stat-label">Active This Week</p>
+                        <p class="tl-stat-value">{{ insights.team.active_this_week }}</p>
+                        <p class="tl-hint">
+                            {{ insights.team.active_this_week > 0 ? 'members with CLI pushes' : 'nobody pushed this week' }}
+                        </p>
                     </div>
-                    <div>
-                        <p class="tl-label">Adoption Rate</p>
-                        <p class="tl-stat">{{ (insights.team.adoption_rate * 100).toFixed(0) }}%</p>
+                    <div class="tl-stat-card">
+                        <p class="tl-stat-label">Adoption Rate</p>
+                        <p class="tl-stat-value">{{ (insights.team.adoption_rate * 100).toFixed(0) }}%</p>
+                        <p class="tl-hint">
+                            {{ insights.team.adoption_rate > 0 ? 'of team using the CLI' : 'share ticketlens with your team' }}
+                        </p>
                     </div>
                 </div>
             </div>

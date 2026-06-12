@@ -1,7 +1,9 @@
 <script setup>
 import ConsoleLayout from '@/Layouts/ConsoleLayout.vue'
+import TlIcon from '@/Components/TlIcon.vue'
 import TlChart from '@/components/TlChart.vue'
 import { computed } from 'vue'
+import { router } from '@inertiajs/vue3'
 
 defineOptions({ layout: ConsoleLayout })
 
@@ -14,139 +16,205 @@ const props = defineProps({
     top_accounts:       { type: Array,  default: () => [] },
 })
 
-const estimatedSavingsTotal = computed(() => {
-    const rate = 15 // $15 per 1M tokens
-    return (props.tokens_saved_total / 1_000_000 * rate).toFixed(2)
-})
+const PERIODS = [
+    { value: '7',   label: '7d' },
+    { value: '30',  label: '30d' },
+    { value: '90',  label: '90d' },
+    { value: 'all', label: 'All time' },
+]
 
+const RATE = 15 // $15 per 1M tokens
+
+const estimatedSavingsTotal = computed(() =>
+    (props.tokens_saved_total / 1_000_000 * RATE).toFixed(2)
+)
+
+const accountsWithUsage = computed(() => props.top_accounts.length)
+
+// Popular commands chart
+const hasCommands = computed(() => props.popular_commands.length > 0)
+const commandLabels = computed(() => props.popular_commands.map(c => c.action))
+const commandDatasets = computed(() => [{
+    label: 'Runs',
+    data: props.popular_commands.map(c => c.total_runs),
+}])
+
+// Feature adoption chart
 const adoptionEntries = computed(() =>
     Object.entries(props.feature_adoption).sort(([, a], [, b]) => b - a)
 )
+const hasAdoption = computed(() => adoptionEntries.value.length > 0)
+const adoptionLabels = computed(() => adoptionEntries.value.map(([cmd]) => cmd))
+const adoptionDatasets = computed(() => [{
+    label: 'Unique Users',
+    data: adoptionEntries.value.map(([, count]) => count),
+    color: 'brand',
+}])
 
-const adoptionMax = computed(() =>
-    adoptionEntries.value.reduce((m, [, c]) => Math.max(m, c), 1)
-)
+function setPeriod(p) {
+    router.get('/console/owner/insights', { period: p }, { preserveScroll: true })
+}
 </script>
 
 <template>
     <div class="tl-page">
-        <div class="tl-page__header">
-            <h1 class="tl-heading-1">Platform Insights</h1>
-            <p class="tl-text-muted">Usage trends, command adoption, and ROI across all accounts.</p>
-        </div>
 
-        <!-- Summary strip -->
-        <div class="tl-grid tl-grid--4 tl-gap-4 mb-6">
-            <div class="tl-card tl-card--padded">
-                <p class="tl-label">Tokens Saved (est.)</p>
-                <p class="tl-stat">{{ tokens_saved_total.toLocaleString() }}</p>
-            </div>
-            <div class="tl-card tl-card--padded">
-                <p class="tl-label">Estimated Value</p>
-                <p class="tl-stat">${{ estimatedSavingsTotal }}</p>
-            </div>
-            <div class="tl-card tl-card--padded">
-                <p class="tl-label">Commands Tracked</p>
-                <p class="tl-stat">{{ popular_commands.length }}</p>
-            </div>
-            <div class="tl-card tl-card--padded">
-                <p class="tl-label">Accounts with Usage</p>
-                <p class="tl-stat">{{ roi_per_account.length }}</p>
+        <div class="tl-page-header">
+            <div>
+                <h1 class="tl-heading">Platform Insights</h1>
+                <p class="tl-subtext">Usage trends, command adoption, and ROI across all accounts.</p>
             </div>
         </div>
 
-        <!-- Popular commands -->
-        <div class="tl-card tl-card--padded mb-6">
-            <h2 class="tl-heading-2 mb-4">Popular Commands</h2>
-            <table class="tl-table w-full">
-                <thead>
-                    <tr>
-                        <th class="tl-table__th">Command</th>
-                        <th class="tl-table__th text-right">Total Runs</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr v-for="cmd in popular_commands" :key="cmd.action" class="tl-table__row">
-                        <td class="tl-table__td font-mono">{{ cmd.action }}</td>
-                        <td class="tl-table__td text-right">{{ cmd.total_runs.toLocaleString() }}</td>
-                    </tr>
-                    <tr v-if="popular_commands.length === 0">
-                        <td colspan="2" class="tl-table__td tl-text-muted text-center">No usage data yet.</td>
-                    </tr>
-                </tbody>
-            </table>
+        <!-- Period picker -->
+        <div class="tl-picker tl-card-gap">
+            <button
+                v-for="p in PERIODS"
+                :key="p.value"
+                class="tl-btn tl-btn--ghost tl-btn--sm"
+                :class="{ 'tl-btn--active': period === p.value }"
+                @click="setPeriod(p.value)"
+            >
+                {{ p.label }}
+            </button>
         </div>
 
-        <!-- Feature adoption -->
-        <div class="tl-card tl-card--padded mb-6">
-            <h2 class="tl-heading-2 mb-4">Feature Adoption (unique users)</h2>
-            <div v-for="[action, count] in adoptionEntries" :key="action" class="flex items-center gap-3 mb-2">
-                <span class="font-mono w-24 shrink-0">{{ action }}</span>
-                <div class="flex-1 h-2 bg-gray-200 rounded overflow-hidden">
-                    <div class="h-2 bg-blue-500 rounded" :style="{ width: (count / adoptionMax * 100) + '%' }" />
+        <!-- KPI strip -->
+        <div class="tl-grid-3 tl-section-gap">
+            <div class="tl-stat-card">
+                <p class="tl-stat-label">Tokens Saved (est.)</p>
+                <p class="tl-stat-value tl-num--success">{{ tokens_saved_total.toLocaleString() }}</p>
+                <p class="tl-hint">
+                    {{ tokens_saved_total > 0 ? 'tokens estimated saved vs raw API' : 'push tickets to start accumulating' }}
+                </p>
+            </div>
+            <div class="tl-stat-card">
+                <p class="tl-stat-label">Estimated Value</p>
+                <p class="tl-stat-value" :class="tokens_saved_total > 0 ? 'tl-score--high' : ''">
+                    ${{ estimatedSavingsTotal }}
+                </p>
+                <p class="tl-hint">at ${{ RATE }}/M token rate</p>
+            </div>
+            <div class="tl-stat-card">
+                <p class="tl-stat-label">Accounts with CLI Usage</p>
+                <p class="tl-stat-value">{{ accountsWithUsage }}</p>
+                <p class="tl-hint">
+                    {{ accountsWithUsage > 0 ? 'accounts that pushed data' : 'hmmm... no one\'s pushed yet' }}
+                </p>
+            </div>
+        </div>
+
+        <!-- Popular Commands -->
+        <div class="tl-section-gap">
+            <h2 class="tl-section-heading tl-title--spaced">Popular Commands</h2>
+            <div class="tl-card">
+                <div class="tl-chart-frame">
+                    <TlChart
+                        v-if="hasCommands"
+                        type="bar"
+                        :labels="commandLabels"
+                        :datasets="commandDatasets"
+                    />
+                    <div v-else class="tl-chart-empty">
+                        hmmm... it seems nothing has happened so far
+                    </div>
                 </div>
-                <span class="tl-text-muted text-sm w-6 text-right">{{ count }}</span>
             </div>
-            <p v-if="adoptionEntries.length === 0" class="tl-text-muted">No usage data yet.</p>
         </div>
 
-        <!-- Top accounts -->
-        <div class="tl-card tl-card--padded mb-6">
-            <h2 class="tl-heading-2 mb-4">Top Accounts</h2>
-            <table class="tl-table w-full">
-                <thead>
-                    <tr>
-                        <th class="tl-table__th">Account</th>
-                        <th class="tl-table__th">Tier</th>
-                        <th class="tl-table__th text-right">Commands Run</th>
-                        <th class="tl-table__th text-right">Tokens Saved (est.)</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr v-for="acct in top_accounts" :key="acct.user_id" class="tl-table__row">
-                        <td class="tl-table__td">{{ acct.email }}</td>
-                        <td class="tl-table__td">
-                            <span :class="`tl-badge tl-badge--${acct.tier === 'pro' ? 'brand' : acct.tier === 'team' ? 'info' : 'neutral'}`">
-                                {{ acct.tier }}
-                            </span>
-                        </td>
-                        <td class="tl-table__td text-right">{{ acct.commands_run.toLocaleString() }}</td>
-                        <td class="tl-table__td text-right">{{ acct.tokens_saved.toLocaleString() }}</td>
-                    </tr>
-                    <tr v-if="top_accounts.length === 0">
-                        <td colspan="4" class="tl-table__td tl-text-muted text-center">No usage data yet.</td>
-                    </tr>
-                </tbody>
-            </table>
+        <!-- Feature Adoption -->
+        <div class="tl-section-gap">
+            <h2 class="tl-section-heading tl-title--spaced">Feature Adoption <span class="tl-hint">(unique users per command)</span></h2>
+            <div class="tl-card">
+                <div class="tl-chart-frame">
+                    <TlChart
+                        v-if="hasAdoption"
+                        type="bar"
+                        :labels="adoptionLabels"
+                        :datasets="adoptionDatasets"
+                    />
+                    <div v-else class="tl-chart-empty">
+                        hmmm... it seems nothing has happened so far
+                    </div>
+                </div>
+            </div>
         </div>
 
-        <!-- ROI per account -->
-        <div class="tl-card tl-card--padded">
-            <h2 class="tl-heading-2 mb-4">ROI per Account <span class="tl-text-muted text-sm font-normal">(est. savings ÷ plan price)</span></h2>
-            <table class="tl-table w-full">
-                <thead>
-                    <tr>
-                        <th class="tl-table__th">Account</th>
-                        <th class="tl-table__th">Tier</th>
-                        <th class="tl-table__th text-right">Est. Savings</th>
-                        <th class="tl-table__th text-right">ROI</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr v-for="row in roi_per_account" :key="row.user_id" class="tl-table__row">
-                        <td class="tl-table__td">{{ row.email }}</td>
-                        <td class="tl-table__td">{{ row.tier }}</td>
-                        <td class="tl-table__td text-right">${{ row.estimated_savings?.toFixed(4) }}</td>
-                        <td class="tl-table__td text-right">
-                            <span v-if="row.roi !== null">{{ row.roi?.toFixed(2) }}×</span>
-                            <span v-else class="tl-text-muted">N/A</span>
-                        </td>
-                    </tr>
-                    <tr v-if="roi_per_account.length === 0">
-                        <td colspan="4" class="tl-table__td tl-text-muted text-center">No usage data yet.</td>
-                    </tr>
-                </tbody>
-            </table>
+        <!-- Top Accounts -->
+        <div class="tl-section-gap">
+            <h2 class="tl-section-heading tl-title--spaced">Top Accounts</h2>
+            <div class="tl-card">
+                <table class="tl-table">
+                    <thead>
+                        <tr>
+                            <th class="tl-th">Account</th>
+                            <th class="tl-th">Tier</th>
+                            <th class="tl-th tl-td--right">Commands Run</th>
+                            <th class="tl-th tl-td--right">Tokens Saved (est.)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr v-for="acct in top_accounts" :key="acct.user_id" class="tl-tr">
+                            <td class="tl-td tl-mono--xs">{{ acct.email }}</td>
+                            <td class="tl-td">
+                                <span class="tl-badge" :class="`tl-badge--${acct.tier === 'pro' ? 'brand' : acct.tier === 'team' ? 'info' : 'neutral'}`">
+                                    {{ acct.tier }}
+                                </span>
+                            </td>
+                            <td class="tl-td tl-td--right">{{ acct.commands_run.toLocaleString() }}</td>
+                            <td class="tl-td tl-td--right tl-num--success">{{ acct.tokens_saved.toLocaleString() }}</td>
+                        </tr>
+                        <tr v-if="top_accounts.length === 0">
+                            <td colspan="4" class="tl-td--empty">
+                                nobody's leading the board yet — be the first to push
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
+
+        <!-- ROI per Account -->
+        <div class="tl-section-gap">
+            <h2 class="tl-section-heading tl-title--spaced">
+                ROI per Account
+                <span class="tl-hint">est. savings ÷ plan price</span>
+            </h2>
+            <div class="tl-card">
+                <table class="tl-table">
+                    <thead>
+                        <tr>
+                            <th class="tl-th">Account</th>
+                            <th class="tl-th">Tier</th>
+                            <th class="tl-th tl-td--right">Est. Savings</th>
+                            <th class="tl-th tl-td--right">ROI</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr v-for="row in roi_per_account" :key="row.user_id" class="tl-tr">
+                            <td class="tl-td tl-mono--xs">{{ row.email }}</td>
+                            <td class="tl-td">
+                                <span class="tl-badge" :class="`tl-badge--${row.tier === 'pro' ? 'brand' : row.tier === 'team' ? 'info' : 'neutral'}`">
+                                    {{ row.tier }}
+                                </span>
+                            </td>
+                            <td class="tl-td tl-td--right tl-num--success">${{ row.estimated_savings?.toFixed(4) }}</td>
+                            <td class="tl-td tl-td--right">
+                                <span v-if="row.roi !== null" :class="row.roi >= 1 ? 'tl-num--success' : 'tl-num--warn'">
+                                    {{ row.roi?.toFixed(2) }}×
+                                </span>
+                                <span v-else class="tl-cell-muted">N/A</span>
+                            </td>
+                        </tr>
+                        <tr v-if="roi_per_account.length === 0">
+                            <td colspan="4" class="tl-td--empty">
+                                hmmm... it seems nothing has happened so far
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
     </div>
 </template>

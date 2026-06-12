@@ -35,8 +35,8 @@ class TeamHealthController
     {
         $clients = User::whereHas('ownedGroup')
             ->orderBy('name')
-            ->get(['id', 'name', 'email'])
-            ->map(fn ($u) => ['id' => $u->id, 'name' => $u->name, 'email' => $u->email])
+            ->get(['id', 'name', 'email', 'tier'])
+            ->map(fn ($u) => ['id' => $u->id, 'name' => $u->name, 'email' => $u->email, 'tier' => $u->tier])
             ->values();
 
         $managerId = $request->query('manager_id');

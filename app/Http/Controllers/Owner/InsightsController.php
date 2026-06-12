@@ -17,9 +17,7 @@ class InsightsController
     public function index(Request $request): Response
     {
         $period = $request->query('period', '30');
-        $cutoff = $period === 'all' ? null : now()->subDays(
-            in_array((int) $period, self::ALLOWED_PERIODS) ? (int) $period : 30
-        );
+        $cutoff = $period === 'all' ? null : now()->subDays($this->daysForPeriod($period));
 
         $query = DB::table('usage_logs')->whereNotNull('metadata');
         if ($cutoff) {
@@ -27,13 +25,22 @@ class InsightsController
         }
         $logs = $query->get(['user_id', 'action', 'tokens_used', 'metadata', 'created_at']);
 
+        [$prevTokensSaved, $prevActiveUsers] = $this->prevPeriodStats($period);
+
         return Inertia::render('Console/Owner/Insights', [
-            'period'           => $period,
-            'popular_commands' => $this->popularCommands($logs),
-            'tokens_saved_total' => (int) $logs->sum('tokens_used'),
-            'roi_per_account'  => $this->roiPerAccount($logs),
-            'feature_adoption' => $this->featureAdoption($logs),
-            'top_accounts'     => $this->topAccounts($logs),
+            'period'                   => $period,
+            'popular_commands'         => $this->popularCommands($logs),
+            'tokens_saved_total'       => (int) $logs->sum('tokens_used'),
+            'roi_per_account'          => $this->roiPerAccount($logs),
+            'feature_adoption'         => $this->featureAdoption($logs),
+            'top_accounts'             => $this->topAccounts($logs),
+            'tier_distribution'        => $this->tierDistribution(),
+            'total_users'              => User::where('is_owner', false)->count(),
+            'active_users'             => $logs->pluck('user_id')->unique()->count(),
+            'monthly_revenue'          => $this->monthlyRevenue(),
+            'licenses_by_tier'         => $this->licensesByTier(),
+            'prev_period_tokens_saved' => $prevTokensSaved,
+            'prev_period_active_users' => $prevActiveUsers,
         ]);
     }
 
@@ -69,6 +76,7 @@ class InsightsController
 
                 return [
                     'user_id'          => $userId,
+                    'name'             => $user?->name,
                     'email'            => $user?->email,
                     'tier'             => $user?->tier,
                     'tokens_saved'     => $tokensSaved,
@@ -102,6 +110,7 @@ class InsightsController
 
                 return [
                     'user_id'     => $userId,
+                    'name'        => $user?->name,
                     'email'       => $user?->email,
                     'tier'        => $user?->tier,
                     'commands_run'=> $this->sumCount($rows),
@@ -111,6 +120,82 @@ class InsightsController
             ->sortByDesc('commands_run')
             ->values()
             ->toArray();
+    }
+
+    private function tierDistribution(): array
+    {
+        return User::where('is_owner', false)
+            ->selectRaw('tier, COUNT(*) as count')
+            ->groupBy('tier')
+            ->pluck('count', 'tier')
+            ->map(fn ($v) => (int) $v)
+            ->toArray();
+    }
+
+    private function monthlyRevenue(): float
+    {
+        $prices = config('tiers.prices');
+
+        return (float) License::where('status', 'active')
+            ->where(fn ($q) => $q->whereNull('expires_at')->orWhere('expires_at', '>', now()))
+            ->get(['tier', 'seats'])
+            ->sum(fn ($l) => ($prices[$l->tier] ?? 0) * $l->seats);
+    }
+
+    private function licensesByTier(): array
+    {
+        $prices = config('tiers.prices');
+
+        return License::where('status', 'active')
+            ->where(fn ($q) => $q->whereNull('expires_at')->orWhere('expires_at', '>', now()))
+            ->selectRaw('tier, COUNT(*) as count, SUM(seats) as seats')
+            ->groupBy('tier')
+            ->get()
+            ->map(fn ($r) => [
+                'tier'       => $r->tier,
+                'count'      => (int) $r->count,
+                'unit_price' => $prices[$r->tier] ?? 0,
+                'revenue'    => ($prices[$r->tier] ?? 0) * (int) $r->seats,
+            ])
+            ->sortByDesc('revenue')
+            ->values()
+            ->toArray();
+    }
+
+    /**
+     * Returns [prev_period_tokens_saved, prev_period_active_users] for the
+     * window immediately before the current period. Null for 'all' periods.
+     *
+     * @return array{int|null, int|null}
+     */
+    private function prevPeriodStats(string $period): array
+    {
+        if ($period === 'all') {
+            return [null, null];
+        }
+
+        $days  = $this->daysForPeriod($period);
+        $start = now()->subDays($days * 2);
+        $end   = now()->subDays($days);
+
+        $rows = DB::table('usage_logs')
+            ->whereNotNull('metadata')
+            ->where('created_at', '>=', $start)
+            ->where('created_at', '<',  $end)
+            ->get(['user_id', 'tokens_used']);
+
+        return [
+            (int) $rows->sum('tokens_used'),
+            $rows->pluck('user_id')->unique()->count(),
+        ];
+    }
+
+    /**
+     * Clamp a period string to a whitelisted day count, defaulting to 30.
+     */
+    private function daysForPeriod(string $period): int
+    {
+        return in_array((int) $period, self::ALLOWED_PERIODS) ? (int) $period : 30;
     }
 
     /**
@@ -133,6 +218,6 @@ class InsightsController
         }
 
         // Eager-load to avoid N+1 across the per-account aggregation.
-        return User::whereIn('id', $userIds)->get(['id', 'email', 'tier'])->keyBy('id');
+        return User::whereIn('id', $userIds)->get(['id', 'name', 'email', 'tier'])->keyBy('id');
     }
 }

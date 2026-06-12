@@ -182,4 +182,82 @@ class InsightsControllerTest extends TestCase
                 ->where('tokens_saved_total', 999)
             );
     }
+
+    // ── New: name field in top_accounts + roi_per_account ─────────────────
+
+    public function test_top_accounts_include_name(): void
+    {
+        $owner = $this->makeOwner();
+        $user  = User::factory()->create(['tier' => 'pro', 'name' => 'Alice Tester']);
+
+        $this->insertCliLog($user->id, 'fetch', 1000, 10);
+
+        $this->actingAs($owner)->get('/console/owner/insights')
+            ->assertInertia(fn ($page) => $page
+                ->has('top_accounts')
+                ->where('top_accounts.0.name', 'Alice Tester')
+            );
+    }
+
+    public function test_roi_per_account_includes_name(): void
+    {
+        $owner = $this->makeOwner();
+        $user  = User::factory()->create(['tier' => 'pro', 'name' => 'Bob Sender']);
+
+        $this->insertCliLog($user->id, 'triage', 500_000, 5);
+
+        $this->actingAs($owner)->get('/console/owner/insights')
+            ->assertInertia(fn ($page) => $page
+                ->has('roi_per_account')
+                ->where('roi_per_account.0.name', 'Bob Sender')
+            );
+    }
+
+    // ── New: prev-period values ────────────────────────────────────────────
+
+    public function test_insights_returns_prev_period_tokens_saved(): void
+    {
+        $owner = $this->makeOwner();
+        $user  = User::factory()->create(['tier' => 'pro']);
+
+        // Current period (last 7 days)
+        $this->insertCliLog($user->id, 'fetch', 3000, 3, 2);
+        // Previous period (7-14 days ago)
+        $this->insertCliLog($user->id, 'fetch', 1000, 1, 10);
+
+        $this->actingAs($owner)->get('/console/owner/insights?period=7')
+            ->assertInertia(fn ($page) => $page
+                ->has('prev_period_tokens_saved')
+                ->where('prev_period_tokens_saved', 1000)
+            );
+    }
+
+    public function test_insights_returns_prev_period_active_users(): void
+    {
+        $owner = $this->makeOwner();
+        $u1    = User::factory()->create(['tier' => 'pro']);
+        $u2    = User::factory()->create(['tier' => 'pro']);
+
+        // Current period
+        $this->insertCliLog($u1->id, 'fetch', 100, 1, 2);
+        // Previous period (7-14 days ago)
+        $this->insertCliLog($u2->id, 'fetch', 100, 1, 10);
+
+        $this->actingAs($owner)->get('/console/owner/insights?period=7')
+            ->assertInertia(fn ($page) => $page
+                ->has('prev_period_active_users')
+                ->where('prev_period_active_users', 1)
+            );
+    }
+
+    public function test_prev_period_null_when_period_is_all(): void
+    {
+        $owner = $this->makeOwner();
+
+        $this->actingAs($owner)->get('/console/owner/insights?period=all')
+            ->assertInertia(fn ($page) => $page
+                ->where('prev_period_tokens_saved', null)
+                ->where('prev_period_active_users', null)
+            );
+    }
 }

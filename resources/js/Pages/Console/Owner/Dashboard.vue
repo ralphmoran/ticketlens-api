@@ -1,14 +1,31 @@
 <script setup>
 import ConsoleLayout from '@/Layouts/ConsoleLayout.vue'
 import TlIcon from '@/components/TlIcon.vue'
+import TlChart from '@/components/TlChart.vue'
 import { Link } from '@inertiajs/vue3'
 import { formatDateTime } from '@/composables/useDateFormat'
+import { computed } from 'vue'
 
 defineOptions({ layout: ConsoleLayout })
 
-defineProps({
-    stats: Object,
+const props = defineProps({
+    stats: {
+        type: Object,
+        default: () => ({
+            total_users: 0,
+            suspended_users: 0,
+            active_users: 0,
+            recent_actions: [],
+            user_status_chart: { labels: [], data: [] },
+            account_status_chart: { labels: [], data: [] },
+        }),
+    },
 })
+
+const userStatusDatasets   = computed(() => [{ label: 'Users',    data: props.stats.user_status_chart?.data ?? [] }])
+const accountStatusDatasets = computed(() => [{ label: 'Accounts', data: props.stats.account_status_chart?.data ?? [] }])
+const hasUserChart          = computed(() => (props.stats.user_status_chart?.data ?? []).some(v => v > 0))
+const hasAccountChart       = computed(() => (props.stats.account_status_chart?.data ?? []).some(v => v > 0))
 </script>
 
 <template>
@@ -26,8 +43,46 @@ defineProps({
                 <p class="tl-stat-value">{{ stats.total_users }}</p>
             </div>
             <div class="tl-stat-card">
+                <p class="tl-stat-label">Active (last 30d)</p>
+                <p class="tl-stat-value" :class="stats.active_users > 0 ? 'tl-num--success' : ''">{{ stats.active_users }}</p>
+            </div>
+            <div class="tl-stat-card">
                 <p class="tl-stat-label">Suspended</p>
                 <p class="tl-stat-value" :class="stats.suspended_users > 0 ? 'tl-num--danger' : ''">{{ stats.suspended_users }}</p>
+            </div>
+        </div>
+
+        <!-- Donut charts: user status + account status -->
+        <div class="tl-grid-2 tl-section-gap">
+            <div class="tl-section-gap">
+                <h2 class="tl-section-heading tl-title--spaced">User Activity</h2>
+                <div class="tl-card">
+                    <div class="tl-chart-frame">
+                        <TlChart
+                            v-if="hasUserChart"
+                            type="donut"
+                            :labels="stats.user_status_chart.labels"
+                            :datasets="userStatusDatasets"
+                            legend="bottom"
+                        />
+                        <div v-else class="tl-chart-empty">no activity data yet</div>
+                    </div>
+                </div>
+            </div>
+            <div class="tl-section-gap">
+                <h2 class="tl-section-heading tl-title--spaced">Account Status</h2>
+                <div class="tl-card">
+                    <div class="tl-chart-frame">
+                        <TlChart
+                            v-if="hasAccountChart"
+                            type="donut"
+                            :labels="stats.account_status_chart.labels"
+                            :datasets="accountStatusDatasets"
+                            legend="bottom"
+                        />
+                        <div v-else class="tl-chart-empty">no accounts yet</div>
+                    </div>
+                </div>
             </div>
         </div>
 

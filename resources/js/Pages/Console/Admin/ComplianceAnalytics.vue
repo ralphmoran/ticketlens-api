@@ -2,6 +2,7 @@
 import ConsoleLayout from '@/Layouts/ConsoleLayout.vue'
 import TlIcon from '@/components/TlIcon.vue'
 import TlChart from '@/components/TlChart.vue'
+import UserAvatar from '@/Components/UserAvatar.vue'
 import { router } from '@inertiajs/vue3'
 import { computed, ref, watch } from 'vue'
 
@@ -104,14 +105,33 @@ const weeklyOptions = { scales: { y: { max: 100, ticks: { callback: v => v + '%'
                     <TlIcon name="users" class="tl-empty-icon" />
                     <p class="tl-hint">No matching clients found.</p>
                 </div>
-                <ul v-else class="tl-stack--sm">
-                    <li v-for="client in pagedClients" :key="client.id">
-                        <button type="button" @click="selectManager(client.id)" class="tl-card tl-card--btn">
-                            <p class="tl-cell-primary">{{ client.name }}</p>
-                            <p class="tl-hint tl-mono--xs">{{ client.email }}</p>
-                        </button>
-                    </li>
-                </ul>
+                <table v-else class="tl-table">
+                    <thead>
+                        <tr>
+                            <th class="tl-th" style="width:2.5rem"></th>
+                            <th class="tl-th">Manager</th>
+                            <th class="tl-th">Tier</th>
+                            <th class="tl-th"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr v-for="client in pagedClients" :key="client.id" class="tl-tr">
+                            <td class="tl-td">
+                                <UserAvatar :name="client.name" :tier="client.tier ?? 'free'" />
+                            </td>
+                            <td class="tl-td">
+                                <p class="tl-cell-primary">{{ client.name }}</p>
+                                <p class="tl-hint tl-mono--xs">{{ client.email }}</p>
+                            </td>
+                            <td class="tl-td">
+                                <span class="tl-badge" :class="`tl-badge--${client.tier === 'pro' ? 'brand' : client.tier === 'team' ? 'info' : 'neutral'}`">{{ client.tier ?? 'free' }}</span>
+                            </td>
+                            <td class="tl-td tl-td--right">
+                                <button type="button" @click="selectManager(client.id)" class="tl-btn tl-btn--secondary tl-btn--sm">Select</button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
                 <div v-if="totalPages > 1" class="tl-pager">
                     <span class="tl-hint">{{ filteredClients.length }} clients</span>
                     <div class="tl-pager-nav">

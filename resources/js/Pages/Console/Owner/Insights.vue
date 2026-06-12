@@ -2,18 +2,26 @@
 import ConsoleLayout from '@/Layouts/ConsoleLayout.vue'
 import TlIcon from '@/Components/TlIcon.vue'
 import TlChart from '@/components/TlChart.vue'
-import { computed } from 'vue'
+import UserAvatar from '@/Components/UserAvatar.vue'
+import { computed, ref, watch } from 'vue'
 import { router } from '@inertiajs/vue3'
 
 defineOptions({ layout: ConsoleLayout })
 
 const props = defineProps({
-    period:             { type: String, default: '30' },
-    popular_commands:   { type: Array,  default: () => [] },
-    tokens_saved_total: { type: Number, default: 0 },
-    roi_per_account:    { type: Array,  default: () => [] },
-    feature_adoption:   { type: Object, default: () => ({}) },
-    top_accounts:       { type: Array,  default: () => [] },
+    period:                   { type: String,  default: '30' },
+    popular_commands:         { type: Array,   default: () => [] },
+    tokens_saved_total:       { type: Number,  default: 0 },
+    roi_per_account:          { type: Array,   default: () => [] },
+    feature_adoption:         { type: Object,  default: () => ({}) },
+    top_accounts:             { type: Array,   default: () => [] },
+    tier_distribution:        { type: Object,  default: () => ({}) },
+    total_users:              { type: Number,  default: 0 },
+    active_users:             { type: Number,  default: 0 },
+    monthly_revenue:          { type: Number,  default: 0 },
+    licenses_by_tier:         { type: Array,   default: () => [] },
+    prev_period_tokens_saved: { type: [Number, null], default: null },
+    prev_period_active_users: { type: [Number, null], default: null },
 })
 
 const PERIODS = [
@@ -30,6 +38,67 @@ const estimatedSavingsTotal = computed(() =>
 )
 
 const accountsWithUsage = computed(() => props.top_accounts.length)
+
+// ── KPI deltas ─────────────────────────────────────────────────────────────
+function pctDelta(current, prev) {
+    if (prev === null || prev === 0) return null
+    return Math.round(((current - prev) / prev) * 100)
+}
+const deltaTokens   = computed(() => pctDelta(props.tokens_saved_total, props.prev_period_tokens_saved))
+const deltaActive   = computed(() => pctDelta(props.active_users, props.prev_period_active_users))
+const deltaAccounts = computed(() => pctDelta(accountsWithUsage.value, props.prev_period_active_users))
+
+// ── Top accounts search + pagination ─────────────────────────────────────
+const PAGE_SIZE      = 10
+const accountSearch  = ref('')
+const accountPage    = ref(1)
+const filteredTopAccounts = computed(() => {
+    const q = accountSearch.value.toLowerCase()
+    return q ? props.top_accounts.filter(a =>
+        (a.name ?? '').toLowerCase().includes(q) || (a.email ?? '').toLowerCase().includes(q)
+    ) : props.top_accounts
+})
+const accountTotalPages = computed(() => Math.ceil(filteredTopAccounts.value.length / PAGE_SIZE))
+const pagedTopAccounts  = computed(() => {
+    const start = (accountPage.value - 1) * PAGE_SIZE
+    return filteredTopAccounts.value.slice(start, start + PAGE_SIZE)
+})
+watch(accountSearch, () => { accountPage.value = 1 })
+
+// ── ROI search + pagination ─────────────────────────────────────────────
+const roiSearch  = ref('')
+const roiPage    = ref(1)
+const filteredRoi = computed(() => {
+    const q = roiSearch.value.toLowerCase()
+    return q ? props.roi_per_account.filter(r =>
+        (r.name ?? '').toLowerCase().includes(q) || (r.email ?? '').toLowerCase().includes(q)
+    ) : props.roi_per_account
+})
+const roiTotalPages = computed(() => Math.ceil(filteredRoi.value.length / PAGE_SIZE))
+const pagedRoi      = computed(() => {
+    const start = (roiPage.value - 1) * PAGE_SIZE
+    return filteredRoi.value.slice(start, start + PAGE_SIZE)
+})
+watch(roiSearch, () => { roiPage.value = 1 })
+
+// Tier distribution donut
+const tierOrder = ['free', 'pro', 'team', 'enterprise']
+const tierColors = { free: 'neutral', pro: 'brand', team: 'info', enterprise: 'warn' }
+const tierEntries = computed(() =>
+    tierOrder.filter(t => props.tier_distribution[t] > 0).map(t => ({ tier: t, count: props.tier_distribution[t] ?? 0 }))
+)
+const hasTiers = computed(() => tierEntries.value.length > 0)
+const tierLabels = computed(() => tierEntries.value.map(e => e.tier))
+const tierDatasets = computed(() => [{ label: 'Users', data: tierEntries.value.map(e => e.count) }])
+
+// Revenue by tier
+const hasRevenue = computed(() => props.licenses_by_tier.some(r => r.revenue > 0))
+const revenueLabels = computed(() => props.licenses_by_tier.map(r => r.tier))
+const revenueDatasets = computed(() => [{
+    label: 'MRR ($)',
+    data: props.licenses_by_tier.map(r => r.revenue),
+    color: 'success',
+}])
 
 // Popular commands chart
 const hasCommands = computed(() => props.popular_commands.length > 0)
@@ -67,24 +136,25 @@ function setPeriod(p) {
         </div>
 
         <!-- Period picker -->
-        <div class="tl-picker tl-card-gap">
+        <div class="tl-seg tl-card-gap">
             <button
                 v-for="p in PERIODS"
                 :key="p.value"
-                class="tl-btn tl-btn--ghost tl-btn--sm"
-                :class="{ 'tl-btn--active': period === p.value }"
+                class="tl-seg-btn"
+                :class="{ 'tl-seg-btn--active': period === p.value }"
                 @click="setPeriod(p.value)"
-            >
-                {{ p.label }}
-            </button>
+            >{{ p.label }}</button>
         </div>
 
-        <!-- KPI strip -->
+        <!-- KPI strip — row 1: usage -->
         <div class="tl-grid-3 tl-section-gap">
             <div class="tl-stat-card">
                 <p class="tl-stat-label">Tokens Saved (est.)</p>
                 <p class="tl-stat-value tl-num--success">{{ tokens_saved_total.toLocaleString() }}</p>
                 <p class="tl-hint">
+                    <span v-if="deltaTokens !== null" :class="deltaTokens >= 0 ? 'tl-num--success' : 'tl-num--warn'">
+                        {{ deltaTokens >= 0 ? '+' : '' }}{{ deltaTokens }}% vs prev period ·
+                    </span>
                     {{ tokens_saved_total > 0 ? 'tokens estimated saved vs raw API' : 'push tickets to start accumulating' }}
                 </p>
             </div>
@@ -93,14 +163,105 @@ function setPeriod(p) {
                 <p class="tl-stat-value" :class="tokens_saved_total > 0 ? 'tl-score--high' : ''">
                     ${{ estimatedSavingsTotal }}
                 </p>
-                <p class="tl-hint">at ${{ RATE }}/M token rate</p>
+                <p class="tl-hint">
+                    <span v-if="deltaTokens !== null" :class="deltaTokens >= 0 ? 'tl-num--success' : 'tl-num--warn'">
+                        {{ deltaTokens >= 0 ? '+' : '' }}{{ deltaTokens }}% vs prev period ·
+                    </span>
+                    at ${{ RATE }}/M token rate
+                </p>
             </div>
             <div class="tl-stat-card">
                 <p class="tl-stat-label">Accounts with CLI Usage</p>
                 <p class="tl-stat-value">{{ accountsWithUsage }}</p>
                 <p class="tl-hint">
+                    <span v-if="deltaAccounts !== null" :class="deltaAccounts >= 0 ? 'tl-num--success' : 'tl-num--warn'">
+                        {{ deltaAccounts >= 0 ? '+' : '' }}{{ deltaAccounts }}% vs prev period ·
+                    </span>
                     {{ accountsWithUsage > 0 ? 'accounts that pushed data' : 'hmmm... no one\'s pushed yet' }}
                 </p>
+            </div>
+        </div>
+
+        <!-- KPI strip — row 2: platform health -->
+        <div class="tl-grid-3 tl-section-gap">
+            <div class="tl-stat-card">
+                <p class="tl-stat-label">Total Users</p>
+                <p class="tl-stat-value">{{ total_users.toLocaleString() }}</p>
+                <p class="tl-hint">{{ total_users > 0 ? 'registered accounts' : 'ghost town — go get some users' }}</p>
+            </div>
+            <div class="tl-stat-card">
+                <p class="tl-stat-label">Active Users</p>
+                <p class="tl-stat-value">{{ active_users.toLocaleString() }}</p>
+                <p class="tl-hint">
+                    <span v-if="deltaActive !== null" :class="deltaActive >= 0 ? 'tl-num--success' : 'tl-num--warn'">
+                        {{ deltaActive >= 0 ? '+' : '' }}{{ deltaActive }}% vs prev period ·
+                    </span>
+                    {{ active_users > 0 ? `pushed CLI data in this period` : 'nobody\'s pushed yet — suspicious' }}
+                </p>
+            </div>
+            <div class="tl-stat-card">
+                <p class="tl-stat-label">Monthly Revenue (MRR)</p>
+                <p class="tl-stat-value" :class="monthly_revenue > 0 ? 'tl-score--high' : ''">
+                    ${{ monthly_revenue.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) }}
+                </p>
+                <p class="tl-hint">{{ monthly_revenue > 0 ? 'from active licenses' : 'hmmm... the register is silent — go get that bag' }}</p>
+            </div>
+        </div>
+
+        <!-- Tier Distribution + Revenue by Tier -->
+        <div class="tl-grid-2 tl-section-gap">
+            <div class="tl-section-gap">
+                <h2 class="tl-section-heading tl-title--spaced">Tier Distribution</h2>
+                <div class="tl-card">
+                    <div class="tl-chart-frame">
+                        <TlChart
+                            v-if="hasTiers"
+                            type="donut"
+                            :labels="tierLabels"
+                            :datasets="tierDatasets"
+                            legend="bottom"
+                        />
+                        <div v-else class="tl-chart-empty">
+                            hmmm... it seems nothing has happened so far
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="tl-section-gap">
+                <h2 class="tl-section-heading tl-title--spaced">Revenue by Tier <span class="tl-hint">(active licenses)</span></h2>
+                <div class="tl-card">
+                    <div class="tl-chart-frame">
+                        <TlChart
+                            v-if="hasRevenue"
+                            type="bar"
+                            :labels="revenueLabels"
+                            :datasets="revenueDatasets"
+                        />
+                        <div v-else class="tl-chart-empty">
+                            hmmm... revenue chart is waiting for its first dollar
+                        </div>
+                    </div>
+                    <table v-if="licenses_by_tier.length > 0" class="tl-table" style="margin-top:1rem">
+                        <thead>
+                            <tr>
+                                <th class="tl-th">Tier</th>
+                                <th class="tl-th tl-td--right">Licenses</th>
+                                <th class="tl-th tl-td--right">Unit Price</th>
+                                <th class="tl-th tl-td--right">Revenue</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="row in licenses_by_tier" :key="row.tier" class="tl-tr">
+                                <td class="tl-td">
+                                    <span class="tl-badge" :class="`tl-badge--${tierColors[row.tier] ?? 'neutral'}`">{{ row.tier }}</span>
+                                </td>
+                                <td class="tl-td tl-td--right">{{ row.count }}</td>
+                                <td class="tl-td tl-td--right">${{ row.unit_price }}/mo</td>
+                                <td class="tl-td tl-td--right tl-num--success">${{ row.revenue.toLocaleString() }}/mo</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
 
@@ -144,9 +305,20 @@ function setPeriod(p) {
         <div class="tl-section-gap">
             <h2 class="tl-section-heading tl-title--spaced">Top Accounts</h2>
             <div class="tl-card">
+                <div class="tl-table-header">
+                    <input
+                        v-model="accountSearch"
+                        type="search"
+                        placeholder="Search by name or email…"
+                        class="tl-input tl-input--sm"
+                        style="max-width:280px"
+                    />
+                    <span class="tl-hint">{{ filteredTopAccounts.length }} accounts</span>
+                </div>
                 <table class="tl-table">
                     <thead>
                         <tr>
+                            <th class="tl-th" style="width:2.5rem"></th>
                             <th class="tl-th">Account</th>
                             <th class="tl-th">Tier</th>
                             <th class="tl-th tl-td--right">Commands Run</th>
@@ -154,23 +326,38 @@ function setPeriod(p) {
                         </tr>
                     </thead>
                     <tbody>
-                        <tr v-for="acct in top_accounts" :key="acct.user_id" class="tl-tr">
-                            <td class="tl-td tl-mono--xs">{{ acct.email }}</td>
+                        <tr v-for="acct in pagedTopAccounts" :key="acct.user_id" class="tl-tr">
                             <td class="tl-td">
-                                <span class="tl-badge" :class="`tl-badge--${acct.tier === 'pro' ? 'brand' : acct.tier === 'team' ? 'info' : 'neutral'}`">
-                                    {{ acct.tier }}
-                                </span>
+                                <UserAvatar :name="acct.name ?? acct.email" :tier="acct.tier ?? 'free'" />
+                            </td>
+                            <td class="tl-td">
+                                <p class="tl-cell-primary">{{ acct.name ?? '—' }}</p>
+                                <p class="tl-hint tl-mono--xs">{{ acct.email }}</p>
+                            </td>
+                            <td class="tl-td">
+                                <span class="tl-badge" :class="`tl-badge--${tierColors[acct.tier] ?? 'neutral'}`">{{ acct.tier }}</span>
                             </td>
                             <td class="tl-td tl-td--right">{{ acct.commands_run.toLocaleString() }}</td>
                             <td class="tl-td tl-td--right tl-num--success">{{ acct.tokens_saved.toLocaleString() }}</td>
                         </tr>
-                        <tr v-if="top_accounts.length === 0">
-                            <td colspan="4" class="tl-td--empty">
+                        <tr v-if="filteredTopAccounts.length === 0">
+                            <td colspan="5" class="tl-td--empty">
                                 nobody's leading the board yet — be the first to push
                             </td>
                         </tr>
                     </tbody>
                 </table>
+                <div v-if="accountTotalPages > 1" class="tl-pager">
+                    <div class="tl-pager-nav">
+                        <button type="button" :disabled="accountPage === 1" @click="accountPage--" class="tl-pager-btn">
+                            <TlIcon name="chevron-left" class="tl-ic" />
+                        </button>
+                        <span class="tl-pager-label">{{ accountPage }} / {{ accountTotalPages }}</span>
+                        <button type="button" :disabled="accountPage >= accountTotalPages" @click="accountPage++" class="tl-pager-btn">
+                            <TlIcon name="chevron-right" class="tl-ic" />
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -181,9 +368,20 @@ function setPeriod(p) {
                 <span class="tl-hint">est. savings ÷ plan price</span>
             </h2>
             <div class="tl-card">
+                <div class="tl-table-header">
+                    <input
+                        v-model="roiSearch"
+                        type="search"
+                        placeholder="Search by name or email…"
+                        class="tl-input tl-input--sm"
+                        style="max-width:280px"
+                    />
+                    <span class="tl-hint">{{ filteredRoi.length }} accounts</span>
+                </div>
                 <table class="tl-table">
                     <thead>
                         <tr>
+                            <th class="tl-th" style="width:2.5rem"></th>
                             <th class="tl-th">Account</th>
                             <th class="tl-th">Tier</th>
                             <th class="tl-th tl-td--right">Est. Savings</th>
@@ -191,12 +389,16 @@ function setPeriod(p) {
                         </tr>
                     </thead>
                     <tbody>
-                        <tr v-for="row in roi_per_account" :key="row.user_id" class="tl-tr">
-                            <td class="tl-td tl-mono--xs">{{ row.email }}</td>
+                        <tr v-for="row in pagedRoi" :key="row.user_id" class="tl-tr">
                             <td class="tl-td">
-                                <span class="tl-badge" :class="`tl-badge--${row.tier === 'pro' ? 'brand' : row.tier === 'team' ? 'info' : 'neutral'}`">
-                                    {{ row.tier }}
-                                </span>
+                                <UserAvatar :name="row.name ?? row.email" :tier="row.tier ?? 'free'" />
+                            </td>
+                            <td class="tl-td">
+                                <p class="tl-cell-primary">{{ row.name ?? '—' }}</p>
+                                <p class="tl-hint tl-mono--xs">{{ row.email }}</p>
+                            </td>
+                            <td class="tl-td">
+                                <span class="tl-badge" :class="`tl-badge--${tierColors[row.tier] ?? 'neutral'}`">{{ row.tier }}</span>
                             </td>
                             <td class="tl-td tl-td--right tl-num--success">${{ row.estimated_savings?.toFixed(4) }}</td>
                             <td class="tl-td tl-td--right">
@@ -206,13 +408,24 @@ function setPeriod(p) {
                                 <span v-else class="tl-cell-muted">N/A</span>
                             </td>
                         </tr>
-                        <tr v-if="roi_per_account.length === 0">
-                            <td colspan="4" class="tl-td--empty">
+                        <tr v-if="filteredRoi.length === 0">
+                            <td colspan="5" class="tl-td--empty">
                                 hmmm... it seems nothing has happened so far
                             </td>
                         </tr>
                     </tbody>
                 </table>
+                <div v-if="roiTotalPages > 1" class="tl-pager">
+                    <div class="tl-pager-nav">
+                        <button type="button" :disabled="roiPage === 1" @click="roiPage--" class="tl-pager-btn">
+                            <TlIcon name="chevron-left" class="tl-ic" />
+                        </button>
+                        <span class="tl-pager-label">{{ roiPage }} / {{ roiTotalPages }}</span>
+                        <button type="button" :disabled="roiPage >= roiTotalPages" @click="roiPage++" class="tl-pager-btn">
+                            <TlIcon name="chevron-right" class="tl-ic" />
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
 

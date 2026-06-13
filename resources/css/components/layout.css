@@ -64,6 +64,10 @@
     @apply grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4;
   }
 
+  .tl-grid-4 {
+    @apply grid grid-cols-2 lg:grid-cols-4 gap-4;
+  }
+
   /* Compact 4-col KPI strip — team manager / owner */
   .tl-kpi-strip {
     @apply grid grid-cols-2 lg:grid-cols-4 gap-3;

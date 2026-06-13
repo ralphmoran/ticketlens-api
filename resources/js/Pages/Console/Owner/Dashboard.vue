@@ -2,9 +2,8 @@
 import ConsoleLayout from '@/Layouts/ConsoleLayout.vue'
 import TlIcon from '@/components/TlIcon.vue'
 import TlChart from '@/components/TlChart.vue'
-import { Link } from '@inertiajs/vue3'
 import { formatDateTime } from '@/composables/useDateFormat'
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 
 defineOptions({ layout: ConsoleLayout })
 
@@ -22,10 +21,31 @@ const props = defineProps({
     },
 })
 
-const userStatusDatasets   = computed(() => [{ label: 'Users',    data: props.stats.user_status_chart?.data ?? [] }])
+const userStatusDatasets    = computed(() => [{ label: 'Users',    data: props.stats.user_status_chart?.data ?? [] }])
 const accountStatusDatasets = computed(() => [{ label: 'Accounts', data: props.stats.account_status_chart?.data ?? [] }])
 const hasUserChart          = computed(() => (props.stats.user_status_chart?.data ?? []).some(v => v > 0))
 const hasAccountChart       = computed(() => (props.stats.account_status_chart?.data ?? []).some(v => v > 0))
+
+// ── Recent Actions search + pagination ────────────────────────────────────
+const PAGE_SIZE    = 10
+const actionSearch = ref('')
+const actionPage   = ref(1)
+
+const filteredActions = computed(() => {
+    const q = actionSearch.value.toLowerCase()
+    return q ? (props.stats.recent_actions ?? []).filter(a =>
+        (a.actor?.name ?? '').toLowerCase().includes(q) ||
+        (a.actor?.email ?? '').toLowerCase().includes(q) ||
+        (a.action ?? '').toLowerCase().includes(q)
+    ) : (props.stats.recent_actions ?? [])
+})
+
+const actionTotalPages = computed(() => Math.ceil(filteredActions.value.length / PAGE_SIZE))
+const pagedActions     = computed(() => {
+    const start = (actionPage.value - 1) * PAGE_SIZE
+    return filteredActions.value.slice(start, start + PAGE_SIZE)
+})
+watch(actionSearch, () => { actionPage.value = 1 })
 </script>
 
 <template>
@@ -37,82 +57,89 @@ const hasAccountChart       = computed(() => (props.stats.account_status_chart?.
             </div>
         </div>
 
+        <!-- Top row: Total Users + User Activity donut + Account Status donut -->
         <div class="tl-grid-3 tl-section-gap">
             <div class="tl-stat-card">
-                <p class="tl-stat-label">Total users</p>
+                <p class="tl-stat-label">Total Users</p>
                 <p class="tl-stat-value">{{ stats.total_users }}</p>
             </div>
-            <div class="tl-stat-card">
-                <p class="tl-stat-label">Active (last 30d)</p>
-                <p class="tl-stat-value" :class="stats.active_users > 0 ? 'tl-num--success' : ''">{{ stats.active_users }}</p>
-            </div>
-            <div class="tl-stat-card">
-                <p class="tl-stat-label">Suspended</p>
-                <p class="tl-stat-value" :class="stats.suspended_users > 0 ? 'tl-num--danger' : ''">{{ stats.suspended_users }}</p>
-            </div>
-        </div>
 
-        <!-- Donut charts: user status + account status -->
-        <div class="tl-grid-2 tl-section-gap">
-            <div class="tl-section-gap">
-                <h2 class="tl-section-heading tl-title--spaced">User Activity</h2>
-                <div class="tl-card">
-                    <div class="tl-chart-frame">
-                        <TlChart
-                            v-if="hasUserChart"
-                            type="donut"
-                            :labels="stats.user_status_chart.labels"
-                            :datasets="userStatusDatasets"
-                            legend="bottom"
-                        />
-                        <div v-else class="tl-chart-empty">no activity data yet</div>
-                    </div>
+            <div class="tl-card tl-card--compact">
+                <p class="tl-stat-label">User Activity</p>
+                <div class="tl-chart-frame tl-chart-frame--sm">
+                    <TlChart
+                        v-if="hasUserChart"
+                        type="donut"
+                        :labels="stats.user_status_chart.labels"
+                        :datasets="userStatusDatasets"
+                        legend="bottom"
+                    />
+                    <div v-else class="tl-chart-empty">no activity data yet</div>
                 </div>
             </div>
-            <div class="tl-section-gap">
-                <h2 class="tl-section-heading tl-title--spaced">Account Status</h2>
-                <div class="tl-card">
-                    <div class="tl-chart-frame">
-                        <TlChart
-                            v-if="hasAccountChart"
-                            type="donut"
-                            :labels="stats.account_status_chart.labels"
-                            :datasets="accountStatusDatasets"
-                            legend="bottom"
-                        />
-                        <div v-else class="tl-chart-empty">no accounts yet</div>
-                    </div>
+
+            <div class="tl-card tl-card--compact">
+                <p class="tl-stat-label">Account Status</p>
+                <div class="tl-chart-frame tl-chart-frame--sm">
+                    <TlChart
+                        v-if="hasAccountChart"
+                        type="donut"
+                        :labels="stats.account_status_chart.labels"
+                        :datasets="accountStatusDatasets"
+                        legend="bottom"
+                    />
+                    <div v-else class="tl-chart-empty">no accounts yet</div>
                 </div>
             </div>
         </div>
 
-        <div class="tl-quick-grid tl-section-gap">
-            <Link href="/console/owner/clients" class="tl-quick-link">
-                <TlIcon name="users" class="tl-ic tl-quick-link-ic" />
-                Clients
-            </Link>
-            <Link href="/console/owner/tiers" class="tl-quick-link">
-                <TlIcon name="layers" class="tl-ic tl-quick-link-ic" />
-                Tiers &amp; Features
-            </Link>
-            <Link href="/console/owner/audit" class="tl-quick-link">
-                <TlIcon name="history" class="tl-ic tl-quick-link-ic" />
-                Audit Log
-            </Link>
-        </div>
-
-        <div v-if="stats.recent_actions?.length" class="tl-card tl-card--flush">
+        <!-- Recent Actions table -->
+        <div class="tl-card tl-card--flush tl-section-gap">
             <div class="tl-table-header">
-                <h2 class="tl-title">Recent actions</h2>
+                <h2 class="tl-title">Recent Actions</h2>
+                <div class="tl-input-wrap tl-btn--grow" style="max-width:280px">
+                    <TlIcon name="search" class="tl-input-icon" />
+                    <input
+                        v-model="actionSearch"
+                        type="text"
+                        placeholder="Search actor or action…"
+                        class="tl-input tl-input--full tl-input--with-icon"
+                    />
+                </div>
             </div>
-            <ul class="tl-divide">
-                <li v-for="log in stats.recent_actions" :key="log.id" class="tl-log-row">
-                    <span class="tl-log-time">{{ formatDateTime(log.created_at) }}</span>
-                    <span class="tl-body--muted">{{ log.actor?.name ?? '—' }}</span>
-                    <span class="tl-kbd">{{ log.action }}</span>
-                    <span v-if="log.target_user" class="tl-hint">→ {{ log.target_user?.email }}</span>
-                </li>
-            </ul>
+            <table class="tl-table">
+                <thead>
+                    <tr>
+                        <th class="tl-th">Actor</th>
+                        <th class="tl-th">Action</th>
+                        <th class="tl-th tl-td--right">Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr v-for="log in pagedActions" :key="log.id" class="tl-tr">
+                        <td class="tl-td">
+                            <p class="tl-cell-primary">{{ log.actor?.name ?? '—' }}</p>
+                            <p class="tl-hint tl-mono--xs">{{ log.actor?.email ?? '' }}</p>
+                        </td>
+                        <td class="tl-td"><span class="tl-kbd">{{ log.action }}</span></td>
+                        <td class="tl-td tl-td--right tl-hint">{{ formatDateTime(log.created_at) }}</td>
+                    </tr>
+                    <tr v-if="filteredActions.length === 0">
+                        <td colspan="3" class="tl-td--empty">no actions recorded yet</td>
+                    </tr>
+                </tbody>
+            </table>
+            <div v-if="actionTotalPages > 1" class="tl-pager">
+                <div class="tl-pager-nav">
+                    <button type="button" :disabled="actionPage === 1" @click="actionPage--" class="tl-pager-btn">
+                        <TlIcon name="chevron-left" class="tl-ic" />
+                    </button>
+                    <span class="tl-pager-label">{{ actionPage }} / {{ actionTotalPages }}</span>
+                    <button type="button" :disabled="actionPage >= actionTotalPages" @click="actionPage++" class="tl-pager-btn">
+                        <TlIcon name="chevron-right" class="tl-ic" />
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
 </template>

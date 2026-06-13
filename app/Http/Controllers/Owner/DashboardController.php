@@ -26,7 +26,7 @@ class DashboardController extends Controller
                 'total_users'          => $totalUsers,
                 'suspended_users'      => $suspended,
                 'active_users'         => $activeUsers,
-                'recent_actions'       => AuditLog::latest()->limit(5)->with(['actor', 'targetUser'])->get(),
+                'recent_actions'       => AuditLog::latest()->limit(100)->with(['actor', 'targetUser'])->get(),
                 'user_status_chart'    => [
                     'labels' => ['Active', 'Inactive'],
                     'data'   => [$activeUsers, max(0, $totalUsers - $activeUsers)],

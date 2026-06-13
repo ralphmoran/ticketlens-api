@@ -12,7 +12,7 @@ use Inertia\Response;
 
 class InsightsController
 {
-    private const ALLOWED_PERIODS = [7, 30, 90];
+    private const ALLOWED_PERIODS = [7, 30];
 
     public function index(Request $request): Response
     {
@@ -41,6 +41,8 @@ class InsightsController
             'licenses_by_tier'         => $this->licensesByTier(),
             'prev_period_tokens_saved' => $prevTokensSaved,
             'prev_period_active_users' => $prevActiveUsers,
+            'tokens_saved_by_day'      => $period !== 'all' ? $this->dailySeries($logs, $period, 'tokens_saved') : null,
+            'active_users_by_day'      => $period !== 'all' ? $this->dailySeries($logs, $period, 'active_users') : null,
         ]);
     }
 
@@ -188,6 +190,56 @@ class InsightsController
             (int) $rows->sum('tokens_used'),
             $rows->pluck('user_id')->unique()->count(),
         ];
+    }
+
+    /**
+     * Returns a zero-filled daily series for the current period window.
+     * $metric = 'tokens_saved' → sum tokens_used per day
+     * $metric = 'active_users' → distinct user_id count per day
+     *
+     * @return array<int, array{date: string, value: int}>
+     */
+    private function dailySeries(Collection $logs, string $period, string $metric): array
+    {
+        $days  = $this->daysForPeriod($period);
+        $start = now()->subDays($days - 1)->startOfDay();
+
+        // Build zero-filled skeleton indexed by date string
+        $series = [];
+        for ($i = 0; $i < $days; $i++) {
+            $series[$start->copy()->addDays($i)->format('Y-m-d')] = 0;
+        }
+
+        // Group in-memory from the already-fetched $logs
+        foreach ($logs as $row) {
+            $date = substr($row->created_at, 0, 10);
+            if (!array_key_exists($date, $series)) {
+                continue;
+            }
+            if ($metric === 'tokens_saved') {
+                $series[$date] += (int) $row->tokens_used;
+            }
+        }
+
+        if ($metric === 'active_users') {
+            // Collect per-day user sets, then count distinct
+            $perDay = array_fill_keys(array_keys($series), []);
+            foreach ($logs as $row) {
+                $date = substr($row->created_at, 0, 10);
+                if (array_key_exists($date, $perDay)) {
+                    $perDay[$date][$row->user_id] = true;
+                }
+            }
+            foreach ($perDay as $date => $users) {
+                $series[$date] = count($users);
+            }
+        }
+
+        return array_values(array_map(
+            fn ($date, $value) => ['date' => $date, 'value' => $value],
+            array_keys($series),
+            $series
+        ));
     }
 
     /**

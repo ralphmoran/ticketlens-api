@@ -129,4 +129,27 @@ class DashboardControllerTest extends TestCase
         $this->actingAs($owner)->get('/console/owner/dashboard')
             ->assertInertia(fn ($page) => $page->where('stats.active_users', 0));
     }
+
+    public function test_dashboard_recent_actions_capped_at_100(): void
+    {
+        $owner  = $this->makeOwner();
+        $actor  = User::factory()->create(['tier' => 'pro']);
+
+        // Insert 110 audit log entries
+        for ($i = 0; $i < 110; $i++) {
+            DB::table('audit_logs')->insert([
+                'actor_id'       => $actor->id,
+                'target_user_id' => null,
+                'action'         => 'test.action',
+                'metadata'       => null,
+                'created_at'     => now()->subSeconds($i)->toDateTimeString(),
+            ]);
+        }
+
+        $this->actingAs($owner)->get('/console/owner/dashboard')
+            ->assertInertia(fn ($page) => $page
+                ->has('stats.recent_actions')
+                ->where('stats.recent_actions', fn ($v) => count($v) <= 100)
+            );
+    }
 }

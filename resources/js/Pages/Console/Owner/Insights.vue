@@ -22,12 +22,13 @@ const props = defineProps({
     licenses_by_tier:         { type: Array,   default: () => [] },
     prev_period_tokens_saved: { type: [Number, null], default: null },
     prev_period_active_users: { type: [Number, null], default: null },
+    tokens_saved_by_day:      { type: [Array, null],  default: null },
+    active_users_by_day:      { type: [Array, null],  default: null },
 })
 
 const PERIODS = [
     { value: '7',   label: '7d' },
     { value: '30',  label: '30d' },
-    { value: '90',  label: '90d' },
     { value: 'all', label: 'All time' },
 ]
 
@@ -47,6 +48,18 @@ function pctDelta(current, prev) {
 const deltaTokens   = computed(() => pctDelta(props.tokens_saved_total, props.prev_period_tokens_saved))
 const deltaActive   = computed(() => pctDelta(props.active_users, props.prev_period_active_users))
 const deltaAccounts = computed(() => pctDelta(accountsWithUsage.value, props.prev_period_active_users))
+
+// ── Sparklines ─────────────────────────────────────────────────────────────
+const sparklineOptions = {
+    scales: { x: { display: false }, y: { display: false } },
+    plugins: { tooltip: { enabled: false } },
+}
+const tokensSparklineLabels   = computed(() => (props.tokens_saved_by_day ?? []).map(p => p.date))
+const tokensSparklineDatasets = computed(() => [{ label: '', data: (props.tokens_saved_by_day ?? []).map(p => p.value), color: 'success' }])
+const activeSparklineLabels   = computed(() => (props.active_users_by_day ?? []).map(p => p.date))
+const activeSparklineDatasets = computed(() => [{ label: '', data: (props.active_users_by_day ?? []).map(p => p.value), color: 'brand' }])
+const hasTokensSparkline      = computed(() => (props.tokens_saved_by_day ?? []).some(p => p.value > 0))
+const hasActiveSparkline      = computed(() => (props.active_users_by_day ?? []).some(p => p.value > 0))
 
 // ── Top accounts search + pagination ─────────────────────────────────────
 const PAGE_SIZE      = 10
@@ -100,15 +113,17 @@ const revenueDatasets = computed(() => [{
     color: 'success',
 }])
 
-// Popular commands chart
+// Popular commands chart (horizontal bars, per-bar palette colors)
 const hasCommands = computed(() => props.popular_commands.length > 0)
 const commandLabels = computed(() => props.popular_commands.map(c => c.action))
 const commandDatasets = computed(() => [{
     label: 'Runs',
     data: props.popular_commands.map(c => c.total_runs),
+    multicolor: true,
 }])
+const commandChartOptions = { indexAxis: 'y' }
 
-// Feature adoption chart
+// Feature adoption chart (horizontal bars, per-bar palette colors)
 const adoptionEntries = computed(() =>
     Object.entries(props.feature_adoption).sort(([, a], [, b]) => b - a)
 )
@@ -117,8 +132,9 @@ const adoptionLabels = computed(() => adoptionEntries.value.map(([cmd]) => cmd))
 const adoptionDatasets = computed(() => [{
     label: 'Unique Users',
     data: adoptionEntries.value.map(([, count]) => count),
-    color: 'brand',
+    multicolor: true,
 }])
+const adoptionChartOptions = { indexAxis: 'y' }
 
 function setPeriod(p) {
     router.get('/console/owner/insights', { period: p }, { preserveScroll: true })
@@ -146,17 +162,26 @@ function setPeriod(p) {
             >{{ p.label }}</button>
         </div>
 
-        <!-- KPI strip — row 1: usage -->
-        <div class="tl-grid-3 tl-section-gap">
+        <!-- KPI strip — 4 cards with sparklines for period-sensitive data -->
+        <div class="tl-grid-4 tl-section-gap">
             <div class="tl-stat-card">
                 <p class="tl-stat-label">Tokens Saved (est.)</p>
                 <p class="tl-stat-value tl-num--success">{{ tokens_saved_total.toLocaleString() }}</p>
                 <p class="tl-hint">
                     <span v-if="deltaTokens !== null" :class="deltaTokens >= 0 ? 'tl-num--success' : 'tl-num--warn'">
-                        {{ deltaTokens >= 0 ? '+' : '' }}{{ deltaTokens }}% vs prev period ·
+                        {{ deltaTokens >= 0 ? '+' : '' }}{{ deltaTokens }}% vs prev ·
                     </span>
-                    {{ tokens_saved_total > 0 ? 'tokens estimated saved vs raw API' : 'push tickets to start accumulating' }}
+                    tokens saved vs raw API
                 </p>
+                <div v-if="hasTokensSparkline" style="height:48px;margin-top:0.5rem">
+                    <TlChart
+                        type="area"
+                        :labels="tokensSparklineLabels"
+                        :datasets="tokensSparklineDatasets"
+                        :options="sparklineOptions"
+                        :legend="false"
+                    />
+                </div>
             </div>
             <div class="tl-stat-card">
                 <p class="tl-stat-label">Estimated Value</p>
@@ -165,46 +190,36 @@ function setPeriod(p) {
                 </p>
                 <p class="tl-hint">
                     <span v-if="deltaTokens !== null" :class="deltaTokens >= 0 ? 'tl-num--success' : 'tl-num--warn'">
-                        {{ deltaTokens >= 0 ? '+' : '' }}{{ deltaTokens }}% vs prev period ·
+                        {{ deltaTokens >= 0 ? '+' : '' }}{{ deltaTokens }}% vs prev ·
                     </span>
                     at ${{ RATE }}/M token rate
                 </p>
-            </div>
-            <div class="tl-stat-card">
-                <p class="tl-stat-label">Accounts with CLI Usage</p>
-                <p class="tl-stat-value">{{ accountsWithUsage }}</p>
-                <p class="tl-hint">
-                    <span v-if="deltaAccounts !== null" :class="deltaAccounts >= 0 ? 'tl-num--success' : 'tl-num--warn'">
-                        {{ deltaAccounts >= 0 ? '+' : '' }}{{ deltaAccounts }}% vs prev period ·
-                    </span>
-                    {{ accountsWithUsage > 0 ? 'accounts that pushed data' : 'hmmm... no one\'s pushed yet' }}
-                </p>
-            </div>
-        </div>
-
-        <!-- KPI strip — row 2: platform health -->
-        <div class="tl-grid-3 tl-section-gap">
-            <div class="tl-stat-card">
-                <p class="tl-stat-label">Total Users</p>
-                <p class="tl-stat-value">{{ total_users.toLocaleString() }}</p>
-                <p class="tl-hint">{{ total_users > 0 ? 'registered accounts' : 'ghost town — go get some users' }}</p>
             </div>
             <div class="tl-stat-card">
                 <p class="tl-stat-label">Active Users</p>
                 <p class="tl-stat-value">{{ active_users.toLocaleString() }}</p>
                 <p class="tl-hint">
                     <span v-if="deltaActive !== null" :class="deltaActive >= 0 ? 'tl-num--success' : 'tl-num--warn'">
-                        {{ deltaActive >= 0 ? '+' : '' }}{{ deltaActive }}% vs prev period ·
+                        {{ deltaActive >= 0 ? '+' : '' }}{{ deltaActive }}% vs prev ·
                     </span>
-                    {{ active_users > 0 ? `pushed CLI data in this period` : 'nobody\'s pushed yet — suspicious' }}
+                    pushed CLI data this period
                 </p>
+                <div v-if="hasActiveSparkline" style="height:48px;margin-top:0.5rem">
+                    <TlChart
+                        type="area"
+                        :labels="activeSparklineLabels"
+                        :datasets="activeSparklineDatasets"
+                        :options="sparklineOptions"
+                        :legend="false"
+                    />
+                </div>
             </div>
             <div class="tl-stat-card">
                 <p class="tl-stat-label">Monthly Revenue (MRR)</p>
                 <p class="tl-stat-value" :class="monthly_revenue > 0 ? 'tl-score--high' : ''">
                     ${{ monthly_revenue.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) }}
                 </p>
-                <p class="tl-hint">{{ monthly_revenue > 0 ? 'from active licenses' : 'hmmm... the register is silent — go get that bag' }}</p>
+                <p class="tl-hint">{{ monthly_revenue > 0 ? 'from active licenses' : 'the register is silent — go get that bag' }}</p>
             </div>
         </div>
 
@@ -275,6 +290,7 @@ function setPeriod(p) {
                         type="bar"
                         :labels="commandLabels"
                         :datasets="commandDatasets"
+                        :options="commandChartOptions"
                     />
                     <div v-else class="tl-chart-empty">
                         hmmm... it seems nothing has happened so far
@@ -293,6 +309,7 @@ function setPeriod(p) {
                         type="bar"
                         :labels="adoptionLabels"
                         :datasets="adoptionDatasets"
+                        :options="adoptionChartOptions"
                     />
                     <div v-else class="tl-chart-empty">
                         hmmm... it seems nothing has happened so far
@@ -306,13 +323,15 @@ function setPeriod(p) {
             <h2 class="tl-section-heading tl-title--spaced">Top Accounts</h2>
             <div class="tl-card">
                 <div class="tl-table-header">
-                    <input
-                        v-model="accountSearch"
-                        type="search"
-                        placeholder="Search by name or email…"
-                        class="tl-input tl-input--sm"
-                        style="max-width:280px"
-                    />
+                    <div class="tl-input-wrap tl-btn--grow" style="max-width:280px">
+                        <TlIcon name="search" class="tl-input-icon" />
+                        <input
+                            v-model="accountSearch"
+                            type="text"
+                            placeholder="Search by name or email…"
+                            class="tl-input tl-input--full tl-input--with-icon"
+                        />
+                    </div>
                     <span class="tl-hint">{{ filteredTopAccounts.length }} accounts</span>
                 </div>
                 <table class="tl-table">
@@ -369,13 +388,15 @@ function setPeriod(p) {
             </h2>
             <div class="tl-card">
                 <div class="tl-table-header">
-                    <input
-                        v-model="roiSearch"
-                        type="search"
-                        placeholder="Search by name or email…"
-                        class="tl-input tl-input--sm"
-                        style="max-width:280px"
-                    />
+                    <div class="tl-input-wrap tl-btn--grow" style="max-width:280px">
+                        <TlIcon name="search" class="tl-input-icon" />
+                        <input
+                            v-model="roiSearch"
+                            type="text"
+                            placeholder="Search by name or email…"
+                            class="tl-input tl-input--full tl-input--with-icon"
+                        />
+                    </div>
                     <span class="tl-hint">{{ filteredRoi.length }} accounts</span>
                 </div>
                 <table class="tl-table">

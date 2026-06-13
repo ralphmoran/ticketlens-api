@@ -260,4 +260,53 @@ class InsightsControllerTest extends TestCase
                 ->where('prev_period_active_users', null)
             );
     }
+
+    // ── New: daily series for sparklines ─────────────────────────────────────
+
+    public function test_insights_returns_tokens_saved_by_day_for_7d(): void
+    {
+        $owner = $this->makeOwner();
+        $user  = User::factory()->create(['tier' => 'pro']);
+
+        $this->insertCliLog($user->id, 'fetch', 500, 5, 2);
+
+        $this->actingAs($owner)->get('/console/owner/insights?period=7')
+            ->assertInertia(fn ($page) => $page
+                ->has('tokens_saved_by_day')
+                ->has('tokens_saved_by_day', 7)
+                ->where('tokens_saved_by_day.0.date', now()->subDays(6)->format('Y-m-d'))
+                ->has('tokens_saved_by_day.0.value')
+            );
+    }
+
+    public function test_insights_returns_active_users_by_day_for_7d(): void
+    {
+        $owner = $this->makeOwner();
+        $u1    = User::factory()->create(['tier' => 'pro']);
+        $u2    = User::factory()->create(['tier' => 'pro']);
+
+        $this->insertCliLog($u1->id, 'fetch', 100, 1, 1);
+        $this->insertCliLog($u2->id, 'fetch', 100, 1, 1);
+
+        $this->actingAs($owner)->get('/console/owner/insights?period=7')
+            ->assertInertia(fn ($page) => $page
+                ->has('active_users_by_day')
+                ->has('active_users_by_day', 7)
+                ->where('active_users_by_day.0.date', now()->subDays(6)->format('Y-m-d'))
+                ->has('active_users_by_day.0.value')
+            );
+    }
+
+    public function test_insights_90d_period_falls_back_to_30d(): void
+    {
+        $owner = $this->makeOwner();
+
+        // ?period=90 is no longer a valid option — should fall back to 30d window
+        $this->actingAs($owner)->get('/console/owner/insights?period=90')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('period', '90')
+                ->has('tokens_saved_by_day', 30)
+            );
+    }
 }

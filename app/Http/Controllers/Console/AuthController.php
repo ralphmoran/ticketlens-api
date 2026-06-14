@@ -44,8 +44,6 @@ class AuthController extends Controller
         }
 
         if (! Auth::user()->hasVerifiedEmail()) {
-            $this->forgetSession($request);
-
             return redirect()->route('verification.notice');
         }
 

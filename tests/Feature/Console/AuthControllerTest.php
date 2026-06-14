@@ -113,7 +113,7 @@ class AuthControllerTest extends TestCase
             'password' => 'password',
         ])->assertRedirect('/console/verify-email');
 
-        $this->assertGuest();
+        $this->assertAuthenticatedAs($user);
     }
 
     public function test_duplicate_email_redirects_back_without_creating_user(): void

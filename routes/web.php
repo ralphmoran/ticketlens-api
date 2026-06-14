@@ -12,6 +12,13 @@ RateLimiter::for('login-by-email', function ($r) {
     return Limit::perMinute(5)->by($key);
 });
 
+// Caps registration attempts per email across all IPs (distributed attack mitigation).
+RateLimiter::for('register-by-email', function ($r) {
+    $email = $r->input('email');
+    $key = $email ? 'register-email:' . strtolower($email) : 'register-email-ip:' . $r->ip();
+    return Limit::perHour(10)->by($key);
+});
+
 Route::get('/', fn () => response()->file(public_path('landing.html')));
 Route::get('/inertia-test', fn () => inertia('Test'));
 
@@ -28,6 +35,7 @@ Route::prefix('console')->name('console.')->group(function () {
     Route::middleware('guest')->group(function () {
         Route::get('/login', [\App\Http\Controllers\Console\AuthController::class, 'showLogin'])->name('login');
         Route::post('/login', [\App\Http\Controllers\Console\AuthController::class, 'login'])->middleware('throttle:5,1', 'throttle:login-by-email');
+        Route::post('/register', [\App\Http\Controllers\Console\AuthController::class, 'register'])->name('register')->middleware('throttle:3,1', 'throttle:register-by-email');
     });
 
     Route::post('/logout', [\App\Http\Controllers\Console\AuthController::class, 'logout'])

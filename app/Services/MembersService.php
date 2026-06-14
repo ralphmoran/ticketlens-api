@@ -49,9 +49,12 @@ class MembersService
                     'email'    => $email,
                     'password' => Str::random(64), // unusable — forces reset flow
                 ]);
-                // tier and permissions are not mass-assignable — set directly
-                $user->tier        = $manager->tier;
-                $user->permissions = \App\Enums\Permission::team();
+                // tier and permissions are not mass-assignable — set directly.
+                // email_verified_at is pre-set: the invite link is sent to this
+                // address, so the invite itself proves email ownership.
+                $user->tier              = $manager->tier;
+                $user->permissions       = \App\Enums\Permission::team();
+                $user->email_verified_at = now();
                 $user->save();
             }
 

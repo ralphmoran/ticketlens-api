@@ -67,14 +67,14 @@ Route::prefix('console')->name('console.')->group(function () {
     // Console root → redirect to dashboard
     Route::get('/', fn () => redirect()->route('console.dashboard'))->name('index');
 
-    // CLI browser login — user must be authenticated to grant CLI access
-    Route::middleware('auth')->group(function () {
+    // CLI browser login — user must be authenticated and verified to grant CLI access
+    Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/auth/cli',  [\App\Http\Controllers\Console\CliAuthController::class, 'show'])->name('auth.cli.show');
         Route::post('/auth/cli', [\App\Http\Controllers\Console\CliAuthController::class, 'authorize'])->name('auth.cli.authorize');
     });
 
     // Authenticated console routes
-    Route::middleware('auth')->group(function () {
+    Route::middleware(['auth', 'verified'])->group(function () {
         // Stop impersonation — lives OUTSIDE the `owner` sub-group because during
         // impersonation the session is authed as the target (non-owner). The controller
         // checks the `impersonator_id` session key to authorise.
@@ -274,4 +274,18 @@ Route::prefix('console')->name('console.')->group(function () {
             Route::get('/digests',                                               [\App\Http\Controllers\Console\Admin\DigestsController::class, 'index'])->name('digests');
         });
     });
+});
+
+// Email verification — routes must carry bare Laravel names (verification.notice/verify/send)
+// because EnsureEmailIsVerified middleware hardcodes those exact names.
+// They live outside the console. name() group so no prefix is prepended.
+Route::prefix('console')->middleware('auth')->group(function () {
+    Route::get('/verify-email', [\App\Http\Controllers\Console\EmailVerificationController::class, 'notice'])
+        ->name('verification.notice');
+    Route::get('/email/verify/{id}/{hash}', [\App\Http\Controllers\Console\EmailVerificationController::class, 'verify'])
+        ->middleware('signed')
+        ->name('verification.verify');
+    Route::post('/email/verification-notification', [\App\Http\Controllers\Console\EmailVerificationController::class, 'send'])
+        ->middleware('throttle:6,1')
+        ->name('verification.send');
 });

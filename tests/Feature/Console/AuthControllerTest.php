@@ -36,7 +36,7 @@ class AuthControllerTest extends TestCase
         $this->post('/console/login', [
             'email'    => $user->email,
             'password' => 'password',
-        ])->assertRedirect('/console/dashboard');
+        ])->assertRedirect(route('console.dashboard'));
 
         $this->assertAuthenticatedAs($user);
     }
@@ -68,20 +68,52 @@ class AuthControllerTest extends TestCase
 
     // ── Red: register ─────────────────────────────────────────────────────────
 
-    public function test_successful_registration_creates_user_and_redirects_to_dashboard(): void
+    public function test_successful_registration_creates_user_and_redirects_to_verification_notice(): void
     {
         $this->post('/console/register', [
             'name'                  => 'Jane Smith',
             'email'                 => 'jane@example.com',
             'password'              => 'secret123',
             'password_confirmation' => 'secret123',
-        ])->assertRedirect('/console/dashboard');
+        ])->assertRedirect('/console/verify-email');
 
         $this->assertAuthenticated();
         $this->assertDatabaseHas('users', [
-            'email' => 'jane@example.com',
-            'tier'  => 'free',
+            'email'             => 'jane@example.com',
+            'tier'              => 'free',
+            'email_verified_at' => null,
         ]);
+    }
+
+    public function test_registration_sends_verification_email(): void
+    {
+        \Illuminate\Support\Facades\Notification::fake();
+
+        $this->post('/console/register', [
+            'name'                  => 'Jane Smith',
+            'email'                 => 'jane@example.com',
+            'password'              => 'secret123',
+            'password_confirmation' => 'secret123',
+        ]);
+
+        $user = \App\Models\User::where('email', 'jane@example.com')->firstOrFail();
+
+        \Illuminate\Support\Facades\Notification::assertSentTo(
+            $user,
+            \Illuminate\Auth\Notifications\VerifyEmail::class,
+        );
+    }
+
+    public function test_unverified_user_is_redirected_to_verification_notice_on_login(): void
+    {
+        $user = User::factory()->unverified()->create();
+
+        $this->post('/console/login', [
+            'email'    => $user->email,
+            'password' => 'password',
+        ])->assertRedirect('/console/verify-email');
+
+        $this->assertGuest();
     }
 
     public function test_duplicate_email_redirects_back_without_creating_user(): void

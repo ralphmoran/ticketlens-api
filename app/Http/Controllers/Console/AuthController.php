@@ -38,11 +38,15 @@ class AuthController extends Controller
         $request->session()->regenerate();
 
         if (Auth::user()->suspended_at !== null) {
-            Auth::logout();
-            $request->session()->invalidate();
-            $request->session()->regenerateToken();
+            $this->forgetSession($request);
 
             return redirect()->route('console.suspended');
+        }
+
+        if (! Auth::user()->hasVerifiedEmail()) {
+            $this->forgetSession($request);
+
+            return redirect()->route('verification.notice');
         }
 
         $destination = Auth::user()->is_owner
@@ -78,15 +82,26 @@ class AuthController extends Controller
         Auth::login($user);
         $request->session()->regenerate();
 
-        return redirect()->route('console.dashboard');
+        $user->sendEmailVerificationNotification();
+
+        return redirect()->route('verification.notice');
     }
 
     public function logout(Request $request): RedirectResponse
     {
+        $this->forgetSession($request);
+
+        return redirect()->route('console.login');
+    }
+
+    /**
+     * Log the user out and fully tear down the session — invalidate it and
+     * issue a fresh CSRF token so no authenticated state survives the redirect.
+     */
+    private function forgetSession(Request $request): void
+    {
         Auth::logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
-
-        return redirect()->route('console.login');
     }
 }

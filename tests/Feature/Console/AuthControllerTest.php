@@ -100,7 +100,7 @@ class AuthControllerTest extends TestCase
 
         \Illuminate\Support\Facades\Notification::assertSentTo(
             $user,
-            \Illuminate\Auth\Notifications\VerifyEmail::class,
+            \App\Notifications\VerifyEmail::class,
         );
     }
 

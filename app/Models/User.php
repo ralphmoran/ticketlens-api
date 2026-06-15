@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Notifications\VerifyEmail;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -115,5 +116,10 @@ class User extends Authenticatable implements MustVerifyEmail
     public function markAsOwner(): void
     {
         $this->forceFill(['is_owner' => true])->save();
+    }
+
+    public function sendEmailVerificationNotification(): void
+    {
+        $this->notify(new VerifyEmail);
     }
 }

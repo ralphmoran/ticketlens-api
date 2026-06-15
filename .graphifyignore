@@ -1,0 +1,34 @@
+# graphify ignore patterns for ticketlens-api (Laravel)
+# Standard gitignore-style glob patterns
+
+# Composer packages
+vendor/
+
+# Node packages
+node_modules/
+
+# Build / distribution artifacts
+public/build/
+public/hot/
+storage/
+bootstrap/cache/
+.phpunit.cache/
+coverage/
+
+# graphify output itself
+graphify-out/
+
+# Lock files — no semantic value
+package-lock.json
+yarn.lock
+composer.lock
+
+# Database / config noise
+database/factories/
+.env
+.env.*
+
+# IDE / OS noise
+.idea/
+.vscode/
+.DS_Store

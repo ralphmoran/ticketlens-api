@@ -2,7 +2,9 @@
 import ConsoleLayout from '@/Layouts/ConsoleLayout.vue'
 import TlIcon from '@/components/TlIcon.vue'
 import TlChart from '@/components/TlChart.vue'
+import TlPagination from '@/Components/TlPagination.vue'
 import { formatDateTime } from '@/composables/useDateFormat'
+import { useClientPaginator } from '@/composables/useClientPaginator'
 import { computed, ref, watch } from 'vue'
 
 defineOptions({ layout: ConsoleLayout })
@@ -40,12 +42,10 @@ const filteredActions = computed(() => {
     ) : (props.stats.recent_actions ?? [])
 })
 
-const actionTotalPages = computed(() => Math.ceil(filteredActions.value.length / PAGE_SIZE))
-const pagedActions     = computed(() => {
-    const start = (actionPage.value - 1) * PAGE_SIZE
-    return filteredActions.value.slice(start, start + PAGE_SIZE)
-})
+const actionPerPage = ref(PAGE_SIZE)
+const { items: pagedActions, paginator: actionsPaginator } = useClientPaginator(filteredActions, actionPage, actionPerPage)
 watch(actionSearch, () => { actionPage.value = 1 })
+watch(actionPerPage, () => { actionPage.value = 1 })
 </script>
 
 <template>
@@ -107,39 +107,36 @@ watch(actionSearch, () => { actionPage.value = 1 })
                     />
                 </div>
             </div>
-            <table class="tl-table">
-                <thead>
-                    <tr>
-                        <th class="tl-th">Actor</th>
-                        <th class="tl-th">Action</th>
-                        <th class="tl-th tl-td--right">Date</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr v-for="log in pagedActions" :key="log.id" class="tl-tr">
-                        <td class="tl-td">
-                            <p class="tl-cell-primary">{{ log.actor?.name ?? '—' }}</p>
-                            <p class="tl-hint tl-mono--xs">{{ log.actor?.email ?? '' }}</p>
-                        </td>
-                        <td class="tl-td"><span class="tl-kbd">{{ log.action }}</span></td>
-                        <td class="tl-td tl-td--right tl-hint">{{ formatDateTime(log.created_at) }}</td>
-                    </tr>
-                    <tr v-if="filteredActions.length === 0">
-                        <td colspan="3" class="tl-td--empty">no actions recorded yet</td>
-                    </tr>
-                </tbody>
-            </table>
-            <div v-if="actionTotalPages > 1" class="tl-pager">
-                <div class="tl-pager-nav">
-                    <button type="button" :disabled="actionPage === 1" @click="actionPage--" class="tl-pager-btn">
-                        <TlIcon name="chevron-left" class="tl-ic" />
-                    </button>
-                    <span class="tl-pager-label">{{ actionPage }} / {{ actionTotalPages }}</span>
-                    <button type="button" :disabled="actionPage >= actionTotalPages" @click="actionPage++" class="tl-pager-btn">
-                        <TlIcon name="chevron-right" class="tl-ic" />
-                    </button>
-                </div>
+            <div class="tl-table-scroll">
+                <table class="tl-table">
+                    <thead>
+                        <tr class="tl-thead">
+                            <th class="tl-th">Actor</th>
+                            <th class="tl-th">Action</th>
+                            <th class="tl-th tl-td--right">Date</th>
+                        </tr>
+                    </thead>
+                    <tbody class="tl-divide">
+                        <tr v-for="log in pagedActions" :key="log.id" class="tl-tr">
+                            <td class="tl-td">
+                                <p class="tl-cell-primary">{{ log.actor?.name ?? '—' }}</p>
+                                <p class="tl-hint tl-mono--xs">{{ log.actor?.email ?? '' }}</p>
+                            </td>
+                            <td class="tl-td"><span class="tl-kbd">{{ log.action }}</span></td>
+                            <td class="tl-td tl-td--right tl-hint">{{ formatDateTime(log.created_at) }}</td>
+                        </tr>
+                        <tr v-if="filteredActions.length === 0">
+                            <td colspan="3" class="tl-td--empty">no actions recorded yet</td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
         </div>
+        <TlPagination
+            :paginator="actionsPaginator"
+            :perPage="actionPerPage"
+            @page="p => (actionPage = p)"
+            @update:perPage="n => { actionPerPage = n; actionPage = 1 }"
+        />
     </div>
 </template>

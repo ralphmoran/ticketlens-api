@@ -2,7 +2,9 @@
 import ConsoleLayout from '@/Layouts/ConsoleLayout.vue'
 import TlIcon from '@/Components/TlIcon.vue'
 import TlChart from '@/components/TlChart.vue'
+import TlPagination from '@/Components/TlPagination.vue'
 import UserAvatar from '@/Components/UserAvatar.vue'
+import { useClientPaginator } from '@/composables/useClientPaginator'
 import { computed, ref, watch } from 'vue'
 import { router } from '@inertiajs/vue3'
 
@@ -71,12 +73,10 @@ const filteredTopAccounts = computed(() => {
         (a.name ?? '').toLowerCase().includes(q) || (a.email ?? '').toLowerCase().includes(q)
     ) : props.top_accounts
 })
-const accountTotalPages = computed(() => Math.ceil(filteredTopAccounts.value.length / PAGE_SIZE))
-const pagedTopAccounts  = computed(() => {
-    const start = (accountPage.value - 1) * PAGE_SIZE
-    return filteredTopAccounts.value.slice(start, start + PAGE_SIZE)
-})
-watch(accountSearch, () => { accountPage.value = 1 })
+const accountPerPage = ref(PAGE_SIZE)
+const { items: pagedTopAccounts, paginator: accountsPaginator } = useClientPaginator(filteredTopAccounts, accountPage, accountPerPage)
+watch(accountSearch,  () => { accountPage.value = 1 })
+watch(accountPerPage, () => { accountPage.value = 1 })
 
 // ── ROI search + pagination ─────────────────────────────────────────────
 const roiSearch  = ref('')
@@ -87,12 +87,10 @@ const filteredRoi = computed(() => {
         (r.name ?? '').toLowerCase().includes(q) || (r.email ?? '').toLowerCase().includes(q)
     ) : props.roi_per_account
 })
-const roiTotalPages = computed(() => Math.ceil(filteredRoi.value.length / PAGE_SIZE))
-const pagedRoi      = computed(() => {
-    const start = (roiPage.value - 1) * PAGE_SIZE
-    return filteredRoi.value.slice(start, start + PAGE_SIZE)
-})
-watch(roiSearch, () => { roiPage.value = 1 })
+const roiPerPage = ref(PAGE_SIZE)
+const { items: pagedRoi, paginator: roiPaginator } = useClientPaginator(filteredRoi, roiPage, roiPerPage)
+watch(roiSearch,  () => { roiPage.value = 1 })
+watch(roiPerPage, () => { roiPage.value = 1 })
 
 // Tier distribution donut
 const tierOrder = ['free', 'pro', 'team', 'enterprise']
@@ -258,14 +256,14 @@ function setPeriod(p) {
                     </div>
                     <table v-if="licenses_by_tier.length > 0" class="tl-table" style="margin-top:1rem">
                         <thead>
-                            <tr>
+                            <tr class="tl-thead">
                                 <th class="tl-th">Tier</th>
                                 <th class="tl-th tl-td--right">Licenses</th>
                                 <th class="tl-th tl-td--right">Unit Price</th>
                                 <th class="tl-th tl-td--right">Revenue</th>
                             </tr>
                         </thead>
-                        <tbody>
+                        <tbody class="tl-divide">
                             <tr v-for="row in licenses_by_tier" :key="row.tier" class="tl-tr">
                                 <td class="tl-td">
                                     <span class="tl-badge" :class="`tl-badge--${tierColors[row.tier] ?? 'neutral'}`">{{ row.tier }}</span>
@@ -321,7 +319,7 @@ function setPeriod(p) {
         <!-- Top Accounts -->
         <div class="tl-section-gap">
             <h2 class="tl-section-heading tl-title--spaced">Top Accounts</h2>
-            <div class="tl-card">
+            <div class="tl-card tl-card--flush">
                 <div class="tl-table-header">
                     <div class="tl-input-wrap tl-btn--grow" style="max-width:280px">
                         <TlIcon name="search" class="tl-input-icon" />
@@ -334,50 +332,47 @@ function setPeriod(p) {
                     </div>
                     <span class="tl-hint">{{ filteredTopAccounts.length }} accounts</span>
                 </div>
-                <table class="tl-table">
-                    <thead>
-                        <tr>
-                            <th class="tl-th" style="width:2.5rem"></th>
-                            <th class="tl-th">Account</th>
-                            <th class="tl-th">Tier</th>
-                            <th class="tl-th tl-td--right">Commands Run</th>
-                            <th class="tl-th tl-td--right">Tokens Saved (est.)</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr v-for="acct in pagedTopAccounts" :key="acct.user_id" class="tl-tr">
-                            <td class="tl-td">
-                                <UserAvatar :name="acct.name ?? acct.email" :tier="acct.tier ?? 'free'" />
-                            </td>
-                            <td class="tl-td">
-                                <p class="tl-cell-primary">{{ acct.name ?? '—' }}</p>
-                                <p class="tl-hint tl-mono--xs">{{ acct.email }}</p>
-                            </td>
-                            <td class="tl-td">
-                                <span class="tl-badge" :class="`tl-badge--${tierColors[acct.tier] ?? 'neutral'}`">{{ acct.tier }}</span>
-                            </td>
-                            <td class="tl-td tl-td--right">{{ acct.commands_run.toLocaleString() }}</td>
-                            <td class="tl-td tl-td--right tl-num--success">{{ acct.tokens_saved.toLocaleString() }}</td>
-                        </tr>
-                        <tr v-if="filteredTopAccounts.length === 0">
-                            <td colspan="5" class="tl-td--empty">
-                                nobody's leading the board yet — be the first to push
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-                <div v-if="accountTotalPages > 1" class="tl-pager">
-                    <div class="tl-pager-nav">
-                        <button type="button" :disabled="accountPage === 1" @click="accountPage--" class="tl-pager-btn">
-                            <TlIcon name="chevron-left" class="tl-ic" />
-                        </button>
-                        <span class="tl-pager-label">{{ accountPage }} / {{ accountTotalPages }}</span>
-                        <button type="button" :disabled="accountPage >= accountTotalPages" @click="accountPage++" class="tl-pager-btn">
-                            <TlIcon name="chevron-right" class="tl-ic" />
-                        </button>
-                    </div>
+                <div class="tl-table-scroll">
+                    <table class="tl-table">
+                        <thead>
+                            <tr class="tl-thead">
+                                <th class="tl-th" style="width:2.5rem"></th>
+                                <th class="tl-th">Account</th>
+                                <th class="tl-th">Tier</th>
+                                <th class="tl-th tl-td--right">Commands Run</th>
+                                <th class="tl-th tl-td--right">Tokens Saved (est.)</th>
+                            </tr>
+                        </thead>
+                        <tbody class="tl-divide">
+                            <tr v-for="acct in pagedTopAccounts" :key="acct.user_id" class="tl-tr">
+                                <td class="tl-td">
+                                    <UserAvatar :name="acct.name ?? acct.email" :tier="acct.tier ?? 'free'" />
+                                </td>
+                                <td class="tl-td">
+                                    <p class="tl-cell-primary">{{ acct.name ?? '—' }}</p>
+                                    <p class="tl-hint tl-mono--xs">{{ acct.email }}</p>
+                                </td>
+                                <td class="tl-td">
+                                    <span class="tl-badge" :class="`tl-badge--${tierColors[acct.tier] ?? 'neutral'}`">{{ acct.tier }}</span>
+                                </td>
+                                <td class="tl-td tl-td--right">{{ acct.commands_run.toLocaleString() }}</td>
+                                <td class="tl-td tl-td--right tl-num--success">{{ acct.tokens_saved.toLocaleString() }}</td>
+                            </tr>
+                            <tr v-if="filteredTopAccounts.length === 0">
+                                <td colspan="5" class="tl-td--empty">
+                                    nobody's leading the board yet — be the first to push
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
+            <TlPagination
+                :paginator="accountsPaginator"
+                :perPage="accountPerPage"
+                @page="p => (accountPage = p)"
+                @update:perPage="n => { accountPerPage = n; accountPage = 1 }"
+            />
         </div>
 
         <!-- ROI per Account -->
@@ -386,7 +381,7 @@ function setPeriod(p) {
                 ROI per Account
                 <span class="tl-hint">est. savings ÷ plan price</span>
             </h2>
-            <div class="tl-card">
+            <div class="tl-card tl-card--flush">
                 <div class="tl-table-header">
                     <div class="tl-input-wrap tl-btn--grow" style="max-width:280px">
                         <TlIcon name="search" class="tl-input-icon" />
@@ -399,55 +394,52 @@ function setPeriod(p) {
                     </div>
                     <span class="tl-hint">{{ filteredRoi.length }} accounts</span>
                 </div>
-                <table class="tl-table">
-                    <thead>
-                        <tr>
-                            <th class="tl-th" style="width:2.5rem"></th>
-                            <th class="tl-th">Account</th>
-                            <th class="tl-th">Tier</th>
-                            <th class="tl-th tl-td--right">Est. Savings</th>
-                            <th class="tl-th tl-td--right">ROI</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr v-for="row in pagedRoi" :key="row.user_id" class="tl-tr">
-                            <td class="tl-td">
-                                <UserAvatar :name="row.name ?? row.email" :tier="row.tier ?? 'free'" />
-                            </td>
-                            <td class="tl-td">
-                                <p class="tl-cell-primary">{{ row.name ?? '—' }}</p>
-                                <p class="tl-hint tl-mono--xs">{{ row.email }}</p>
-                            </td>
-                            <td class="tl-td">
-                                <span class="tl-badge" :class="`tl-badge--${tierColors[row.tier] ?? 'neutral'}`">{{ row.tier }}</span>
-                            </td>
-                            <td class="tl-td tl-td--right tl-num--success">${{ row.estimated_savings?.toFixed(4) }}</td>
-                            <td class="tl-td tl-td--right">
-                                <span v-if="row.roi !== null" :class="row.roi >= 1 ? 'tl-num--success' : 'tl-num--warn'">
-                                    {{ row.roi?.toFixed(2) }}×
-                                </span>
-                                <span v-else class="tl-cell-muted">N/A</span>
-                            </td>
-                        </tr>
-                        <tr v-if="filteredRoi.length === 0">
-                            <td colspan="5" class="tl-td--empty">
-                                hmmm... it seems nothing has happened so far
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-                <div v-if="roiTotalPages > 1" class="tl-pager">
-                    <div class="tl-pager-nav">
-                        <button type="button" :disabled="roiPage === 1" @click="roiPage--" class="tl-pager-btn">
-                            <TlIcon name="chevron-left" class="tl-ic" />
-                        </button>
-                        <span class="tl-pager-label">{{ roiPage }} / {{ roiTotalPages }}</span>
-                        <button type="button" :disabled="roiPage >= roiTotalPages" @click="roiPage++" class="tl-pager-btn">
-                            <TlIcon name="chevron-right" class="tl-ic" />
-                        </button>
-                    </div>
+                <div class="tl-table-scroll">
+                    <table class="tl-table">
+                        <thead>
+                            <tr class="tl-thead">
+                                <th class="tl-th" style="width:2.5rem"></th>
+                                <th class="tl-th">Account</th>
+                                <th class="tl-th">Tier</th>
+                                <th class="tl-th tl-td--right">Est. Savings</th>
+                                <th class="tl-th tl-td--right">ROI</th>
+                            </tr>
+                        </thead>
+                        <tbody class="tl-divide">
+                            <tr v-for="row in pagedRoi" :key="row.user_id" class="tl-tr">
+                                <td class="tl-td">
+                                    <UserAvatar :name="row.name ?? row.email" :tier="row.tier ?? 'free'" />
+                                </td>
+                                <td class="tl-td">
+                                    <p class="tl-cell-primary">{{ row.name ?? '—' }}</p>
+                                    <p class="tl-hint tl-mono--xs">{{ row.email }}</p>
+                                </td>
+                                <td class="tl-td">
+                                    <span class="tl-badge" :class="`tl-badge--${tierColors[row.tier] ?? 'neutral'}`">{{ row.tier }}</span>
+                                </td>
+                                <td class="tl-td tl-td--right tl-num--success">${{ row.estimated_savings?.toFixed(4) }}</td>
+                                <td class="tl-td tl-td--right">
+                                    <span v-if="row.roi !== null" :class="row.roi >= 1 ? 'tl-num--success' : 'tl-num--warn'">
+                                        {{ row.roi?.toFixed(2) }}×
+                                    </span>
+                                    <span v-else class="tl-cell-muted">N/A</span>
+                                </td>
+                            </tr>
+                            <tr v-if="filteredRoi.length === 0">
+                                <td colspan="5" class="tl-td--empty">
+                                    hmmm... it seems nothing has happened so far
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
+            <TlPagination
+                :paginator="roiPaginator"
+                :perPage="roiPerPage"
+                @page="p => (roiPage = p)"
+                @update:perPage="n => { roiPerPage = n; roiPage = 1 }"
+            />
         </div>
 
     </div>

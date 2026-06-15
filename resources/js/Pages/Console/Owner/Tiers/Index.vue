@@ -53,6 +53,7 @@ const TIER_LABELS = {
         </div>
 
         <div class="tl-card tl-card--flush">
+            <div class="tl-table-scroll">
             <table class="tl-table">
                 <thead>
                     <tr class="tl-thead">
@@ -80,6 +81,7 @@ const TIER_LABELS = {
                     </tr>
                 </tbody>
             </table>
+            </div>
         </div>
     </div>
 </template>

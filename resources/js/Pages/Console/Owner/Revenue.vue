@@ -155,6 +155,7 @@ const pushVolDatasets = computed(() => [{ label: 'Pushes', data: props.push_volu
             <div class="tl-table-header">
                 <h2 class="tl-title">Top Teams by Activity (last 30d)</h2>
             </div>
+            <div class="tl-table-scroll">
             <table class="tl-table">
                 <thead>
                     <tr class="tl-thead">
@@ -169,6 +170,7 @@ const pushVolDatasets = computed(() => [{ label: 'Pushes', data: props.push_volu
                     </tr>
                 </tbody>
             </table>
+            </div>
         </div>
 
         <!-- Recent events -->
@@ -176,6 +178,7 @@ const pushVolDatasets = computed(() => [{ label: 'Pushes', data: props.push_volu
             <div class="tl-table-header">
                 <h2 class="tl-title">Recent license events</h2>
             </div>
+            <div class="tl-table-scroll">
             <table class="tl-table">
                 <thead>
                     <tr class="tl-thead">
@@ -198,6 +201,7 @@ const pushVolDatasets = computed(() => [{ label: 'Pushes', data: props.push_volu
                     </tr>
                 </tbody>
             </table>
+            </div>
         </div>
 
     </div>

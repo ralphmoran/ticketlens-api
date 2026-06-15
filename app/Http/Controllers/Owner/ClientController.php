@@ -37,7 +37,7 @@ class ClientController extends Controller
             $query->where('tier', $tier);
         }
 
-        $perPage = min(max(1, (int) $request->input('per_page', 20)), 100);
+        $perPage = min(max(1, (int) $request->input('per_page', 10)), 100);
 
         $columns = ['id', 'name', 'email', 'tier', 'permissions', 'is_owner', 'suspended_at', 'deleted_at', 'created_at'];
 

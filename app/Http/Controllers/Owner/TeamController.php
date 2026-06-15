@@ -24,7 +24,7 @@ class TeamController extends Controller
             ->map(fn (Group $g) => [
                 'id'           => $g->id,
                 'name'         => $g->name,
-                'owner'        => $g->owner ? ['id' => $g->owner->id, 'name' => $g->owner->name, 'email' => $g->owner->email] : null,
+                'owner'        => $g->owner ? ['id' => $g->owner->id, 'name' => $g->owner->name, 'email' => $g->owner->email, 'tier' => $g->owner->license?->tier ?? 'team'] : null,
                 'member_count' => $g->member_count,
                 'seats'        => $g->owner?->license?->seats ?? null,
                 'created_at'   => $g->created_at,

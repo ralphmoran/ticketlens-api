@@ -103,7 +103,9 @@ class LicenseIssuanceService
     }
 
     /**
-     * Soft revoke — sets status='cancelled'. Never deletes the row (audit trail).
+     * Soft revoke — sets status='cancelled' and downgrades the user's tier/permissions
+     * to the highest remaining active license they hold (free if none remain).
+     * Never deletes the license row (audit trail).
      */
     public function revoke(User $owner, License $license): void
     {
@@ -111,16 +113,83 @@ class LicenseIssuanceService
             return;
         }
 
-        DB::transaction(fn () => $license->update(['status' => 'cancelled']));
+        $licenseId    = $license->id;
+        $lemonKeyHash = $license->lemon_key_hash;
+
+        $downgradedUser = DB::transaction(function () use ($licenseId): ?User {
+            $lockedLicense = License::lockForUpdate()->findOrFail($licenseId);
+
+            if ($lockedLicense->status === 'cancelled') {
+                return null;
+            }
+
+            $lockedLicense->update(['status' => 'cancelled']);
+
+            $user = User::lockForUpdate()->findOrFail($lockedLicense->user_id);
+            $this->syncUserTierAfterRevoke($user, $licenseId);
+
+            return $user;
+        });
+
+        if ($downgradedUser === null) {
+            return;
+        }
 
         $this->audit->log(
             actor: $owner,
             action: 'license.revoked',
-            target: $license->user,
+            target: $downgradedUser,
             metadata: [
-                'license_id' => $license->id,
-                'hash_tail'  => substr($license->lemon_key_hash, -8),
+                'license_id' => $licenseId,
+                'hash_tail'  => substr($lemonKeyHash, -8),
             ],
+        );
+    }
+
+    /**
+     * Sync a user's tier and permissions to their highest remaining active license.
+     * Called inside the revoke() transaction so that the license cancel and the
+     * user downgrade are atomic — a failed user save rolls back the cancellation.
+     */
+    private function syncUserTierAfterRevoke(User $user, int $revokedLicenseId): void
+    {
+        $tier = $this->highestActiveTierForUser($user->id, $revokedLicenseId);
+
+        if (in_array($tier, ['team', 'enterprise'], true)) {
+            // bootstrapTeamGroup is idempotent — group already exists from issuance.
+            $this->bootstrapTeamGroup($user, $tier);
+            return;
+        }
+
+        $permissions = match ($tier) {
+            'pro'   => Permission::pro(),
+            default => Permission::free(),
+        };
+
+        if ($user->tier !== $tier || $user->permissions !== $permissions) {
+            $user->tier        = $tier;
+            $user->permissions = $permissions;
+            $user->save();
+        }
+    }
+
+    /**
+     * Return the highest-priority tier across a user's remaining active licenses,
+     * excluding the just-cancelled one. Returns 'free' when none remain.
+     */
+    private function highestActiveTierForUser(int $userId, int $excludeLicenseId): string
+    {
+        $tierPriority = ['enterprise' => 3, 'team' => 2, 'pro' => 1, 'free' => 0];
+
+        $tiers = License::where('user_id', $userId)
+            ->where('id', '!=', $excludeLicenseId)
+            ->where('status', 'active')
+            ->where(fn ($q) => $q->whereNull('expires_at')->orWhere('expires_at', '>', now()))
+            ->pluck('tier');
+
+        return $tiers->reduce(
+            fn (string $best, string $tier) => ($tierPriority[$tier] ?? 0) > ($tierPriority[$best] ?? 0) ? $tier : $best,
+            'free',
         );
     }
 

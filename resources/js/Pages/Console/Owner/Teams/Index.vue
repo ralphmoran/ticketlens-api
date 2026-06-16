@@ -1,14 +1,38 @@
 <script setup>
 import ConsoleLayout from '@/Layouts/ConsoleLayout.vue'
 import TlIcon from '@/components/TlIcon.vue'
+import TlPagination from '@/Components/TlPagination.vue'
+import UserAvatar from '@/Components/UserAvatar.vue'
+import { useClientPaginator } from '@/composables/useClientPaginator'
 import { Link } from '@inertiajs/vue3'
 import { formatDate } from '@/composables/useDateFormat'
+import { computed, ref, watch } from 'vue'
 
 defineOptions({ layout: ConsoleLayout })
 
-defineProps({
+const props = defineProps({
     teams: Array,
 })
+
+const search  = ref('')
+const page    = ref(1)
+const perPage = ref(10)
+
+const filteredTeams = computed(() => {
+    const q = search.value.toLowerCase()
+    return q
+        ? props.teams.filter(t =>
+            t.name.toLowerCase().includes(q) ||
+            t.owner?.name?.toLowerCase().includes(q) ||
+            t.owner?.email?.toLowerCase().includes(q)
+        )
+        : props.teams
+})
+
+const { items: pagedTeams, paginator } = useClientPaginator(filteredTeams, page, perPage)
+
+watch(search, () => { page.value = 1 })
+watch(perPage, () => { page.value = 1 })
 </script>
 
 <template>
@@ -20,10 +44,24 @@ defineProps({
             </div>
         </div>
 
+        <div class="tl-picker tl-card-gap">
+            <div class="tl-input-wrap">
+                <TlIcon name="search" class="tl-input-icon" />
+                <input
+                    v-model="search"
+                    type="text"
+                    placeholder="Search by team name or owner…"
+                    class="tl-input tl-input--full tl-input--with-icon"
+                />
+            </div>
+        </div>
+
         <div class="tl-card tl-card--flush">
+            <div class="tl-table-scroll">
             <table class="tl-table">
                 <thead>
                     <tr class="tl-thead">
+                        <th class="tl-th" style="width:2.5rem"></th>
                         <th class="tl-th">Team name</th>
                         <th class="tl-th">Owner</th>
                         <th class="tl-th tl-th--center">Members</th>
@@ -33,7 +71,10 @@ defineProps({
                     </tr>
                 </thead>
                 <tbody class="tl-divide">
-                    <tr v-for="team in teams" :key="team.id" class="tl-tr">
+                    <tr v-for="team in pagedTeams" :key="team.id" class="tl-tr">
+                        <td class="tl-td">
+                            <UserAvatar :name="team.name" tier="team" />
+                        </td>
                         <td class="tl-td tl-cell-primary">{{ team.name }}</td>
                         <td class="tl-td">
                             <template v-if="team.owner">
@@ -60,11 +101,19 @@ defineProps({
                             </Link>
                         </td>
                     </tr>
-                    <tr v-if="!teams.length">
-                        <td colspan="6" class="tl-td--empty">No teams found.</td>
+                    <tr v-if="filteredTeams.length === 0">
+                        <td colspan="7" class="tl-td--empty">No teams found.</td>
                     </tr>
                 </tbody>
             </table>
+            </div>
         </div>
+
+        <TlPagination
+            :paginator="paginator"
+            :perPage="perPage"
+            @page="p => (page = p)"
+            @update:perPage="n => { perPage = n; page = 1 }"
+        />
     </div>
 </template>

@@ -4,6 +4,7 @@ namespace Tests\Feature\Console;
 
 use App\Models\TriageSnapshot;
 use App\Models\User;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
@@ -88,6 +89,53 @@ class DashboardTest extends TestCase
         $this->actingAs($user)->get('/console/dashboard')
             ->assertStatus(200)
             ->assertInertia(fn ($page) => $page->component('Console/Dashboard'));
+    }
+
+    public function test_lock_stats_object_has_required_keys(): void
+    {
+        $user = User::factory()->create(['tier' => 'pro', 'permissions' => 71]);
+
+        $this->actingAs($user)->get('/console/dashboard')
+            ->assertInertia(fn ($page) => $page
+                ->where('stats', fn ($s) => collect($s)->has(['pushes_this_month', 'current_ticket_count', 'push_streak', 'last_push']))
+            );
+    }
+
+    public function test_lock_free_tier_never_gets_hour_or_dow_charts(): void
+    {
+        $user = User::factory()->create(['tier' => 'free', 'permissions' => 64]);
+
+        TriageSnapshot::create([
+            'user_id'      => $user->id,
+            'profile'      => 'production',
+            'tickets'      => [],
+            'ticket_count' => 3,
+            'captured_at'  => now()->subDays(2),
+        ]);
+
+        $this->actingAs($user)->get('/console/dashboard')
+            ->assertInertia(fn ($page) => $page
+                ->missing('hour_distribution')
+                ->missing('day_of_week_dist')
+            );
+    }
+
+    public function test_lock_free_tier_ticket_trend_is_empty(): void
+    {
+        $user = User::factory()->create(['tier' => 'free', 'permissions' => 64]);
+
+        TriageSnapshot::create([
+            'user_id'      => $user->id,
+            'profile'      => 'production',
+            'tickets'      => [],
+            'ticket_count' => 5,
+            'captured_at'  => now()->subDays(1),
+        ]);
+
+        $this->actingAs($user)->get('/console/dashboard')
+            ->assertInertia(fn ($page) => $page
+                ->where('ticket_trend', [])
+            );
     }
 
     // ── RED: dashboard stats props ────────────────────────────────────────────
@@ -228,6 +276,299 @@ class DashboardTest extends TestCase
         $this->actingAs($user)->get('/console/dashboard')
             ->assertInertia(fn ($page) => $page
                 ->where('daily_urgency', [])
+            );
+    }
+
+    // ── RED: per-tier analytics new fields ────────────────────────────────────
+
+    public function test_pro_tier_gets_hour_distribution_with_24_buckets(): void
+    {
+        $user = User::factory()->create(['tier' => 'pro', 'permissions' => 71]);
+
+        TriageSnapshot::create([
+            'user_id'      => $user->id,
+            'profile'      => 'production',
+            'tickets'      => [],
+            'ticket_count' => 2,
+            'captured_at'  => now()->subDays(1)->setHour(14),
+        ]);
+
+        $this->actingAs($user)->get('/console/dashboard')
+            ->assertInertia(fn ($page) => $page
+                ->has('hour_distribution')
+                ->where('hour_distribution', fn ($v) => count($v) === 24)
+            );
+    }
+
+    public function test_pro_tier_gets_day_of_week_dist_with_7_buckets(): void
+    {
+        $user = User::factory()->create(['tier' => 'pro', 'permissions' => 71]);
+
+        TriageSnapshot::create([
+            'user_id'      => $user->id,
+            'profile'      => 'production',
+            'tickets'      => [],
+            'ticket_count' => 2,
+            'captured_at'  => now()->subDays(1),
+        ]);
+
+        $this->actingAs($user)->get('/console/dashboard')
+            ->assertInertia(fn ($page) => $page
+                ->has('day_of_week_dist')
+                ->where('day_of_week_dist', fn ($v) => count($v) === 7)
+            );
+    }
+
+    public function test_period_param_7_filters_ticket_trend_to_7_days(): void
+    {
+        $user = User::factory()->create(['tier' => 'pro', 'permissions' => 71]);
+
+        // Snapshot at 10 days ago — outside 7-day window, inside 30-day default
+        TriageSnapshot::create([
+            'user_id'      => $user->id,
+            'profile'      => 'production',
+            'tickets'      => [],
+            'ticket_count' => 3,
+            'captured_at'  => now()->subDays(10),
+        ]);
+
+        // Snapshot within 7 days
+        TriageSnapshot::create([
+            'user_id'      => $user->id,
+            'profile'      => 'production',
+            'tickets'      => [],
+            'ticket_count' => 5,
+            'captured_at'  => now()->subDays(3),
+        ]);
+
+        $this->actingAs($user)->get('/console/dashboard?period=7')
+            ->assertInertia(fn ($page) => $page
+                ->has('ticket_trend')
+                ->where('ticket_trend', fn ($v) =>
+                    count($v) === 1 && $v[0]['count'] === 5
+                )
+            );
+    }
+
+    public function test_period_param_invalid_falls_back_to_30_days(): void
+    {
+        $user = User::factory()->create(['tier' => 'pro', 'permissions' => 71]);
+
+        TriageSnapshot::create([
+            'user_id'      => $user->id,
+            'profile'      => 'production',
+            'tickets'      => [],
+            'ticket_count' => 4,
+            'captured_at'  => now()->subDays(15),
+        ]);
+
+        $this->actingAs($user)->get('/console/dashboard?period=999')
+            ->assertInertia(fn ($page) => $page
+                ->has('ticket_trend')
+                ->where('ticket_trend', fn ($v) => count($v) === 1)
+            );
+    }
+
+    // ── LOCK: free/pro never get team props ───────────────────────────────────
+
+    public function test_lock_pro_user_does_not_get_kpi_stats(): void
+    {
+        $user = User::factory()->create(['tier' => 'pro', 'permissions' => 71]);
+
+        $this->actingAs($user)->get('/console/dashboard')
+            ->assertInertia(fn ($page) => $page->missing('kpi_stats'));
+    }
+
+    public function test_lock_free_user_does_not_get_kpi_stats(): void
+    {
+        $user = User::factory()->create(['tier' => 'free', 'permissions' => 64]);
+
+        $this->actingAs($user)->get('/console/dashboard')
+            ->assertInertia(fn ($page) => $page->missing('kpi_stats'));
+    }
+
+    public function test_lock_team_member_without_owned_group_does_not_get_kpi_stats(): void
+    {
+        $user = User::factory()->create(['tier' => 'team', 'permissions' => 2687]);
+
+        $this->actingAs($user)->get('/console/dashboard')
+            ->assertInertia(fn ($page) => $page->missing('kpi_stats'));
+    }
+
+    // ── RED: team manager dashboard — team aggregate data ─────────────────────
+
+    public function test_team_manager_gets_kpi_stats(): void
+    {
+        $manager = User::factory()->create(['tier' => 'team', 'permissions' => 2687]);
+        $group   = \App\Models\Group::create(['name' => 'Test Team', 'owner_id' => $manager->id]);
+        $member  = User::factory()->create(['tier' => 'team', 'permissions' => 2687]);
+        $group->members()->attach($member->id);
+
+        TriageSnapshot::create([
+            'user_id'      => $member->id,
+            'profile'      => 'production',
+            'tickets'      => [['key' => 'PROJ-1', 'flags' => ['needs-response']]],
+            'ticket_count' => 1,
+            'captured_at'  => now()->subHours(1),
+        ]);
+
+        $this->actingAs($manager)->get('/console/dashboard')
+            ->assertInertia(fn ($page) => $page
+                ->has('kpi_stats')
+                ->where('kpi_stats', fn ($v) => count($v) === 4)
+            );
+    }
+
+    public function test_team_manager_gets_team_hour_distribution(): void
+    {
+        $manager = User::factory()->create(['tier' => 'team', 'permissions' => 2687]);
+        $group   = \App\Models\Group::create(['name' => 'Test Team', 'owner_id' => $manager->id]);
+        $member  = User::factory()->create(['tier' => 'team', 'permissions' => 2687]);
+        $group->members()->attach($member->id);
+
+        TriageSnapshot::create([
+            'user_id'      => $member->id,
+            'profile'      => 'production',
+            'tickets'      => [],
+            'ticket_count' => 2,
+            'captured_at'  => now()->subDays(1)->setHour(10),
+        ]);
+
+        $this->actingAs($manager)->get('/console/dashboard')
+            ->assertInertia(fn ($page) => $page
+                ->has('team_hour_distribution')
+                ->where('team_hour_distribution', fn ($v) => count($v) === 24)
+            );
+    }
+
+    public function test_team_manager_gets_team_dow_distribution(): void
+    {
+        $manager = User::factory()->create(['tier' => 'team', 'permissions' => 2687]);
+        $group   = \App\Models\Group::create(['name' => 'Test Team', 'owner_id' => $manager->id]);
+        $member  = User::factory()->create(['tier' => 'team', 'permissions' => 2687]);
+        $group->members()->attach($member->id);
+
+        TriageSnapshot::create([
+            'user_id'      => $member->id,
+            'profile'      => 'production',
+            'tickets'      => [],
+            'ticket_count' => 2,
+            'captured_at'  => now()->subDays(1),
+        ]);
+
+        $this->actingAs($manager)->get('/console/dashboard')
+            ->assertInertia(fn ($page) => $page
+                ->has('team_dow_distribution')
+                ->where('team_dow_distribution', fn ($v) => count($v) === 7)
+            );
+    }
+
+    public function test_team_manager_gets_team_push_heatmap(): void
+    {
+        $manager = User::factory()->create(['tier' => 'team', 'permissions' => 2687]);
+        $group   = \App\Models\Group::create(['name' => 'Test Team', 'owner_id' => $manager->id]);
+        $member  = User::factory()->create(['tier' => 'team', 'permissions' => 2687]);
+        $group->members()->attach($member->id);
+
+        TriageSnapshot::create([
+            'user_id'      => $member->id,
+            'profile'      => 'production',
+            'tickets'      => [],
+            'ticket_count' => 2,
+            'captured_at'  => now()->subDays(1),
+        ]);
+
+        $this->actingAs($manager)->get('/console/dashboard')
+            ->assertInertia(fn ($page) => $page
+                ->has('team_push_heatmap')
+                ->where('team_push_heatmap', fn ($v) =>
+                    count($v) >= 1 && isset($v[0]['member_id']) && isset($v[0]['days'])
+                )
+            );
+    }
+
+    // ── LOCK: existing stats keys present for all tiers after insights added ──
+
+    public function test_lock_individual_stats_shape_unchanged(): void
+    {
+        $user = User::factory()->create(['tier' => 'free', 'permissions' => 64]);
+
+        $this->actingAs($user)->get('/console/dashboard')
+            ->assertInertia(fn ($page) => $page
+                ->has('stats.pushes_this_month')
+                ->has('stats.current_ticket_count')
+                ->has('stats.push_streak')
+                ->has('stats.last_push')
+            );
+    }
+
+    // ── RED → GREEN: insights payload per tier ────────────────────────────────
+
+    private function insertCliLog(int $userId, string $action, int $tokensSaved, int $daysAgo = 0): void
+    {
+        DB::table('usage_logs')->insert([
+            'user_id'     => $userId,
+            'action'      => $action,
+            'ticket_key'  => null,
+            'tokens_used' => $tokensSaved,
+            'metadata'    => json_encode(['count' => 1, 'flags' => []]),
+            'created_at'  => now()->subDays($daysAgo),
+        ]);
+    }
+
+    public function test_free_user_gets_insights_with_commands_run_and_null_tokens(): void
+    {
+        $user = User::factory()->create(['tier' => 'free', 'permissions' => 64]);
+        $this->insertCliLog($user->id, 'fetch', 1000, 5);
+
+        $this->actingAs($user)->get('/console/dashboard')
+            ->assertInertia(fn ($page) => $page
+                ->has('insights')
+                ->has('insights.commands_run')
+                ->where('insights.tokens_saved', null)
+            );
+    }
+
+    public function test_pro_user_gets_insights_with_tokens_saved(): void
+    {
+        $user = User::factory()->create(['tier' => 'pro', 'permissions' => 71]);
+        $this->insertCliLog($user->id, 'fetch', 2000, 10);
+
+        $this->actingAs($user)->get('/console/dashboard')
+            ->assertInertia(fn ($page) => $page
+                ->has('insights')
+                ->where('insights.tokens_saved', 2000)
+                ->has('insights.estimated_savings')
+                ->has('insights.command_mix')
+            );
+    }
+
+    public function test_free_insights_scoped_to_30_days(): void
+    {
+        $user = User::factory()->create(['tier' => 'free', 'permissions' => 64]);
+        $this->insertCliLog($user->id, 'fetch', 500, 5);    // within 30d — included
+        $this->insertCliLog($user->id, 'fetch', 500, 40);   // older than 30d — excluded
+
+        $this->actingAs($user)->get('/console/dashboard')
+            ->assertInertia(fn ($page) => $page
+                ->where('insights.commands_run', 1)
+            );
+    }
+
+    public function test_team_manager_gets_team_insights_section(): void
+    {
+        $manager = User::factory()->create(['tier' => 'team', 'permissions' => 2687]);
+        $group   = \App\Models\Group::create(['name' => 'Team A', 'owner_id' => $manager->id]);
+        $member  = User::factory()->create(['tier' => 'team', 'permissions' => 2687]);
+        $group->members()->attach($member->id);
+        $this->insertCliLog($member->id, 'fetch', 800, 3);
+
+        $this->actingAs($manager)->get('/console/dashboard')
+            ->assertInertia(fn ($page) => $page
+                ->has('insights.team')
+                ->has('insights.team.tokens_saved')
+                ->has('insights.team.active_this_week')
+                ->has('insights.team.adoption_rate')
             );
     }
 }

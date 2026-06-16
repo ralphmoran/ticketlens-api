@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Console;
 
+use App\Models\UsageLog;
 use App\Models\User;
 use Tests\TestCase;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -47,6 +48,82 @@ class AnalyticsTest extends TestCase
             ->has('stats.totalCalls')
             ->has('stats.byAction')
             ->has('daily')
+        );
+    }
+
+    // ── LOCK: BYOK rows (metadata null) still counted in totalTokens ──────────
+
+    public function test_lock_byok_rows_counted_in_total_tokens(): void
+    {
+        $user = User::factory()->create(['tier' => 'pro', 'permissions' => 71]);
+        UsageLog::create(['user_id' => $user->id, 'action' => 'digest', 'ticket_key' => null, 'tokens_used' => 500]);
+
+        $response = $this->actingAs($user)->get('/console/analytics');
+
+        $response->assertInertia(fn ($page) => $page
+            ->where('stats.totalTokens', 500)
+        );
+    }
+
+    // ── RED → GREEN: CLI rows (metadata not null) excluded from totalTokens ───
+
+    public function test_analytics_excludes_cli_command_rows_from_total_tokens(): void
+    {
+        $user = User::factory()->create(['tier' => 'pro', 'permissions' => 71]);
+        // BYOK row — should be counted
+        UsageLog::create(['user_id' => $user->id, 'action' => 'digest', 'ticket_key' => null, 'tokens_used' => 400]);
+        // CLI command row (metadata not null) — must be excluded
+        \Illuminate\Support\Facades\DB::table('usage_logs')->insert([
+            'user_id'     => $user->id,
+            'action'      => 'fetch',
+            'ticket_key'  => null,
+            'tokens_used' => 9999,
+            'metadata'    => json_encode(['count' => 1, 'flags' => []]),
+            'created_at'  => now(),
+        ]);
+
+        $response = $this->actingAs($user)->get('/console/analytics');
+
+        $response->assertInertia(fn ($page) => $page
+            ->where('stats.totalTokens', 400)
+        );
+    }
+
+    // ── Owner: all-client analytics ─────────────────────────────────────────
+
+    public function test_owner_sees_all_client_analytics_aggregated_across_users(): void
+    {
+        $owner  = User::factory()->create(['is_owner' => true, 'tier' => 'owner']);
+        $userA  = User::factory()->create(['tier' => 'pro',  'permissions' => 71]);
+        $userB  = User::factory()->create(['tier' => 'team', 'permissions' => 71]);
+
+        UsageLog::create(['user_id' => $userA->id, 'action' => 'digest',   'ticket_key' => null, 'tokens_used' => 300]);
+        UsageLog::create(['user_id' => $userB->id, 'action' => 'summarize','ticket_key' => null, 'tokens_used' => 200]);
+
+        $response = $this->actingAs($owner)->get('/console/analytics');
+
+        $response->assertStatus(200);
+        $response->assertInertia(fn ($page) => $page
+            ->component('Console/Analytics')
+            ->where('stats.totalTokens', 500)
+            ->where('stats.totalCalls', 2)
+            ->where('is_owner_view', true)
+        );
+    }
+
+    public function test_owner_analytics_excludes_own_rows_from_total(): void
+    {
+        $owner = User::factory()->create(['is_owner' => true, 'tier' => 'owner']);
+        $userA = User::factory()->create(['tier' => 'pro', 'permissions' => 71]);
+
+        // Owner row must NOT appear in the aggregate
+        UsageLog::create(['user_id' => $owner->id, 'action' => 'digest', 'ticket_key' => null, 'tokens_used' => 9999]);
+        UsageLog::create(['user_id' => $userA->id,  'action' => 'digest', 'ticket_key' => null, 'tokens_used' => 100]);
+
+        $response = $this->actingAs($owner)->get('/console/analytics');
+
+        $response->assertInertia(fn ($page) => $page
+            ->where('stats.totalTokens', 100)
         );
     }
 }

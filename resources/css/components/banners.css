@@ -77,7 +77,7 @@
 @layer components {
   /* Floating toast */
   .tl-toast {
-    @apply fixed top-4 right-4 px-4 py-2 text-sm font-medium;
+    @apply fixed top-20 right-4 px-4 py-2 text-sm font-medium;
     z-index: var(--tl-z-banner);
     border-radius: var(--tl-radius);
     box-shadow: var(--tl-shadow-lg);

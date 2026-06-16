@@ -10,13 +10,13 @@ onMounted(() => document.documentElement.setAttribute('data-theme', 'light'))
 const activeTab = ref('signin')
 
 const loginForm = useForm({ email: '', password: '', remember: false })
-const registerForm = useForm({ name: '', email: '', password: '' })
+const registerForm = useForm({ name: '', email: '', password: '', password_confirmation: '' })
 
 function submitLogin() {
     loginForm.post('/console/login', { onFinish: () => loginForm.reset('password') })
 }
 function submitRegister() {
-    registerForm.post('/console/register', { onFinish: () => registerForm.reset('password') })
+    registerForm.post('/console/register', { onFinish: () => registerForm.reset('password', 'password_confirmation') })
 }
 </script>
 
@@ -139,9 +139,14 @@ function submitRegister() {
                     <input id="reg-password" v-model="registerForm.password" type="password" autocomplete="new-password" placeholder="••••••••"
                         class="tl-input tl-input--hero" />
                 </div>
+                <div>
+                    <label for="reg-password-confirm" class="tl-field-label--hero tl-field-label--gap">Confirm Password</label>
+                    <input id="reg-password-confirm" v-model="registerForm.password_confirmation" type="password" autocomplete="new-password" placeholder="••••••••"
+                        class="tl-input tl-input--hero" />
+                </div>
 
-                <p v-if="registerForm.errors.name || registerForm.errors.email || registerForm.errors.password" role="alert" class="tl-form-alert">
-                    {{ registerForm.errors.name || registerForm.errors.email || registerForm.errors.password }}
+                <p v-if="registerForm.errors.name || registerForm.errors.email || registerForm.errors.password || registerForm.errors.password_confirmation" role="alert" class="tl-form-alert">
+                    {{ registerForm.errors.name || registerForm.errors.email || registerForm.errors.password || registerForm.errors.password_confirmation }}
                 </p>
 
                 <button type="submit" :disabled="registerForm.processing" class="tl-btn tl-btn--hero">

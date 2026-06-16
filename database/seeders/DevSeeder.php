@@ -60,11 +60,12 @@ class DevSeeder extends Seeder
         $user = User::updateOrCreate(
             ['email' => $email],
             [
-                'name'        => $name,
-                'password'    => self::PASSWORD,
-                'tier'        => $tier,
-                'permissions' => $permissions,
-                'is_owner'    => $is_owner,
+                'name'              => $name,
+                'password'          => self::PASSWORD,
+                'tier'              => $tier,
+                'permissions'       => $permissions,
+                'is_owner'          => $is_owner,
+                'email_verified_at' => now(),
             ],
         );
 

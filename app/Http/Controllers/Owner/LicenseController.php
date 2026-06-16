@@ -41,7 +41,7 @@ class LicenseController extends Controller
             $query->where('status', $status);
         }
 
-        $perPage = min(max(1, (int) $request->input('per_page', 25)), 100);
+        $perPage = min(max(1, (int) $request->input('per_page', 10)), 100);
 
         return Inertia::render('Console/Owner/Licenses/Index', [
             'licenses' => $query->paginate($perPage)->withQueryString(),

@@ -1,6 +1,9 @@
 <script setup>
 import ConsoleLayout from '@/Layouts/ConsoleLayout.vue'
 import TlIcon from '@/components/TlIcon.vue'
+import TlPagination from '@/Components/TlPagination.vue'
+import UserAvatar from '@/Components/UserAvatar.vue'
+import { useClientPaginator } from '@/composables/useClientPaginator'
 import { router } from '@inertiajs/vue3'
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 
@@ -33,14 +36,12 @@ const filteredClients = computed(() => {
     ) : props.clients
 })
 
-const PAGE_SIZE    = 10
-const totalPages   = computed(() => Math.ceil(filteredClients.value.length / PAGE_SIZE))
-const pagedClients = computed(() => {
-    const start = (clientPage.value - 1) * PAGE_SIZE
-    return filteredClients.value.slice(start, start + PAGE_SIZE)
-})
+const PAGE_SIZE     = 10
+const clientPerPage = ref(PAGE_SIZE)
+const { items: pagedClients, paginator: clientsPaginator } = useClientPaginator(filteredClients, clientPage, clientPerPage)
 
-watch(clientSearch, () => { clientPage.value = 1 })
+watch(clientSearch,  () => { clientPage.value = 1 })
+watch(clientPerPage, () => { clientPage.value = 1 })
 
 function selectManager(id) {
     router.get('/console/admin/process-metrics', { manager_id: id })
@@ -120,38 +121,57 @@ const complianceAll0 = computed(() =>
                     <p class="tl-subtext">Select a team to inspect their ticket age, flow, and compliance data.</p>
                 </div>
             </div>
-            <div class="tl-picker">
-                <input
-                    v-model="clientSearch"
-                    type="search"
-                    placeholder="Search by name or email…"
-                    class="tl-input tl-input--full tl-card-gap"
-                />
-                <div v-if="pagedClients.length === 0" class="tl-empty-state">
-                    <TlIcon name="users" class="tl-empty-icon" />
-                    <p class="tl-hint">No matching clients found.</p>
-                </div>
-                <ul v-else class="tl-stack--sm">
-                    <li v-for="client in pagedClients" :key="client.id">
-                        <button type="button" @click="selectManager(client.id)" class="tl-card tl-card--btn">
-                            <p class="tl-cell-primary">{{ client.name }}</p>
-                            <p class="tl-hint tl-mono--xs">{{ client.email }}</p>
-                        </button>
-                    </li>
-                </ul>
-                <div v-if="totalPages > 1" class="tl-pager">
-                    <span class="tl-hint">{{ filteredClients.length }} clients</span>
-                    <div class="tl-pager-nav">
-                        <button type="button" :disabled="clientPage === 1" @click="clientPage--" class="tl-pager-btn">
-                            <TlIcon name="chevron-left" class="tl-ic" />
-                        </button>
-                        <span class="tl-pager-label">{{ clientPage }} / {{ totalPages }}</span>
-                        <button type="button" :disabled="clientPage >= totalPages" @click="clientPage++" class="tl-pager-btn">
-                            <TlIcon name="chevron-right" class="tl-ic" />
-                        </button>
-                    </div>
+            <div class="tl-picker tl-card-gap">
+                <div class="tl-input-wrap">
+                    <TlIcon name="search" class="tl-input-icon" />
+                    <input
+                        v-model="clientSearch"
+                        type="text"
+                        placeholder="Search by name or email…"
+                        class="tl-input tl-input--full tl-input--with-icon"
+                    />
                 </div>
             </div>
+            <div class="tl-card tl-card--flush">
+                <div class="tl-table-scroll">
+                    <table class="tl-table">
+                        <thead>
+                            <tr class="tl-thead">
+                                <th class="tl-th" style="width:2.5rem"></th>
+                                <th class="tl-th">Manager</th>
+                                <th class="tl-th">Tier</th>
+                                <th class="tl-th"></th>
+                            </tr>
+                        </thead>
+                        <tbody class="tl-divide">
+                            <tr v-for="client in pagedClients" :key="client.id" class="tl-tr">
+                                <td class="tl-td">
+                                    <UserAvatar :name="client.name" :tier="client.tier ?? 'free'" />
+                                </td>
+                                <td class="tl-td">
+                                    <p class="tl-cell-primary">{{ client.name }}</p>
+                                    <p class="tl-hint tl-mono--xs">{{ client.email }}</p>
+                                </td>
+                                <td class="tl-td">
+                                    <span class="tl-badge" :class="`tl-badge--${client.tier === 'pro' ? 'brand' : client.tier === 'team' ? 'info' : 'neutral'}`">{{ client.tier ?? 'free' }}</span>
+                                </td>
+                                <td class="tl-td tl-td--right">
+                                    <button type="button" @click="selectManager(client.id)" class="tl-btn tl-btn--secondary tl-btn--sm">Select</button>
+                                </td>
+                            </tr>
+                            <tr v-if="pagedClients.length === 0">
+                                <td colspan="4" class="tl-td--empty">No matching clients found.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <TlPagination
+                :paginator="clientsPaginator"
+                :perPage="clientPerPage"
+                @page="p => (clientPage = p)"
+                @update:perPage="n => { clientPerPage = n; clientPage = 1 }"
+            />
         </div>
 
         <!-- Normal page (manager selected or not in owner mode) -->
@@ -236,6 +256,7 @@ const complianceAll0 = computed(() =>
                     <strong class="tl-num--danger">Abandoned</strong> = 14+ days or no update date.
                 </p>
                 <div class="tl-card tl-card--flush">
+                    <div class="tl-table-scroll">
                     <table class="tl-table">
                         <thead>
                             <tr class="tl-thead">
@@ -257,6 +278,7 @@ const complianceAll0 = computed(() =>
                             </tr>
                         </tbody>
                     </table>
+                    </div>
                 </div>
             </div>
 
@@ -269,6 +291,7 @@ const complianceAll0 = computed(() =>
                     Status values come from the Jira <code class="tl-mono">status</code> field — only populated after a full triage push.
                 </p>
                 <div class="tl-card tl-card--flush">
+                    <div class="tl-table-scroll">
                     <table class="tl-table">
                         <thead>
                             <tr class="tl-thead">
@@ -292,6 +315,7 @@ const complianceAll0 = computed(() =>
                             </tr>
                         </tbody>
                     </table>
+                    </div>
                 </div>
             </div>
 

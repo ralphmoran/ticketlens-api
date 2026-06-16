@@ -274,4 +274,65 @@ class LicenseIssuanceServiceTest extends TestCase
             'action'         => 'license.revoked',
         ]);
     }
+
+    // --- Tier/permission downgrade on revoke ---
+
+    public function test_revoke_resets_user_to_free_when_only_team_license_cancelled(): void
+    {
+        $recipient = User::factory()->create(['tier' => 'free']);
+        $license   = $this->service->issue($this->owner, $recipient, 'team', sendEmail: false)['license'];
+
+        $this->assertSame('team', $recipient->fresh()->tier);
+
+        $this->service->revoke($this->owner, $license);
+
+        $fresh = $recipient->fresh();
+        $this->assertSame('free', $fresh->tier);
+        $this->assertSame(\App\Enums\Permission::free(), $fresh->permissions);
+    }
+
+    public function test_revoke_resets_user_to_free_when_last_active_license_cancelled(): void
+    {
+        $recipient = User::factory()->create(['tier' => 'free']);
+        $license   = $this->service->issue($this->owner, $recipient, 'pro')['license'];
+
+        $this->assertSame('pro', $recipient->fresh()->tier);
+
+        $this->service->revoke($this->owner, $license);
+
+        $fresh = $recipient->fresh();
+        $this->assertSame('free', $fresh->tier);
+        $this->assertSame(\App\Enums\Permission::free(), $fresh->permissions);
+    }
+
+    public function test_revoke_keeps_user_on_highest_remaining_tier_when_another_active_license_exists(): void
+    {
+        $recipient = User::factory()->create(['tier' => 'free']);
+
+        $teamLicense = $this->service->issue($this->owner, $recipient, 'team', sendEmail: false)['license'];
+        $proLicense  = $this->service->issue($this->owner, $recipient, 'pro',  sendEmail: false)['license'];
+
+        $this->service->revoke($this->owner, $proLicense);
+
+        $fresh = $recipient->fresh();
+        $this->assertSame('team', $fresh->tier);
+        $this->assertSame(
+            \App\Enums\Permission::team(),
+            $fresh->permissions & \App\Enums\Permission::team()
+        );
+    }
+
+    public function test_revoke_downgrades_to_pro_when_team_license_cancelled_but_pro_remains(): void
+    {
+        $recipient = User::factory()->create(['tier' => 'free']);
+
+        $proLicense  = $this->service->issue($this->owner, $recipient, 'pro',  sendEmail: false)['license'];
+        $teamLicense = $this->service->issue($this->owner, $recipient, 'team', sendEmail: false)['license'];
+
+        $this->service->revoke($this->owner, $teamLicense);
+
+        $fresh = $recipient->fresh();
+        $this->assertSame('pro', $fresh->tier);
+        $this->assertSame(\App\Enums\Permission::pro(), $fresh->permissions);
+    }
 }

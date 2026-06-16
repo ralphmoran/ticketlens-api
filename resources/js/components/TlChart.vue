@@ -114,10 +114,13 @@ const chartData = computed(() => {
                 backgroundColor: filled ? withAlpha(color, 0.15) : color,
             }
             if (props.type === 'bar') {
-                // Per-point alpha dimming (e.g. weekend bars): dataset.alphas = [1, 1, …, 0.35]
-                const bg = Array.isArray(alphas)
-                    ? d.data.map((_, j) => withAlpha(color, alphas[j] ?? 1))
-                    : base.backgroundColor
+                // multicolor: each bar gets its own palette color
+                // alphas: per-point alpha dimming (e.g. weekend bars)
+                const bg = d.multicolor
+                    ? d.data.map((_, j) => tokens.value.palette[j % tokens.value.palette.length])
+                    : Array.isArray(alphas)
+                        ? d.data.map((_, j) => withAlpha(color, alphas[j] ?? 1))
+                        : base.backgroundColor
                 return { ...base, backgroundColor: bg, borderRadius: 6, borderSkipped: false, maxBarThickness: 28, borderWidth: 0 }
             }
             return {

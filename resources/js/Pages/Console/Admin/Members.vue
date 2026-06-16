@@ -105,6 +105,7 @@ const atLimit    = () => hasLicense() && props.seats_used >= props.seats_total
 
         <!-- Members table -->
         <div class="tl-card tl-card--flush">
+            <div class="tl-table-scroll">
             <table class="tl-table">
                 <thead>
                     <tr class="tl-thead">
@@ -155,6 +156,7 @@ const atLimit    = () => hasLicense() && props.seats_used >= props.seats_total
                     </tr>
                 </tbody>
             </table>
+            </div>
         </div>
     </div>
 </template>

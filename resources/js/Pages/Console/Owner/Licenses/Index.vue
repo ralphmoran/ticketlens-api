@@ -2,6 +2,7 @@
 import ConsoleLayout from '@/Layouts/ConsoleLayout.vue'
 import TlIcon from '@/Components/TlIcon.vue'
 import TlPagination from '@/Components/TlPagination.vue'
+import UserAvatar from '@/Components/UserAvatar.vue'
 import { useTableFilters } from '@/composables/useTableFilters'
 import { Link, router } from '@inertiajs/vue3'
 import { ref } from 'vue'
@@ -19,7 +20,7 @@ const { filters, loading, navigate } = useTableFilters({
     source:   props.filters?.source   ?? '',
     tier:     props.filters?.tier     ?? '',
     status:   props.filters?.status   ?? '',
-    per_page: props.filters?.per_page ?? 25,
+    per_page: props.filters?.per_page ?? 10,
 }, '/console/owner/licenses')
 
 const { confirm } = useConfirm()
@@ -124,9 +125,11 @@ const STATUS_COLORS = {
             </div>
 
             <div class="tl-card tl-card--flush" :class="{ 'tl-inert': loading }">
+                <div class="tl-table-scroll">
                 <table class="tl-table">
                     <thead>
                         <tr class="tl-thead">
+                            <th class="tl-th" style="width:2.5rem"></th>
                             <th class="tl-th">Client</th>
                             <th class="tl-th">Tier</th>
                             <th class="tl-th">Seats</th>
@@ -138,6 +141,9 @@ const STATUS_COLORS = {
                     </thead>
                     <tbody class="tl-divide">
                         <tr v-for="license in licenses.data" :key="license.id" class="tl-tr">
+                            <td class="tl-td">
+                                <UserAvatar :name="license.user?.name ?? '—'" :tier="license.tier ?? 'free'" />
+                            </td>
                             <td class="tl-td">
                                 <p class="tl-cell-primary">{{ license.user?.name ?? '—' }}</p>
                                 <p class="tl-hint tl-mono--xs">{{ license.user?.email }}</p>
@@ -186,10 +192,11 @@ const STATUS_COLORS = {
                             </td>
                         </tr>
                         <tr v-if="!licenses.data?.length">
-                            <td colspan="7" class="tl-td--empty">No licenses found.</td>
+                            <td colspan="8" class="tl-td--empty">No licenses found.</td>
                         </tr>
                     </tbody>
                 </table>
+                </div>
             </div>
         </div>
 

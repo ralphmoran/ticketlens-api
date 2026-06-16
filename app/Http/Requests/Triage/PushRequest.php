@@ -26,10 +26,14 @@ class PushRequest extends FormRequest
             'git_branches.*.tickets.*'  => ['string'],
             'git_branches.*.files'      => ['sometimes', 'array'],
             'git_branches.*.files.*'    => ['string'],
-            'cli_activity'                    => ['sometimes', 'nullable', 'array'],
-            'cli_activity.fetch_count'        => ['sometimes', 'integer', 'min:0', 'max:50000'],
-            'cli_activity.triage_run_count'   => ['sometimes', 'integer', 'min:0', 'max:50000'],
-            'cli_activity.invocations'        => ['sometimes', 'integer', 'min:0', 'max:50000'],
+            'cli_activity'                       => ['sometimes', 'nullable', 'array'],
+            'cli_activity.fetch_count'           => ['sometimes', 'integer', 'min:0', 'max:50000'],
+            'cli_activity.triage_run_count'      => ['sometimes', 'integer', 'min:0', 'max:50000'],
+            'cli_activity.invocations'           => ['sometimes', 'integer', 'min:0', 'max:50000'],
+            'cli_activity.commands'                    => ['sometimes', 'nullable', 'array'],
+            'cli_activity.commands.*'                  => ['array'],
+            'cli_activity.commands.*.count'            => ['required_with:cli_activity.commands.*', 'integer', 'min:0', 'max:50000'],
+            'cli_activity.commands.*.tokens_saved'     => ['sometimes', 'integer', 'min:0', 'max:100000000'],
         ];
     }
 }

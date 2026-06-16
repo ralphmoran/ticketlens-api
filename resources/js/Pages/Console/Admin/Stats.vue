@@ -2,6 +2,9 @@
 import ConsoleLayout from '@/Layouts/ConsoleLayout.vue'
 import TlIcon from '@/components/TlIcon.vue'
 import TlChart from '@/components/TlChart.vue'
+import TlPagination from '@/Components/TlPagination.vue'
+import UserAvatar from '@/Components/UserAvatar.vue'
+import { useClientPaginator } from '@/composables/useClientPaginator'
 import { router } from '@inertiajs/vue3'
 import { computed, ref, watch } from 'vue'
 
@@ -20,6 +23,7 @@ const props = defineProps({
     day_of_week_dist:  { type: Array,   default: () => [] },
     engagement_scores: { type: Array,   default: () => [] },
     ticket_load_trend: { type: Array,   default: () => [] },
+    workload_donut:    { type: Object,  default: () => ({ labels: [], data: [] }) },
 })
 
 // ── Owner picker ───────────────────────────────────────────────────────────
@@ -34,17 +38,27 @@ const filteredClients = computed(() => {
         : props.clients
 })
 
-const PAGE_SIZE    = 10
-const totalPages   = computed(() => Math.ceil(filteredClients.value.length / PAGE_SIZE))
-const pagedClients = computed(() => {
-    const start = (clientPage.value - 1) * PAGE_SIZE
-    return filteredClients.value.slice(start, start + PAGE_SIZE)
-})
+const PAGE_SIZE     = 10
+const clientPerPage = ref(PAGE_SIZE)
+const { items: pagedClients, paginator: clientsPaginator } = useClientPaginator(filteredClients, clientPage, clientPerPage)
 
-watch(clientSearch, () => { clientPage.value = 1 })
+watch(clientSearch,  () => { clientPage.value = 1 })
+watch(clientPerPage, () => { clientPage.value = 1 })
 
 function selectManager(id) {
-    router.get('/console/admin/stats', { manager_id: id })
+    router.get('/console/admin/stats', { manager_id: id, period: period.value })
+}
+
+// ── Period selector ────────────────────────────────────────────────────────
+
+const period  = ref(new URLSearchParams(window.location.search).get('period') ?? '30')
+const PERIODS = [{ value: '7', label: '7d' }, { value: '30', label: '30d' }, { value: '90', label: '90d' }]
+
+function selectPeriod(p) {
+    period.value = p
+    const params = { period: p }
+    if (props.selected_manager) params.manager_id = props.selected_manager.id
+    router.get('/console/admin/stats', params, { preserveState: true, preserveScroll: true })
 }
 
 // ── Derived state ──────────────────────────────────────────────────────────
@@ -125,6 +139,9 @@ const trendDatasets = computed(() => {
 const trendDisplayLabels = computed(() => trendLabels.value.map(d => d.slice(5)))
 const spanGapsOptions = { spanGaps: true }
 
+const donutDatasets = computed(() => [{ data: props.workload_donut.data }])
+const hasDonutData  = computed(() => props.workload_donut.data.some(v => v > 0))
+
 // ── Helpers ────────────────────────────────────────────────────────────────
 
 function timeAgo(iso) {
@@ -162,42 +179,57 @@ function scoreClass(score) {
                     <p class="tl-subtext">Select a team to view their urgency trends and response statistics.</p>
                 </div>
             </div>
-            <div class="tl-picker">
-                <input
-                    v-model="clientSearch"
-                    type="search"
-                    placeholder="Search by name or email…"
-                    class="tl-input tl-input--full tl-card-gap"
-                />
-                <div v-if="pagedClients.length === 0" class="tl-empty-state">
-                    <TlIcon name="users" class="tl-empty-icon" />
-                    <p class="tl-hint">No matching clients found.</p>
-                </div>
-                <ul v-else class="tl-stack--sm">
-                    <li v-for="client in pagedClients" :key="client.id">
-                        <button
-                            type="button"
-                            @click="selectManager(client.id)"
-                            class="tl-card tl-card--btn"
-                        >
-                            <p class="tl-cell-primary">{{ client.name }}</p>
-                            <p class="tl-hint tl-mono--xs">{{ client.email }}</p>
-                        </button>
-                    </li>
-                </ul>
-                <div v-if="totalPages > 1" class="tl-pager">
-                    <span class="tl-hint">{{ filteredClients.length }} clients</span>
-                    <div class="tl-pager-nav">
-                        <button type="button" :disabled="clientPage === 1" @click="clientPage--" class="tl-pager-btn">
-                            <TlIcon name="chevron-left" class="tl-ic" />
-                        </button>
-                        <span class="tl-pager-label">{{ clientPage }} / {{ totalPages }}</span>
-                        <button type="button" :disabled="clientPage >= totalPages" @click="clientPage++" class="tl-pager-btn">
-                            <TlIcon name="chevron-right" class="tl-ic" />
-                        </button>
-                    </div>
+            <div class="tl-picker tl-card-gap">
+                <div class="tl-input-wrap">
+                    <TlIcon name="search" class="tl-input-icon" />
+                    <input
+                        v-model="clientSearch"
+                        type="text"
+                        placeholder="Search by name or email…"
+                        class="tl-input tl-input--full tl-input--with-icon"
+                    />
                 </div>
             </div>
+            <div class="tl-card tl-card--flush">
+                <div class="tl-table-scroll">
+                    <table class="tl-table">
+                        <thead>
+                            <tr class="tl-thead">
+                                <th class="tl-th" style="width:2.5rem"></th>
+                                <th class="tl-th">Manager</th>
+                                <th class="tl-th">Tier</th>
+                                <th class="tl-th"></th>
+                            </tr>
+                        </thead>
+                        <tbody class="tl-divide">
+                            <tr v-for="client in pagedClients" :key="client.id" class="tl-tr">
+                                <td class="tl-td">
+                                    <UserAvatar :name="client.name" :tier="client.tier ?? 'free'" />
+                                </td>
+                                <td class="tl-td">
+                                    <p class="tl-cell-primary">{{ client.name }}</p>
+                                    <p class="tl-hint tl-mono--xs">{{ client.email }}</p>
+                                </td>
+                                <td class="tl-td">
+                                    <span class="tl-badge" :class="`tl-badge--${client.tier === 'pro' ? 'brand' : client.tier === 'team' ? 'info' : 'neutral'}`">{{ client.tier ?? 'free' }}</span>
+                                </td>
+                                <td class="tl-td tl-td--right">
+                                    <button type="button" @click="selectManager(client.id)" class="tl-btn tl-btn--secondary tl-btn--sm">Select</button>
+                                </td>
+                            </tr>
+                            <tr v-if="pagedClients.length === 0">
+                                <td colspan="4" class="tl-td--empty">No matching clients found.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <TlPagination
+                :paginator="clientsPaginator"
+                :perPage="clientPerPage"
+                @page="p => (clientPage = p)"
+                @update:perPage="n => { clientPerPage = n; clientPage = 1 }"
+            />
         </div>
 
         <!-- Owner: manager selected — action banner + content -->
@@ -225,6 +257,14 @@ function scoreClass(score) {
                     <span class="tl-hint">updated {{ timeAgo(last_updated) }}</span>
                 </p>
             </div>
+            <div class="tl-seg">
+                <button
+                    v-for="p in PERIODS" :key="p.value"
+                    class="tl-seg-btn"
+                    :class="{ 'tl-seg-btn--active': period === p.value }"
+                    @click="selectPeriod(p.value)"
+                >{{ p.label }}</button>
+            </div>
         </div>
 
         <!-- No-data empty state -->
@@ -242,7 +282,7 @@ function scoreClass(score) {
 
             <!-- Urgency trend (30-day line chart) -->
             <div class="tl-card tl-card-gap">
-                <h2 class="tl-title tl-title--spaced">Urgency Trend — last 30 days</h2>
+                <h2 class="tl-title tl-title--spaced">Urgency Trend — last {{ period }} days</h2>
                 <div class="tl-chart-frame">
                     <TlChart type="line" :labels="urgencyLabels" :datasets="urgencyDatasets" legend="bottom" />
                 </div>
@@ -251,15 +291,27 @@ function scoreClass(score) {
                 </p>
             </div>
 
-            <!-- Team urgency snapshot (stacked bar) -->
-            <div v-if="team_comparison.length > 1" class="tl-card tl-card-gap">
-                <h2 class="tl-title tl-title--spaced">Team Snapshot — current urgency by member</h2>
-                <div class="tl-chart-frame">
-                    <TlChart type="bar" :labels="teamBarLabels" :datasets="teamBarDatasets" :options="stackedOptions" legend="bottom" />
+            <!-- Team urgency snapshot (stacked bar) + workload donut -->
+            <div v-if="team_comparison.length > 1" class="tl-grid-2 tl-card-gap">
+                <div class="tl-card tl-card-gap">
+                    <h2 class="tl-title tl-title--spaced">Team Snapshot — urgency by member</h2>
+                    <div class="tl-chart-frame">
+                        <TlChart type="bar" :labels="teamBarLabels" :datasets="teamBarDatasets" :options="stackedOptions" legend="bottom" />
+                    </div>
+                    <p class="tl-card-footnote">
+                        Side-by-side urgency breakdown per team member from their most recent push.
+                    </p>
                 </div>
-                <p class="tl-card-footnote">
-                    Side-by-side urgency breakdown per team member from their most recent push. Useful for spotting who carries the highest "Needs Response" load or whose queue has stagnated.
-                </p>
+                <div class="tl-card tl-card-gap">
+                    <h2 class="tl-title tl-title--spaced">Workload Distribution</h2>
+                    <div class="tl-chart-frame">
+                        <TlChart v-if="hasDonutData" type="donut" :labels="workload_donut.labels" :datasets="donutDatasets" />
+                        <div v-else class="tl-chart-empty">No tickets in current window.</div>
+                    </div>
+                    <p class="tl-card-footnote">
+                        Current flag mix across all team members' latest pushes.
+                    </p>
+                </div>
             </div>
 
             <!-- Response-time placeholder -->
@@ -311,7 +363,7 @@ function scoreClass(score) {
             <!-- ── Engagement Leaderboard ──────────────────────────────── -->
             <div v-if="engagement_scores.length > 0" class="tl-card tl-card--flush tl-section-start">
                 <div class="tl-table-header">
-                    <h2 class="tl-title">Engagement Leaderboard — last 30 days</h2>
+                    <h2 class="tl-title">Engagement Leaderboard — last {{ period }} days</h2>
                 </div>
                 <div class="tl-table-scroll">
                     <table class="tl-table">
@@ -384,17 +436,6 @@ function scoreClass(score) {
                         Weekend bars are dimmed. Heavy weekend usage may indicate on-call rotation.
                     </p>
                 </div>
-            </div>
-
-            <!-- ── Ticket Load Trend (per member) ────────────────────────── -->
-            <div v-if="ticket_load_trend.length > 0" class="tl-card tl-section-start tl-card-gap">
-                <h2 class="tl-title tl-title--spaced">Ticket Load — last 30 days</h2>
-                <div class="tl-chart-frame">
-                    <TlChart type="line" :labels="trendDisplayLabels" :datasets="trendDatasets" :options="spanGapsOptions" legend="bottom" />
-                </div>
-                <p class="tl-card-footnote">
-                    Active ticket count per member over time. Members with a rising trend may need load balancing. Flat lines at zero indicate no push data in this window.
-                </p>
             </div>
 
         </template><!-- /v-else hasData -->

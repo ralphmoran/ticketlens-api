@@ -24,3 +24,5 @@ Homestead.yaml
 Thumbs.db
 .worktrees/
 .claude/
+graphify-out/
+docs/

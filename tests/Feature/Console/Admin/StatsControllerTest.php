@@ -471,4 +471,74 @@ class StatsControllerTest extends TestCase
                 )
             );
     }
+
+    // ── RED: new fields ───────────────────────────────────────────────────────
+
+    public function test_workload_donut_present_with_flag_distribution(): void
+    {
+        $manager = $this->makeManager();
+        $dev     = $this->makeMember($manager->ownedGroup);
+
+        $this->pushSnapshot($dev, [
+            $this->ticket('W-1', ['needs-response']),
+            $this->ticket('W-2', ['aging']),
+            $this->ticket('W-3'),
+        ]);
+
+        $this->actingAs($manager)->get('/console/admin/stats')
+            ->assertInertia(fn ($page) => $page
+                ->has('workload_donut')
+                ->where('workload_donut', fn ($v) => collect($v)->has(['labels', 'data']))
+            );
+    }
+
+    public function test_period_param_7_limits_daily_urgency_window(): void
+    {
+        $manager = $this->makeManager();
+        $dev     = $this->makeMember($manager->ownedGroup);
+
+        // 10 days ago — excluded by ?period=7
+        TriageSnapshot::create([
+            'user_id'      => $dev->id,
+            'profile'      => 'production',
+            'tickets'      => [$this->ticket('OLD-1', ['needs-response'])],
+            'ticket_count' => 1,
+            'captured_at'  => now()->subDays(10),
+        ]);
+
+        // Within 7 days — included
+        $this->pushSnapshot($dev, [$this->ticket('NEW-1', ['aging'])]);
+
+        $this->actingAs($manager)->get('/console/admin/stats?period=7')
+            ->assertInertia(fn ($page) => $page
+                ->has('daily_urgency', 1)
+                ->where('daily_urgency.0.needs_response', 0)
+                ->where('daily_urgency.0.aging', 1)
+            );
+    }
+
+    public function test_lock_default_period_covers_30_days(): void
+    {
+        $manager = $this->makeManager();
+        $dev     = $this->makeMember($manager->ownedGroup);
+
+        // 31 days ago — must NOT appear in the default 30-day window
+        TriageSnapshot::create([
+            'user_id'      => $dev->id,
+            'profile'      => 'production',
+            'tickets'      => [$this->ticket('OLD-1', ['needs-response'])],
+            'ticket_count' => 1,
+            'captured_at'  => now()->subDays(31),
+        ]);
+
+        // Within 30 days — must appear
+        $this->pushSnapshot($dev, [$this->ticket('NEW-1', ['aging'])]);
+
+        $this->actingAs($manager)->get('/console/admin/stats')
+            ->assertInertia(fn ($page) => $page
+                ->has('daily_urgency', 1)
+                ->where('daily_urgency.0.needs_response', 0)
+                ->where('daily_urgency.0.aging', 1)
+            );
+    }
 }

@@ -12,6 +12,13 @@ RateLimiter::for('login-by-email', function ($r) {
     return Limit::perMinute(5)->by($key);
 });
 
+// Caps registration attempts per email across all IPs (distributed attack mitigation).
+RateLimiter::for('register-by-email', function ($r) {
+    $email = $r->input('email');
+    $key = $email ? 'register-email:' . strtolower($email) : 'register-email-ip:' . $r->ip();
+    return Limit::perHour(10)->by($key);
+});
+
 Route::get('/', fn () => response()->file(public_path('landing.html')));
 Route::get('/inertia-test', fn () => inertia('Test'));
 
@@ -28,6 +35,7 @@ Route::prefix('console')->name('console.')->group(function () {
     Route::middleware('guest')->group(function () {
         Route::get('/login', [\App\Http\Controllers\Console\AuthController::class, 'showLogin'])->name('login');
         Route::post('/login', [\App\Http\Controllers\Console\AuthController::class, 'login'])->middleware('throttle:5,1', 'throttle:login-by-email');
+        Route::post('/register', [\App\Http\Controllers\Console\AuthController::class, 'register'])->name('register')->middleware('throttle:3,1', 'throttle:register-by-email');
     });
 
     Route::post('/logout', [\App\Http\Controllers\Console\AuthController::class, 'logout'])
@@ -59,14 +67,14 @@ Route::prefix('console')->name('console.')->group(function () {
     // Console root → redirect to dashboard
     Route::get('/', fn () => redirect()->route('console.dashboard'))->name('index');
 
-    // CLI browser login — user must be authenticated to grant CLI access
-    Route::middleware('auth')->group(function () {
+    // CLI browser login — user must be authenticated and verified to grant CLI access
+    Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/auth/cli',  [\App\Http\Controllers\Console\CliAuthController::class, 'show'])->name('auth.cli.show');
         Route::post('/auth/cli', [\App\Http\Controllers\Console\CliAuthController::class, 'authorize'])->name('auth.cli.authorize');
     });
 
     // Authenticated console routes
-    Route::middleware('auth')->group(function () {
+    Route::middleware(['auth', 'verified'])->group(function () {
         // Stop impersonation — lives OUTSIDE the `owner` sub-group because during
         // impersonation the session is authed as the target (non-owner). The controller
         // checks the `impersonator_id` session key to authorise.
@@ -209,6 +217,12 @@ Route::prefix('console')->name('console.')->group(function () {
             Route::get('/teams/{group}',                            [\App\Http\Controllers\Owner\TeamController::class, 'show'])->name('teams.show');
             Route::delete('/teams/{group}/members/{user}',          [\App\Http\Controllers\Owner\TeamController::class, 'removeMember'])->name('teams.members.destroy');
 
+            // Platform insights — usage trends, popular commands, ROI per account
+            Route::get('/insights', [\App\Http\Controllers\Owner\InsightsController::class, 'index'])->name('insights');
+
+            // Client health — cross-client KPI dashboard
+            Route::get('/health', [\App\Http\Controllers\Owner\ClientHealthController::class, 'index'])->name('health');
+
             // Revenue dashboard (MRR, tier breakdown, recent license events)
             Route::get('/revenue', [\App\Http\Controllers\Owner\RevenueController::class, 'index'])->name('revenue');
 
@@ -263,4 +277,18 @@ Route::prefix('console')->name('console.')->group(function () {
             Route::get('/digests',                                               [\App\Http\Controllers\Console\Admin\DigestsController::class, 'index'])->name('digests');
         });
     });
+});
+
+// Email verification — routes must carry bare Laravel names (verification.notice/verify/send)
+// because EnsureEmailIsVerified middleware hardcodes those exact names.
+// They live outside the console. name() group so no prefix is prepended.
+Route::prefix('console')->middleware('auth')->group(function () {
+    Route::get('/verify-email', [\App\Http\Controllers\Console\EmailVerificationController::class, 'notice'])
+        ->name('verification.notice');
+    Route::get('/email/verify/{id}/{hash}', [\App\Http\Controllers\Console\EmailVerificationController::class, 'verify'])
+        ->middleware('signed')
+        ->name('verification.verify');
+    Route::post('/email/verification-notification', [\App\Http\Controllers\Console\EmailVerificationController::class, 'send'])
+        ->middleware('throttle:6,1')
+        ->name('verification.send');
 });

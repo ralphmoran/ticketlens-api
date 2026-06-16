@@ -76,7 +76,7 @@ function formatDate(dateStr) {
                     {{ at_risk_accounts.count.toLocaleString() }}
                 </p>
                 <p class="tl-hint">no
-                    <abbr title="Command Line Interface — ticketlens push" class="tl-abbr">CLI</abbr>
+                    <abbr title="Command Line Interface — ticketlens push" data-tooltip="Command Line Interface — ticketlens push" class="tl-abbr">CLI</abbr>
                     push in 14+ days
                 </p>
             </div>
@@ -87,13 +87,13 @@ function formatDate(dateStr) {
                     {{ never_pushed.toLocaleString() }}
                 </p>
                 <p class="tl-hint">registered but never used the
-                    <abbr title="Command Line Interface — ticketlens push" class="tl-abbr">CLI</abbr>
+                    <abbr title="Command Line Interface — ticketlens push" data-tooltip="Command Line Interface — ticketlens push" class="tl-abbr">CLI</abbr>
                 </p>
             </div>
 
             <div class="tl-stat-card">
                 <p class="tl-stat-label">
-                    <abbr title="Average Revenue Per User — MRR ÷ paying user count" class="tl-abbr">ARPU</abbr>
+                    <abbr title="Average Revenue Per User — MRR ÷ paying user count" data-tooltip="Average Revenue Per User — MRR ÷ paying user count" class="tl-abbr">ARPU</abbr>
                 </p>
                 <p class="tl-stat-value" :class="arpu > 0 ? 'tl-num--success' : ''">
                     ${{ arpu.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }}
@@ -112,7 +112,7 @@ function formatDate(dateStr) {
 
             <div class="tl-stat-card">
                 <p class="tl-stat-label">
-                    <abbr title="Commands per User — average number of CLI commands run per account" class="tl-abbr">Cmds</abbr>
+                    <abbr title="Commands per User — average number of CLI commands run per account" data-tooltip="Commands per User — avg CLI commands per account" class="tl-abbr">Cmds</abbr>
                     / User
                 </p>
                 <p class="tl-stat-value">{{ commands_per_user.toLocaleString() }}</p>
@@ -137,7 +137,7 @@ function formatDate(dateStr) {
             <h2 class="tl-section-heading tl-title--spaced">
                 At-Risk Accounts
                 <span class="tl-hint">no
-                    <abbr title="Command Line Interface — ticketlens push" class="tl-abbr">CLI</abbr>
+                    <abbr title="Command Line Interface — ticketlens push" data-tooltip="Command Line Interface — ticketlens push" class="tl-abbr">CLI</abbr>
                     push in 14+ days, not suspended
                 </span>
             </h2>

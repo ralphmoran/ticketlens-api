@@ -113,11 +113,35 @@
 
   .tl-foot-note { @apply mt-6 text-center text-sm; color: var(--tl-text-subtle); }
 
-  /* Abbreviation / acronym with tooltip hint */
+  /* Abbreviation / acronym with CSS tooltip */
   .tl-abbr {
+    position: relative;
     text-decoration: underline dotted;
     text-underline-offset: 2px;
     cursor: help;
     color: inherit;
+  }
+
+  .tl-abbr::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: calc(100% + 6px);
+    left: 50%;
+    transform: translateX(-50%);
+    white-space: nowrap;
+    background: var(--tl-surface-inverse, hsl(224 71% 8%));
+    color: var(--tl-text-inverse, #fff);
+    padding: 4px 8px;
+    border-radius: var(--tl-radius-sm, 4px);
+    font-size: 0.7rem;
+    font-weight: 400;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.12s ease;
+    z-index: 50;
+  }
+
+  .tl-abbr:hover::after {
+    opacity: 1;
   }
 }

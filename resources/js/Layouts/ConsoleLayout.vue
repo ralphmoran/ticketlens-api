@@ -264,7 +264,7 @@ const navGroups = computed(() => [
 
 const ownerPanelItems = [
     { label: 'Dashboard',        href: '/console/owner/dashboard', icon: 'dashboard' },
-    { label: 'Insights',         href: '/console/owner/insights',  icon: 'chart-bar' },
+    { label: 'Usage Analytics',  href: '/console/owner/insights',  icon: 'chart-bar' },
     { label: 'Client Health',    href: '/console/owner/health',    icon: 'heart-pulse' },
     { label: 'Clients',          href: '/console/owner/clients',   icon: 'building' },
     { label: 'Teams',            href: '/console/owner/teams',     icon: 'users' },

@@ -1,5 +1,7 @@
 <script setup>
 import ConsoleLayout from '@/Layouts/ConsoleLayout.vue'
+import TlChart from '@/components/TlChart.vue'
+import { computed } from 'vue'
 import { router } from '@inertiajs/vue3'
 
 defineOptions({ layout: ConsoleLayout })
@@ -15,12 +17,22 @@ const props = defineProps({
     license_expiry:      { type: Object,  default: () => ({ soon_30: 0, soon_60: 0, soon_90: 0 }) },
     commands_per_user:   { type: Number,  default: 0 },
     feature_penetration: { type: Object,  default: () => ({}) },
+    conversion_rate:     { type: Object,  default: () => ({ rate: 0, paid_users: 0, total_users: 0 }) },
+    license_issuances:   { type: Object,  default: () => ({ labels: [], datasets: [] }) },
+    npm_downloads:       { type: [Number, null], default: null },
 })
 
 const PERIODS = [7, 14, 30, 60, 90]
 const TIERS   = ['free', 'pro', 'team']
 
 const tierColors = { free: 'neutral', pro: 'brand', team: 'info' }
+
+const issuancesStackedOptions = {
+    scales: { x: { stacked: true }, y: { stacked: true } },
+}
+const hasIssuances = computed(() =>
+    props.license_issuances.datasets.some(d => d.data.some(v => v > 0))
+)
 
 function setPeriod(p) {
     router.get('/console/owner/health', { period: p }, { preserveScroll: true })
@@ -130,6 +142,36 @@ function formatDate(dateStr) {
                 </p>
             </div>
 
+            <div class="tl-stat-card">
+                <p class="tl-stat-label">Conversion Rate</p>
+                <p class="tl-stat-value" :class="conversion_rate.rate > 0 ? 'tl-num--success' : ''">
+                    {{ conversion_rate.rate }}%
+                </p>
+                <p class="tl-hint">
+                    {{ conversion_rate.paid_users }} paid of {{ conversion_rate.total_users }} accounts
+                    <span v-if="npm_downloads !== null"> · ~{{ npm_downloads.toLocaleString() }}
+                        <abbr title="downloads from npm registry in selected period" data-tooltip="downloads from npm registry in selected period" class="tl-abbr">npm dl</abbr>
+                    </span>
+                </p>
+            </div>
+
+        </div>
+
+        <!-- License Issuances -->
+        <div class="tl-section-gap">
+            <h2 class="tl-section-heading tl-title--spaced">License Issuances <span class="tl-hint">last 6 months by tier</span></h2>
+            <div class="tl-card">
+                <div class="tl-chart-frame">
+                    <TlChart
+                        v-if="hasIssuances"
+                        type="bar"
+                        :labels="license_issuances.labels"
+                        :datasets="license_issuances.datasets"
+                        :options="issuancesStackedOptions"
+                    />
+                    <div v-else class="tl-chart-empty">no licenses issued in the last 6 months</div>
+                </div>
+            </div>
         </div>
 
         <!-- At-Risk Accounts -->

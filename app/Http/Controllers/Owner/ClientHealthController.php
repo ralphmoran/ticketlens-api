@@ -6,7 +6,9 @@ use App\Models\License;
 use App\Models\User;
 use App\Models\UsageLog;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -36,6 +38,9 @@ class ClientHealthController
             'license_expiry'      => $this->licenseExpiry($now),
             'commands_per_user'   => $this->commandsPerUser($ownerIds, $start),
             'feature_penetration' => $this->featurePenetration($ownerIds, $start),
+            'conversion_rate'     => $this->conversionRate($ownerIds),
+            'license_issuances'   => $this->licenseIssuances(),
+            'npm_downloads'       => $this->npmDownloads($period),
         ]);
     }
 
@@ -188,5 +193,77 @@ class ClientHealthController
         }
 
         return $result;
+    }
+
+    private function conversionRate($ownerIds): array
+    {
+        $totalUsers = User::whereNotIn('id', $ownerIds)->count();
+
+        if ($totalUsers === 0) {
+            return ['rate' => 0, 'paid_users' => 0, 'total_users' => 0];
+        }
+
+        $paidTiers = array_keys(array_filter(config('tiers.prices', []), fn ($p) => $p > 0));
+        $paidUsers = empty($paidTiers) ? 0 : License::whereHas('user', fn ($q) => $q->whereNotIn('id', $ownerIds))
+            ->where('status', 'active')
+            ->whereIn('tier', $paidTiers)
+            ->distinct('user_id')
+            ->count('user_id');
+
+        return [
+            'rate'        => round($paidUsers / $totalUsers * 100, 1),
+            'paid_users'  => $paidUsers,
+            'total_users' => $totalUsers,
+        ];
+    }
+
+    private function licenseIssuances(): array
+    {
+        $months = [];
+        for ($i = 5; $i >= 0; $i--) {
+            $months[] = now()->subMonths($i)->format('Y-m');
+        }
+
+        $start = now()->subMonths(6)->startOfMonth();
+        $rows  = License::where('created_at', '>=', $start)
+            ->get(['created_at', 'tier']);
+
+        $byTierMonth = [];
+        foreach ($rows as $row) {
+            $month = substr($row->created_at, 0, 7); // 'Y-m'
+            $tier  = $row->tier;
+            $byTierMonth[$tier][$month] = ($byTierMonth[$tier][$month] ?? 0) + 1;
+        }
+
+        $tierColors = ['free' => 'neutral', 'pro' => 'brand', 'team' => 'info'];
+        $datasets   = [];
+        foreach ($tierColors as $tier => $color) {
+            $data = [];
+            foreach ($months as $month) {
+                $data[] = $byTierMonth[$tier][$month] ?? 0;
+            }
+            $datasets[] = ['label' => $tier, 'data' => $data, 'color' => $color];
+        }
+
+        return ['labels' => $months, 'datasets' => $datasets];
+    }
+
+    private function npmDownloads(int $period): ?int
+    {
+        return Cache::remember("npm_downloads_{$period}", 86400, function () use ($period) {
+            $end   = now()->format('Y-m-d');
+            $start = now()->subDays($period)->format('Y-m-d');
+
+            try {
+                $response = Http::timeout(10)->get(
+                    "https://api.npmjs.org/downloads/point/{$start}:{$end}/ticketlens"
+                );
+                if ($response->ok()) {
+                    return (int) ($response->json('downloads') ?? 0);
+                }
+            } catch (\Throwable) {}
+
+            return null;
+        });
     }
 }

@@ -65,6 +65,9 @@ class ClientHealthTest extends TestCase
                 ->has('seat_utilization')
                 ->has('commands_per_user')
                 ->has('feature_penetration')
+                ->has('conversion_rate')
+                ->has('license_issuances')
+                ->has('npm_downloads')
             );
     }
 
@@ -260,5 +263,79 @@ class ClientHealthTest extends TestCase
                 ->has('feature_penetration')
                 ->where('feature_penetration.summarize.pro', 1)
             );
+    }
+
+    // ── Conversion rate ───────────────────────────────────────────────────────
+
+    public function test_conversion_rate_is_zero_when_no_users(): void
+    {
+        $owner = $this->makeOwner();
+
+        $this->actingAs($owner)->get('/console/owner/health')
+            ->assertInertia(fn ($page) => $page
+                ->where('conversion_rate.rate', 0)
+                ->where('conversion_rate.paid_users', 0)
+                ->where('conversion_rate.total_users', 0)
+            );
+    }
+
+    public function test_conversion_rate_divides_paid_by_total_users(): void
+    {
+        $owner   = $this->makeOwner();
+        $freeUser = $this->makeClient('free');
+        $proUser  = $this->makeClient('pro');
+        License::create(['user_id' => $proUser->id, 'lemon_key_hash' => str_repeat('d', 64), 'tier' => 'pro', 'seats' => 1, 'status' => 'active', 'expires_at' => null]);
+
+        $this->actingAs($owner)->get('/console/owner/health')
+            ->assertInertia(fn ($page) => $page
+                ->where('conversion_rate.paid_users', 1)
+                ->where('conversion_rate.total_users', 2)
+                ->where('conversion_rate.rate', 50)
+            );
+    }
+
+    // ── License issuances ─────────────────────────────────────────────────────
+
+    public function test_license_issuances_always_returns_6_months(): void
+    {
+        $owner = $this->makeOwner();
+
+        $this->actingAs($owner)->get('/console/owner/health')
+            ->assertInertia(fn ($page) => $page
+                ->has('license_issuances.labels', 6)
+                ->has('license_issuances.datasets')
+            );
+    }
+
+    public function test_license_issuances_counts_by_month_and_tier(): void
+    {
+        $owner   = $this->makeOwner();
+        $proUser = $this->makeClient('pro');
+
+        License::create([
+            'user_id'        => $proUser->id,
+            'lemon_key_hash' => str_repeat('e', 64),
+            'tier'           => 'pro',
+            'seats'          => 1,
+            'status'         => 'active',
+            'expires_at'     => null,
+        ]);
+
+        $currentMonth = now()->format('Y-m');
+
+        $this->actingAs($owner)->get('/console/owner/health')
+            ->assertInertia(fn ($page) => $page
+                ->where('license_issuances.labels.' . (5), $currentMonth)
+            );
+    }
+
+    // ── NPM downloads ─────────────────────────────────────────────────────────
+
+    public function test_npm_downloads_prop_is_present(): void
+    {
+        $owner = $this->makeOwner();
+
+        $this->actingAs($owner)->get('/console/owner/health')
+            ->assertInertia(fn ($page) => $page->has('npm_downloads'));
     }
 }

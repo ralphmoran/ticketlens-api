@@ -29,9 +29,11 @@ const props = defineProps({
 })
 
 const PERIODS = [
-    { value: '7',   label: '7d' },
-    { value: '30',  label: '30d' },
-    { value: 'all', label: 'All time' },
+    { value: '7',  label: '7d' },
+    { value: '14', label: '14d' },
+    { value: '30', label: '30d' },
+    { value: '60', label: '60d' },
+    { value: '90', label: '90d' },
 ]
 
 const RATE = 15 // $15 per 1M tokens

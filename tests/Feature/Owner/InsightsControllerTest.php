@@ -169,17 +169,17 @@ class InsightsControllerTest extends TestCase
             );
     }
 
-    public function test_insights_period_param_all_returns_all_time(): void
+    public function test_insights_period_param_all_falls_back_to_30d(): void
     {
         $owner = $this->makeOwner();
         $user  = User::factory()->create(['tier' => 'pro']);
 
+        // 200-day-old log is outside the 30d fallback window — must not be included
         $this->insertCliLog($user->id, 'fetch', 999, 1, 200);
 
-        // Without ?period=all, 200-day-old row may fall outside window
         $this->actingAs($owner)->get('/console/owner/insights?period=all')
             ->assertInertia(fn ($page) => $page
-                ->where('tokens_saved_total', 999)
+                ->where('tokens_saved_total', 0)
             );
     }
 
@@ -250,14 +250,15 @@ class InsightsControllerTest extends TestCase
             );
     }
 
-    public function test_prev_period_null_when_period_is_all(): void
+    public function test_prev_period_computed_even_when_period_is_all(): void
     {
         $owner = $this->makeOwner();
 
+        // period=all falls back to 30d; prev period is always computed now (no null)
         $this->actingAs($owner)->get('/console/owner/insights?period=all')
             ->assertInertia(fn ($page) => $page
-                ->where('prev_period_tokens_saved', null)
-                ->where('prev_period_active_users', null)
+                ->where('prev_period_tokens_saved', 0)
+                ->where('prev_period_active_users', 0)
             );
     }
 
@@ -297,16 +298,39 @@ class InsightsControllerTest extends TestCase
             );
     }
 
-    public function test_insights_90d_period_falls_back_to_30d(): void
+    public function test_insights_period_90_returns_90_days_of_data(): void
     {
         $owner = $this->makeOwner();
 
-        // ?period=90 is no longer a valid option — should fall back to 30d window
         $this->actingAs($owner)->get('/console/owner/insights?period=90')
             ->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->where('period', '90')
-                ->has('tokens_saved_by_day', 30)
+                ->has('tokens_saved_by_day', 90)
+            );
+    }
+
+    public function test_insights_period_14_returns_14_days_of_data(): void
+    {
+        $owner = $this->makeOwner();
+
+        $this->actingAs($owner)->get('/console/owner/insights?period=14')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('period', '14')
+                ->has('tokens_saved_by_day', 14)
+            );
+    }
+
+    public function test_insights_period_60_returns_60_days_of_data(): void
+    {
+        $owner = $this->makeOwner();
+
+        $this->actingAs($owner)->get('/console/owner/insights?period=60')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('period', '60')
+                ->has('tokens_saved_by_day', 60)
             );
     }
 }

@@ -12,18 +12,17 @@ use Inertia\Response;
 
 class InsightsController
 {
-    private const ALLOWED_PERIODS = [7, 30];
+    private const ALLOWED_PERIODS = [7, 14, 30, 60, 90];
 
     public function index(Request $request): Response
     {
         $period = $request->query('period', '30');
-        $cutoff = $period === 'all' ? null : now()->subDays($this->daysForPeriod($period));
+        $cutoff = now()->subDays($this->daysForPeriod($period));
 
-        $query = DB::table('usage_logs')->whereNotNull('metadata');
-        if ($cutoff) {
-            $query->where('created_at', '>=', $cutoff);
-        }
-        $logs = $query->get(['user_id', 'action', 'tokens_used', 'metadata', 'created_at']);
+        $logs = DB::table('usage_logs')
+            ->whereNotNull('metadata')
+            ->where('created_at', '>=', $cutoff)
+            ->get(['user_id', 'action', 'tokens_used', 'metadata', 'created_at']);
 
         [$prevTokensSaved, $prevActiveUsers] = $this->prevPeriodStats($period);
 
@@ -41,8 +40,8 @@ class InsightsController
             'licenses_by_tier'         => $this->licensesByTier(),
             'prev_period_tokens_saved' => $prevTokensSaved,
             'prev_period_active_users' => $prevActiveUsers,
-            'tokens_saved_by_day'      => $period !== 'all' ? $this->dailySeries($logs, $period, 'tokens_saved') : null,
-            'active_users_by_day'      => $period !== 'all' ? $this->dailySeries($logs, $period, 'active_users') : null,
+            'tokens_saved_by_day'      => $this->dailySeries($logs, $period, 'tokens_saved'),
+            'active_users_by_day'      => $this->dailySeries($logs, $period, 'active_users'),
         ]);
     }
 
@@ -172,10 +171,6 @@ class InsightsController
      */
     private function prevPeriodStats(string $period): array
     {
-        if ($period === 'all') {
-            return [null, null];
-        }
-
         $days  = $this->daysForPeriod($period);
         $start = now()->subDays($days * 2);
         $end   = now()->subDays($days);

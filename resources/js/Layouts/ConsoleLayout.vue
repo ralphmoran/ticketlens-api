@@ -264,13 +264,14 @@ const navGroups = computed(() => [
 
 const ownerPanelItems = [
     { label: 'Dashboard',        href: '/console/owner/dashboard', icon: 'dashboard' },
-    { label: 'Insights',         href: '/console/owner/insights', icon: 'chart-bar' },
-    { label: 'Clients',          href: '/console/owner/clients',  icon: 'building' },
-    { label: 'Teams',            href: '/console/owner/teams',    icon: 'users' },
-    { label: 'Licenses',         href: '/console/owner/licenses', icon: 'badge-check' },
-    { label: 'Tiers & Features', href: '/console/owner/tiers',    icon: 'layers' },
-    { label: 'Revenue',          href: '/console/owner/revenue',  icon: 'currency-dollar' },
-    { label: 'Audit Log',        href: '/console/owner/audit',    icon: 'history' },
+    { label: 'Insights',         href: '/console/owner/insights',  icon: 'chart-bar' },
+    { label: 'Client Health',    href: '/console/owner/health',    icon: 'heart-pulse' },
+    { label: 'Clients',          href: '/console/owner/clients',   icon: 'building' },
+    { label: 'Teams',            href: '/console/owner/teams',     icon: 'users' },
+    { label: 'Licenses',         href: '/console/owner/licenses',  icon: 'badge-check' },
+    { label: 'Tiers & Features', href: '/console/owner/tiers',     icon: 'layers' },
+    { label: 'Revenue',          href: '/console/owner/revenue',   icon: 'currency-dollar' },
+    { label: 'Audit Log',        href: '/console/owner/audit',     icon: 'history' },
 ]
 
 const OWNER_PANEL_KEY  = 'tl-owner-panel-open'

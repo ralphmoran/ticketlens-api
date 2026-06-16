@@ -220,6 +220,9 @@ Route::prefix('console')->name('console.')->group(function () {
             // Platform insights — usage trends, popular commands, ROI per account
             Route::get('/insights', [\App\Http\Controllers\Owner\InsightsController::class, 'index'])->name('insights');
 
+            // Client health — cross-client KPI dashboard
+            Route::get('/health', [\App\Http\Controllers\Owner\ClientHealthController::class, 'index'])->name('health');
+
             // Revenue dashboard (MRR, tier breakdown, recent license events)
             Route::get('/revenue', [\App\Http\Controllers\Owner\RevenueController::class, 'index'])->name('revenue');
 

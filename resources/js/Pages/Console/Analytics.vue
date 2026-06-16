@@ -7,9 +7,10 @@ import { computed } from 'vue'
 defineOptions({ layout: ConsoleLayout })
 
 const props = defineProps({
-    tier:  { type: String, required: true },
-    stats: { type: Object, default: null },
-    daily: { type: Array, default: () => [] },
+    tier:          { type: String,  required: true },
+    stats:         { type: Object,  default: null },
+    daily:         { type: Array,   default: () => [] },
+    is_owner_view: { type: Boolean, default: false },
 })
 
 const tierBadgeClass = computed(() => ({
@@ -31,10 +32,6 @@ const sortedActions = computed(() => {
         .map(([action, tokens]) => ({ action, tokens: Number(tokens) }))
         .sort((a, b) => b.tokens - a.tokens)
 })
-
-// byAction only carries token totals per action; call counts are total-only from the controller.
-// We display per-action calls as "—" since the API doesn't split that out.
-
 
 function formatNumber(n) {
     return Number(n).toLocaleString()
@@ -73,8 +70,8 @@ const actionOptions = { indexAxis: 'y', scales: { x: { beginAtZero: true }, y: {
         <!-- Page header -->
         <div class="tl-page-header">
             <div>
-                <h1 class="tl-heading">Analytics</h1>
-                <p class="tl-subtext">Token savings and usage breakdown.</p>
+                <h1 class="tl-heading">{{ is_owner_view ? 'Platform Analytics — All Clients' : 'Analytics' }}</h1>
+                <p class="tl-subtext">{{ is_owner_view ? 'Aggregated consumed tokens across all client accounts.' : 'Token savings and usage breakdown.' }}</p>
             </div>
             <span class="tl-badge tl-cap" :class="tierBadgeClass">{{ tier }}</span>
         </div>

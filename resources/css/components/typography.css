@@ -80,13 +80,13 @@
     transition: color var(--tl-transition);
   }
   .tl-link:hover { color: var(--tl-brand-hover); }
-}
 
-@layer components {
+  /* Standalone text link, body size */
+  .tl-link--md { @apply text-sm; }
+  .tl-link--underline { text-decoration: underline; text-underline-offset: 2px; }
+
   .tl-title--spaced { @apply mb-4; }
-}
 
-@layer components {
   /* Urgency / metric number cells */
   .tl-num--zero    { color: var(--tl-text-subtle); }
   .tl-num--danger  { color: var(--tl-danger); font-weight: 600; }
@@ -101,30 +101,23 @@
 
   .tl-mono { @apply font-mono; }
   .tl-mono--xs { @apply font-mono text-xs; }
-}
 
-@layer components {
-  /* Standalone text link, body size */
-  .tl-link--md { @apply text-sm; }
-}
-
-@layer components {
   .tl-label--field { @apply block mb-1.5; }
   .tl-hint-inline { font-weight: 400; color: var(--tl-text-subtle); }
-}
 
-@layer components {
   /* Section heading outside cards (was referenced but never defined) */
   .tl-section-heading {
     @apply text-sm font-semibold;
     color: var(--tl-text);
   }
-}
 
-@layer components {
-  .tl-link--underline { text-decoration: underline; text-underline-offset: 2px; }
-}
-
-@layer components {
   .tl-foot-note { @apply mt-6 text-center text-sm; color: var(--tl-text-subtle); }
+
+  /* Abbreviation / acronym with tooltip hint */
+  .tl-abbr {
+    text-decoration: underline dotted;
+    text-underline-offset: 2px;
+    cursor: help;
+    color: inherit;
+  }
 }

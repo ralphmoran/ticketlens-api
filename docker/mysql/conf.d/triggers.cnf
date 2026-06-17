@@ -1,0 +1,5 @@
+[mysqld]
+# Required for creating BEFORE DELETE triggers without SUPER privilege.
+# MySQL error 1419 fires without this when binary logging is enabled.
+# For AWS RDS: set log_bin_trust_function_creators=1 in the parameter group.
+log_bin_trust_function_creators=1

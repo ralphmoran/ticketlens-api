@@ -1,4 +1,8 @@
 services:
+    mysql:
+        volumes:
+            - './docker/mysql/conf.d:/etc/mysql/conf.d:ro'
+
     laravel.test:
         ports: !override
             - '${VITE_PORT:-5173}:${VITE_PORT:-5173}'

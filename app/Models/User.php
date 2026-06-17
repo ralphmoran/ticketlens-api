@@ -43,6 +43,17 @@ class User extends Authenticatable implements MustVerifyEmail
                 );
             }
         });
+
+        $guardOwnerDelete = function (User $user): void {
+            if ($user->is_owner) {
+                throw new \RuntimeException(
+                    'Cannot delete the platform owner account.',
+                );
+            }
+        };
+
+        static::deleting($guardOwnerDelete);
+        static::forceDeleting($guardOwnerDelete);
     }
 
     /**

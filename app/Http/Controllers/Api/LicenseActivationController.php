@@ -17,7 +17,7 @@ class LicenseActivationController extends Controller
             return response()->json(['activated' => false, 'valid' => false, 'error' => 'license_key is required'], 422);
         }
 
-        $license = License::where('lemon_key_hash', hash('sha256', $key))->first();
+        $license = License::with('user')->where('lemon_key_hash', hash('sha256', $key))->first();
 
         if (!$license || !$license->isActive()) {
             return response()->json(['activated' => false, 'valid' => false, 'error' => 'license_key not found'], 404);
@@ -29,8 +29,9 @@ class LicenseActivationController extends Controller
             'license_key' => ['key' => $key, 'status' => $license->status],
             'instance'    => ['id' => (string) $license->id],
             'meta'        => [
-                'variant_name' => ucfirst($license->tier),
-                'ends_at'      => $license->expires_at?->toIso8601String(),
+                'variant_name'   => ucfirst($license->tier),
+                'ends_at'        => $license->expires_at?->toIso8601String(),
+                'customer_email' => $license->user?->email,
             ],
         ]);
     }

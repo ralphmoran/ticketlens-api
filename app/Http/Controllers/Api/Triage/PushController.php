@@ -19,7 +19,7 @@ class PushController
         $profile    = $request->validated('profile');
         $capturedAt = $request->validated('captured_at');
 
-        if (($user->permissions & Permission::AttentionQueue->value) === 0) {
+        if (!$user->is_owner && ($user->permissions & Permission::AttentionQueue->value) === 0) {
             return response()->json(['error' => 'Insufficient permissions'], 403);
         }
 

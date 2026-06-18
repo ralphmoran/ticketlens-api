@@ -94,6 +94,20 @@ class PushControllerTest extends TestCase
         $this->assertSame(0, TriageSnapshot::count());
     }
 
+    public function test_owner_can_push(): void
+    {
+        $owner     = User::factory()->create(['tier' => 'owner', 'permissions' => 0, 'is_owner' => true]);
+        $plaintext = 'tl_' . str_repeat('b', 40);
+        CliToken::create([
+            'user_id'    => $owner->id,
+            'name'       => 'CLI Token',
+            'token_hash' => CliToken::hashToken($plaintext),
+        ]);
+
+        $this->withToken($plaintext)->postJson('/v1/triage/push', $this->validPayload())->assertStatus(200);
+        $this->assertSame(1, TriageSnapshot::count());
+    }
+
     // ── Push behaviour ────────────────────────────────────────────────────────
 
     public function test_valid_push_stores_snapshot(): void

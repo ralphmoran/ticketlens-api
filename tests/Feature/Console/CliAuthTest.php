@@ -158,4 +158,96 @@ class CliAuthTest extends TestCase
             'port' => 55321,
         ])->assertSessionHasErrors('state');
     }
+
+    public function test_show_auto_redirects_to_switch_when_email_mismatch(): void
+    {
+        $user = User::factory()->create(['name' => 'Ralph', 'email' => 'ralph@test.local']);
+
+        $this->actingAs($user)
+            ->get('/console/auth/cli?port=55000&state=deadbeef1234567890abcdef12345678&hostname=dev-laptop&email=other%40test.local')
+            ->assertRedirect(url('/console/auth/cli/switch') . '?port=55000&state=deadbeef1234567890abcdef12345678&hostname=dev-laptop');
+    }
+
+    public function test_show_renders_view_when_email_matches(): void
+    {
+        $user = User::factory()->create(['name' => 'Ralph', 'email' => 'ralph@test.local']);
+
+        $this->actingAs($user)
+            ->get('/console/auth/cli?port=55000&state=deadbeef1234567890abcdef12345678&hostname=dev-laptop&email=ralph%40test.local')
+            ->assertStatus(200)
+            ->assertViewIs('console.cli-authorize');
+    }
+
+    // ── switchAccount ────────────────────────────────────────────────────────
+
+    public function test_switch_redirects_guest_to_login(): void
+    {
+        $this->get('/console/auth/cli/switch?port=55000&state=deadbeef1234567890abcdef12345678')
+            ->assertRedirect('/console/login');
+    }
+
+    public function test_switch_logs_out_current_user_and_redirects_to_login(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->get('/console/auth/cli/switch?port=55000&state=deadbeef1234567890abcdef12345678')
+            ->assertRedirect('/console/login');
+
+        $this->assertGuest();
+    }
+
+    public function test_switch_stores_cli_url_as_intended(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->get('/console/auth/cli/switch?port=55000&state=deadbeef1234567890abcdef12345678&hostname=dev-laptop')
+            ->assertSessionHas(
+                'url.intended',
+                url('/console/auth/cli') . '?port=55000&state=deadbeef1234567890abcdef12345678&hostname=dev-laptop'
+            );
+    }
+
+    public function test_switch_stores_intended_url_without_email(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->get('/console/auth/cli/switch?port=55000&state=deadbeef1234567890abcdef12345678&email=attacker%40evil.com')
+            ->assertSessionHas(
+                'url.intended',
+                url('/console/auth/cli') . '?port=55000&state=deadbeef1234567890abcdef12345678'
+            );
+    }
+
+    public function test_switch_stores_cli_url_without_hostname_when_omitted(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->get('/console/auth/cli/switch?port=55000&state=deadbeef1234567890abcdef12345678')
+            ->assertSessionHas(
+                'url.intended',
+                url('/console/auth/cli') . '?port=55000&state=deadbeef1234567890abcdef12345678'
+            );
+    }
+
+    public function test_switch_returns_400_when_port_out_of_range(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->get('/console/auth/cli/switch?port=80&state=deadbeef1234567890abcdef12345678')
+            ->assertStatus(400);
+    }
+
+    public function test_switch_returns_400_when_state_too_short(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->get('/console/auth/cli/switch?port=55000&state=short')
+            ->assertStatus(400);
+    }
 }

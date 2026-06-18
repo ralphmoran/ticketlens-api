@@ -95,6 +95,11 @@
             color: #6e7681;
             line-height: 1.5;
         }
+        .switch-link {
+            color: #388bfd;
+            text-decoration: none;
+        }
+        .switch-link:hover { text-decoration: underline; }
     </style>
 </head>
 <body>
@@ -131,6 +136,8 @@
         <a href="http://localhost:{{ $port }}/callback?error=access_denied&state={{ $state }}" class="btn btn-secondary">Cancel</a>
 
         <p class="footer">
+            Not {{ $userName }}?
+            <a href="{{ route('console.auth.cli.switch', array_filter(['port' => $port, 'state' => $state, 'hostname' => $hostname])) }}" class="switch-link">Switch account</a><br>
             Only authorize if you initiated this request from your terminal.<br>
             Your token is stored locally — never shared with third parties.
         </p>

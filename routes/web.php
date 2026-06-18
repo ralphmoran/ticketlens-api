@@ -69,8 +69,9 @@ Route::prefix('console')->name('console.')->group(function () {
 
     // CLI browser login — user must be authenticated and verified to grant CLI access
     Route::middleware(['auth', 'verified'])->group(function () {
-        Route::get('/auth/cli',  [\App\Http\Controllers\Console\CliAuthController::class, 'show'])->name('auth.cli.show');
-        Route::post('/auth/cli', [\App\Http\Controllers\Console\CliAuthController::class, 'authorize'])->name('auth.cli.authorize');
+        Route::get('/auth/cli',        [\App\Http\Controllers\Console\CliAuthController::class, 'show'])->name('auth.cli.show');
+        Route::post('/auth/cli',       [\App\Http\Controllers\Console\CliAuthController::class, 'authorize'])->name('auth.cli.authorize');
+        Route::get('/auth/cli/switch', [\App\Http\Controllers\Console\CliAuthController::class, 'switchAccount'])->name('auth.cli.switch');
     });
 
     // Authenticated console routes

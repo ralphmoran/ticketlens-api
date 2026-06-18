@@ -338,7 +338,7 @@ function setPeriod(p) {
                     <table class="tl-table">
                         <thead>
                             <tr class="tl-thead">
-                                <th class="tl-th" style="width:2.5rem"></th>
+                                <th class="tl-th tl-th--avatar"></th>
                                 <th class="tl-th">Account</th>
                                 <th class="tl-th">Tier</th>
                                 <th class="tl-th tl-td--right">Commands Run</th>
@@ -400,7 +400,7 @@ function setPeriod(p) {
                     <table class="tl-table">
                         <thead>
                             <tr class="tl-thead">
-                                <th class="tl-th" style="width:2.5rem"></th>
+                                <th class="tl-th tl-th--avatar"></th>
                                 <th class="tl-th">Account</th>
                                 <th class="tl-th">Tier</th>
                                 <th class="tl-th tl-td--right">Est. Savings</th>

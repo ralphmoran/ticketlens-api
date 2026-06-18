@@ -195,7 +195,7 @@ function scoreClass(score) {
                     <table class="tl-table">
                         <thead>
                             <tr class="tl-thead">
-                                <th class="tl-th" style="width:2.5rem"></th>
+                                <th class="tl-th tl-th--avatar"></th>
                                 <th class="tl-th">Manager</th>
                                 <th class="tl-th">Tier</th>
                                 <th class="tl-th"></th>

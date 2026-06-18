@@ -105,6 +105,7 @@
 
 @layer components {
   .tl-th--meter { width: 8rem; }
+  .tl-th--avatar { width: 2.5rem; }
 }
 
 @layer components {

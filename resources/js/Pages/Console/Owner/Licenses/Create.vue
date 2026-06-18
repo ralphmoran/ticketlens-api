@@ -104,7 +104,7 @@ function submit() {
                     :placeholder="`default: ${DEFAULT_SEATS[form.tier]}`"
                     class="tl-input tl-input--full"
                 />
-                <p class="tl-hint">Will issue {{ effectiveSeats }} seat{{ effectiveSeats === 1 ? '' : 's' }}. Members can be added in Stage 4.</p>
+                <p class="tl-hint">Will issue {{ effectiveSeats }} seat{{ effectiveSeats === 1 ? '' : 's' }}. Members can be added by the team manager after activating the key.</p>
                 <p v-if="form.errors.seats" class="tl-error">{{ form.errors.seats }}</p>
             </div>
 

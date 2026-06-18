@@ -61,7 +61,7 @@ watch(perPage, () => { page.value = 1 })
             <table class="tl-table">
                 <thead>
                     <tr class="tl-thead">
-                        <th class="tl-th" style="width:2.5rem"></th>
+                        <th class="tl-th tl-th--avatar"></th>
                         <th class="tl-th">Team name</th>
                         <th class="tl-th">Owner</th>
                         <th class="tl-th tl-th--center">Members</th>

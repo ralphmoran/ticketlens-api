@@ -129,7 +129,7 @@ const STATUS_COLORS = {
                 <table class="tl-table">
                     <thead>
                         <tr class="tl-thead">
-                            <th class="tl-th" style="width:2.5rem"></th>
+                            <th class="tl-th tl-th--avatar"></th>
                             <th class="tl-th">Client</th>
                             <th class="tl-th">Tier</th>
                             <th class="tl-th">Seats</th>
@@ -145,7 +145,8 @@ const STATUS_COLORS = {
                                 <UserAvatar :name="license.user?.name ?? '—'" :tier="license.tier ?? 'free'" />
                             </td>
                             <td class="tl-td">
-                                <p class="tl-cell-primary">{{ license.user?.name ?? '—' }}</p>
+                                <Link v-if="license.user?.id" :href="`/console/owner/clients/${license.user.id}`" class="tl-cell-primary tl-cell-link">{{ license.user.name ?? '—' }}</Link>
+                                <p v-else class="tl-cell-primary">—</p>
                                 <p class="tl-hint tl-mono--xs">{{ license.user?.email }}</p>
                             </td>
                             <td class="tl-td">

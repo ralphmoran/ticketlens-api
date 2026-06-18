@@ -2,6 +2,7 @@
 import ConsoleLayout from '@/Layouts/ConsoleLayout.vue'
 import TlIcon from '@/Components/TlIcon.vue'
 import TlPagination from '@/Components/TlPagination.vue'
+import UserAvatar from '@/Components/UserAvatar.vue'
 import { useTableFilters } from '@/composables/useTableFilters'
 import { Link, router } from '@inertiajs/vue3'
 import { formatDate } from '@/composables/useDateFormat'
@@ -95,6 +96,7 @@ const TIER_COLORS = {
                 <table class="tl-table">
                     <thead>
                         <tr class="tl-thead">
+                            <th class="tl-th tl-th--avatar"></th>
                             <th class="tl-th">Client</th>
                             <th class="tl-th">Tier</th>
                             <th class="tl-th">Status</th>
@@ -104,6 +106,9 @@ const TIER_COLORS = {
                     </thead>
                     <tbody class="tl-divide">
                         <tr v-for="client in clients.data" :key="client.id" class="tl-tr">
+                            <td class="tl-td">
+                                <UserAvatar :name="client.name ?? '—'" :tier="client.tier ?? 'free'" />
+                            </td>
                             <td class="tl-td">
                                 <Link :href="`/console/owner/clients/${client.id}`" class="tl-cell-primary tl-cell-link">
                                     {{ client.name }}
@@ -190,7 +195,7 @@ const TIER_COLORS = {
                             </td>
                         </tr>
                         <tr v-if="!clients.data?.length">
-                            <td colspan="5" class="tl-td--empty">No clients found.</td>
+                            <td colspan="6" class="tl-td--empty">No clients found.</td>
                         </tr>
                     </tbody>
                 </table>

@@ -65,6 +65,23 @@ services:
                 - ping
             retries: 3
             timeout: 5s
+    worker:
+        image: 'sail-8.5/app'
+        command: 'php artisan queue:work --sleep=3 --tries=3 --max-time=3600'
+        environment:
+            WWWUSER: '${WWWUSER}'
+            LARAVEL_SAIL: 1
+        volumes:
+            - '.:/var/www/html'
+        networks:
+            - sail
+        depends_on:
+            laravel.test:
+                condition: service_started
+            mysql:
+                condition: service_healthy
+            redis:
+                condition: service_healthy
     mailpit:
         image: 'axllent/mailpit:latest'
         ports:

@@ -14,7 +14,7 @@ return new class extends Migration
             $table->string('alert_type', 30);
             $table->string('ticket_key', 30);
             $table->timestamp('triggered_at');
-            $table->index(['group_id', 'alert_type', 'ticket_key', 'triggered_at']);
+            $table->index(['group_id', 'alert_type', 'ticket_key', 'triggered_at'], 'sal_group_type_key_at_idx');
         });
     }
 

@@ -280,6 +280,17 @@ Route::prefix('console')->name('console.')->group(function () {
     });
 });
 
+// Password reset — must carry bare Laravel name (password.reset) because the ResetPassword
+// notification hardcodes that name when building the invite link. Lives outside the
+// console.name() group so no prefix is prepended.
+Route::prefix('console')->middleware('guest')->group(function () {
+    Route::get('/reset-password/{token}', [\App\Http\Controllers\Console\PasswordResetController::class, 'show'])
+        ->name('password.reset');
+    Route::post('/reset-password', [\App\Http\Controllers\Console\PasswordResetController::class, 'reset'])
+        ->name('password.update')
+        ->middleware('throttle:5,1');
+});
+
 // Email verification — routes must carry bare Laravel names (verification.notice/verify/send)
 // because EnsureEmailIsVerified middleware hardcodes those exact names.
 // They live outside the console. name() group so no prefix is prepended.

@@ -1,0 +1,48 @@
+<?php
+
+namespace App\Http\Controllers\Console;
+
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Str;
+use Illuminate\View\View;
+
+class PasswordResetController
+{
+    public function show(Request $request, string $token): View
+    {
+        return view('console.set-password', [
+            'token' => $token,
+            'email' => $request->string('email')->value(),
+        ]);
+    }
+
+    public function reset(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'token'    => ['required'],
+            'email'    => ['required', 'email'],
+            'password' => ['required', 'confirmed', 'min:8'],
+        ]);
+
+        $status = Password::broker()->reset(
+            $request->only('email', 'password', 'password_confirmation', 'token'),
+            function ($user, $password) {
+                $user->password = $password;
+                $user->setRememberToken(Str::random(60));
+                $user->save();
+                Auth::login($user);
+            }
+        );
+
+        if ($status === Password::PASSWORD_RESET) {
+            $request->session()->regenerate();
+
+            return redirect()->route('console.dashboard');
+        }
+
+        return back()->withErrors(['email' => 'The invitation link is invalid or has expired.']);
+    }
+}

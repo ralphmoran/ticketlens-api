@@ -159,6 +159,25 @@ class CliAuthTest extends TestCase
         ])->assertSessionHasErrors('state');
     }
 
+    public function test_show_redirects_to_switch_when_no_email_and_fresh_param(): void
+    {
+        $user = User::factory()->create(['name' => 'Owner', 'email' => 'owner@test.local']);
+
+        $this->actingAs($user)
+            ->get('/console/auth/cli?port=55000&state=deadbeef1234567890abcdef12345678&fresh=1')
+            ->assertRedirect(url('/console/auth/cli/switch') . '?port=55000&state=deadbeef1234567890abcdef12345678');
+    }
+
+    public function test_show_renders_view_when_no_email_and_no_fresh_param(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->get('/console/auth/cli?port=55000&state=deadbeef1234567890abcdef12345678')
+            ->assertStatus(200)
+            ->assertViewIs('console.cli-authorize');
+    }
+
     public function test_show_auto_redirects_to_switch_when_email_mismatch(): void
     {
         $user = User::factory()->create(['name' => 'Ralph', 'email' => 'ralph@test.local']);

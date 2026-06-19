@@ -21,7 +21,16 @@ class CliAuthController
         }
 
         $expectedEmail = (string) $request->query('email', '');
-        if ($expectedEmail !== '' && strtolower($request->user()->email) !== strtolower($expectedEmail)) {
+
+        $emailMismatch = $expectedEmail !== ''
+            && strtolower($request->user()->email) !== strtolower($expectedEmail);
+
+        // fresh=1 is sent by the CLI on every login attempt. When no expected email is
+        // known (free tier, no license), force re-auth so the CLI never silently inherits
+        // a pre-existing browser session for a different user (e.g. the owner console).
+        $forceFresh = $expectedEmail === '' && $request->boolean('fresh');
+
+        if ($emailMismatch || $forceFresh) {
             $params = array_filter(['port' => $port, 'state' => $state, 'hostname' => $hostname]);
             return redirect()->route('console.auth.cli.switch', $params);
         }

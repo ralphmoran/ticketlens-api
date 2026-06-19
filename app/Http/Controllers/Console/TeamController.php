@@ -32,8 +32,8 @@ class TeamController
                     'id'           => $u->id,
                     'name'         => $u->name,
                     'email'        => $u->email,
-                    'last_push'    => $lastPushByUser[$u->id]?->last_push,
-                    'ticket_count' => $lastPushByUser[$u->id]?->ticket_count ?? 0,
+                    'last_push'    => $lastPushByUser->get($u->id)?->last_push,
+                    'ticket_count' => $lastPushByUser->get($u->id)?->ticket_count ?? 0,
                 ]),
             ]),
         ]);

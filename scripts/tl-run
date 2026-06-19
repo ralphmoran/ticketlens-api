@@ -1,0 +1,57 @@
+#!/usr/bin/env bash
+# tl-run <step> <label> <cmd> [args...]
+# Runs cmd, appends JSONL entry to action log, writes done marker, echoes output.
+set -euo pipefail
+
+STEP="${1:?usage: tl-run <step> <label> <cmd> [args...]}"
+LABEL="${2:?usage: tl-run <step> <label> <cmd> [args...]}"
+shift 2
+
+LOG_FILE="/tmp/tl-action-log-multitier-test.jsonl"
+DONE_DIR="/tmp/tl-done"
+TMPOUT=$(mktemp /tmp/tl-out-XXXXXX)
+
+mkdir -p "$DONE_DIR"
+
+ts=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+start_s=$(date +%s)
+
+# Run command, capture output; preserve exit code even under set -e
+"$@" >"$TMPOUT" 2>&1 || true
+exit_code=$?
+
+duration_s=$(( $(date +%s) - start_s ))
+
+# Extract "N tokens saved" from CLI output (best-effort)
+tokens_saved=$(grep -Eo '[0-9]+ tokens? saved' "$TMPOUT" | grep -Eo '^[0-9]+' | head -1 || echo 0)
+
+# Append JSONL via node (handles escaping cleanly)
+OUTFILE="$TMPOUT" \
+TS="$ts" LABEL="$LABEL" STEP="$STEP" \
+CMD="$*" EXIT_CODE="$exit_code" \
+DURATION="$duration_s" TOKENS="$tokens_saved" \
+LOG="$LOG_FILE" \
+node --input-type=commonjs <<'JS'
+const fs = require('node:fs');
+const out = fs.readFileSync(process.env.OUTFILE, 'utf8').trim();
+const entry = {
+  ts: process.env.TS,
+  step: process.env.STEP,
+  user: process.env.LABEL,
+  cmd: process.env.CMD,
+  exit: parseInt(process.env.EXIT_CODE, 10),
+  duration_s: parseInt(process.env.DURATION, 10),
+  tokens_saved: parseInt(process.env.TOKENS, 10) || 0,
+  output: out,
+};
+fs.appendFileSync(process.env.LOG, JSON.stringify(entry) + '\n');
+JS
+
+# Show output in pane
+cat "$TMPOUT"
+rm -f "$TMPOUT"
+
+# Write done marker so dispatch script can detect completion
+touch "${DONE_DIR}/${LABEL}-step${STEP}"
+
+exit "$exit_code"

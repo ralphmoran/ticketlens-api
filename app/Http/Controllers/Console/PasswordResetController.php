@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Console;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
@@ -14,8 +15,9 @@ class PasswordResetController
     public function show(Request $request, string $token): View
     {
         return view('console.set-password', [
-            'token' => $token,
-            'email' => $request->string('email')->value(),
+            'token'       => $token,
+            'email'       => $request->string('email')->value(),
+            'authWarning' => auth()->check() ? auth()->user()->email : null,
         ]);
     }
 
@@ -30,16 +32,15 @@ class PasswordResetController
         $status = Password::broker()->reset(
             $request->only('email', 'password', 'password_confirmation', 'token'),
             function ($user, $password) {
-                $user->password = $password;
+                $user->password = Hash::make($password);
                 $user->setRememberToken(Str::random(60));
                 $user->save();
                 Auth::login($user);
+                request()->session()->regenerate();
             }
         );
 
         if ($status === Password::PASSWORD_RESET) {
-            $request->session()->regenerate();
-
             return redirect()->route('console.dashboard');
         }
 

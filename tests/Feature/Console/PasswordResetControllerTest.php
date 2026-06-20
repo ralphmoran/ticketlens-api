@@ -23,7 +23,8 @@ class PasswordResetControllerTest extends TestCase
             ->assertStatus(200)
             ->assertViewIs('console.set-password')
             ->assertViewHas('token', $token)
-            ->assertViewHas('email', 'invited@example.com');
+            ->assertViewHas('email', 'invited@example.com')
+            ->assertViewHas('authWarning', null);
     }
 
     public function test_show_renders_form_without_email_param(): void
@@ -38,14 +39,36 @@ class PasswordResetControllerTest extends TestCase
             ->assertViewHas('email', '');
     }
 
-    public function test_show_redirects_authenticated_user(): void
+    public function test_show_renders_warning_for_authenticated_user(): void
     {
         $user  = User::factory()->create();
         $token = Password::broker()->createToken($user);
 
         $this->actingAs($user)
             ->get("/console/reset-password/{$token}?email=" . urlencode($user->email))
-            ->assertRedirect(route('console.dashboard'));
+            ->assertStatus(200)
+            ->assertViewIs('console.set-password')
+            ->assertViewHas('authWarning', $user->email);
+    }
+
+    public function test_reset_is_blocked_for_authenticated_user(): void
+    {
+        $owner  = User::factory()->create(['email' => 'owner@example.com', 'email_verified_at' => now()]);
+        $target = User::factory()->create(['email' => 'target@example.com', 'email_verified_at' => now()]);
+        $token  = Password::broker()->createToken($target);
+
+        $this->actingAs($owner)
+            ->post('/console/reset-password', [
+                'token'                 => $token,
+                'email'                 => 'target@example.com',
+                'password'              => 'HackedPassword1!',
+                'password_confirmation' => 'HackedPassword1!',
+            ])
+            ->assertRedirect();
+
+        $target->refresh();
+        $this->assertFalse(Hash::check('HackedPassword1!', $target->password));
+        $this->assertAuthenticatedAs($owner);
     }
 
     // ── reset ────────────────────────────────────────────────────────────────

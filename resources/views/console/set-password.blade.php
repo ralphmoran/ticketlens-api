@@ -78,6 +78,15 @@
             font-size: 13px;
             color: #f85149;
         }
+        .warning {
+            margin: 0 0 16px;
+            padding: 10px 14px;
+            background: rgba(210, 153, 34, 0.1);
+            border: 1px solid rgba(210, 153, 34, 0.3);
+            border-radius: 6px;
+            font-size: 13px;
+            color: #d29922;
+        }
         .btn {
             display: block;
             width: 100%;
@@ -102,27 +111,34 @@
         <h1>Set your password</h1>
         <p class="subtitle">Choose a password to activate your TicketLens account.</p>
 
-        @if ($errors->any())
-            <div class="error">{{ $errors->first() }}</div>
+        @if ($authWarning)
+            <div class="warning">
+                You're signed in as {{ $authWarning }}. Sign out first, then return to this link,
+                or <a href="{{ route('console.dashboard') }}" style="color:#d29922">go to dashboard</a>.
+            </div>
+        @else
+            @if ($errors->any())
+                <div class="error">{{ $errors->first() }}</div>
+            @endif
+
+            <form method="POST" action="{{ route('password.update') }}">
+                @csrf
+                <input type="hidden" name="token" value="{{ $token }}">
+                <input type="hidden" name="email" value="{{ $email }}">
+
+                <div class="field">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" autocomplete="new-password" required autofocus minlength="8">
+                </div>
+
+                <div class="field">
+                    <label for="password_confirmation">Confirm password</label>
+                    <input type="password" id="password_confirmation" name="password_confirmation" autocomplete="new-password" required minlength="8">
+                </div>
+
+                <button type="submit" class="btn">Set password &amp; sign in</button>
+            </form>
         @endif
-
-        <form method="POST" action="{{ route('password.update') }}">
-            @csrf
-            <input type="hidden" name="token" value="{{ $token }}">
-            <input type="hidden" name="email" value="{{ $email }}">
-
-            <div class="field">
-                <label for="password">Password</label>
-                <input type="password" id="password" name="password" required autofocus minlength="8">
-            </div>
-
-            <div class="field">
-                <label for="password_confirmation">Confirm password</label>
-                <input type="password" id="password_confirmation" name="password_confirmation" required minlength="8">
-            </div>
-
-            <button type="submit" class="btn">Set password &amp; sign in</button>
-        </form>
     </div>
 </body>
 </html>

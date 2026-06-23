@@ -13,6 +13,10 @@ class RequireLicenseTier
 
     public function handle(Request $request, Closure $next, string $required): Response
     {
+        if ($request->user()?->is_owner) {
+            return $next($request);
+        }
+
         $license = $request->attributes->get('license');
         // auth.cli routes have no license object — fall back to the user's own tier
         $tier = $license?->tier ?? $request->user()?->tier;

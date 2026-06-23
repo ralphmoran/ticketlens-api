@@ -178,6 +178,11 @@ Route::prefix('console')->name('console.')->group(function () {
             Route::post('/alerts/digest-schedules/{digestSchedule}/test',       [\App\Http\Controllers\Console\Admin\AlertsController::class, 'testDigestSchedule'])->name('alerts.digest-schedules.test');
             Route::get('/digests',                                               [\App\Http\Controllers\Console\Admin\DigestsController::class, 'index'])->name('digests');
 
+            // Jira config — manager shares non-secret Jira settings with their team
+            Route::get('/jira',    [\App\Http\Controllers\Console\Admin\JiraController::class, 'index'])->name('jira.index');
+            Route::put('/jira',    [\App\Http\Controllers\Console\Admin\JiraController::class, 'update'])->name('jira.update');
+            Route::delete('/jira', [\App\Http\Controllers\Console\Admin\JiraController::class, 'destroy'])->name('jira.destroy');
+
             // Workflow Rules — manager-only (also tier-gated in controller for Pro+ enforcement)
             Route::get('/rules',                 [\App\Http\Controllers\Console\Admin\RulesController::class, 'index'])->name('rules.index');
             Route::post('/rules/stale',          [\App\Http\Controllers\Console\Admin\RulesController::class, 'saveStale'])->name('rules.stale.save');

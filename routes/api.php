@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\ComplianceController;
 use App\Http\Controllers\Api\DigestController;
 use App\Http\Controllers\Api\ScheduleController;
 use App\Http\Controllers\Api\SummarizeController;
+use App\Http\Controllers\Api\TeamJiraConfigController;
 use App\Http\Controllers\Api\Triage\CollisionsController;
 use App\Http\Controllers\Api\Triage\PushController;
 use App\Http\Controllers\Api\Triage\ShareController;
@@ -27,6 +28,7 @@ RateLimiter::for('digest',      fn(Request $r) => Limit::perMinute(20)->by($r->b
 RateLimiter::for('compliance',  fn(Request $r) => Limit::perMinute(10)->by($r->bearerToken() ?: $r->ip()));
 RateLimiter::for('ai-test',     fn(Request $r) => Limit::perMinute(5)->by($r->bearerToken() ?: $r->ip()));
 RateLimiter::for('triage',      fn(Request $r) => Limit::perMinute(30)->by($r->bearerToken() ?: $r->ip()));
+RateLimiter::for('team-config', fn(Request $r) => Limit::perMinute(30)->by($r->bearerToken() ?: $r->ip()));
 
 // Public license activation/validation — no auth, rate-limited by IP
 RateLimiter::for('license-act', fn(Request $r) => Limit::perMinute(10)->by($r->ip()));
@@ -68,6 +70,13 @@ Route::middleware(['throttle:api-global', 'auth.license', 'license.tier:pro'])->
 Route::middleware(['throttle:api-global', 'auth.cli'])->group(function () {
     Route::post('/v1/summarize',  [SummarizeController::class, 'handle'])->middleware(['throttle:summarize', 'license.tier:pro']);
     Route::post('/v1/compliance', [ComplianceController::class, 'handle'])->middleware(['throttle:compliance', 'license.tier:team']);
+});
+
+// Team Jira config: Pro+ CLI users — non-secret Jira config shared across the team
+Route::middleware(['throttle:api-global', 'auth.cli', 'license.tier:pro'])->group(function () {
+    Route::get('/v1/team/config', [TeamJiraConfigController::class, 'show'])
+        ->middleware('throttle:team-config')
+        ->name('api.team.config');
 });
 
 // AI provider management: CLI users with a CliToken (sets $request->user() via auth.cli)

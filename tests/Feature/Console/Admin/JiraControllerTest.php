@@ -7,6 +7,7 @@ use App\Models\License;
 use App\Models\TeamJiraConfig;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 class JiraControllerTest extends TestCase
@@ -151,5 +152,80 @@ class JiraControllerTest extends TestCase
             ->assertRedirect();
 
         $this->assertDatabaseMissing('team_jira_configs', ['group_id' => $group->id]);
+    }
+
+    // ── Connection test endpoint ─────────────────────────────────────────────
+
+    public function test_connection_test_rejects_http_url(): void
+    {
+        $manager = $this->makeManager();
+        $this->actingAs($manager)
+            ->postJson('/console/admin/jira/test', [
+                'jira_base_url' => 'http://acme.atlassian.net',
+                'auth_type'     => 'cloud',
+                'email'         => 'user@example.com',
+                'api_token'     => 'token',
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['jira_base_url']);
+    }
+
+    public function test_connection_test_rejects_private_ip(): void
+    {
+        $manager = $this->makeManager();
+        $this->actingAs($manager)
+            ->postJson('/console/admin/jira/test', [
+                'jira_base_url' => 'https://192.168.1.1',
+                'auth_type'     => 'cloud',
+                'email'         => 'user@example.com',
+                'api_token'     => 'token',
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['jira_base_url']);
+    }
+
+    public function test_connection_test_returns_422_on_jira_401(): void
+    {
+        Http::fake(['https://acme.atlassian.net/*' => Http::response([], 401)]);
+        $manager = $this->makeManager();
+        $this->actingAs($manager)
+            ->postJson('/console/admin/jira/test', [
+                'jira_base_url' => 'https://acme.atlassian.net',
+                'auth_type'     => 'cloud',
+                'email'         => 'user@example.com',
+                'api_token'     => 'bad-token',
+            ])
+            ->assertUnprocessable();
+    }
+
+    public function test_connection_test_returns_projects_and_statuses(): void
+    {
+        Http::fake([
+            'https://acme.atlassian.net/rest/api/3/project*' => Http::response([
+                'values' => [
+                    ['key' => 'PROJ', 'name' => 'Project A'],
+                    ['key' => 'OPS',  'name' => 'Operations'],
+                ],
+            ]),
+            'https://acme.atlassian.net/rest/api/3/status' => Http::response([
+                ['name' => 'In Progress'],
+                ['name' => 'In Review'],
+            ]),
+        ]);
+        $manager  = $this->makeManager();
+        $response = $this->actingAs($manager)
+            ->postJson('/console/admin/jira/test', [
+                'jira_base_url' => 'https://acme.atlassian.net',
+                'auth_type'     => 'cloud',
+                'email'         => 'user@example.com',
+                'api_token'     => 'valid-token',
+            ])
+            ->assertOk()
+            ->json();
+        $this->assertArrayHasKey('projects', $response);
+        $this->assertArrayHasKey('statuses', $response);
+        $this->assertCount(2, $response['projects']);
+        $this->assertSame('PROJ', $response['projects'][0]['key']);
+        $this->assertContains('In Progress', $response['statuses']);
     }
 }

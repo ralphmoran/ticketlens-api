@@ -258,7 +258,7 @@ const navGroups = computed(() => [
             { label: 'Workflow Rules',       href: '/console/admin/rules',                icon: 'git-branch',       managerOnly: true,  ownerExcluded: false, permission: Permission.WorkflowRules },
             { label: 'Brief Templates',      href: '/console/admin/templates',            icon: 'document-text',    managerOnly: false, ownerExcluded: false, permission: null, paidOnly: true },
             { label: 'AI Settings',          href: '/console/admin/ai',                   icon: 'sparkles',         managerOnly: false, ownerExcluded: false, permission: Permission.Summarize },
-            { label: 'Jira Config',          href: '/console/admin/jira',                 icon: 'server',           managerOnly: true,  ownerExcluded: true,  permission: null },
+            { label: 'Jira Config',          href: '/console/admin/jira',                 icon: 'jira',             managerOnly: true,  ownerExcluded: true,  permission: null },
         ]
     },
 ])

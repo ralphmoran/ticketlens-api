@@ -4,8 +4,10 @@ namespace App\Http\Controllers\Console\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\TeamJiraConfig;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -62,6 +64,65 @@ class JiraController extends Controller
         TeamJiraConfig::where('group_id', $group->id)->delete();
 
         return back()->with('success', 'Jira configuration removed.');
+    }
+
+    public function test(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'jira_base_url' => ['required', 'url', 'regex:/^https:\/\//i', 'max:255'],
+            'auth_type'     => ['required', 'in:cloud,server,pat'],
+            'email'         => ['required_if:auth_type,cloud', 'nullable', 'email', 'max:255'],
+            'api_token'     => ['required_if:auth_type,cloud', 'nullable', 'string', 'max:500'],
+            'username'      => ['required_if:auth_type,server', 'nullable', 'string', 'max:255'],
+            'password'      => ['required_if:auth_type,server', 'nullable', 'string', 'max:500'],
+            'pat'           => ['required_if:auth_type,pat', 'nullable', 'string', 'max:500'],
+        ]);
+
+        $this->assertSafeUrl($validated['jira_base_url']);
+
+        $authHeader = match ($validated['auth_type']) {
+            'cloud'  => 'Basic ' . base64_encode($validated['email'] . ':' . $validated['api_token']),
+            'server' => 'Basic ' . base64_encode($validated['username'] . ':' . $validated['password']),
+            'pat'    => 'Bearer ' . $validated['pat'],
+        };
+
+        $base    = rtrim($validated['jira_base_url'], '/');
+        $isCloud = str_ends_with(parse_url($base, PHP_URL_HOST), '.atlassian.net');
+        $apiVer  = $isCloud ? '3' : '2';
+
+        $rawProjects = $this->jiraGet("{$base}/rest/api/{$apiVer}/project?maxResults=200", $authHeader);
+        $rawStatuses = $this->jiraGet("{$base}/rest/api/{$apiVer}/status", $authHeader);
+
+        $projects = isset($rawProjects['values']) ? $rawProjects['values'] : $rawProjects;
+
+        return response()->json([
+            'projects' => array_map(fn ($p) => ['key' => $p['key'], 'name' => $p['name']], $projects),
+            'statuses' => array_column($rawStatuses, 'name'),
+        ]);
+    }
+
+    private function jiraGet(string $url, string $authHeader): array
+    {
+        try {
+            $response = Http::timeout(10)
+                ->withHeader('Authorization', $authHeader)
+                ->withHeader('Accept', 'application/json')
+                ->get($url);
+        } catch (\Throwable $e) {
+            throw ValidationException::withMessages(['jira_base_url' => 'Could not reach Jira: ' . $e->getMessage()]);
+        }
+
+        if ($response->status() === 401) {
+            throw ValidationException::withMessages(['credentials' => 'Invalid credentials — check your email and API token.']);
+        }
+        if ($response->status() === 403) {
+            throw ValidationException::withMessages(['credentials' => 'Access denied — the credentials lack permission to list projects.']);
+        }
+        if (! $response->successful()) {
+            throw ValidationException::withMessages(['jira_base_url' => "Jira returned HTTP {$response->status()}."]);
+        }
+
+        return $response->json() ?? [];
     }
 
     private function assertSafeUrl(string $url): void

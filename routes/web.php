@@ -181,7 +181,8 @@ Route::prefix('console')->name('console.')->group(function () {
             // Jira config — manager shares non-secret Jira settings with their team
             Route::get('/jira',    [\App\Http\Controllers\Console\Admin\JiraController::class, 'index'])->name('jira.index');
             Route::put('/jira',    [\App\Http\Controllers\Console\Admin\JiraController::class, 'update'])->name('jira.update');
-            Route::delete('/jira', [\App\Http\Controllers\Console\Admin\JiraController::class, 'destroy'])->name('jira.destroy');
+            Route::delete('/jira',      [\App\Http\Controllers\Console\Admin\JiraController::class, 'destroy'])->name('jira.destroy');
+            Route::post('/jira/test',   [\App\Http\Controllers\Console\Admin\JiraController::class, 'test'])->name('jira.test')->middleware('throttle:5,1');
 
             // Workflow Rules — manager-only (also tier-gated in controller for Pro+ enforcement)
             Route::get('/rules',                 [\App\Http\Controllers\Console\Admin\RulesController::class, 'index'])->name('rules.index');

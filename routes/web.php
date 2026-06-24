@@ -103,6 +103,11 @@ Route::prefix('console')->name('console.')->group(function () {
         // Upgrade page — shown when permission is denied
         Route::get('/upgrade', [\App\Http\Controllers\Console\UpgradeController::class, 'index'])->name('upgrade');
 
+        // SSE event stream — Pro+ tier only, gated inside controller
+        Route::get('/events', [\App\Http\Controllers\Console\SseController::class, 'stream'])
+            ->name('events')
+            ->middleware('throttle:5,1');
+
         // Workflow modules (permission-gated)
         Route::middleware('permission:Schedules')->group(function () {
             $ctrl = \App\Http\Controllers\Console\SchedulesController::class;

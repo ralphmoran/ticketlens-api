@@ -6,6 +6,7 @@ use App\Models\Group;
 use App\Models\TriageSnapshot;
 use App\Models\User;
 use App\Models\WorkflowRule;
+use App\Services\SseEventService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -434,5 +435,66 @@ class RulesControllerTest extends TestCase
             'stale_days' => 7,
             'statuses'   => ['In Review'],
         ])->assertStatus(422);
+    }
+
+    // ── SSE publish ───────────────────────────────────────────────────────────
+
+    public function test_save_stale_publishes_rule_changed_event(): void
+    {
+        $manager = $this->makeManager();
+        $group   = $manager->ownedGroup;
+
+        $this->mock(SseEventService::class)
+            ->shouldReceive('publish')
+            ->once()
+            ->with($group->id, 'rule.changed', []);
+
+        $this->actingAs($manager)->post('/console/admin/rules/stale', [
+            'enabled'    => true,
+            'stale_days' => 7,
+            'statuses'   => ['In Progress'],
+        ])->assertRedirect();
+    }
+
+    public function test_toggle_stale_publishes_rule_changed_event(): void
+    {
+        $manager = $this->makeManager();
+        $group   = $manager->ownedGroup;
+
+        WorkflowRule::create([
+            'group_id' => $group->id,
+            'type'     => 'stale',
+            'config'   => ['stale_days' => 7, 'statuses' => ['In Progress']],
+            'enabled'  => true,
+        ]);
+
+        $this->mock(SseEventService::class)
+            ->shouldReceive('publish')
+            ->once()
+            ->with($group->id, 'rule.changed', []);
+
+        $this->actingAs($manager)
+            ->patch('/console/admin/rules/stale/toggle', ['enabled' => false])
+            ->assertRedirect();
+    }
+
+    public function test_destroy_stale_publishes_rule_changed_event(): void
+    {
+        $manager = $this->makeManager();
+        $group   = $manager->ownedGroup;
+
+        WorkflowRule::create([
+            'group_id' => $group->id,
+            'type'     => 'stale',
+            'config'   => ['stale_days' => 7, 'statuses' => ['In Progress']],
+            'enabled'  => true,
+        ]);
+
+        $this->mock(SseEventService::class)
+            ->shouldReceive('publish')
+            ->once()
+            ->with($group->id, 'rule.changed', []);
+
+        $this->actingAs($manager)->delete('/console/admin/rules/stale')->assertRedirect();
     }
 }

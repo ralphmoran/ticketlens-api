@@ -2,9 +2,12 @@
 import { ref, computed, reactive, watch, nextTick, onMounted, onUnmounted } from 'vue'
 import { usePage, router } from '@inertiajs/vue3'
 import { usePermissions } from '../composables/usePermissions'
+import { useServerEvents } from '../composables/useServerEvents'
 import { Permission } from '../permissions'
 import TlIcon from '../components/TlIcon.vue'
 import TlConfirmModal from '../components/TlConfirmModal.vue'
+
+useServerEvents()
 
 const page = usePage()
 const { can } = usePermissions()

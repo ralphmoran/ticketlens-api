@@ -67,6 +67,11 @@ class PushController
 
         EvaluateAlertsJob::dispatch($user->id, $snapshot->id);
 
+        $group = $user->ownedGroup ?? $user->groups()->first();
+        if ($group !== null) {
+            app(\App\Services\SseEventService::class)->publish($group->id, 'triage.pushed', ['ticket_count' => $ticketCount]);
+        }
+
         $commands = $request->input('cli_activity.commands', []);
         if (!empty($commands)) {
             $now  = now();

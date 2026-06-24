@@ -8,6 +8,7 @@ use App\Models\CliToken;
 use App\Models\Group;
 use App\Models\TriageSnapshot;
 use App\Models\User;
+use App\Services\SseEventService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
@@ -524,5 +525,21 @@ class PushControllerTest extends TestCase
 
         $log = \Illuminate\Support\Facades\DB::table('usage_logs')->where('action', 'fetch')->first();
         $this->assertSame(0, (int) $log->tokens_used);
+    }
+
+    // ── SSE publish ───────────────────────────────────────────────────────────
+
+    public function test_push_publishes_triage_pushed_event(): void
+    {
+        [$user, $token] = $this->makeUserWithToken();
+        $group = Group::create(['name' => "Team {$user->id}", 'owner_id' => $user->id]);
+        $group->members()->attach($user->id);
+
+        $this->mock(SseEventService::class)
+            ->shouldReceive('publish')
+            ->once()
+            ->with($group->id, 'triage.pushed', ['ticket_count' => 1]);
+
+        $this->withToken($token)->postJson('/v1/triage/push', $this->validPayload())->assertOk();
     }
 }

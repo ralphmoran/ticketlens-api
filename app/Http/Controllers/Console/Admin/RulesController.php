@@ -7,6 +7,7 @@ use App\Models\Group;
 use App\Models\TriageSnapshot;
 use App\Models\User;
 use App\Models\WorkflowRule;
+use App\Services\SseEventService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -144,6 +145,8 @@ class RulesController extends Controller
             ],
         );
 
+        app(SseEventService::class)->publish($group->id, 'rule.changed', []);
+
         return back()->with('success', 'Stale rule saved.');
     }
 
@@ -157,6 +160,8 @@ class RulesController extends Controller
 
         $rule->update(['enabled' => $data['enabled']]);
 
+        app(SseEventService::class)->publish($group->id, 'rule.changed', []);
+
         return back()->with('success', $data['enabled'] ? 'Stale rule enabled.' : 'Stale rule disabled.');
     }
 
@@ -165,6 +170,8 @@ class RulesController extends Controller
         $group = $this->resolveGroup($request->user(), $request);
 
         WorkflowRule::where('group_id', $group->id)->where('type', 'stale')->delete();
+
+        app(SseEventService::class)->publish($group->id, 'rule.changed', []);
 
         return back()->with('success', 'Stale rule removed.');
     }

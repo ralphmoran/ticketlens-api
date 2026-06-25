@@ -32,6 +32,12 @@ class SseController
         return response()->stream(function () use ($streamKey, $cursor): void {
             set_time_limit(0);
 
+            // Immediate flush so the browser sees the connection as open
+            // before the first XREAD block (otherwise looks stalled for ~5s).
+            echo ": connected\n\n";
+            ob_flush();
+            flush();
+
             $allowed = ['rule.changed', 'triage.pushed'];
 
             while (true) {
@@ -50,8 +56,10 @@ class SseController
                     continue;
                 }
 
-                foreach ($result[$streamKey] ?? [] as $entry) {
-                    [$id, $fields] = $entry;
+                // phpredis keys results by the prefixed stream name; use array_values()
+                // so the lookup works regardless of any configured key prefix.
+                // Entries are associative ['id' => ['field' => 'value']] — not tuples.
+                foreach (array_values($result)[0] ?? [] as $id => $fields) {
                     $cursor = $id;
                     $type   = $fields['type'] ?? '';
                     if (! in_array($type, $allowed, true)) {

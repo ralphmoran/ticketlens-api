@@ -3,9 +3,15 @@ import ConsoleLayout from '@/Layouts/ConsoleLayout.vue'
 import TlIcon from '@/components/TlIcon.vue'
 import TlPagination from '@/Components/TlPagination.vue'
 import { router } from '@inertiajs/vue3'
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import { useEventsStore } from '@/stores/events'
 
 defineOptions({ layout: ConsoleLayout })
+
+const eventsStore = useEventsStore()
+watch(() => eventsStore.lastEvent, (e) => {
+    if (e?.type === 'triage.pushed') router.reload({ preserveScroll: true })
+})
 
 const props = defineProps({
     snapshots: { type: Object, default: () => ({ data: [], current_page: 1, last_page: 1, total: 0 }) },

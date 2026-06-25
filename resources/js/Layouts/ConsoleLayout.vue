@@ -6,6 +6,8 @@ import { useServerEvents } from '../composables/useServerEvents'
 import { Permission } from '../permissions'
 import TlIcon from '../components/TlIcon.vue'
 import TlConfirmModal from '../components/TlConfirmModal.vue'
+import TlToastStack from '../components/TlToastStack.vue'
+import TlRuleBanner from '../components/TlRuleBanner.vue'
 
 useServerEvents()
 
@@ -910,6 +912,7 @@ onUnmounted(() => {
         <!-- Main content wrapper -->
         <div :class="[effectiveCollapsed ? 'tl-shift-collapsed' : 'tl-shift-expanded', { 'tl-main-wrap--imp': impersonating }]" class="tl-main-wrap">
             <main class="tl-main">
+                <TlRuleBanner />
                 <slot />
             </main>
         </div>
@@ -957,6 +960,8 @@ onUnmounted(() => {
                 </div>
             </div>
         </Transition>
+
+        <TlToastStack />
 
     </div>
 

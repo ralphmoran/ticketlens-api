@@ -7,8 +7,14 @@ import TlPagination from '@/Components/TlPagination.vue'
 import UserAvatar from '@/Components/UserAvatar.vue'
 import { useClientPaginator } from '@/composables/useClientPaginator'
 import { useConfirm } from '@/composables/useConfirm'
+import { useEventsStore } from '@/stores/events'
 
 defineOptions({ layout: ConsoleLayout })
+
+const eventsStore = useEventsStore()
+watch(() => eventsStore.lastEvent, (e) => {
+    if (e?.type === 'rule.changed') router.reload({ preserveScroll: true })
+})
 
 const props = defineProps({
     stale_rule:       { type: Object,  default: null },

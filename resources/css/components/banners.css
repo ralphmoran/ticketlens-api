@@ -75,7 +75,7 @@
 }
 
 @layer components {
-  /* Floating toast */
+  /* Floating toast — single fixed element (used by Owner/Clients/Show.vue) */
   .tl-toast {
     @apply fixed top-20 right-4 px-4 py-2 text-sm font-medium;
     z-index: var(--tl-z-banner);
@@ -87,4 +87,41 @@
     border: 1px solid var(--tl-success-border);
     color: var(--tl-success);
   }
+  /* Toast stack — stacked notifications via TlToastStack component */
+  .tl-toast-stack {
+    @apply fixed top-20 right-4 flex flex-col gap-2;
+    z-index: var(--tl-z-banner);
+    width: 18rem;
+  }
+  .tl-toast-item {
+    @apply flex items-center gap-2 px-4 py-2.5 text-sm font-medium;
+    border-radius: var(--tl-radius);
+    box-shadow: var(--tl-shadow-lg);
+  }
+  .tl-toast-item--success {
+    background-color: var(--tl-success-tint);
+    border: 1px solid var(--tl-success-border);
+    color: var(--tl-success);
+  }
+  .tl-toast-item--info {
+    background-color: var(--tl-info-tint);
+    border: 1px solid var(--tl-info-border);
+    color: var(--tl-info);
+  }
+  .tl-toast-item-dismiss {
+    @apply ml-auto opacity-60 hover:opacity-100 leading-none;
+  }
+  .tl-banner-dismiss {
+    @apply ml-auto opacity-60 hover:opacity-100 leading-none shrink-0;
+  }
+  .tl-sse-banner {
+    @apply mx-4 mb-4;
+  }
+}
+
+@layer components {
+  .tl-toast-list-enter-active,
+  .tl-toast-list-leave-active { transition: all 0.25s ease; }
+  .tl-toast-list-enter-from,
+  .tl-toast-list-leave-to { opacity: 0; transform: translateX(0.5rem); }
 }

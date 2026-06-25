@@ -10,24 +10,25 @@ export function useServerEvents() {
 
     const store = useEventsStore()
     let es = null
+    let retryDelay = 5000
 
     function connect() {
         // EventSource can't send custom headers; on reconnect the browser replays
         // the last received event ID via the Last-Event-ID header automatically.
         es = new EventSource('/console/events', { withCredentials: true })
 
-        es.addEventListener('rule.changed', (e) => {
-            store.dispatch({ type: 'rule.changed', data: e.data ? JSON.parse(e.data) : {} })
-        })
+        es.onopen = () => { retryDelay = 5000 }
 
-        es.addEventListener('triage.pushed', (e) => {
-            store.dispatch({ type: 'triage.pushed', data: e.data ? JSON.parse(e.data) : {} })
-        })
+        for (const type of ['rule.changed', 'triage.pushed']) {
+            es.addEventListener(type, (e) => {
+                store.dispatch({ type, data: e.data ? JSON.parse(e.data) : {} })
+            })
+        }
 
         es.onerror = () => {
             es.close()
             es = null
-            setTimeout(connect, 5000)
+            setTimeout(() => { retryDelay = Math.min(retryDelay * 2, 60_000); connect() }, retryDelay)
         }
     }
 

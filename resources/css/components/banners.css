@@ -89,7 +89,7 @@
   }
   /* Toast stack — stacked notifications via TlToastStack component */
   .tl-toast-stack {
-    @apply fixed top-20 right-4 flex flex-col gap-2;
+    @apply fixed bottom-4 right-4 flex flex-col gap-2;
     z-index: var(--tl-z-banner);
     width: 18rem;
   }
@@ -115,7 +115,7 @@
     @apply ml-auto opacity-60 hover:opacity-100 leading-none shrink-0;
   }
   .tl-sse-banner {
-    @apply mx-4 mb-4;
+    @apply mx-4 mt-4 mb-4;
   }
 }
 

@@ -12,6 +12,10 @@ services:
             VITE_ORIGIN: '${VITE_ORIGIN:-http://ticketlens.test}'
             VITE_HMR_HOST: '${VITE_HMR_HOST:-ticketlens.test}'
             VITE_HMR_CLIENT_PORT: '${VITE_HMR_CLIENT_PORT:-80}'
+            # artisan serve is single-threaded by default; SSE holds the one
+            # worker indefinitely, blocking all other requests. 4 workers means
+            # SSE claims one, three remain for page loads and API calls.
+            PHP_CLI_SERVER_WORKERS: 4
 
     proxy:
         image: 'nginx:alpine'

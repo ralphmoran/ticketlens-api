@@ -104,9 +104,11 @@ Route::prefix('console')->name('console.')->group(function () {
         Route::get('/upgrade', [\App\Http\Controllers\Console\UpgradeController::class, 'index'])->name('upgrade');
 
         // SSE event stream — Pro+ tier only, gated inside controller
+        // throttle:60,1 = 60 handshakes/min per user — protects worker pool from
+        // open-connection exhaustion while allowing normal SPA reconnects (~1/s)
         Route::get('/events', [\App\Http\Controllers\Console\SseController::class, 'stream'])
             ->name('events')
-            ->middleware('throttle:5,1');
+            ->middleware('throttle:60,1');
 
         // Workflow modules (permission-gated)
         Route::middleware('permission:Schedules')->group(function () {

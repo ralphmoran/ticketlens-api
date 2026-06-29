@@ -176,25 +176,30 @@ class StatsControllerTest extends TestCase
         $manager = $this->makeManager();
         $dev     = $this->makeMember($manager->ownedGroup);
 
+        $day1    = now()->subDays(2)->format('Y-m-d');
+        $day2    = now()->subDays(1)->format('Y-m-d');
+        $day1At  = now()->subDays(2)->setHour(10)->setMinute(0)->setSecond(0)->toIso8601String();
+        $day2At  = now()->subDays(1)->setHour(10)->setMinute(0)->setSecond(0)->toIso8601String();
+
         // Two different days
         $this->pushSnapshot($dev, [
             $this->ticket('D1-1', ['needs-response']),
             $this->ticket('D1-2'),
-        ], 'production', '2026-05-28T10:00:00Z');
+        ], 'production', $day1At);
 
         $this->pushSnapshot($dev, [
             $this->ticket('D2-1'),
             $this->ticket('D2-2'),
             $this->ticket('D2-3'),
-        ], 'production', '2026-05-29T10:00:00Z');
+        ], 'production', $day2At);
 
         $this->actingAs($manager)->get('/console/admin/stats')
             ->assertInertia(fn ($page) => $page
                 ->has('daily_urgency')
-                ->where('daily_urgency.0.date', '2026-05-28')
+                ->where('daily_urgency.0.date', $day1)
                 ->where('daily_urgency.0.needs_response', 1)
                 ->where('daily_urgency.0.clear', 1)
-                ->where('daily_urgency.1.date', '2026-05-29')
+                ->where('daily_urgency.1.date', $day2)
                 ->where('daily_urgency.1.clear', 3)
             );
     }

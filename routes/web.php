@@ -1,8 +1,11 @@
 <?php
 
 use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Support\Facades\Broadcast;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Route;
+
+Broadcast::routes(['middleware' => ['web', 'auth', 'verified', 'throttle:20,1']]);
 
 // M4: per-email counter supplements the route-level IP throttle (throttle:5,1).
 // Different IPs submitting the same email address are collectively capped at 5/min.
@@ -102,13 +105,6 @@ Route::prefix('console')->name('console.')->group(function () {
 
         // Upgrade page — shown when permission is denied
         Route::get('/upgrade', [\App\Http\Controllers\Console\UpgradeController::class, 'index'])->name('upgrade');
-
-        // SSE event stream — Pro+ tier only, gated inside controller
-        // throttle:60,1 = 60 handshakes/min per user — protects worker pool from
-        // open-connection exhaustion while allowing normal SPA reconnects (~1/s)
-        Route::get('/events', [\App\Http\Controllers\Console\SseController::class, 'stream'])
-            ->name('events')
-            ->middleware('throttle:60,1');
 
         // Workflow modules (permission-gated)
         Route::middleware('permission:Schedules')->group(function () {

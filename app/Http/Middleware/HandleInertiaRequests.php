@@ -77,6 +77,11 @@ class HandleInertiaRequests extends Middleware
                 ->all();
         }
 
+        $groupId = null;
+        if ($user !== null && !$user->is_owner && in_array($user->tier, ['team', 'pro'], true)) {
+            $groupId = $user->groups->first()?->id;
+        }
+
         $impersonating = null;
         if ($user !== null && $request->session()->has(ImpersonationService::SESSION_KEY)) {
             $impersonating = $user->only('name', 'email');
@@ -102,6 +107,7 @@ class HandleInertiaRequests extends Middleware
                 'is_team_lead'         => $isTeamLead,
                 'activeGrants'         => $activeGrants,
                 'impersonating'        => $impersonating,
+                'group_id'             => $groupId,
                 'can'                  => $can,
             ],
         ]);

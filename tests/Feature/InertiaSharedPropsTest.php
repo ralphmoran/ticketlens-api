@@ -25,6 +25,7 @@ class InertiaSharedPropsTest extends TestCase
         'is_team_lead',
         'activeGrants',
         'impersonating',
+        'group_id',
         'can',
     ];
 

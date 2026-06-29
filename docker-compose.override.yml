@@ -12,10 +12,40 @@ services:
             VITE_ORIGIN: '${VITE_ORIGIN:-http://ticketlens.test}'
             VITE_HMR_HOST: '${VITE_HMR_HOST:-ticketlens.test}'
             VITE_HMR_CLIENT_PORT: '${VITE_HMR_CLIENT_PORT:-80}'
-            # artisan serve is single-threaded by default; SSE holds the one
-            # worker indefinitely, blocking all other requests. 4 workers means
-            # SSE claims one, three remain for page loads and API calls.
-            PHP_CLI_SERVER_WORKERS: 4
+
+    reverb:
+        image: '${SAIL_IMAGE:-sail-8.5/app}'
+        command: php artisan reverb:start --host=0.0.0.0 --port=8080 --no-interaction
+        restart: unless-stopped
+        environment:
+            WWWUSER: '${WWWUSER}'
+            LARAVEL_SAIL: 1
+            APP_ENV: '${APP_ENV}'
+            APP_KEY: '${APP_KEY}'
+            APP_DEBUG: '${APP_DEBUG:-true}'
+            APP_URL: '${APP_URL}'
+            DB_CONNECTION: '${DB_CONNECTION:-mysql}'
+            DB_HOST: mysql
+            DB_PORT: 3306
+            DB_DATABASE: '${DB_DATABASE}'
+            DB_USERNAME: '${DB_USERNAME}'
+            DB_PASSWORD: '${DB_PASSWORD}'
+            REDIS_HOST: redis
+            BROADCAST_CONNECTION: reverb
+            REVERB_APP_ID: '${REVERB_APP_ID}'
+            REVERB_APP_KEY: '${REVERB_APP_KEY}'
+            REVERB_APP_SECRET: '${REVERB_APP_SECRET}'
+            REVERB_HOST: '0.0.0.0'
+            REVERB_PORT: 8080
+            REVERB_SCHEME: http
+        volumes:
+            - '.:/var/www/html'
+        ports:
+            - '${REVERB_PORT:-8080}:8080'
+        networks:
+            - sail
+        depends_on:
+            - laravel.test
 
     proxy:
         image: 'nginx:alpine'

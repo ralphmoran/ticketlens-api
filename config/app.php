@@ -15,7 +15,7 @@ return [
 
     'name' => env('APP_NAME', 'TicketLens'),
 
-    'version' => env('APP_VERSION', '1.5.1'),
+    'version' => env('APP_VERSION', '1.5.2'),
 
     /*
     |--------------------------------------------------------------------------

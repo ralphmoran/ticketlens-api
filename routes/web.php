@@ -22,6 +22,13 @@ RateLimiter::for('register-by-email', function ($r) {
     return Limit::perHour(10)->by($key);
 });
 
+// Caps reset-link requests per email across all IPs — prevents inbox flooding and token churn.
+RateLimiter::for('reset-by-email', function ($r) {
+    $email = $r->input('email');
+    $key = $email ? 'reset-email:' . strtolower($email) : 'reset-email-ip:' . $r->ip();
+    return Limit::perHour(3)->by($key);
+});
+
 Route::get('/', fn () => response()->file(public_path('landing.html')));
 Route::get('/inertia-test', fn () => inertia('Test'));
 
@@ -299,6 +306,13 @@ Route::get('/console/reset-password/{token}', [\App\Http\Controllers\Console\Pas
 Route::post('/console/reset-password', [\App\Http\Controllers\Console\PasswordResetController::class, 'reset'])
     ->name('password.update')
     ->middleware('guest', 'throttle:5,1');
+
+// Self-serve forgot-password — guest-only, throttled to prevent abuse.
+// Response is always identical regardless of whether the email exists (OWASP enumeration prevention).
+// IP throttle + per-email cap together prevent distributed inbox flooding.
+Route::post('/console/forgot-password', [\App\Http\Controllers\Console\ForgotPasswordController::class, 'send'])
+    ->name('password.request')
+    ->middleware('guest', 'throttle:5,1', 'throttle:reset-by-email');
 
 // Email verification — routes must carry bare Laravel names (verification.notice/verify/send)
 // because EnsureEmailIsVerified middleware hardcodes those exact names.

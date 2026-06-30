@@ -18,6 +18,8 @@
   .tl-field-head { @apply flex items-center justify-between mb-2; }
   .tl-field-label--gap { @apply mb-2; }
   .tl-form-alert { @apply text-sm; color: var(--tl-danger); }
+  .tl-form-alert--success { color: var(--tl-success); }
+  .tl-auth-back { @apply block w-full mt-2 text-sm text-center; color: var(--tl-text-muted); }
 
   /* Divider with centered label */
   .tl-divider { @apply relative; }

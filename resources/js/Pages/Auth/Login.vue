@@ -1,6 +1,6 @@
 <script setup>
 import { ref, onMounted } from 'vue'
-import { useForm } from '@inertiajs/vue3'
+import { useForm, usePage } from '@inertiajs/vue3'
 import TlIcon from '@/components/TlIcon.vue'
 
 // The auth screen always renders in light mode — the in-app preference
@@ -8,15 +8,20 @@ import TlIcon from '@/components/TlIcon.vue'
 onMounted(() => document.documentElement.setAttribute('data-theme', 'light'))
 
 const activeTab = ref('signin')
+const page = usePage()
 
 const loginForm = useForm({ email: '', password: '', remember: false })
 const registerForm = useForm({ name: '', email: '', password: '', password_confirmation: '' })
+const forgotForm = useForm({ email: '' })
 
 function submitLogin() {
     loginForm.post('/console/login', { onFinish: () => loginForm.reset('password') })
 }
 function submitRegister() {
     registerForm.post('/console/register', { onFinish: () => registerForm.reset('password', 'password_confirmation') })
+}
+function submitForgot() {
+    forgotForm.post('/console/forgot-password')
 }
 </script>
 
@@ -34,10 +39,15 @@ function submitRegister() {
 
             <!-- Heading -->
             <h1 class="tl-auth-heading">
-                {{ activeTab === 'signin' ? 'Welcome back' : 'Create your account' }}
+                {{ activeTab === 'signin' ? 'Welcome back' : activeTab === 'register' ? 'Create your account' : 'Reset your password' }}
             </h1>
             <p class="tl-auth-sub">
-                {{ activeTab === 'signin' ? 'Sign in to your TicketLens Console.' : 'Start managing your tickets smarter.' }}
+                {{ activeTab === 'signin' ? 'Sign in to your TicketLens Console.' : activeTab === 'register' ? 'Start managing your tickets smarter.' : 'Enter your email and we\'ll send a reset link.' }}
+            </p>
+
+            <!-- Flash status (reset link sent) -->
+            <p v-if="page.props.flash?.status" role="status" class="tl-form-alert tl-form-alert--success">
+                {{ page.props.flash.status }}
             </p>
 
             <!-- Tabs -->
@@ -72,7 +82,7 @@ function submitRegister() {
                 <div>
                     <div class="tl-field-head">
                         <label for="login-password" class="tl-field-label--hero">Password</label>
-                        <a href="#" class="tl-link">Forgot password?</a>
+                        <button type="button" @click="activeTab = 'forgot'" class="tl-link">Forgot password?</button>
                     </div>
                     <input
                         id="login-password"
@@ -123,7 +133,7 @@ function submitRegister() {
             </form>
 
             <!-- Register form -->
-            <form v-else @submit.prevent="submitRegister" novalidate class="tl-auth-form">
+            <form v-else-if="activeTab === 'register'" @submit.prevent="submitRegister" novalidate class="tl-auth-form">
                 <div>
                     <label for="reg-name" class="tl-field-label--hero tl-field-label--gap">Name</label>
                     <input id="reg-name" v-model="registerForm.name" type="text" autocomplete="name" placeholder="Jane Smith"
@@ -152,6 +162,38 @@ function submitRegister() {
                 <button type="submit" :disabled="registerForm.processing" class="tl-btn tl-btn--hero">
                     <TlIcon v-if="registerForm.processing" name="spinner" class="tl-ic tl-spin" />
                     Create account
+                </button>
+            </form>
+
+            <!-- Forgot password form -->
+            <form v-else @submit.prevent="submitForgot" novalidate class="tl-auth-form">
+                <div>
+                    <label for="forgot-email" class="tl-field-label--hero tl-field-label--gap">Email</label>
+                    <input
+                        id="forgot-email"
+                        v-model="forgotForm.email"
+                        type="email"
+                        autocomplete="email"
+                        placeholder="you@example.com"
+                        class="tl-input tl-input--hero"
+                    />
+                </div>
+
+                <p v-if="forgotForm.errors.email" role="alert" class="tl-form-alert">
+                    {{ forgotForm.errors.email }}
+                </p>
+
+                <button
+                    type="submit"
+                    :disabled="forgotForm.processing"
+                    class="tl-btn tl-btn--hero"
+                >
+                    <TlIcon v-if="forgotForm.processing" name="spinner" class="tl-ic tl-spin" />
+                    Send reset link
+                </button>
+
+                <button type="button" @click="activeTab = 'signin'" class="tl-link tl-auth-back">
+                    Back to sign in
                 </button>
             </form>
 

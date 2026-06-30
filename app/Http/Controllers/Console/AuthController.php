@@ -8,6 +8,7 @@ use App\Services\TierService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rules\Password;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
@@ -56,11 +57,19 @@ class AuthController extends Controller
 
     public function register(Request $request): RedirectResponse
     {
-        $validated = $request->validate([
+        $v = Validator::make($request->all(), [
             'name'     => ['required', 'string', 'max:255'],
             'email'    => ['required', 'email', 'max:255', 'unique:users,email'],
             'password' => ['required', 'confirmed', Password::min(8)->letters()->numbers()],
         ]);
+
+        if ($v->fails()) {
+            return redirect()->route('console.login')
+                ->withErrors($v)
+                ->withInput($request->except('password', 'password_confirmation'));
+        }
+
+        $validated = $v->validated();
 
         $user = User::create([
             'name'     => $validated['name'],

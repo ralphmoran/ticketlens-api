@@ -254,6 +254,9 @@ Route::prefix('console')->name('console.')->group(function () {
             // Audit log
             Route::get('/audit', [\App\Http\Controllers\Owner\AuditController::class, 'index'])->name('audit.index');
 
+            // Client activity — recent CLI usage across all clients from usage_logs
+            Route::get('/activity', [\App\Http\Controllers\Owner\ActivityController::class, 'index'])->name('activity');
+
             // Tier→feature matrix
             Route::get('/tiers', [\App\Http\Controllers\Owner\TierController::class, 'index'])->name('tiers.index');
             Route::post('/tiers/{tier}/features', [\App\Http\Controllers\Owner\TierController::class, 'addFeature'])->name('tiers.features.add');

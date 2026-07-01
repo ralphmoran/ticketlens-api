@@ -28,9 +28,9 @@ const props = defineProps({
             </p>
             <p class="tl-body--muted">
                 <strong class="tl-value">CLI command:</strong>
-                <code class="tl-kbd tl-kbd--brand">ticketlens --export PROJ-123</code>
+                <code class="tl-kbd tl-kbd--brand">ticketlens PROJ-123 --export=csv</code>
                 or
-                <code class="tl-kbd tl-kbd--brand">ticketlens --export --format=csv</code>
+                <code class="tl-kbd tl-kbd--brand">ticketlens PROJ-123 --export=json</code>
             </p>
             <p class="tl-body--muted">
                 <strong class="tl-value">Expected result:</strong>
@@ -43,7 +43,7 @@ const props = defineProps({
             <TlIcon name="download" class="tl-empty-icon" />
             <p class="tl-body">No exports yet.</p>
             <p class="tl-subtext">
-                Run <code class="tl-kbd tl-kbd--brand">ticketlens --export</code> from your terminal to create your first export.
+                Run <code class="tl-kbd tl-kbd--brand">ticketlens PROJ-123 --export=csv</code> from your terminal to create your first export.
             </p>
         </div>
 

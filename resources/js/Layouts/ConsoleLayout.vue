@@ -278,6 +278,7 @@ const ownerPanelItems = [
     { label: 'Tiers & Features', href: '/console/owner/tiers',     icon: 'layers' },
     { label: 'Revenue',          href: '/console/owner/revenue',   icon: 'currency-dollar' },
     { label: 'Audit Log',        href: '/console/owner/audit',     icon: 'history' },
+    { label: 'Client Activity',  href: '/console/owner/activity',  icon: 'activity' },
 ]
 
 const OWNER_PANEL_KEY  = 'tl-owner-panel-open'
@@ -362,6 +363,22 @@ watch(paletteOpen, async (val) => {
     if (val) {
         await nextTick()
         paletteInputRef.value?.focus()
+    }
+})
+
+// Auto-expand the group (or owner panel) that contains the current page on navigation.
+watch(() => page.url, (url) => {
+    if (ownerPanelItems.some(item => url.startsWith(item.href))) {
+        ownerPanelOpen.value = true
+        localStorage.setItem(OWNER_PANEL_KEY, 'true')
+        return
+    }
+    for (const group of visibleGroups.value) {
+        if (group.items.some(item => url.startsWith(item.href))) {
+            groupOpen[group.label] = true
+            localStorage.setItem(GROUPS_KEY, JSON.stringify({ ...groupOpen }))
+            break
+        }
     }
 })
 

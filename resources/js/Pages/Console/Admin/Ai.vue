@@ -138,8 +138,8 @@ async function testProvider(provider) {
             <p class="tl-body--secondary">
                 <strong class="tl-value">What it does:</strong>
                 Keys are encrypted and used when you run
-                <code class="tl-kbd tl-kbd--brand">ticketlens --summarize</code> or
-                <code class="tl-kbd tl-kbd--brand">ticketlens --handoff</code>.
+                <code class="tl-kbd tl-kbd--brand">ticketlens TICKET-KEY --summarize</code> or
+                <code class="tl-kbd tl-kbd--brand">ticketlens TICKET-KEY --handoff</code>.
                 Multiple providers are tried in priority order — lowest first.
             </p>
             <p class="tl-body--muted">

@@ -6,6 +6,7 @@ use App\Models\User;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
+use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
 class ForgotPasswordControllerTest extends TestCase
@@ -13,6 +14,23 @@ class ForgotPasswordControllerTest extends TestCase
     use RefreshDatabase;
 
     private const GENERIC_STATUS = 'If that email address is registered, we sent a reset link.';
+
+    public function test_get_route_renders_login_page_with_forgot_tab(): void
+    {
+        $this->get('/console/forgot-password')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Auth/Login')
+                ->where('initialTab', 'forgot')
+            );
+    }
+
+    public function test_get_route_redirects_authenticated_users(): void
+    {
+        $this->actingAs(User::factory()->create())
+            ->get('/console/forgot-password')
+            ->assertRedirect(route('console.dashboard'));
+    }
 
     public function test_send_dispatches_reset_link_for_known_email(): void
     {

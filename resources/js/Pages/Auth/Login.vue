@@ -3,11 +3,15 @@ import { ref, onMounted } from 'vue'
 import { useForm, usePage } from '@inertiajs/vue3'
 import TlIcon from '@/components/TlIcon.vue'
 
+const props = defineProps({
+    initialTab: { type: String, default: 'signin' },
+})
+
 // The auth screen always renders in light mode — the in-app preference
 // (localStorage 'tl-theme') is untouched and re-applied by ConsoleLayout.
 onMounted(() => document.documentElement.setAttribute('data-theme', 'light'))
 
-const activeTab = ref('signin')
+const activeTab = ref(props.initialTab)
 const page = usePage()
 
 const loginForm = useForm({ email: '', password: '', remember: false })

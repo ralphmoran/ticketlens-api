@@ -313,6 +313,10 @@ Route::post('/console/reset-password', [\App\Http\Controllers\Console\PasswordRe
 // Self-serve forgot-password — guest-only, throttled to prevent abuse.
 // Response is always identical regardless of whether the email exists (OWASP enumeration prevention).
 // IP throttle + per-email cap together prevent distributed inbox flooding.
+// GET renders the login page with initialTab='forgot' — deep-linkable from emails/help docs/401 pages.
+Route::get('/console/forgot-password', fn () => inertia('Auth/Login', ['initialTab' => 'forgot']))
+    ->name('password.request.form')
+    ->middleware('guest');
 Route::post('/console/forgot-password', [\App\Http\Controllers\Console\ForgotPasswordController::class, 'send'])
     ->name('password.request')
     ->middleware('guest', 'throttle:5,1', 'throttle:reset-by-email');

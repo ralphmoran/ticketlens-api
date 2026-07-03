@@ -57,7 +57,16 @@ const { filters, loading, navigate } = useTableFilters({
                                 <th class="tl-th">Client</th>
                                 <th class="tl-th">Command</th>
                                 <th class="tl-th">Ticket</th>
-                                <th class="tl-th">Tokens Saved</th>
+                                <th class="tl-th">
+                                    <span class="tl-th-with-hint">
+                                        Tokens Saved
+                                        <TlIcon
+                                            name="info"
+                                            class="tl-ic tl-ic--xs tl-th-hint-ic"
+                                            title="Estimated at ~4 characters per token of the fetched ticket brief"
+                                        />
+                                    </span>
+                                </th>
                                 <th class="tl-th">Date</th>
                             </tr>
                         </thead>

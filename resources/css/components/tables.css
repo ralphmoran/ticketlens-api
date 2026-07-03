@@ -30,14 +30,6 @@
     color: var(--tl-text-subtle);
   }
 
-  .tl-th-with-hint {
-    @apply inline-flex items-center gap-1;
-  }
-
-  .tl-th-hint-ic {
-    color: var(--tl-text-subtle);
-  }
-
   .tl-tr {
     transition: background-color var(--tl-transition-fast);
   }

@@ -144,4 +144,12 @@
   .tl-abbr:hover::after {
     opacity: 1;
   }
+
+  /* Opens the tooltip downward instead of upward — for use inside a
+     scrollable ancestor (e.g. .tl-table-scroll) whose overflow-x:auto
+     also clips overflow-y, cutting off an upward-opening tooltip. */
+  .tl-abbr--below::after {
+    bottom: auto;
+    top: calc(100% + 6px);
+  }
 }

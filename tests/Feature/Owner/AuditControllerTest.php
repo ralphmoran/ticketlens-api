@@ -109,4 +109,17 @@ class AuditControllerTest extends TestCase
 
         $response->assertInertia(fn ($page) => $page->has('logs.data', 1));
     }
+
+    public function test_audit_log_filterable_by_partial_action(): void
+    {
+        $owner = $this->makeOwner();
+        $user  = User::factory()->create();
+        $this->makeLog($owner, $user, 'user.suspended');
+        $this->makeLog($owner, $user, 'user.tier_changed');
+        $this->makeLog($owner, $user, 'impersonation.started');
+
+        $response = $this->actingAs($owner)->get('/console/owner/audit?action=user.');
+
+        $response->assertInertia(fn ($page) => $page->has('logs.data', 2));
+    }
 }

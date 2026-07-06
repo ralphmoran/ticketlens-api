@@ -97,7 +97,7 @@ watch(actionPerPage, () => { actionPage.value = 1 })
         <div class="tl-card tl-card--flush tl-section-gap">
             <div class="tl-table-header">
                 <h2 class="tl-title">Recent Actions</h2>
-                <div class="tl-input-wrap tl-btn--grow" style="max-width:280px">
+                <div class="tl-input-wrap tl-grow-capped">
                     <TlIcon name="search" class="tl-input-icon" />
                     <input
                         v-model="actionSearch"

@@ -173,7 +173,7 @@ function setPeriod(p) {
                     </span>
                     tokens saved vs raw API
                 </p>
-                <div v-if="hasTokensSparkline" style="height:48px;margin-top:0.5rem">
+                <div v-if="hasTokensSparkline" class="tl-chart-frame--sparkline">
                     <TlChart
                         type="area"
                         :labels="tokensSparklineLabels"
@@ -204,7 +204,7 @@ function setPeriod(p) {
                     </span>
                     pushed CLI data this period
                 </p>
-                <div v-if="hasActiveSparkline" style="height:48px;margin-top:0.5rem">
+                <div v-if="hasActiveSparkline" class="tl-chart-frame--sparkline">
                     <TlChart
                         type="area"
                         :labels="activeSparklineLabels"
@@ -256,7 +256,7 @@ function setPeriod(p) {
                             hmmm... revenue chart is waiting for its first dollar
                         </div>
                     </div>
-                    <table v-if="licenses_by_tier.length > 0" class="tl-table" style="margin-top:1rem">
+                    <table v-if="licenses_by_tier.length > 0" class="tl-table tl-table--spaced">
                         <thead>
                             <tr class="tl-thead">
                                 <th class="tl-th">Tier</th>
@@ -323,7 +323,7 @@ function setPeriod(p) {
             <h2 class="tl-section-heading tl-title--spaced">Top Accounts</h2>
             <div class="tl-card tl-card--flush">
                 <div class="tl-table-header">
-                    <div class="tl-input-wrap tl-btn--grow" style="max-width:280px">
+                    <div class="tl-input-wrap tl-grow-capped">
                         <TlIcon name="search" class="tl-input-icon" />
                         <input
                             v-model="accountSearch"
@@ -385,7 +385,7 @@ function setPeriod(p) {
             </h2>
             <div class="tl-card tl-card--flush">
                 <div class="tl-table-header">
-                    <div class="tl-input-wrap tl-btn--grow" style="max-width:280px">
+                    <div class="tl-input-wrap tl-grow-capped">
                         <TlIcon name="search" class="tl-input-icon" />
                         <input
                             v-model="roiSearch"

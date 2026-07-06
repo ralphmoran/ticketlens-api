@@ -17,6 +17,7 @@ const props = defineProps({
 })
 
 const { filters, loading, navigate } = useTableFilters({
+    search:   props.filters?.search   ?? '',
     source:   props.filters?.source   ?? '',
     tier:     props.filters?.tier     ?? '',
     status:   props.filters?.status   ?? '',
@@ -95,6 +96,15 @@ const STATUS_COLORS = {
 
         <!-- Filters -->
         <div class="tl-row tl-row--wrap tl-card-gap">
+            <div class="tl-input-wrap tl-btn--grow">
+                <TlIcon name="search" class="tl-input-icon" />
+                <input
+                    v-model="filters.search"
+                    type="text"
+                    placeholder="Search by client email or name…"
+                    class="tl-input tl-input--full tl-input--with-icon"
+                />
+            </div>
             <select v-model="filters.source" class="tl-select">
                 <option value="">All sources</option>
                 <option value="owner_issued">Owner-issued</option>

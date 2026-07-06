@@ -41,11 +41,19 @@ class LicenseController extends Controller
             $query->where('status', $status);
         }
 
+        if ($search = $request->string('search')->trim()->value()) {
+            $query->whereHas('user', function ($userQuery) use ($search) {
+                $userQuery->withTrashed()
+                          ->where('email', 'like', "%{$search}%")
+                          ->orWhere('name', 'like', "%{$search}%");
+            });
+        }
+
         $perPage = min(max(1, (int) $request->input('per_page', 10)), 100);
 
         return Inertia::render('Console/Owner/Licenses/Index', [
             'licenses' => $query->paginate($perPage)->withQueryString(),
-            'filters'  => array_merge($request->only('source', 'tier', 'status'), ['per_page' => $perPage]),
+            'filters'  => array_merge($request->only('source', 'tier', 'status', 'search'), ['per_page' => $perPage]),
         ]);
     }
 

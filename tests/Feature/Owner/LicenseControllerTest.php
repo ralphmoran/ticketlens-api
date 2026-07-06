@@ -102,6 +102,63 @@ class LicenseControllerTest extends TestCase
         $response->assertInertia(fn ($page) => $page->has('licenses.data', 1));
     }
 
+    public function test_index_filterable_by_client_email(): void
+    {
+        $owner     = $this->makeOwner();
+        $recipientA = User::factory()->create(['email' => 'jane@example.com']);
+        $recipientB = User::factory()->create(['email' => 'bob@example.com']);
+
+        License::create([
+            'user_id' => $recipientA->id, 'lemon_key_hash' => str_repeat('a', 64),
+            'status' => 'active', 'tier' => 'pro', 'seats' => 1,
+        ]);
+        License::create([
+            'user_id' => $recipientB->id, 'lemon_key_hash' => str_repeat('b', 64),
+            'status' => 'active', 'tier' => 'pro', 'seats' => 1,
+        ]);
+
+        $response = $this->actingAs($owner)->get('/console/owner/licenses?search=jane@example.com');
+
+        $response->assertInertia(fn ($page) => $page->has('licenses.data', 1));
+    }
+
+    public function test_index_filterable_by_client_name(): void
+    {
+        $owner      = $this->makeOwner();
+        $recipientA = User::factory()->create(['name' => 'Jane Roe']);
+        $recipientB = User::factory()->create(['name' => 'Bob Doe']);
+
+        License::create([
+            'user_id' => $recipientA->id, 'lemon_key_hash' => str_repeat('c', 64),
+            'status' => 'active', 'tier' => 'pro', 'seats' => 1,
+        ]);
+        License::create([
+            'user_id' => $recipientB->id, 'lemon_key_hash' => str_repeat('d', 64),
+            'status' => 'active', 'tier' => 'pro', 'seats' => 1,
+        ]);
+
+        $response = $this->actingAs($owner)->get('/console/owner/licenses?search=Jane');
+
+        $response->assertInertia(fn ($page) => $page->has('licenses.data', 1));
+    }
+
+    public function test_index_search_still_matches_soft_deleted_client(): void
+    {
+        $owner     = $this->makeOwner();
+        $recipient = User::factory()->create(['email' => 'deleted-client@example.com']);
+
+        License::create([
+            'user_id' => $recipient->id, 'lemon_key_hash' => str_repeat('e', 64),
+            'status' => 'active', 'tier' => 'pro', 'seats' => 1,
+        ]);
+
+        $recipient->delete();
+
+        $response = $this->actingAs($owner)->get('/console/owner/licenses?search=deleted-client@example.com');
+
+        $response->assertInertia(fn ($page) => $page->has('licenses.data', 1));
+    }
+
     // --- Create form ---
 
     public function test_owner_can_view_create_form(): void

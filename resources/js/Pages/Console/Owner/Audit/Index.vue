@@ -35,7 +35,7 @@ const { filters, loading, navigate } = useTableFilters({
                 <input
                     v-model="filters.action"
                     type="text"
-                    placeholder="Search by action, actor email, or name…"
+                    placeholder="Search by action, email, or name…"
                     class="tl-input tl-input--full tl-input--with-icon"
                 />
             </div>

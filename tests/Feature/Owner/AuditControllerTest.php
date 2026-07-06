@@ -151,6 +151,20 @@ class AuditControllerTest extends TestCase
         $response->assertInertia(fn ($page) => $page->has('logs.data', 1));
     }
 
+    public function test_audit_log_filterable_by_target_email(): void
+    {
+        $owner    = $this->makeOwner();
+        $actor    = User::factory()->create();
+        $targetA  = User::factory()->create(['email' => 'pro@test.local', 'name' => 'Pro User']);
+        $targetB  = User::factory()->create(['email' => 'team@test.local', 'name' => 'Team User']);
+        $this->makeLog($actor, $targetA, 'license.issued');
+        $this->makeLog($actor, $targetB, 'license.issued');
+
+        $response = $this->actingAs($owner)->get('/console/owner/audit?action=pro@test.local');
+
+        $response->assertInertia(fn ($page) => $page->has('logs.data', 1));
+    }
+
     public function test_audit_log_search_excludes_null_actor_rows_gracefully(): void
     {
         $owner  = $this->makeOwner();

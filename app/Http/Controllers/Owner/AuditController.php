@@ -20,6 +20,10 @@ class AuditController extends Controller
                   ->orWhereHas('actor', function ($actorQuery) use ($action) {
                       $actorQuery->where('email', 'like', "%{$action}%")
                                  ->orWhere('name', 'like', "%{$action}%");
+                  })
+                  ->orWhereHas('targetUser', function ($targetQuery) use ($action) {
+                      $targetQuery->where('email', 'like', "%{$action}%")
+                                  ->orWhere('name', 'like', "%{$action}%");
                   });
             });
         }

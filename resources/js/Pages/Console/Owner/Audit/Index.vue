@@ -64,15 +64,19 @@ const { filters, loading, navigate } = useTableFilters({
                     <tbody class="tl-divide">
                         <tr v-for="log in logs.data" :key="log.id" class="tl-tr">
                             <td class="tl-td tl-cell-muted tl-nowrap">{{ formatDateTime(log.created_at) }}</td>
-                            <td class="tl-td">{{ log.actor?.name ?? '—' }}</td>
+                            <td class="tl-td">
+                                <p class="tl-cell-primary">{{ log.actor?.name ?? '—' }}</p>
+                                <p v-if="log.actor" class="tl-hint tl-mono--xs">{{ log.actor.email }}</p>
+                            </td>
                             <td class="tl-td">
                                 <span class="tl-kbd">{{ log.action }}</span>
                             </td>
-                            <td class="tl-td tl-cell-muted">
-                                <Link v-if="log.target_user" :href="`/console/owner/clients/${log.target_user?.id}`" class="tl-cell-link">
-                                    {{ log.target_user?.email }}
+                            <td class="tl-td">
+                                <Link v-if="log.target_user" :href="`/console/owner/clients/${log.target_user.id}`" class="tl-cell-primary tl-cell-link">
+                                    {{ log.target_user.name }}
                                 </Link>
-                                <span v-else>—</span>
+                                <p v-else class="tl-cell-primary">—</p>
+                                <p v-if="log.target_user" class="tl-hint tl-mono--xs">{{ log.target_user.email }}</p>
                             </td>
                             <td class="tl-td tl-mono--xs tl-cell-muted">{{ log.ip_address ?? '—' }}</td>
                         </tr>

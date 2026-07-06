@@ -122,4 +122,50 @@ class AuditControllerTest extends TestCase
 
         $response->assertInertia(fn ($page) => $page->has('logs.data', 2));
     }
+
+    public function test_audit_log_filterable_by_actor_email(): void
+    {
+        $owner  = $this->makeOwner();
+        $actorA = User::factory()->create(['email' => 'jane@example.com', 'name' => 'Jane Roe']);
+        $actorB = User::factory()->create(['email' => 'bob@example.com', 'name' => 'Bob Doe']);
+        $target = User::factory()->create();
+        $this->makeLog($actorA, $target, 'user.suspended');
+        $this->makeLog($actorB, $target, 'user.suspended');
+
+        $response = $this->actingAs($owner)->get('/console/owner/audit?action=jane@example.com');
+
+        $response->assertInertia(fn ($page) => $page->has('logs.data', 1));
+    }
+
+    public function test_audit_log_filterable_by_actor_name(): void
+    {
+        $owner  = $this->makeOwner();
+        $actorA = User::factory()->create(['name' => 'Jane Roe']);
+        $actorB = User::factory()->create(['name' => 'Bob Doe']);
+        $target = User::factory()->create();
+        $this->makeLog($actorA, $target, 'user.suspended');
+        $this->makeLog($actorB, $target, 'user.suspended');
+
+        $response = $this->actingAs($owner)->get('/console/owner/audit?action=Jane');
+
+        $response->assertInertia(fn ($page) => $page->has('logs.data', 1));
+    }
+
+    public function test_audit_log_search_excludes_null_actor_rows_gracefully(): void
+    {
+        $owner  = $this->makeOwner();
+        $target = User::factory()->create();
+
+        AuditLog::create([
+            'actor_id'       => null,
+            'target_user_id' => $target->id,
+            'action'         => 'system.cleanup',
+            'ip_address'     => null,
+        ]);
+
+        $response = $this->actingAs($owner)->get('/console/owner/audit?action=nonexistent-term');
+
+        $response->assertStatus(200);
+        $response->assertInertia(fn ($page) => $page->has('logs.data', 0));
+    }
 }

@@ -15,7 +15,13 @@ class AuditController extends Controller
         $query = AuditLog::with(['actor', 'targetUser'])->latest();
 
         if ($action = $request->string('action')->trim()->value()) {
-            $query->where('action', 'like', "%{$action}%");
+            $query->where(function ($q) use ($action) {
+                $q->where('action', 'like', "%{$action}%")
+                  ->orWhereHas('actor', function ($actorQuery) use ($action) {
+                      $actorQuery->where('email', 'like', "%{$action}%")
+                                 ->orWhere('name', 'like', "%{$action}%");
+                  });
+            });
         }
 
         if ($actorId = $request->integer('actor_id')) {

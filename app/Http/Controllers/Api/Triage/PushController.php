@@ -83,15 +83,16 @@ class PushController
                     ARRAY_FILTER_USE_BOTH,
                 );
                 $rows[] = [
-                    'user_id'      => $user->id,
-                    'action'       => $cmd,
-                    'ticket_key'   => null,
-                    'tokens_used'  => (int) ($counters['tokens_saved'] ?? 0),
-                    'metadata'     => json_encode([
-                        'count' => $counters['count'] ?? 0,
+                    'user_id'       => $user->id,
+                    'action'        => $cmd,
+                    'ticket_key'    => null,
+                    'tokens_used'   => (int) ($counters['tokens_saved'] ?? 0),
+                    'command_count' => (int) ($counters['count'] ?? 0),
+                    'metadata'      => json_encode([
+                        'count' => (int) ($counters['count'] ?? 0),
                         'flags' => $flags,
                     ]),
-                    'created_at'   => $now,
+                    'created_at'    => $now,
                 ];
             }
             DB::table('usage_logs')->insert($rows);

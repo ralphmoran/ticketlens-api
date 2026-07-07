@@ -15,7 +15,7 @@ class UsageLog extends Model
      *   - metadata NOT NULL → CLI command row (PushController): tokens *saved* (estimated, brief.length/4)
      * Never aggregate both together. Use whereNull/whereNotNull('metadata') to discriminate.
      */
-    protected $fillable = ['user_id', 'action', 'ticket_key', 'tokens_used', 'metadata'];
+    protected $fillable = ['user_id', 'action', 'ticket_key', 'tokens_used', 'command_count', 'metadata'];
     protected $casts = ['created_at' => 'datetime', 'metadata' => 'array'];
 
     public function user(): BelongsTo

@@ -542,4 +542,39 @@ class PushControllerTest extends TestCase
 
         $this->withToken($token)->postJson('/v1/triage/push', $this->validPayload())->assertOk();
     }
+
+    // ── New: command_count column (CRITICAL perf fix — audit 2026-07-07 §2.1) ──
+
+    public function test_push_writes_command_count_matching_metadata_count(): void
+    {
+        [$user, $token] = $this->makeUserWithToken();
+
+        $payload = $this->validPayload([
+            'cli_activity' => [
+                'fetch_count'      => 5,
+                'triage_run_count' => 2,
+                'invocations'      => 10,
+                'commands'         => [
+                    'triage'     => ['count' => 2, '--push' => 2],
+                    'compliance' => ['count' => 1],
+                ],
+            ],
+        ]);
+
+        $this->withToken($token)->postJson('/v1/triage/push', $payload)->assertStatus(200);
+
+        $triageLog = \Illuminate\Support\Facades\DB::table('usage_logs')
+            ->where('user_id', $user->id)
+            ->where('action', 'triage')
+            ->first();
+
+        $this->assertSame(2, $triageLog->command_count);
+
+        $complianceLog = \Illuminate\Support\Facades\DB::table('usage_logs')
+            ->where('user_id', $user->id)
+            ->where('action', 'compliance')
+            ->first();
+
+        $this->assertSame(1, $complianceLog->command_count);
+    }
 }

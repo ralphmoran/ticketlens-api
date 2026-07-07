@@ -19,12 +19,13 @@ class InsightsControllerTest extends TestCase
     private function insertCliLog(int $userId, string $action, int $tokensSaved, int $count = 1, int $daysAgo = 0): void
     {
         DB::table('usage_logs')->insert([
-            'user_id'    => $userId,
-            'action'     => $action,
-            'ticket_key' => null,
-            'tokens_used'=> $tokensSaved,
-            'metadata'   => json_encode(['count' => $count, 'flags' => []]),
-            'created_at' => now()->subDays($daysAgo)->toDateTimeString(),
+            'user_id'       => $userId,
+            'action'        => $action,
+            'ticket_key'    => null,
+            'tokens_used'   => $tokensSaved,
+            'command_count' => $count,
+            'metadata'      => json_encode(['count' => $count, 'flags' => []]),
+            'created_at'    => now()->subDays($daysAgo)->toDateTimeString(),
         ]);
     }
 
@@ -332,5 +333,132 @@ class InsightsControllerTest extends TestCase
                 ->where('period', '60')
                 ->has('tokens_saved_by_day', 60)
             );
+    }
+
+    // ── New: command_count backfill (CRITICAL perf fix — audit 2026-07-07 §2.1) ──
+
+    public function test_migration_backfills_command_count_from_existing_metadata(): void
+    {
+        $user = User::factory()->create(['tier' => 'pro']);
+
+        DB::table('usage_logs')->insert([
+            'user_id'       => $user->id,
+            'action'        => 'fetch',
+            'ticket_key'    => null,
+            'tokens_used'   => 100,
+            'metadata'      => json_encode(['count' => 7, 'flags' => []]),
+            'command_count' => 0, // simulates a pre-migration row out of sync
+            'created_at'    => now(),
+        ]);
+
+        $migration = require database_path('migrations/2026_07_08_000001_add_command_count_to_usage_logs.php');
+        $migration->backfillCommandCounts();
+
+        $this->assertSame(7, DB::table('usage_logs')->where('user_id', $user->id)->value('command_count'));
+    }
+
+    public function test_backfill_command_counts_is_idempotent(): void
+    {
+        $user = User::factory()->create(['tier' => 'pro']);
+
+        DB::table('usage_logs')->insert([
+            'user_id'       => $user->id,
+            'action'        => 'fetch',
+            'ticket_key'    => null,
+            'tokens_used'   => 100,
+            'metadata'      => json_encode(['count' => 3, 'flags' => []]),
+            'command_count' => 3,
+            'created_at'    => now(),
+        ]);
+
+        $migration = require database_path('migrations/2026_07_08_000001_add_command_count_to_usage_logs.php');
+        $migration->backfillCommandCounts();
+        $migration->backfillCommandCounts();
+
+        $this->assertSame(3, DB::table('usage_logs')->where('user_id', $user->id)->value('command_count'));
+    }
+
+    public function test_backfilled_command_count_is_reflected_in_insights_response(): void
+    {
+        $owner = $this->makeOwner();
+        $user  = User::factory()->create(['tier' => 'pro']);
+
+        // Simulates a pre-migration row: metadata has the real count, but
+        // command_count is still at its column default (out of sync) until
+        // the backfill runs.
+        DB::table('usage_logs')->insert([
+            'user_id'       => $user->id,
+            'action'        => 'fetch',
+            'ticket_key'    => null,
+            'tokens_used'   => 500,
+            'metadata'      => json_encode(['count' => 11, 'flags' => []]),
+            'command_count' => 0,
+            'created_at'    => now(),
+        ]);
+
+        $migration = require database_path('migrations/2026_07_08_000001_add_command_count_to_usage_logs.php');
+        $migration->backfillCommandCounts();
+
+        $this->actingAs($owner)->get('/console/owner/insights')
+            ->assertInertia(fn ($page) => $page
+                ->where('popular_commands.0.action', 'fetch')
+                ->where('popular_commands.0.total_runs', 11)
+                ->where('top_accounts.0.commands_run', 11)
+            );
+    }
+
+    // ── New: bounded-query proof (CRITICAL perf fix — audit 2026-07-07 §2.1) ──
+
+    public function test_insights_query_count_stays_bounded_regardless_of_row_volume(): void
+    {
+        $owner = $this->makeOwner();
+        $user  = User::factory()->create(['tier' => 'pro']);
+
+        for ($i = 0; $i < 5; $i++) {
+            $this->insertCliLog($user->id, 'fetch', 100, 1);
+        }
+
+        DB::enableQueryLog();
+        DB::flushQueryLog();
+        $this->actingAs($owner)->get('/console/owner/insights?period=30')->assertOk();
+        $smallVolumeQueryCount = count(DB::getQueryLog());
+        DB::disableQueryLog();
+
+        for ($i = 0; $i < 200; $i++) {
+            $this->insertCliLog($user->id, 'fetch', 10, 1);
+        }
+
+        DB::enableQueryLog();
+        DB::flushQueryLog();
+        $this->actingAs($owner)->get('/console/owner/insights?period=30')->assertOk();
+        $largeVolumeQueryCount = count(DB::getQueryLog());
+        DB::disableQueryLog();
+
+        $this->assertSame(
+            $smallVolumeQueryCount,
+            $largeVolumeQueryCount,
+            'Insights query count must not scale with usage_logs row volume.'
+        );
+    }
+
+    public function test_insights_queries_never_select_raw_usage_log_rows(): void
+    {
+        $owner = $this->makeOwner();
+        $user  = User::factory()->create(['tier' => 'pro']);
+        $this->insertCliLog($user->id, 'fetch', 100, 5);
+
+        DB::enableQueryLog();
+        $this->actingAs($owner)->get('/console/owner/insights?period=30')->assertOk();
+        $queries = DB::getQueryLog();
+        DB::disableQueryLog();
+
+        $usageLogQueries = array_filter($queries, fn ($q) => str_contains($q['query'], 'usage_logs'));
+        $this->assertNotEmpty($usageLogQueries, 'Expected at least one usage_logs query.');
+
+        foreach ($usageLogQueries as $q) {
+            $sql = strtolower($q['query']);
+            $isAggregate = str_contains($sql, 'sum(') || str_contains($sql, 'count(') || str_contains($sql, 'group by');
+            $this->assertTrue($isAggregate, "Non-aggregate usage_logs query found: {$q['query']}");
+        }
     }
 }

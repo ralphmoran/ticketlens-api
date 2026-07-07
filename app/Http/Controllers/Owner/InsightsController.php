@@ -19,64 +19,96 @@ class InsightsController
         $period = $request->query('period', '30');
         $cutoff = now()->subDays($this->daysForPeriod($period));
 
-        $logs = DB::table('usage_logs')
-            ->whereNotNull('metadata')
-            ->where('created_at', '>=', $cutoff)
-            ->get(['user_id', 'action', 'tokens_used', 'metadata', 'created_at']);
+        $totals          = $this->periodTotals($cutoff);
+        $accountRows     = $this->accountAggregates($cutoff);
+        $accountUserIds  = $accountRows->pluck('user_id');
+        $users           = $this->usersByIds($accountUserIds);
 
         [$prevTokensSaved, $prevActiveUsers] = $this->prevPeriodStats($period);
+        $dailyRows = $this->dailyAggregates($period);
 
         return Inertia::render('Console/Owner/Insights', [
             'period'                   => $period,
-            'popular_commands'         => $this->popularCommands($logs),
-            'tokens_saved_total'       => (int) $logs->sum('tokens_used'),
-            'roi_per_account'          => $this->roiPerAccount($logs),
-            'feature_adoption'         => $this->featureAdoption($logs),
-            'top_accounts'             => $this->topAccounts($logs),
+            'popular_commands'         => $this->popularCommands($cutoff),
+            'tokens_saved_total'       => (int) ($totals->tokens_saved ?? 0),
+            'roi_per_account'          => $this->roiPerAccount($accountRows, $users),
+            'feature_adoption'         => $this->featureAdoption($cutoff),
+            'top_accounts'             => $this->topAccounts($accountRows, $users),
             'tier_distribution'        => $this->tierDistribution(),
             'total_users'              => User::where('is_owner', false)->count(),
-            'active_users'             => $logs->pluck('user_id')->unique()->count(),
+            'active_users'             => (int) ($totals->active_users ?? 0),
             'monthly_revenue'          => $this->monthlyRevenue(),
             'licenses_by_tier'         => $this->licensesByTier(),
             'prev_period_tokens_saved' => $prevTokensSaved,
             'prev_period_active_users' => $prevActiveUsers,
-            'tokens_saved_by_day'      => $this->dailySeries($logs, $period, 'tokens_saved'),
-            'active_users_by_day'      => $this->dailySeries($logs, $period, 'active_users'),
+            'tokens_saved_by_day'      => $this->fillDailySkeleton($period, $dailyRows, 'tokens'),
+            'active_users_by_day'      => $this->fillDailySkeleton($period, $dailyRows, 'active'),
         ]);
     }
 
-    private function popularCommands(Collection $logs): array
+    /**
+     * Base query for CLI-origin usage_logs rows within a period window.
+     * whereNotNull('metadata') is the dual-semantics discriminator (CLI rows
+     * have metadata set; BYOK/AI-action rows don't) — every metric query
+     * shares this filter, extracted once so it can't drift between them.
+     */
+    private function cliLogsQuery(\Illuminate\Support\Carbon $cutoff): \Illuminate\Database\Query\Builder
     {
-        return $logs->groupBy('action')
-            ->map(fn ($rows, $action) => [
-                'action'     => $action,
-                'total_runs' => $this->sumCount($rows),
-            ])
-            ->sortByDesc('total_runs')
-            ->values()
+        return DB::table('usage_logs')
+            ->whereNotNull('metadata')
+            ->where('created_at', '>=', $cutoff);
+    }
+
+    private function periodTotals(\Illuminate\Support\Carbon $cutoff): object
+    {
+        return $this->cliLogsQuery($cutoff)
+            ->selectRaw('SUM(tokens_used) as tokens_saved, COUNT(DISTINCT user_id) as active_users')
+            ->first();
+    }
+
+    /**
+     * Per-account aggregates for the period window: one row per distinct
+     * active user_id (bounded by active-user count, not push volume), shared
+     * by roiPerAccount() and topAccounts() to avoid querying twice.
+     */
+    private function accountAggregates(\Illuminate\Support\Carbon $cutoff): Collection
+    {
+        return $this->cliLogsQuery($cutoff)
+            ->selectRaw('user_id, SUM(tokens_used) as tokens_saved, SUM(command_count) as commands_run')
+            ->groupBy('user_id')
+            ->get();
+    }
+
+    private function popularCommands(\Illuminate\Support\Carbon $cutoff): array
+    {
+        return $this->cliLogsQuery($cutoff)
+            ->selectRaw('action, SUM(command_count) as total_runs')
+            ->groupBy('action')
+            ->orderByDesc('total_runs')
+            ->get()
+            ->map(fn ($row) => ['action' => $row->action, 'total_runs' => (int) $row->total_runs])
             ->toArray();
     }
 
-    private function roiPerAccount(Collection $logs): array
+    private function roiPerAccount(Collection $accountRows, ?Collection $users): array
     {
-        $prices = config('tiers.prices');
-        $rate   = config('tiers.token_rate_per_million');
-
-        $users = $this->usersFromLogs($logs);
         if ($users === null) {
             return [];
         }
 
-        return $logs->groupBy('user_id')
-            ->map(function ($rows, $userId) use ($users, $prices, $rate) {
-                $user        = $users->get($userId);
-                $tokensSaved = (int) $rows->sum('tokens_used');
+        $prices = config('tiers.prices');
+        $rate   = config('tiers.token_rate_per_million');
+
+        return $accountRows
+            ->map(function ($row) use ($users, $prices, $rate) {
+                $user        = $users->get($row->user_id);
+                $tokensSaved = (int) $row->tokens_saved;
                 $estSavings  = round($tokensSaved / 1_000_000 * $rate, 4);
                 $price       = $prices[$user?->tier] ?? 0;
                 $roi         = $price > 0 ? round($estSavings / $price, 4) : null;
 
                 return [
-                    'user_id'          => $userId,
+                    'user_id'          => $row->user_id,
                     'name'             => $user?->name,
                     'email'            => $user?->email,
                     'tier'             => $user?->tier,
@@ -90,34 +122,31 @@ class InsightsController
             ->toArray();
     }
 
-    private function featureAdoption(Collection $logs): array
+    private function featureAdoption(\Illuminate\Support\Carbon $cutoff): array
     {
-        // Distinct users per action (MAU-style adoption count)
-        return $logs->groupBy('action')
-            ->map(fn ($rows) => $rows->pluck('user_id')->unique()->count())
+        return $this->cliLogsQuery($cutoff)
+            ->selectRaw('action, COUNT(DISTINCT user_id) as adopters')
+            ->groupBy('action')
+            ->pluck('adopters', 'action')
+            ->map(fn ($v) => (int) $v)
             ->toArray();
     }
 
-    private function topAccounts(Collection $logs): array
+    private function topAccounts(Collection $accountRows, ?Collection $users): array
     {
-        $users = $this->usersFromLogs($logs);
         if ($users === null) {
             return [];
         }
 
-        return $logs->groupBy('user_id')
-            ->map(function ($rows, $userId) use ($users) {
-                $user = $users->get($userId);
-
-                return [
-                    'user_id'     => $userId,
-                    'name'        => $user?->name,
-                    'email'       => $user?->email,
-                    'tier'        => $user?->tier,
-                    'commands_run'=> $this->sumCount($rows),
-                    'tokens_saved'=> (int) $rows->sum('tokens_used'),
-                ];
-            })
+        return $accountRows
+            ->map(fn ($row) => [
+                'user_id'     => $row->user_id,
+                'name'        => $users->get($row->user_id)?->name,
+                'email'       => $users->get($row->user_id)?->email,
+                'tier'        => $users->get($row->user_id)?->tier,
+                'commands_run'=> (int) $row->commands_run,
+                'tokens_saved'=> (int) $row->tokens_saved,
+            ])
             ->sortByDesc('commands_run')
             ->values()
             ->toArray();
@@ -165,9 +194,10 @@ class InsightsController
 
     /**
      * Returns [prev_period_tokens_saved, prev_period_active_users] for the
-     * window immediately before the current period. Null for 'all' periods.
+     * window immediately before the current period. Bounded aggregate query
+     * — never fetches raw rows for the previous window either.
      *
-     * @return array{int|null, int|null}
+     * @return array{int, int}
      */
     private function prevPeriodStats(string $period): array
     {
@@ -175,66 +205,61 @@ class InsightsController
         $start = now()->subDays($days * 2);
         $end   = now()->subDays($days);
 
-        $rows = DB::table('usage_logs')
-            ->whereNotNull('metadata')
-            ->where('created_at', '>=', $start)
-            ->where('created_at', '<',  $end)
-            ->get(['user_id', 'tokens_used']);
+        $totals = $this->cliLogsQuery($start)
+            ->where('created_at', '<', $end)
+            ->selectRaw('SUM(tokens_used) as tokens_saved, COUNT(DISTINCT user_id) as active_users')
+            ->first();
 
         return [
-            (int) $rows->sum('tokens_used'),
-            $rows->pluck('user_id')->unique()->count(),
+            (int) ($totals->tokens_saved ?? 0),
+            (int) ($totals->active_users ?? 0),
         ];
     }
 
     /**
-     * Returns a zero-filled daily series for the current period window.
-     * $metric = 'tokens_saved' → sum tokens_used per day
-     * $metric = 'active_users' → distinct user_id count per day
-     *
-     * @return array<int, array{date: string, value: int}>
+     * Per-day tokens_saved + active_users for the current period window, in
+     * one bounded GROUP BY DATE query (rows bounded by day count, not push
+     * volume). Keyed by date string for skeleton merging.
      */
-    private function dailySeries(Collection $logs, string $period, string $metric): array
+    private function dailyAggregates(string $period): Collection
     {
         $days  = $this->daysForPeriod($period);
         $start = now()->subDays($days - 1)->startOfDay();
 
-        // Build zero-filled skeleton indexed by date string
+        return $this->cliLogsQuery($start)
+            ->selectRaw('DATE(created_at) as date, SUM(tokens_used) as tokens, COUNT(DISTINCT user_id) as active')
+            ->groupBy('date')
+            ->get()
+            ->keyBy('date');
+    }
+
+    /**
+     * Merges dailyAggregates() rows into a zero-filled daily skeleton for the
+     * current period. $metric selects which aggregate column to project.
+     *
+     * @return array<int, array{date: string, value: int}>
+     */
+    private function fillDailySkeleton(string $period, Collection $dailyRows, string $metric): array
+    {
+        $days  = $this->daysForPeriod($period);
+        $start = now()->subDays($days - 1)->startOfDay();
+
         $series = [];
         for ($i = 0; $i < $days; $i++) {
-            $series[$start->copy()->addDays($i)->format('Y-m-d')] = 0;
+            $date = $start->copy()->addDays($i)->format('Y-m-d');
+            $row  = $dailyRows->get($date);
+
+            $value = match (true) {
+                $row === null           => 0,
+                $metric === 'tokens'    => (int) $row->tokens,
+                $metric === 'active'    => (int) $row->active,
+                default                 => 0,
+            };
+
+            $series[] = ['date' => $date, 'value' => $value];
         }
 
-        // Group in-memory from the already-fetched $logs
-        foreach ($logs as $row) {
-            $date = substr($row->created_at, 0, 10);
-            if (!array_key_exists($date, $series)) {
-                continue;
-            }
-            if ($metric === 'tokens_saved') {
-                $series[$date] += (int) $row->tokens_used;
-            }
-        }
-
-        if ($metric === 'active_users') {
-            // Collect per-day user sets, then count distinct
-            $perDay = array_fill_keys(array_keys($series), []);
-            foreach ($logs as $row) {
-                $date = substr($row->created_at, 0, 10);
-                if (array_key_exists($date, $perDay)) {
-                    $perDay[$date][$row->user_id] = true;
-                }
-            }
-            foreach ($perDay as $date => $users) {
-                $series[$date] = count($users);
-            }
-        }
-
-        return array_values(array_map(
-            fn ($date, $value) => ['date' => $date, 'value' => $value],
-            array_keys($series),
-            $series
-        ));
+        return $series;
     }
 
     /**
@@ -246,25 +271,17 @@ class InsightsController
     }
 
     /**
-     * Sum the per-row command counts stored in each log's JSON metadata.
+     * Load users referenced by account aggregates, keyed by id. Returns null
+     * when no user_ids are present so callers can short-circuit to an empty
+     * result.
      */
-    private function sumCount(Collection $rows): int
+    private function usersByIds(Collection $userIds): ?Collection
     {
-        return (int) $rows->sum(fn ($r) => json_decode($r->metadata, true)['count'] ?? 0);
-    }
-
-    /**
-     * Load users referenced by the logs, keyed by id. Returns null when no
-     * user_ids are present so callers can short-circuit to an empty result.
-     */
-    private function usersFromLogs(Collection $logs): ?Collection
-    {
-        $userIds = $logs->pluck('user_id')->unique()->values()->toArray();
-        if (empty($userIds)) {
+        $ids = $userIds->unique()->values()->toArray();
+        if (empty($ids)) {
             return null;
         }
 
-        // Eager-load to avoid N+1 across the per-account aggregation.
-        return User::whereIn('id', $userIds)->get(['id', 'name', 'email', 'tier'])->keyBy('id');
+        return User::whereIn('id', $ids)->get(['id', 'name', 'email', 'tier'])->keyBy('id');
     }
 }

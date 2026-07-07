@@ -113,7 +113,7 @@ watch(actionPerPage, () => { actionPage.value = 1 })
                         <tr class="tl-thead">
                             <th class="tl-th">Actor</th>
                             <th class="tl-th">Action</th>
-                            <th class="tl-th tl-td--right">Date</th>
+                            <th class="tl-th tl-th--right">Date</th>
                         </tr>
                     </thead>
                     <tbody class="tl-divide">

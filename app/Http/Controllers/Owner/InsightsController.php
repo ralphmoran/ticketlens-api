@@ -3,10 +3,12 @@
 namespace App\Http\Controllers\Owner;
 
 use App\Models\License;
+use App\Models\UsageLog;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Cache;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -17,7 +19,20 @@ class InsightsController
     public function index(Request $request): Response
     {
         $period = $request->query('period', '30');
-        $cutoff = now()->subDays($this->daysForPeriod($period));
+        $days   = $this->daysForPeriod($period);
+
+        $props = Cache::remember(
+            "owner:insights:v1:days:{$days}",
+            config('ticketlens.owner_analytics_cache_ttl'),
+            fn () => $this->buildProps($period, $days),
+        );
+
+        return Inertia::render('Console/Owner/Insights', $props);
+    }
+
+    private function buildProps(string $period, int $days): array
+    {
+        $cutoff = now()->subDays($days);
 
         $totals          = $this->periodTotals($cutoff);
         $accountRows     = $this->accountAggregates($cutoff);
@@ -27,8 +42,12 @@ class InsightsController
         [$prevTokensSaved, $prevActiveUsers] = $this->prevPeriodStats($period);
         $dailyRows = $this->dailyAggregates($period);
 
-        return Inertia::render('Console/Owner/Insights', [
-            'period'                   => $period,
+        return [
+            // Canonical clamped value, not the raw request string — the response
+            // is cached per $days bucket, so echoing the raw $period back here
+            // would let one raw-string variant's label leak into every other
+            // variant that clamps to the same bucket (e.g. "030" vs "30").
+            'period'                   => (string) $days,
             'popular_commands'         => $this->popularCommands($cutoff),
             'tokens_saved_total'       => (int) ($totals->tokens_saved ?? 0),
             'roi_per_account'          => $this->roiPerAccount($accountRows, $users),
@@ -43,19 +62,19 @@ class InsightsController
             'prev_period_active_users' => $prevActiveUsers,
             'tokens_saved_by_day'      => $this->fillDailySkeleton($period, $dailyRows, 'tokens'),
             'active_users_by_day'      => $this->fillDailySkeleton($period, $dailyRows, 'active'),
-        ]);
+        ];
     }
 
     /**
      * Base query for CLI-origin usage_logs rows within a period window.
-     * whereNotNull('metadata') is the dual-semantics discriminator (CLI rows
-     * have metadata set; BYOK/AI-action rows don't) — every metric query
+     * cliOrigin() is the dual-semantics discriminator (CLI rows have
+     * has_metadata=1; BYOK/AI-action rows don't) — every metric query
      * shares this filter, extracted once so it can't drift between them.
      */
-    private function cliLogsQuery(\Illuminate\Support\Carbon $cutoff): \Illuminate\Database\Query\Builder
+    private function cliLogsQuery(\Illuminate\Support\Carbon $cutoff): Builder
     {
-        return DB::table('usage_logs')
-            ->whereNotNull('metadata')
+        return UsageLog::query()
+            ->cliOrigin()
             ->where('created_at', '>=', $cutoff);
     }
 

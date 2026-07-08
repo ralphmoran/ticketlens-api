@@ -7,12 +7,24 @@ use App\Models\Group;
 use App\Models\License;
 use App\Models\TriageSnapshot;
 use App\Models\User;
+use Illuminate\Support\Facades\Cache;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class RevenueController extends Controller
 {
     public function index(): Response
+    {
+        $props = Cache::remember(
+            'owner:revenue:v1',
+            config('ticketlens.owner_analytics_cache_ttl'),
+            fn () => $this->buildProps(),
+        );
+
+        return Inertia::render('Console/Owner/Revenue', $props);
+    }
+
+    private function buildProps(): array
     {
         $tierPrices = config('tiers.prices');
 
@@ -75,7 +87,7 @@ class RevenueController extends Controller
             ->map(fn ($g) => ['group_id' => $g->id, 'group_name' => $g->name, 'push_count' => (int) $g->push_count])
             ->toArray();
 
-        return Inertia::render('Console/Owner/Revenue', [
+        return [
             'mrr'                  => $mrr,
             'total_active'         => $totalActive,
             'tier_breakdown'       => $tierBreakdown,
@@ -84,6 +96,6 @@ class RevenueController extends Controller
             'push_volume_per_day'  => $pushVolumePerDay,
             'dau_wau_mau'          => $dauWauMau,
             'top_teams_by_activity'=> $topTeamsByActivity,
-        ]);
+        ];
     }
 }

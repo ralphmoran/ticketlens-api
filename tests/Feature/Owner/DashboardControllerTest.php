@@ -152,4 +152,29 @@ class DashboardControllerTest extends TestCase
                 ->where('stats.recent_actions', fn ($v) => count($v) <= 100)
             );
     }
+
+    // ── Caching ────────────────────────────────────────────────────────────
+
+    public function test_dashboard_stats_are_served_from_cache_on_second_request_within_ttl(): void
+    {
+        $owner = $this->makeOwner();
+
+        DB::enableQueryLog();
+        DB::flushQueryLog();
+        $this->actingAs($owner)->get('/console/owner/dashboard')->assertOk();
+        $coldRequestQueries = count(DB::getQueryLog());
+        DB::disableQueryLog();
+
+        DB::enableQueryLog();
+        DB::flushQueryLog();
+        $this->actingAs($owner)->get('/console/owner/dashboard')->assertOk();
+        $cachedRequestQueries = count(DB::getQueryLog());
+        DB::disableQueryLog();
+
+        $this->assertLessThan(
+            $coldRequestQueries,
+            $cachedRequestQueries,
+            'Second dashboard request within TTL must skip the stats aggregate queries (cache hit).'
+        );
+    }
 }

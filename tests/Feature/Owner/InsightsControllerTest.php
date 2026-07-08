@@ -4,6 +4,7 @@ namespace Tests\Feature\Owner;
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
@@ -428,6 +429,11 @@ class InsightsControllerTest extends TestCase
             $this->insertCliLog($user->id, 'fetch', 10, 1);
         }
 
+        // Bust the response cache so this measurement exercises real query
+        // behavior again, not a cache hit from the first call above — this
+        // test proves SQL query count is bounded, independent of caching.
+        Cache::flush();
+
         DB::enableQueryLog();
         DB::flushQueryLog();
         $this->actingAs($owner)->get('/console/owner/insights?period=30')->assertOk();
@@ -460,5 +466,48 @@ class InsightsControllerTest extends TestCase
             $isAggregate = str_contains($sql, 'sum(') || str_contains($sql, 'count(') || str_contains($sql, 'group by');
             $this->assertTrue($isAggregate, "Non-aggregate usage_logs query found: {$q['query']}");
         }
+    }
+
+    // ── Caching ────────────────────────────────────────────────────────────
+
+    public function test_insights_response_is_served_from_cache_on_second_request_within_ttl(): void
+    {
+        $owner = $this->makeOwner();
+
+        DB::enableQueryLog();
+        DB::flushQueryLog();
+        $this->actingAs($owner)->get('/console/owner/insights?period=30')->assertOk();
+        $coldRequestQueries = count(DB::getQueryLog());
+        DB::disableQueryLog();
+
+        DB::enableQueryLog();
+        DB::flushQueryLog();
+        $this->actingAs($owner)->get('/console/owner/insights?period=30')->assertOk();
+        $cachedRequestQueries = count(DB::getQueryLog());
+        DB::disableQueryLog();
+
+        $this->assertLessThan(
+            $coldRequestQueries,
+            $cachedRequestQueries,
+            'Second insights request within TTL must skip the aggregate queries (cache hit).'
+        );
+    }
+
+    public function test_insights_cache_is_scoped_per_period(): void
+    {
+        $owner = $this->makeOwner();
+        $this->actingAs($owner)->get('/console/owner/insights?period=30')->assertOk();
+
+        DB::enableQueryLog();
+        DB::flushQueryLog();
+        $this->actingAs($owner)->get('/console/owner/insights?period=60')->assertOk();
+        $differentPeriodQueries = count(DB::getQueryLog());
+        DB::disableQueryLog();
+
+        $this->assertGreaterThan(
+            0,
+            $differentPeriodQueries,
+            'A different period value must not be served from the period=30 cache entry.'
+        );
     }
 }

@@ -21,13 +21,24 @@ class ClientHealthController
         $requested = (int) $request->query('period', 30);
         $period    = in_array($requested, self::ALLOWED_PERIODS, true) ? $requested : 30;
 
+        $props = Cache::remember(
+            "owner:clienthealth:v1:period:{$period}",
+            config('ticketlens.owner_analytics_cache_ttl'),
+            fn () => $this->buildProps($period),
+        );
+
+        return Inertia::render('Console/Owner/ClientHealth', $props);
+    }
+
+    private function buildProps(int $period): array
+    {
         $now   = now();
         $start = $now->copy()->subDays($period);
         $prev  = $start->copy()->subDays($period);
 
         $ownerIds = User::where('is_owner', true)->pluck('id');
 
-        return Inertia::render('Console/Owner/ClientHealth', [
+        return [
             'period'              => $period,
             'new_accounts'        => $this->newAccounts($ownerIds, $start),
             'churned_accounts'    => $this->churnedAccounts($ownerIds, $start, $prev),
@@ -41,7 +52,7 @@ class ClientHealthController
             'conversion_rate'     => $this->conversionRate($ownerIds),
             'license_issuances'   => $this->licenseIssuances(),
             'npm_downloads'       => $this->npmDownloads($period),
-        ]);
+        ];
     }
 
     private function newAccounts($ownerIds, $start): int
@@ -55,12 +66,12 @@ class ClientHealthController
     {
         return (int) DB::table('usage_logs as prev')
             ->whereNotIn('prev.user_id', $ownerIds)
-            ->whereNotNull('prev.metadata')
+            ->where('prev.has_metadata', 1)
             ->whereBetween('prev.created_at', [$prev, $start])
             ->whereNotExists(fn ($q) => $q
                 ->from('usage_logs as cur')
                 ->whereColumn('cur.user_id', 'prev.user_id')
-                ->whereNotNull('cur.metadata')
+                ->where('cur.has_metadata', 1)
                 ->where('cur.created_at', '>=', $start)
             )
             ->distinct()
@@ -76,7 +87,7 @@ class ClientHealthController
             ->whereNotExists(fn ($q) => $q
                 ->from('usage_logs')
                 ->whereColumn('usage_logs.user_id', 'users.id')
-                ->whereNotNull('usage_logs.metadata')
+                ->where('usage_logs.has_metadata', 1)
                 ->where('usage_logs.created_at', '>=', $threshold)
             );
 
@@ -97,7 +108,7 @@ class ClientHealthController
             ->whereNotExists(fn ($q) => $q
                 ->from('usage_logs')
                 ->whereColumn('usage_logs.user_id', 'users.id')
-                ->whereNotNull('usage_logs.metadata')
+                ->where('usage_logs.has_metadata', 1)
             )
             ->count();
     }
@@ -164,9 +175,9 @@ class ClientHealthController
     private function commandsPerUser($ownerIds, $start): float
     {
         $rows = UsageLog::whereNotIn('user_id', $ownerIds)
-            ->whereNotNull('metadata')
+            ->cliOrigin()
             ->where('created_at', '>=', $start)
-            ->selectRaw('user_id, SUM(JSON_EXTRACT(metadata, "$.count")) as cmd_count')
+            ->selectRaw('user_id, SUM(command_count) as cmd_count')
             ->groupBy('user_id')
             ->get();
 
@@ -180,7 +191,7 @@ class ClientHealthController
     private function featurePenetration($ownerIds, $start): array
     {
         $rows = UsageLog::whereNotIn('usage_logs.user_id', $ownerIds)
-            ->whereNotNull('usage_logs.metadata')
+            ->cliOrigin()
             ->where('usage_logs.created_at', '>=', $start)
             ->join('users', 'users.id', '=', 'usage_logs.user_id')
             ->select('usage_logs.action', 'users.tier', DB::raw('COUNT(DISTINCT usage_logs.user_id) as user_count'))

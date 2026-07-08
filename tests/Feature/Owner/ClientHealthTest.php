@@ -242,8 +242,8 @@ class ClientHealthTest extends TestCase
 
         // userA: 3 commands; userB: 1 command → avg = 2.0
         DB::table('usage_logs')->insert([
-            ['user_id' => $userA->id, 'action' => 'fetch', 'ticket_key' => null, 'tokens_used' => 10, 'metadata' => json_encode(['count' => 3, 'flags' => []]), 'created_at' => now()],
-            ['user_id' => $userB->id, 'action' => 'fetch', 'ticket_key' => null, 'tokens_used' => 10, 'metadata' => json_encode(['count' => 1, 'flags' => []]), 'created_at' => now()],
+            ['user_id' => $userA->id, 'action' => 'fetch', 'ticket_key' => null, 'tokens_used' => 10, 'command_count' => 3, 'metadata' => json_encode(['count' => 3, 'flags' => []]), 'created_at' => now()],
+            ['user_id' => $userB->id, 'action' => 'fetch', 'ticket_key' => null, 'tokens_used' => 10, 'command_count' => 1, 'metadata' => json_encode(['count' => 1, 'flags' => []]), 'created_at' => now()],
         ]);
 
         $this->actingAs($owner)->get('/console/owner/health?period=30')
@@ -337,5 +337,30 @@ class ClientHealthTest extends TestCase
 
         $this->actingAs($owner)->get('/console/owner/health')
             ->assertInertia(fn ($page) => $page->has('npm_downloads'));
+    }
+
+    // ── Caching ────────────────────────────────────────────────────────────
+
+    public function test_client_health_response_is_served_from_cache_on_second_request_within_ttl(): void
+    {
+        $owner = $this->makeOwner();
+
+        DB::enableQueryLog();
+        DB::flushQueryLog();
+        $this->actingAs($owner)->get('/console/owner/health?period=30')->assertOk();
+        $coldRequestQueries = count(DB::getQueryLog());
+        DB::disableQueryLog();
+
+        DB::enableQueryLog();
+        DB::flushQueryLog();
+        $this->actingAs($owner)->get('/console/owner/health?period=30')->assertOk();
+        $cachedRequestQueries = count(DB::getQueryLog());
+        DB::disableQueryLog();
+
+        $this->assertLessThan(
+            $coldRequestQueries,
+            $cachedRequestQueries,
+            'Second client-health request within TTL must skip the aggregate queries (cache hit).'
+        );
     }
 }

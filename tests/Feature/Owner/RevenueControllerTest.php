@@ -5,6 +5,7 @@ namespace Tests\Feature\Owner;
 use App\Models\License;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 class RevenueControllerTest extends TestCase
@@ -186,5 +187,30 @@ class RevenueControllerTest extends TestCase
                     collect($v)->every(fn ($row) => isset($row['group_name']) && isset($row['push_count']))
                 )
             );
+    }
+
+    // ── Caching ────────────────────────────────────────────────────────────
+
+    public function test_revenue_response_is_served_from_cache_on_second_request_within_ttl(): void
+    {
+        $owner = $this->makeOwner();
+
+        DB::enableQueryLog();
+        DB::flushQueryLog();
+        $this->actingAs($owner)->get('/console/owner/revenue')->assertOk();
+        $coldRequestQueries = count(DB::getQueryLog());
+        DB::disableQueryLog();
+
+        DB::enableQueryLog();
+        DB::flushQueryLog();
+        $this->actingAs($owner)->get('/console/owner/revenue')->assertOk();
+        $cachedRequestQueries = count(DB::getQueryLog());
+        DB::disableQueryLog();
+
+        $this->assertLessThan(
+            $coldRequestQueries,
+            $cachedRequestQueries,
+            'Second revenue request within TTL must skip the aggregate queries (cache hit).'
+        );
     }
 }

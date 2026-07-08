@@ -37,7 +37,11 @@ class DashboardController extends Controller
             'total_users'          => $totalUsers,
             'suspended_users'      => $suspended,
             'active_users'         => $activeUsers,
-            'recent_actions'       => AuditLog::latest()->limit(100)->with(['actor', 'targetUser'])->get(),
+            // ->toArray() — Cache::remember() on the database/redis/file drivers
+            // round-trips this through PHP serialize()/unserialize(); raw Eloquent
+            // Collections don't survive that reliably (comes back as
+            // __PHP_Incomplete_Class). Plain arrays always do.
+            'recent_actions'       => AuditLog::latest()->limit(100)->with(['actor', 'targetUser'])->get()->toArray(),
             'user_status_chart'    => [
                 'labels' => ['Active', 'Inactive'],
                 'data'   => [$activeUsers, max(0, $totalUsers - $activeUsers)],

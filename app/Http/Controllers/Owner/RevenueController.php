@@ -40,10 +40,13 @@ class RevenueController extends Controller
             User::selectRaw('tier, count(*) as count')->groupBy('tier')->pluck('count', 'tier')->toArray(),
         );
 
+        // ->toArray() — see DashboardController::buildStats() comment: cached
+        // props must be plain arrays, not raw Eloquent Collections.
         $recentEvents = License::with(['user:id,email'])
             ->orderBy('created_at', 'desc')
             ->limit(10)
-            ->get(['id', 'user_id', 'tier', 'status', 'created_at']);
+            ->get(['id', 'user_id', 'tier', 'status', 'created_at'])
+            ->toArray();
 
         // Signups per week — last 8 weeks (1 query, grouped in PHP)
         $weekCutoff  = now()->startOfWeek()->subWeeks(7);

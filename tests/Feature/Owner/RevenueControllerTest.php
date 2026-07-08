@@ -213,4 +213,22 @@ class RevenueControllerTest extends TestCase
             'Second revenue request within TTL must skip the aggregate queries (cache hit).'
         );
     }
+
+    public function test_recent_events_survive_a_real_cache_round_trip(): void
+    {
+        // See DashboardControllerTest::test_dashboard_recent_actions_survive_a_real_cache_round_trip
+        // — array never serializes, database does, and that's what production uses.
+        config(['cache.default' => 'database']);
+
+        $owner   = $this->makeOwner();
+        $proUser = User::factory()->create(['tier' => 'pro']);
+        License::create(['user_id' => $proUser->id, 'lemon_key_hash' => str_repeat('d', 64), 'status' => 'active', 'tier' => 'pro']);
+
+        $this->actingAs($owner)->get('/console/owner/revenue')->assertOk();
+
+        $this->actingAs($owner)->get('/console/owner/revenue')
+            ->assertInertia(fn ($page) => $page
+                ->where('recent_events.0.tier', 'pro')
+            );
+    }
 }

@@ -363,4 +363,21 @@ class ClientHealthTest extends TestCase
             'Second client-health request within TTL must skip the aggregate queries (cache hit).'
         );
     }
+
+    public function test_at_risk_accounts_survive_a_real_cache_round_trip(): void
+    {
+        // See DashboardControllerTest::test_dashboard_recent_actions_survive_a_real_cache_round_trip
+        // — array never serializes, database does, and that's what production uses.
+        config(['cache.default' => 'database']);
+
+        $owner    = $this->makeOwner();
+        $noPushes = $this->makeClient();
+
+        $this->actingAs($owner)->get('/console/owner/health')->assertOk();
+
+        $this->actingAs($owner)->get('/console/owner/health')
+            ->assertInertia(fn ($page) => $page
+                ->where('at_risk_accounts.accounts.0.email', $noPushes->email)
+            );
+    }
 }

@@ -93,11 +93,14 @@ class ClientHealthController
 
         return [
             'count'    => $base->count(),
+            // ->toArray() — see DashboardController::buildStats() comment: cached
+            // props must be plain arrays, not raw Eloquent Collections.
             'accounts' => (clone $base)
                 ->select('id', 'name', 'email', 'tier', 'created_at')
                 ->orderBy('created_at', 'desc')
                 ->limit(50)
-                ->get(),
+                ->get()
+                ->toArray(),
         ];
     }
 

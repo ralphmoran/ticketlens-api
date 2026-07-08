@@ -177,4 +177,31 @@ class DashboardControllerTest extends TestCase
             'Second dashboard request within TTL must skip the stats aggregate queries (cache hit).'
         );
     }
+
+    public function test_dashboard_recent_actions_survive_a_real_cache_round_trip(): void
+    {
+        // array (the test default) never serializes — it keeps a live PHP
+        // reference, so it can't catch a value that fails PHP serialize()/
+        // unserialize(). database is what production actually runs, and is
+        // where a raw Eloquent Collection comes back as
+        // __PHP_Incomplete_Class instead of usable data.
+        config(['cache.default' => 'database']);
+
+        $owner = $this->makeOwner();
+        $actor = User::factory()->create(['tier' => 'pro']);
+        DB::table('audit_logs')->insert([
+            'actor_id'       => $actor->id,
+            'target_user_id' => null,
+            'action'         => 'client.suspended',
+            'metadata'       => null,
+            'created_at'     => now()->toDateTimeString(),
+        ]);
+
+        $this->actingAs($owner)->get('/console/owner/dashboard')->assertOk();
+
+        $this->actingAs($owner)->get('/console/owner/dashboard')
+            ->assertInertia(fn ($page) => $page
+                ->where('stats.recent_actions.0.action', 'client.suspended')
+            );
+    }
 }

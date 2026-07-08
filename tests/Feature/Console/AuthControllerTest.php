@@ -53,6 +53,16 @@ class AuthControllerTest extends TestCase
         $this->assertGuest();
     }
 
+    public function test_login_rejects_crlf_bearing_email(): void
+    {
+        $this->post('/console/login', [
+            'email'    => "victim@example.com\r\nBcc: evil@example.com",
+            'password' => 'password',
+        ])->assertSessionHasErrors('email');
+
+        $this->assertGuest();
+    }
+
     // ── Lock: logout ─────────────────────────────────────────────────────────
 
     public function test_logout_clears_session_and_redirects_to_login(): void
@@ -155,6 +165,19 @@ class AuthControllerTest extends TestCase
 
         $this->assertGuest();
         $this->assertDatabaseMissing('users', ['email' => 'jane@example.com']);
+    }
+
+    public function test_register_rejects_crlf_bearing_email(): void
+    {
+        $this->post('/console/register', [
+            'name'                  => 'Jane Smith',
+            'email'                 => "jane@example.com\r\nBcc: evil@example.com",
+            'password'              => 'secret123',
+            'password_confirmation' => 'secret123',
+        ])->assertSessionHasErrors('email');
+
+        $this->assertGuest();
+        $this->assertDatabaseCount('users', 0);
     }
 
     public function test_missing_name_redirects_back_without_creating_user(): void

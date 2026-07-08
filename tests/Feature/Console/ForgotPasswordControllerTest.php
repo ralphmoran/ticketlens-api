@@ -67,6 +67,13 @@ class ForgotPasswordControllerTest extends TestCase
             ->assertSessionHasErrors('email');
     }
 
+    public function test_forgot_password_rejects_crlf_bearing_email(): void
+    {
+        $this->post('/console/forgot-password', [
+            'email' => "victim@example.com\r\nBcc: evil@example.com",
+        ])->assertSessionHasErrors('email');
+    }
+
     public function test_send_blocks_authenticated_users(): void
     {
         Notification::fake();

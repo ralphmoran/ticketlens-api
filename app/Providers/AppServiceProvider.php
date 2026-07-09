@@ -9,6 +9,7 @@ use App\Policies\BriefTemplatePolicy;
 use App\Policies\CustomAlertRulePolicy;
 use App\Policies\DigestSchedulePolicy;
 use App\Services\SlackService;
+use App\Support\LicenseSkipGuard;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
@@ -28,6 +29,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        LicenseSkipGuard::assertSafe((string) config('app.env'), (bool) config('ticketlens.skip_license'));
+
         Gate::policy(BriefTemplate::class, BriefTemplatePolicy::class);
         Gate::policy(CustomAlertRule::class, CustomAlertRulePolicy::class);
         Gate::policy(SlackDigestSchedule::class, DigestSchedulePolicy::class);

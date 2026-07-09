@@ -122,6 +122,8 @@ DB_USERNAME=sail
 DB_PASSWORD=password
 
 QUEUE_CONNECTION=redis
+CACHE_STORE=redis
+SESSION_DRIVER=redis
 REDIS_HOST=redis
 
 MAIL_MAILER=smtp
@@ -304,6 +306,8 @@ server {
 | `DB_DATABASE`               | yes          | `ticketlens`   | MySQL database name                               |
 | `DB_HOST`                   | yes          | `mysql`        | Docker service name in Sail; `127.0.0.1` in prod  |
 | `QUEUE_CONNECTION`          | yes          | `redis`        | Must be `redis`, not `sync`, for queued jobs      |
+| `CACHE_STORE`               | yes          | `redis`        | Same driver locally and in prod — avoids MySQL contention |
+| `SESSION_DRIVER`            | yes          | `redis`        | Same driver locally and in prod — avoids MySQL contention |
 | `MAIL_HOST`                 | yes          | `mailpit`      | `mailpit` locally; your SMTP host in prod         |
 | `TICKETLENS_SKIP_LICENSE`   | no           | `false`        | Set `true` to bypass LemonSqueezy locally         |
 | `ANTHROPIC_API_KEY`         | for BYOK     | —              | Required for `--summarize` without `--cloud`      |

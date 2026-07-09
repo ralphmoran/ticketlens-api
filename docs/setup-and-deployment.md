@@ -283,6 +283,16 @@ server {
 }
 ```
 
+### MySQL binary-log trigger permissions — accepted trade-off
+
+`docker/mysql/conf.d/triggers.cnf` sets `log_bin_trust_function_creators=1` instance-wide.
+
+**Why it exists:** the schema uses `BEFORE DELETE` triggers. With binary logging enabled, MySQL refuses trigger creation from non-SUPER users (error 1419) unless this flag is set — and migrations run as the app user, not root.
+
+**Decision (2026-07-09, security audit §4.5):** accepted globally, documented here. Nothing else in the app creates triggers or stored functions, replication is not statement-based, and the scoped alternative (granting the migration user `SUPER`/`SET_USER_ID`) is restricted on managed hosting. Revisit only if statement-based replication or point-in-time-recovery tooling is introduced.
+
+**AWS RDS:** this flag cannot be set via SQL on RDS — set `log_bin_trust_function_creators = 1` in the DB parameter group instead.
+
 ---
 
 ## Environment Reference

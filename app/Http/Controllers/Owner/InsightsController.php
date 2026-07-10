@@ -7,6 +7,7 @@ use App\Models\UsageLog;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Inertia\Inertia;
@@ -20,24 +21,38 @@ class InsightsController
     {
         $period = $request->query('period', '30');
         $days   = $this->daysForPeriod($period);
+        $cutoff = now()->subDays($days);
 
-        $props = Cache::remember(
+        $cachedProps = Cache::remember(
             "owner:insights:v1:days:{$days}",
             config('ticketlens.owner_analytics_cache_ttl'),
-            fn () => $this->buildProps($period, $days),
+            fn () => $this->buildCachedProps($period, $days),
         );
+
+        $accountsPerPage = $this->clampPerPage($request, 'accounts_per_page');
+        $roiPerPage      = $this->clampPerPage($request, 'roi_per_page');
+        $accountsSearch  = $request->string('accounts_search')->trim()->value() ?: null;
+        $roiSearch       = $request->string('roi_search')->trim()->value() ?: null;
+
+        $props = array_merge($cachedProps, [
+            'top_accounts'    => $this->paginatedTopAccounts($cutoff, $accountsPerPage, $accountsSearch),
+            'roi_per_account' => $this->paginatedRoiPerAccount($cutoff, $roiPerPage, $roiSearch),
+            'filters'         => [
+                'accounts_search'   => $accountsSearch,
+                'accounts_per_page' => $accountsPerPage,
+                'roi_search'        => $roiSearch,
+                'roi_per_page'      => $roiPerPage,
+            ],
+        ]);
 
         return Inertia::render('Console/Owner/Insights', $props);
     }
 
-    private function buildProps(string $period, int $days): array
+    private function buildCachedProps(string $period, int $days): array
     {
         $cutoff = now()->subDays($days);
 
-        $totals          = $this->periodTotals($cutoff);
-        $accountRows     = $this->accountAggregates($cutoff);
-        $accountUserIds  = $accountRows->pluck('user_id');
-        $users           = $this->usersByIds($accountUserIds);
+        $totals = $this->periodTotals($cutoff);
 
         [$prevTokensSaved, $prevActiveUsers] = $this->prevPeriodStats($period);
         $dailyRows = $this->dailyAggregates($period);
@@ -50,9 +65,7 @@ class InsightsController
             'period'                   => (string) $days,
             'popular_commands'         => $this->popularCommands($cutoff),
             'tokens_saved_total'       => (int) ($totals->tokens_saved ?? 0),
-            'roi_per_account'          => $this->roiPerAccount($accountRows, $users),
             'feature_adoption'         => $this->featureAdoption($cutoff),
-            'top_accounts'             => $this->topAccounts($accountRows, $users),
             'tier_distribution'        => $this->tierDistribution(),
             'total_users'              => User::where('is_owner', false)->count(),
             'active_users'             => (int) ($totals->active_users ?? 0),
@@ -86,16 +99,30 @@ class InsightsController
     }
 
     /**
-     * Per-account aggregates for the period window: one row per distinct
-     * active user_id (bounded by active-user count, not push volume), shared
-     * by roiPerAccount() and topAccounts() to avoid querying twice.
+     * Per-account aggregates for the period window, ungrouped result kept as
+     * a query (not ->get()) so callers can joinSub() it against `users` and
+     * paginate at the database level instead of loading every active account.
      */
-    private function accountAggregates(\Illuminate\Support\Carbon $cutoff): Collection
+    private function accountAggregatesSubquery(\Illuminate\Support\Carbon $cutoff): Builder
     {
         return $this->cliLogsQuery($cutoff)
             ->selectRaw('user_id, SUM(tokens_used) as tokens_saved, SUM(command_count) as commands_run')
-            ->groupBy('user_id')
-            ->get();
+            ->groupBy('user_id');
+    }
+
+    /**
+     * Shared join between account aggregates and `users`, with an optional
+     * name/email search — the common base for both paginated account tables.
+     */
+    private function searchableAccountsQuery(\Illuminate\Support\Carbon $cutoff, ?string $search): Builder
+    {
+        return User::query()
+            ->withTrashed() // a soft-deleted client's past-period usage must still count toward owner-facing totals
+            ->joinSub($this->accountAggregatesSubquery($cutoff), 'agg', 'agg.user_id', '=', 'users.id')
+            ->when($search, fn (Builder $q) => $q->where(fn (Builder $q2) => $q2
+                ->where('users.name', 'like', "%{$search}%")
+                ->orWhere('users.email', 'like', "%{$search}%")))
+            ->select(['users.id as user_id', 'users.name', 'users.email', 'users.tier', 'agg.tokens_saved', 'agg.commands_run']);
     }
 
     private function popularCommands(\Illuminate\Support\Carbon $cutoff): array
@@ -109,36 +136,32 @@ class InsightsController
             ->toArray();
     }
 
-    private function roiPerAccount(Collection $accountRows, ?Collection $users): array
+    private function paginatedRoiPerAccount(\Illuminate\Support\Carbon $cutoff, int $perPage, ?string $search): LengthAwarePaginator
     {
-        if ($users === null) {
-            return [];
-        }
-
         $prices = config('tiers.prices');
         $rate   = config('tiers.token_rate_per_million');
 
-        return $accountRows
-            ->map(function ($row) use ($users, $prices, $rate) {
-                $user        = $users->get($row->user_id);
+        return $this->searchableAccountsQuery($cutoff, $search)
+            ->orderByDesc('agg.tokens_saved')
+            ->orderBy('users.id') // deterministic tiebreaker — stable page boundaries when tokens_saved ties
+            ->paginate($perPage, ['*'], 'roi_page')
+            ->withQueryString()
+            ->through(function ($row) use ($prices, $rate) {
                 $tokensSaved = (int) $row->tokens_saved;
                 $estSavings  = round($tokensSaved / 1_000_000 * $rate, 4);
-                $price       = $prices[$user?->tier] ?? 0;
+                $price       = $prices[$row->tier] ?? 0;
                 $roi         = $price > 0 ? round($estSavings / $price, 4) : null;
 
                 return [
-                    'user_id'          => $row->user_id,
-                    'name'             => $user?->name,
-                    'email'            => $user?->email,
-                    'tier'             => $user?->tier,
-                    'tokens_saved'     => $tokensSaved,
-                    'estimated_savings'=> $estSavings,
-                    'roi'              => $roi,
+                    'user_id'           => $row->user_id,
+                    'name'              => $row->name,
+                    'email'             => $row->email,
+                    'tier'              => $row->tier,
+                    'tokens_saved'      => $tokensSaved,
+                    'estimated_savings' => $estSavings,
+                    'roi'               => $roi,
                 ];
-            })
-            ->sortByDesc('tokens_saved')
-            ->values()
-            ->toArray();
+            });
     }
 
     private function featureAdoption(\Illuminate\Support\Carbon $cutoff): array
@@ -151,24 +174,21 @@ class InsightsController
             ->toArray();
     }
 
-    private function topAccounts(Collection $accountRows, ?Collection $users): array
+    private function paginatedTopAccounts(\Illuminate\Support\Carbon $cutoff, int $perPage, ?string $search): LengthAwarePaginator
     {
-        if ($users === null) {
-            return [];
-        }
-
-        return $accountRows
-            ->map(fn ($row) => [
-                'user_id'     => $row->user_id,
-                'name'        => $users->get($row->user_id)?->name,
-                'email'       => $users->get($row->user_id)?->email,
-                'tier'        => $users->get($row->user_id)?->tier,
-                'commands_run'=> (int) $row->commands_run,
-                'tokens_saved'=> (int) $row->tokens_saved,
-            ])
-            ->sortByDesc('commands_run')
-            ->values()
-            ->toArray();
+        return $this->searchableAccountsQuery($cutoff, $search)
+            ->orderByDesc('agg.commands_run')
+            ->orderBy('users.id') // deterministic tiebreaker — stable page boundaries when commands_run ties
+            ->paginate($perPage, ['*'], 'accounts_page')
+            ->withQueryString()
+            ->through(fn ($row) => [
+                'user_id'      => $row->user_id,
+                'name'         => $row->name,
+                'email'        => $row->email,
+                'tier'         => $row->tier,
+                'commands_run' => (int) $row->commands_run,
+                'tokens_saved' => (int) $row->tokens_saved,
+            ]);
     }
 
     private function tierDistribution(): array
@@ -290,17 +310,10 @@ class InsightsController
     }
 
     /**
-     * Load users referenced by account aggregates, keyed by id. Returns null
-     * when no user_ids are present so callers can short-circuit to an empty
-     * result.
+     * Clamp a per_page request value to [1, 100] — shared by both account tables.
      */
-    private function usersByIds(Collection $userIds): ?Collection
+    private function clampPerPage(Request $request, string $key): int
     {
-        $ids = $userIds->unique()->values()->toArray();
-        if (empty($ids)) {
-            return null;
-        }
-
-        return User::whereIn('id', $ids)->get(['id', 'name', 'email', 'tier'])->keyBy('id');
+        return min(max(1, (int) $request->input($key, 10)), 100);
     }
 }

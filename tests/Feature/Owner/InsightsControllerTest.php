@@ -94,8 +94,8 @@ class InsightsControllerTest extends TestCase
         $this->actingAs($owner)->get('/console/owner/insights')
             ->assertInertia(fn ($page) => $page
                 ->has('roi_per_account')
-                ->where('roi_per_account.0.user_id', $pro->id)
-                ->where('roi_per_account.0.tokens_saved', 1_000_000)
+                ->where('roi_per_account.data.0.user_id', $pro->id)
+                ->where('roi_per_account.data.0.tokens_saved', 1_000_000)
             );
     }
 
@@ -109,7 +109,7 @@ class InsightsControllerTest extends TestCase
         $this->actingAs($owner)->get('/console/owner/insights')
             ->assertInertia(fn ($page) => $page
                 ->has('roi_per_account')
-                ->where('roi_per_account.0.roi', null)
+                ->where('roi_per_account.data.0.roi', null)
             );
     }
 
@@ -142,8 +142,8 @@ class InsightsControllerTest extends TestCase
         $this->actingAs($owner)->get('/console/owner/insights')
             ->assertInertia(fn ($page) => $page
                 ->has('top_accounts')
-                ->where('top_accounts.0.email', 'top@example.com')
-                ->where('top_accounts.0.commands_run', 50)
+                ->where('top_accounts.data.0.email', 'top@example.com')
+                ->where('top_accounts.data.0.commands_run', 50)
             );
     }
 
@@ -197,7 +197,7 @@ class InsightsControllerTest extends TestCase
         $this->actingAs($owner)->get('/console/owner/insights')
             ->assertInertia(fn ($page) => $page
                 ->has('top_accounts')
-                ->where('top_accounts.0.name', 'Alice Tester')
+                ->where('top_accounts.data.0.name', 'Alice Tester')
             );
     }
 
@@ -211,7 +211,7 @@ class InsightsControllerTest extends TestCase
         $this->actingAs($owner)->get('/console/owner/insights')
             ->assertInertia(fn ($page) => $page
                 ->has('roi_per_account')
-                ->where('roi_per_account.0.name', 'Bob Sender')
+                ->where('roi_per_account.data.0.name', 'Bob Sender')
             );
     }
 
@@ -404,7 +404,7 @@ class InsightsControllerTest extends TestCase
             ->assertInertia(fn ($page) => $page
                 ->where('popular_commands.0.action', 'fetch')
                 ->where('popular_commands.0.total_runs', 11)
-                ->where('top_accounts.0.commands_run', 11)
+                ->where('top_accounts.data.0.commands_run', 11)
             );
     }
 
@@ -468,6 +468,36 @@ class InsightsControllerTest extends TestCase
         }
     }
 
+    // ── LOCK: pre-existing account-inclusion behaviour (§3.8 regression surface) ──
+
+    public function test_owner_account_with_cli_usage_still_appears_in_top_accounts(): void
+    {
+        $owner = $this->makeOwner();
+
+        $this->insertCliLog($owner->id, 'fetch', 1000, 10);
+
+        $this->actingAs($owner)->get('/console/owner/insights')
+            ->assertInertia(fn ($page) => $page
+                ->has('top_accounts')
+                ->where('top_accounts.data.0.user_id', $owner->id)
+            );
+    }
+
+    public function test_soft_deleted_account_with_cli_usage_still_appears_in_top_accounts(): void
+    {
+        $owner = $this->makeOwner();
+        $user  = User::factory()->create(['tier' => 'pro']);
+
+        $this->insertCliLog($user->id, 'fetch', 1000, 10);
+        $user->delete(); // SoftDeletes — must not vanish from owner-facing revenue/ROI totals
+
+        $this->actingAs($owner)->get('/console/owner/insights')
+            ->assertInertia(fn ($page) => $page
+                ->where('top_accounts.total', 1)
+                ->where('top_accounts.data.0.user_id', $user->id)
+            );
+    }
+
     // ── Caching ────────────────────────────────────────────────────────────
 
     public function test_insights_response_is_served_from_cache_on_second_request_within_ttl(): void
@@ -508,6 +538,142 @@ class InsightsControllerTest extends TestCase
             0,
             $differentPeriodQueries,
             'A different period value must not be served from the period=30 cache entry.'
+        );
+    }
+
+    // ── New: server-side pagination (audit §3.8) ────────────────────────────
+
+    public function test_top_accounts_payload_size_bounded_by_per_page_regardless_of_total_users(): void
+    {
+        $owner = $this->makeOwner();
+
+        for ($i = 0; $i < 15; $i++) {
+            $user = User::factory()->create(['tier' => 'pro']);
+            $this->insertCliLog($user->id, 'fetch', 100, 1);
+        }
+
+        $this->actingAs($owner)->get('/console/owner/insights')
+            ->assertInertia(fn ($page) => $page
+                ->has('top_accounts.data', 10)
+                ->where('top_accounts.total', 15)
+                ->where('top_accounts.current_page', 1)
+            );
+    }
+
+    public function test_accounts_per_page_is_clamped_between_1_and_100(): void
+    {
+        $owner = $this->makeOwner();
+        $user  = User::factory()->create(['tier' => 'pro']);
+        $this->insertCliLog($user->id, 'fetch', 100, 1);
+
+        $this->actingAs($owner)->get('/console/owner/insights?accounts_per_page=500')
+            ->assertInertia(fn ($page) => $page->where('top_accounts.per_page', 100));
+
+        $this->actingAs($owner)->get('/console/owner/insights?accounts_per_page=0')
+            ->assertInertia(fn ($page) => $page->where('top_accounts.per_page', 1));
+    }
+
+    public function test_accounts_search_filters_by_name_or_email(): void
+    {
+        $owner = $this->makeOwner();
+        $alice = User::factory()->create(['tier' => 'pro', 'name' => 'Alice Tester', 'email' => 'alice@example.com']);
+        $bob   = User::factory()->create(['tier' => 'pro', 'name' => 'Bob Sender', 'email' => 'bob@example.com']);
+        $this->insertCliLog($alice->id, 'fetch', 100, 1);
+        $this->insertCliLog($bob->id, 'fetch', 100, 1);
+
+        $this->actingAs($owner)->get('/console/owner/insights?accounts_search=Alice')
+            ->assertInertia(fn ($page) => $page
+                ->where('top_accounts.total', 1)
+                ->where('top_accounts.data.0.user_id', $alice->id)
+            );
+    }
+
+    public function test_roi_search_filters_by_name_or_email(): void
+    {
+        $owner = $this->makeOwner();
+        $alice = User::factory()->create(['tier' => 'pro', 'name' => 'Alice Tester', 'email' => 'alice@example.com']);
+        $bob   = User::factory()->create(['tier' => 'pro', 'name' => 'Bob Sender', 'email' => 'bob@example.com']);
+        $this->insertCliLog($alice->id, 'fetch', 100, 1);
+        $this->insertCliLog($bob->id, 'fetch', 100, 1);
+
+        $this->actingAs($owner)->get('/console/owner/insights?roi_search=bob@example.com')
+            ->assertInertia(fn ($page) => $page
+                ->where('roi_per_account.total', 1)
+                ->where('roi_per_account.data.0.user_id', $bob->id)
+            );
+    }
+
+    public function test_tied_commands_run_have_stable_page_boundaries(): void
+    {
+        $owner = $this->makeOwner();
+        $users = collect(range(1, 12))->map(function () {
+            $user = User::factory()->create(['tier' => 'pro']);
+            $this->insertCliLog($user->id, 'fetch', 100, 5); // identical commands_run for every account
+            return $user->id;
+        });
+
+        $page1 = $this->actingAs($owner)->get('/console/owner/insights?accounts_per_page=5&accounts_page=1');
+        $page2 = $this->actingAs($owner)->get('/console/owner/insights?accounts_per_page=5&accounts_page=2');
+
+        $page1Ids = collect($page1->inertiaProps('top_accounts.data'))->pluck('user_id');
+        $page2Ids = collect($page2->inertiaProps('top_accounts.data'))->pluck('user_id');
+
+        $this->assertCount(5, $page1Ids);
+        $this->assertCount(5, $page2Ids);
+        $this->assertEmpty(
+            $page1Ids->intersect($page2Ids),
+            'Tied rows must not reappear across pages — ordering must be deterministic.'
+        );
+    }
+
+    public function test_paging_top_accounts_does_not_reset_roi_per_account_page(): void
+    {
+        $owner = $this->makeOwner();
+        for ($i = 0; $i < 12; $i++) {
+            $user = User::factory()->create(['tier' => 'pro']);
+            $this->insertCliLog($user->id, 'fetch', 100, 1);
+        }
+
+        $this->actingAs($owner)
+            ->get('/console/owner/insights?accounts_page=2&roi_page=3&roi_per_page=5')
+            ->assertInertia(fn ($page) => $page
+                ->where('top_accounts.current_page', 2)
+                ->where('roi_per_account.current_page', 3)
+            );
+    }
+
+    public function test_kpi_cache_is_not_invalidated_by_account_table_pagination_changes(): void
+    {
+        $owner = $this->makeOwner();
+        for ($i = 0; $i < 15; $i++) {
+            $user = User::factory()->create(['tier' => 'pro']);
+            $this->insertCliLog($user->id, 'fetch', 100, 1);
+        }
+
+        DB::enableQueryLog();
+        DB::flushQueryLog();
+        $page1 = $this->actingAs($owner)->get('/console/owner/insights?period=30&accounts_page=1')->assertOk();
+        $coldRequestQueries = count(DB::getQueryLog());
+        DB::disableQueryLog();
+
+        DB::enableQueryLog();
+        DB::flushQueryLog();
+        $page2 = $this->actingAs($owner)->get('/console/owner/insights?period=30&accounts_page=2')->assertOk();
+        $pagedRequestQueries = count(DB::getQueryLog());
+        DB::disableQueryLog();
+
+        $this->assertLessThan(
+            $coldRequestQueries,
+            $pagedRequestQueries,
+            'Changing account-table pagination must still hit the KPI/chart cache — only the two account queries should run fresh.'
+        );
+
+        $page1UserIds = collect($page1->inertiaProps('top_accounts.data'))->pluck('user_id');
+        $page2UserIds = collect($page2->inertiaProps('top_accounts.data'))->pluck('user_id');
+        $this->assertNotEquals(
+            $page1UserIds,
+            $page2UserIds,
+            'accounts_page=2 must return different rows than accounts_page=1, proving the account query is not served stale from cache.'
         );
     }
 }

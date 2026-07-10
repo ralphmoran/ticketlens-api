@@ -8,18 +8,15 @@ use App\Models\UsageLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Http;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class ClientHealthController
 {
-    private const ALLOWED_PERIODS = [7, 14, 30, 60, 90];
-
     public function index(Request $request): Response
     {
         $requested = (int) $request->query('period', 30);
-        $period    = in_array($requested, self::ALLOWED_PERIODS, true) ? $requested : 30;
+        $period    = in_array($requested, config('ticketlens.client_health_periods'), true) ? $requested : 30;
 
         $props = Cache::remember(
             "owner:clienthealth:v1:period:{$period}",
@@ -264,20 +261,6 @@ class ClientHealthController
 
     private function npmDownloads(int $period): ?int
     {
-        return Cache::remember("npm_downloads_{$period}", 86400, function () use ($period) {
-            $end   = now()->format('Y-m-d');
-            $start = now()->subDays($period)->format('Y-m-d');
-
-            try {
-                $response = Http::timeout(10)->get(
-                    "https://api.npmjs.org/downloads/point/{$start}:{$end}/ticketlens"
-                );
-                if ($response->ok()) {
-                    return (int) ($response->json('downloads') ?? 0);
-                }
-            } catch (\Throwable) {}
-
-            return null;
-        });
+        return Cache::get("npm_downloads_{$period}");
     }
 }

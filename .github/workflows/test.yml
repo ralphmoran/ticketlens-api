@@ -1,5 +1,8 @@
 name: Tests
 
+permissions:
+  contents: read
+
 on:
   push:
     branches: [main]
@@ -25,6 +28,20 @@ jobs:
 
       - name: Install dependencies
         run: composer install --no-interaction --prefer-dist --optimize-autoloader
+
+      - name: Audit PHP dependencies (fail on high/critical only)
+        run: composer audit --locked --ignore-severity=low --ignore-severity=medium
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install npm dependencies
+        run: npm ci
+
+      - name: Audit npm dependencies (fail on high/critical only)
+        run: npm audit --omit=dev --audit-level=high
 
       - name: Copy .env
         run: cp .env.example .env

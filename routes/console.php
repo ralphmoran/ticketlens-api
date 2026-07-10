@@ -2,6 +2,7 @@
 
 use App\Jobs\RevokeExpiredGrantsJob;
 use App\Jobs\SendSlackDigestJob;
+use App\Jobs\WarmNpmDownloadsCacheJob;
 use Carbon\Carbon;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
@@ -12,6 +13,7 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Schedule::job(RevokeExpiredGrantsJob::class)->hourly();
+Schedule::job(WarmNpmDownloadsCacheJob::class)->hourly();
 
 // Dispatch once per minute — the job self-selects due schedules by timezone-aware day+time matching.
 Schedule::call(fn () => SendSlackDigestJob::dispatch(Carbon::now()))->everyMinute();

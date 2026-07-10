@@ -147,6 +147,8 @@ ANTHROPIC_API_KEY=sk-ant-xxxx
 
 Containers started: `laravel.test` (PHP 8.5, artisan built-in server), `mysql:8.4`, `redis:alpine`, `mailpit`.
 
+> **Untrusted networks:** Sail's default `compose.yaml` forwards MySQL (3306) and Redis (6379) to `0.0.0.0` on the host, and dev Redis has no password. Fine on a trusted home/office network; if working from a coffee shop, conference wifi, or a shared VPN, bind them to `127.0.0.1:PORT:PORT` instead of the bare `PORT:PORT` shorthand in `compose.yaml`.
+
 ### 4. Database setup
 
 Sail passes `DB_DATABASE` and `DB_USERNAME` to the MySQL Docker image at first boot, so the database and user grants are created automatically on a fresh volume. No manual SQL is needed for a clean install.

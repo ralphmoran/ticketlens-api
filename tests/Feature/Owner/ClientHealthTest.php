@@ -6,7 +6,9 @@ use App\Models\Group;
 use App\Models\License;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 class ClientHealthTest extends TestCase
@@ -337,6 +339,25 @@ class ClientHealthTest extends TestCase
 
         $this->actingAs($owner)->get('/console/owner/health')
             ->assertInertia(fn ($page) => $page->has('npm_downloads'));
+    }
+
+    public function test_npm_downloads_does_not_make_http_request_in_request_path(): void
+    {
+        Http::fake();
+        $owner = $this->makeOwner();
+
+        $this->actingAs($owner)->get('/console/owner/health?period=30')->assertOk();
+
+        Http::assertNothingSent();
+    }
+
+    public function test_npm_downloads_reads_prewarmed_cache_value(): void
+    {
+        Cache::put('npm_downloads_30', 4242, 86400);
+        $owner = $this->makeOwner();
+
+        $this->actingAs($owner)->get('/console/owner/health?period=30')
+            ->assertInertia(fn ($page) => $page->where('npm_downloads', 4242));
     }
 
     // ── Caching ────────────────────────────────────────────────────────────

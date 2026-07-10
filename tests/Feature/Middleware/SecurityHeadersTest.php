@@ -38,6 +38,13 @@ class SecurityHeadersTest extends TestCase
         }
     }
 
+    public function test_permissions_policy_header_present(): void
+    {
+        $response = $this->get('/console/login');
+
+        $response->assertHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), usb=()');
+    }
+
     private function scriptSrcDirective(string $csp): string
     {
         foreach (explode(';', $csp) as $directive) {

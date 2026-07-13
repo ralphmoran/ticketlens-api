@@ -361,6 +361,9 @@ function memberHeatmapClass(memberId, day) {
                     </div>
                 </div>
             </div>
+            <p class="tl-hint">
+                <code class="tl-code-chip">tl</code> is shorthand for <code class="tl-code-chip">ticketlens</code> — both work everywhere
+            </p>
         </div>
 
         <!-- ── CLI Usage Insights ─────────────────────────────────────────────── -->

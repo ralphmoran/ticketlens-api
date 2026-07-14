@@ -336,7 +336,7 @@ function memberHeatmapClass(memberId, day) {
         </div>
 
         <!-- Quick start (shown when no push history) -->
-        <div v-if="!hasPushHistory" class="tl-card tl-card--lg">
+        <div v-if="!hasPushHistory" class="tl-card tl-card--lg tl-card-gap">
             <h2 class="tl-title tl-title--spaced">Quick start</h2>
             <div class="tl-stack--sm">
                 <div class="tl-step-row">

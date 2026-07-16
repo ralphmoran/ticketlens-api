@@ -16,6 +16,11 @@ enum Permission: int
     case AttentionQueue    = 512;  // 2^9 — Team: dev attention queue in Console
     case TeamViewHealth    = 1024; // 2^10 — Team lead: view Team Health dashboard (assigned by manager, not in tier preset)
     case WorkflowRules     = 2048; // 2^11 — Pro+: stale status detection and workflow automation rules
+    /** Not in any hardcoded tier composite below — the owner assigns this to tiers
+     * dynamically via the tier_features table (see TierController), so a Pro
+     * user gets it only via a purchased feature-grant while Team/Enterprise get it
+     * by default only if the owner has added it to that tier's feature set. */
+    case Recall            = 4096; // 2^12 — Pro add-on (feature-grant) / Team+ (owner-assignable via tier_features)
 
     /** Composite tier presets */
     public static function free(): int       { return self::SavingsAnalytics->value; }                                                                                                                           // 64
@@ -44,6 +49,7 @@ enum Permission: int
             self::AttentionQueue    => 'Attention Queue',
             self::TeamViewHealth    => 'Team: View Health Dashboard',
             self::WorkflowRules     => 'Workflow Rules',
+            self::Recall            => 'Recall',
         };
     }
 

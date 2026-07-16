@@ -2,7 +2,9 @@
 
 namespace Tests\Feature\Console;
 
+use App\Enums\Permission;
 use App\Models\User;
+use Database\Seeders\FeatureSeeder;
 use Illuminate\Support\Facades\Log;
 use Tests\TestCase;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -18,6 +20,9 @@ class WebhookTest extends TestCase
     {
         parent::setUp();
         config(['services.lemonsqueezy.signing_secret' => self::WEBHOOK_SECRET]);
+        // tier_features must be populated for TierService::permissionsForTier() —
+        // RefreshDatabase's ephemeral SQLite starts empty, unlike the real dev DB.
+        $this->seed(FeatureSeeder::class);
     }
 
     private function sign(string $payload): string
@@ -84,6 +89,7 @@ class WebhookTest extends TestCase
             'id'   => $user->id,
             'tier' => 'pro',
         ]);
+        $this->assertSame(Permission::pro(), $user->fresh()->permissions, 'permissions bitmask must match the pro tier preset exactly');
     }
 
     public function test_webhook_deactivates_subscription(): void
@@ -109,6 +115,7 @@ class WebhookTest extends TestCase
             'id'   => $user->id,
             'tier' => 'free',
         ]);
+        $this->assertSame(Permission::free(), $user->fresh()->permissions, 'permissions bitmask must match the free tier preset exactly');
     }
 
     // --- Owner-target protection ---
@@ -192,6 +199,29 @@ class WebhookTest extends TestCase
         // Tier must be unchanged — unknown product must not silently activate Pro.
         $this->assertSame('free', $user->fresh()->tier);
         $this->assertSame(0, $user->fresh()->permissions);
+    }
+
+    public function test_webhook_reflects_an_owner_customized_tier_feature_set_not_the_hardcoded_preset(): void
+    {
+        // The owner turns Recall on for Team via console/owner/tiers (tier_features),
+        // dynamically diverging from the hardcoded Permission::team() composite.
+        $recall = \App\Models\Feature::where('name', 'recall')->firstOrFail();
+        \Illuminate\Support\Facades\DB::table('tier_features')->insert(['tier' => 'team', 'feature_id' => $recall->id]);
+
+        $user = User::factory()->create(['tier' => 'free', 'permissions' => 64]);
+
+        $this->postSigned([
+            'meta' => ['event_name' => 'subscription_created', 'custom_data' => ['user_id' => $user->id]],
+            'data' => ['attributes' => ['product_name' => 'TicketLens Team', 'user_email' => $user->email, 'identifier' => 'lemon-key-team']],
+        ])->assertStatus(200);
+
+        $fresh = $user->fresh();
+        $this->assertSame('team', $fresh->tier);
+        $this->assertNotSame(
+            0,
+            $fresh->permissions & Permission::Recall->value,
+            'a subscription activation must reflect the owner\'s dynamic tier_features customization, not silently revert to the hardcoded Permission::team() composite',
+        );
     }
 
     public function test_webhook_does_not_mutate_owner_on_subscription_cancelled(): void

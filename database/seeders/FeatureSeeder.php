@@ -29,6 +29,7 @@ class FeatureSeeder extends Seeder
         ['name' => 'workflow_rules',    'bit_value' => 2048, 'label' => 'Workflow Rules',          'description' => 'Stale status detection and workflow automation rules',  'sort_order' => 75],
         ['name' => 'attention_queue',   'bit_value' => 512,  'label' => 'Attention Queue',         'description' => 'Team dev attention queue in Console',                   'sort_order' => 85],
         ['name' => 'team_view_health',  'bit_value' => 1024, 'label' => 'Team: View Health',       'description' => 'Team lead health dashboard (manager-assigned, not a tier preset)', 'sort_order' => 95],
+        ['name' => 'recall',            'bit_value' => 4096, 'label' => 'Recall',                  'description' => 'Team knowledge notes — captured, synced, and surfaced back into ticket briefs (owner-assigned per tier or per client, not a tier preset default)', 'sort_order' => 100],
     ];
 
     // Default tier→feature preset (mirrors Permission enum presets)

@@ -3,6 +3,8 @@
 use App\Http\Controllers\Api\AiProviderController;
 use App\Http\Controllers\Api\ComplianceController;
 use App\Http\Controllers\Api\DigestController;
+use App\Http\Controllers\Api\Recall\PullController as RecallPullController;
+use App\Http\Controllers\Api\Recall\PushController as RecallPushController;
 use App\Http\Controllers\Api\ScheduleController;
 use App\Http\Controllers\Api\SummarizeController;
 use App\Http\Controllers\Api\TeamJiraConfigController;
@@ -28,6 +30,7 @@ RateLimiter::for('digest',      fn(Request $r) => Limit::perMinute(20)->by($r->b
 RateLimiter::for('compliance',  fn(Request $r) => Limit::perMinute(10)->by($r->bearerToken() ?: $r->ip()));
 RateLimiter::for('ai-test',     fn(Request $r) => Limit::perMinute(5)->by($r->bearerToken() ?: $r->ip()));
 RateLimiter::for('triage',      fn(Request $r) => Limit::perMinute(30)->by($r->bearerToken() ?: $r->ip()));
+RateLimiter::for('recall',      fn(Request $r) => Limit::perMinute(30)->by($r->bearerToken() ?: $r->ip()));
 RateLimiter::for('team-config', fn(Request $r) => Limit::perMinute(30)->by($r->bearerToken() ?: $r->ip()));
 
 // Public license activation/validation — no auth, rate-limited by IP
@@ -55,6 +58,9 @@ Route::middleware(['throttle:api-global', 'auth.cli'])->group(function () {
     Route::post('/v1/triage/push',      PushController::class)->middleware('throttle:triage');
     Route::post('/v1/triage/share',     ShareController::class)->middleware('throttle:triage');
     Route::get('/v1/triage/collisions', CollisionsController::class)->middleware('throttle:triage');
+
+    Route::post('/v1/recall/push', RecallPushController::class)->middleware('throttle:recall');
+    Route::get('/v1/recall/pull',  RecallPullController::class)->middleware('throttle:recall');
 
     Route::post('/v1/schedule',   [ScheduleController::class, 'store'])->middleware('throttle:schedule');
     Route::get('/v1/schedule',    [ScheduleController::class, 'show'])->middleware('throttle:schedule');

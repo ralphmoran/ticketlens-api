@@ -146,6 +146,12 @@ Route::prefix('console')->name('console.')->group(function () {
             Route::get('/compliance-analytics',   [\App\Http\Controllers\Console\Admin\ComplianceAnalyticsController::class,   'index'])->name('compliance-analytics');
         });
 
+        // Recall — any user with the Recall permission (Pro feature-grant, owner-assigned tier default, or owner god-mode).
+        // Verify is manager-only — see the team.manager group below.
+        Route::prefix('admin')->name('admin.')->middleware('permission:Recall')->group(function () {
+            Route::get('/recall', [\App\Http\Controllers\Console\Admin\RecallController::class, 'index'])->name('recall');
+        });
+
         // AI providers — any user with Summarize permission (Pro tier, owner grant, or owner god-mode)
         Route::prefix('admin')->name('admin.')->middleware('permission:Summarize')->group(function () {
             Route::get('/ai',                      [\App\Http\Controllers\Console\Admin\AiController::class, 'index'])->name('ai');
@@ -199,6 +205,11 @@ Route::prefix('console')->name('console.')->group(function () {
             Route::post('/rules/stale',          [\App\Http\Controllers\Console\Admin\RulesController::class, 'saveStale'])->name('rules.stale.save');
             Route::patch('/rules/stale/toggle',  [\App\Http\Controllers\Console\Admin\RulesController::class, 'toggleStale'])->name('rules.stale.toggle');
             Route::delete('/rules/stale',        [\App\Http\Controllers\Console\Admin\RulesController::class, 'destroyStale'])->name('rules.stale.destroy');
+
+            // Recall verify — manager-only trust-promotion action, ALSO requires Recall
+            // entitlement itself (team.manager alone doesn't imply it — Recall is a
+            // per-user grant/tier, so a manager can legitimately lack it).
+            Route::post('/recall/{note}/verify', [\App\Http\Controllers\Console\Admin\RecallController::class, 'verify'])->name('recall.verify')->middleware('permission:Recall');
         });
 
         // Brief templates — read for all auth users; mutations require team.manager (owner bypasses)

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Console;
 use App\Enums\Permission;
 use App\Models\License;
 use App\Models\User;
+use App\Services\TierService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Log;
@@ -12,10 +13,12 @@ use Illuminate\Support\Facades\Log;
 class LemonSqueezyWebhookController
 {
     private const TIER_MAP = [
-        'pro'        => ['tier' => 'pro',        'permissions_fn' => 'pro'],
-        'team'       => ['tier' => 'team',       'permissions_fn' => 'team'],
-        'enterprise' => ['tier' => 'enterprise', 'permissions_fn' => 'enterprise'],
+        'pro'        => ['tier' => 'pro'],
+        'team'       => ['tier' => 'team'],
+        'enterprise' => ['tier' => 'enterprise'],
     ];
+
+    public function __construct(private readonly TierService $tiers) {}
 
     public function handle(Request $request): Response
     {
@@ -99,8 +102,7 @@ class LemonSqueezyWebhookController
             return;
         }
 
-        $fn             = $tierConfig['permissions_fn'];
-        $newPermissions = ($user->permissions & Permission::adminMask()) | Permission::{$fn}();
+        $newPermissions = ($user->permissions & Permission::adminMask()) | $this->tiers->permissionsForTier($tierConfig['tier']);
 
         $user->tier        = $tierConfig['tier'];
         $user->permissions = $newPermissions;
@@ -128,7 +130,7 @@ class LemonSqueezyWebhookController
             return;
         }
 
-        $newPermissions = ($user->permissions & Permission::adminMask()) | Permission::free();
+        $newPermissions = ($user->permissions & Permission::adminMask()) | $this->tiers->permissionsForTier('free');
 
         $user->tier        = 'free';
         $user->permissions = $newPermissions;

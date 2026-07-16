@@ -109,4 +109,26 @@ class PermissionBitmaskLockTest extends TestCase
     {
         $this->assertSame(384, Permission::teamManagerMask());
     }
+
+    public function test_recall_is_bit_12(): void
+    {
+        $this->assertSame(4096, Permission::Recall->value);
+    }
+
+    public function test_recall_is_not_in_any_hardcoded_tier_composite(): void
+    {
+        // Recall is owner-assignable per tier dynamically via tier_features — it
+        // must never be baked into these hardcoded composites, or a Pro/Team user
+        // would get it unconditionally regardless of the owner's tier_features config.
+        $this->assertSame(0, Permission::pro() & Permission::Recall->value);
+        $this->assertSame(0, Permission::team() & Permission::Recall->value);
+        $this->assertSame(0, Permission::enterprise() & Permission::Recall->value);
+    }
+
+    public function test_label_is_defined_for_every_case_no_unhandled_match_error(): void
+    {
+        foreach (Permission::cases() as $case) {
+            $this->assertIsString($case->label());
+        }
+    }
 }

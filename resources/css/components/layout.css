@@ -151,6 +151,9 @@
   .tl-trunc    { @apply truncate; }
   .tl-min-w-0  { @apply min-w-0; }
   .tl-pre-wrap { white-space: pre-wrap; }
+  .tl-note-body-scroll { @apply max-h-72 overflow-y-auto; }
+  .tl-chevron         { @apply shrink-0 transition-transform duration-200; }
+  .tl-chevron--open   { transform: rotate(180deg); }
   .tl-push-end { @apply ml-auto; }
   .tl-spin     { @apply animate-spin; }
   .tl-row--top { @apply items-start; }

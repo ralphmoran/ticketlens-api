@@ -88,7 +88,17 @@ function goPage(page) {
                         <template v-for="note in notes.data" :key="note.id">
                         <tr class="tl-tr">
                             <td class="tl-td">
-                                <button type="button" class="tl-cell-link tl-cell-primary" @click="toggleExpand(note)">
+                                <button
+                                    type="button"
+                                    class="tl-cell-link tl-cell-primary tl-row tl-row--tight"
+                                    :aria-expanded="expandedId === note.id"
+                                    @click="toggleExpand(note)"
+                                >
+                                    <TlIcon
+                                        name="chevron-down"
+                                        class="tl-ic tl-ic--xs tl-chevron"
+                                        :class="{ 'tl-chevron--open': expandedId === note.id }"
+                                    />
                                     {{ note.title }}
                                 </button>
                                 <p v-if="note.tags?.length" class="tl-hint">{{ note.tags.join(', ') }}</p>
@@ -125,7 +135,7 @@ function goPage(page) {
                         </tr>
                         <tr v-if="expandedId === note.id" class="tl-tr">
                             <td colspan="6" class="tl-td tl-banner-inset tl-card-gap-sm">
-                                <p class="tl-body--muted tl-mono--xs tl-pre-wrap">{{ note.body }}</p>
+                                <p class="tl-body--muted tl-mono--xs tl-pre-wrap tl-note-body-scroll">{{ note.body }}</p>
                             </td>
                         </tr>
                         </template>

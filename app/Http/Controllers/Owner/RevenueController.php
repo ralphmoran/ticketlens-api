@@ -28,7 +28,10 @@ class RevenueController extends Controller
     {
         $tierPrices = config('tiers.prices');
 
+        // granted_by_owner_as_addon licenses are comped seat capacity, not a
+        // purchase — excluded so this never inflates reported MRR.
         $activeLicenses = License::where('status', 'active')
+            ->where('granted_by_owner_as_addon', false)
             ->where(fn ($q) => $q->whereNull('expires_at')->orWhere('expires_at', '>', now()))
             ->get(['tier']);
 

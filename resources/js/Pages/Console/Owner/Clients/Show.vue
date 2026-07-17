@@ -9,10 +9,11 @@ import { formatDate, formatDateTime } from '@/composables/useDateFormat'
 defineOptions({ layout: ConsoleLayout })
 
 const props = defineProps({
-    client:   Object,
-    features: Array,
-    grants:   Array,
-    logs:     Object,
+    client:     Object,
+    features:   Array,
+    grants:     Array,
+    logs:       Object,
+    teamAccess: Object,
 })
 
 // ── Toast ─────────────────────────────────────────────────────────────────────
@@ -115,6 +116,41 @@ function revokeGrant(feature, grantId) {
 
 // Today's date as min for expiry input
 const today = new Date().toISOString().slice(0, 10)
+
+// ── Team Access ────────────────────────────────────────────────────────────
+// Free/Pro clients only — Team/Enterprise already have real groups + seats
+// via their tier, no owner-grantable add-on needed.
+const eligibleForTeamAccess = computed(() =>
+    !props.client.is_owner && ['free', 'pro'].includes(props.client.tier)
+)
+
+const teamAccessForm = reactive({ seats: 2, expires_at: '', submitting: false })
+
+function submitTeamAccess() {
+    if (teamAccessForm.submitting) return
+    teamAccessForm.submitting = true
+    router.post(
+        `/console/owner/clients/${props.client.id}/team-access`,
+        { seats: teamAccessForm.seats, expires_at: teamAccessForm.expires_at || null },
+        {
+            preserveScroll: true,
+            only: ['teamAccess', 'logs'],
+            onSuccess: () => flashToast('Team Access granted.'),
+            onFinish: () => { teamAccessForm.submitting = false },
+        }
+    )
+}
+
+function revokeTeamAccess() {
+    router.delete(
+        `/console/owner/clients/${props.client.id}/team-access`,
+        {
+            preserveScroll: true,
+            only: ['teamAccess', 'logs'],
+            onSuccess: () => flashToast('Team Access revoked.'),
+        }
+    )
+}
 
 // ── Tier change form ──────────────────────────────────────────────────────────
 const form = useForm({ tier: props.client.tier })
@@ -400,6 +436,74 @@ const TIER_LABELS = { free: 'Free', pro: 'Pro', team: 'Team', enterprise: 'Enter
             <p v-if="!features.length" class="tl-td--empty">
                 No grantable features configured.
             </p>
+        </div>
+
+        <!-- ── Team Access (Free/Pro add-on) ───────────────────────── -->
+        <div v-if="eligibleForTeamAccess" class="tl-card tl-card--flush tl-card-gap">
+            <div class="tl-table-header">
+                <h2 class="tl-title">Team Access</h2>
+                <p class="tl-hint">
+                    Grant this {{ TIER_LABELS[client.tier] }} client a team — a group they own plus the ability to invite
+                    teammates — independent of their tier. Never destructive: revoking stops access but keeps their group and data.
+                </p>
+            </div>
+
+            <div v-if="teamAccess" class="tl-banner-inset tl-card-gap-sm">
+                <div class="tl-row tl-row--wrap tl-row--tight">
+                    <span class="tl-badge tl-badge--success tl-badge--caps">Active</span>
+                    <span class="tl-body--muted">{{ teamAccess.seats }} seats · {{ teamAccess.members }} member{{ teamAccess.members === 1 ? '' : 's' }}</span>
+                    <span v-if="teamAccess.expires_at" class="tl-badge tl-badge--brand">
+                        <TlIcon name="clock" :strokeWidth="2" class="tl-ic tl-ic--xs" />
+                        expires {{ formatDate(teamAccess.expires_at) }}
+                    </span>
+                    <span v-else class="tl-badge tl-badge--brand">Permanent</span>
+                </div>
+                <button
+                    type="button"
+                    @click="revokeTeamAccess"
+                    class="tl-btn tl-btn--secondary tl-btn--sm tl-card-gap-sm"
+                >
+                    <TlIcon name="close" class="tl-ic tl-ic--sm" />
+                    Revoke Team Access
+                </button>
+            </div>
+
+            <div v-else class="tl-banner-inset tl-card-gap-sm">
+                <div class="tl-row tl-row--wrap tl-row--bottom">
+                    <div class="tl-field">
+                        <label class="tl-label" for="team-access-seats">Seats</label>
+                        <input
+                            id="team-access-seats"
+                            type="number"
+                            v-model.number="teamAccessForm.seats"
+                            min="2"
+                            max="1000"
+                            class="tl-input tl-input--sm"
+                        />
+                        <span class="tl-hint">1 for {{ client.name }}, the rest to invite</span>
+                    </div>
+                    <div class="tl-field">
+                        <label class="tl-label" for="team-access-expires">Expires</label>
+                        <input
+                            id="team-access-expires"
+                            type="date"
+                            v-model="teamAccessForm.expires_at"
+                            :min="today"
+                            class="tl-input tl-input--sm"
+                        />
+                        <span class="tl-hint">Leave blank for permanent</span>
+                    </div>
+                    <button
+                        type="button"
+                        @click="submitTeamAccess"
+                        :disabled="teamAccessForm.submitting || teamAccessForm.seats < 2"
+                        class="tl-btn tl-btn--primary tl-btn--sm"
+                    >
+                        <TlIcon :name="teamAccessForm.submitting ? 'spinner' : 'check'" class="tl-ic tl-ic--sm" :class="{ 'tl-spin': teamAccessForm.submitting }" />
+                        <span>{{ teamAccessForm.submitting ? 'Granting…' : 'Grant Team Access' }}</span>
+                    </button>
+                </div>
+            </div>
         </div>
 
         <!-- ── Audit history ────────────────────────────────────────── -->

@@ -57,6 +57,25 @@ class RevenueControllerTest extends TestCase
         );
     }
 
+    public function test_revenue_excludes_owner_comped_team_access_seats(): void
+    {
+        // A Team-Access addon license (comped by the owner, no purchase behind
+        // it) must never count toward MRR or total_active — only real licenses do.
+        $owner   = $this->makeOwner();
+        $proUser = User::factory()->create(['tier' => 'pro']);
+
+        License::create(['user_id' => $proUser->id, 'lemon_key_hash' => str_repeat('a', 64), 'status' => 'active', 'tier' => 'pro']);
+        License::create(['user_id' => $proUser->id, 'lemon_key_hash' => str_repeat('e', 64), 'status' => 'active', 'tier' => 'pro', 'granted_by_owner_as_addon' => true]);
+
+        $response = $this->actingAs($owner)->get('/console/owner/revenue');
+
+        $response->assertInertia(fn ($page) => $page
+            ->component('Console/Owner/Revenue')
+            ->where('mrr', 8)
+            ->where('total_active', 1)
+        );
+    }
+
     public function test_revenue_excludes_expired_licenses(): void
     {
         $owner = $this->makeOwner();

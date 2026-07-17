@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\Permission;
 use App\Exceptions\SeatLimitReached;
 use App\Models\Group;
 use App\Models\License;
@@ -28,9 +29,13 @@ class MembersService
     public function invite(User $manager, string $email, ?string $name = null): User
     {
         $group   = $manager->ownedGroup;
+        // A manager can hold two active licenses at once: a real paid license
+        // (Free/Pro always seats=1) and a Team-Access addon license (seats>=2).
+        // The addon always has the higher seat count, so ordering by seats
+        // descending deterministically picks it over "whichever is newest".
         $license = License::where('user_id', $manager->id)
             ->where('status', 'active')
-            ->latest()
+            ->orderByDesc('seats')
             ->firstOrFail();
 
         return DB::transaction(function () use ($manager, $group, $email, $name, $license) {
@@ -52,8 +57,17 @@ class MembersService
                 // tier and permissions are not mass-assignable — set directly.
                 // email_verified_at is pre-set: the invite link is sent to this
                 // address, so the invite itself proves email ownership.
+                // Invitee inherits the inviting manager's own tier preset, never
+                // a hardcoded Permission::team() — a Free/Pro manager (granted
+                // Team Access) must never leak the full Team feature set to
+                // teammates who never paid for it. Manager bits are never
+                // included here; only the group owner ever has those.
                 $user->tier              = $manager->tier;
-                $user->permissions       = \App\Enums\Permission::team();
+                $user->permissions       = match ($manager->tier) {
+                    'pro'                 => Permission::pro(),
+                    'team', 'enterprise'  => Permission::team(),
+                    default               => Permission::free(),
+                };
                 $user->email_verified_at = now();
                 $user->save();
             }

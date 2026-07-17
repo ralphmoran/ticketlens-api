@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\DB;
  * Seeds the features table and default tier→feature mappings.
  *
  * Bit values match app/Enums/Permission.php exactly.
- * Tier presets: free=64, pro=2119 (64|4|2|1|2048), team=2687.
+ * Tier presets: free=64, pro=2119 (64|4|2|1|2048), team=6783 (2687|4096 Recall).
  *
  * Run: php artisan db:seed --class=FeatureSeeder
  */
@@ -33,13 +33,13 @@ class FeatureSeeder extends Seeder
     ];
 
     // Default tier→feature preset (mirrors Permission enum presets)
-    // free=64, pro=2119 (64|4|2|1|2048), team=enterprise=3199 (pro|8|16|32|512)
+    // free=64, pro=2119 (64|4|2|1|2048), team=enterprise=6783 (pro|8|16|32|512|4096)
     // Note: bit 1024 (TeamViewHealth) is manager-assigned, not in any tier preset.
     private const TIER_PRESETS = [
         'free' => [64],
         'pro'  => [64, 4, 2, 1, 2048],
-        'team' => [64, 32, 16, 8, 4, 2, 1, 512, 2048],
-        'enterprise' => [64, 32, 16, 8, 4, 2, 1, 512, 2048],
+        'team' => [64, 32, 16, 8, 4, 2, 1, 512, 2048, 4096],
+        'enterprise' => [64, 32, 16, 8, 4, 2, 1, 512, 2048, 4096],
     ];
 
     public function run(): void

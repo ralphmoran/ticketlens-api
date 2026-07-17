@@ -8,6 +8,8 @@ use App\Models\License;
 use App\Models\User;
 use App\Services\AuditService;
 use App\Services\MembersService;
+use App\Services\TeamAccessService;
+use Database\Seeders\FeatureSeeder;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
@@ -131,5 +133,56 @@ class MembersServiceTest extends TestCase
         $user = $this->service->invite($manager, 'same-tier@example.com');
 
         $this->assertSame($manager->tier, $user->tier);
+    }
+
+    public function test_real_team_manager_invitee_still_gets_team_permissions(): void
+    {
+        // Regression lock: a real Team-tier manager's invitee must keep
+        // getting the full Permission::team() set, unchanged from before.
+        $manager = $this->makeManagerWithSeats(5);
+
+        $user = $this->service->invite($manager, 'team-invitee@example.com');
+
+        $this->assertSame(\App\Enums\Permission::team(), $user->permissions);
+    }
+
+    public function test_pro_manager_with_team_access_invitee_gets_pro_permissions_not_team(): void
+    {
+        // A Free/Pro client granted Team Access must never leak the full
+        // Team feature set to their invitees — only their own tier's features.
+        $this->seed(FeatureSeeder::class);
+        $owner = User::factory()->create(['is_owner' => true]);
+        $manager = User::factory()->create(['tier' => 'pro', 'permissions' => \App\Enums\Permission::pro()]);
+        app(TeamAccessService::class)->grant($owner, $manager, 3);
+
+        $user = $this->service->invite($manager->fresh(), 'pro-invitee@example.com');
+
+        $this->assertSame(\App\Enums\Permission::pro(), $user->permissions);
+        $this->assertSame(0, $user->permissions & \App\Enums\Permission::teamManagerMask(), 'invitee must never get manager bits');
+    }
+
+    public function test_seat_cap_uses_the_addon_license_not_whichever_is_latest(): void
+    {
+        // A Pro manager can hold two active licenses at once: their real Pro
+        // license (seats=1, from an earlier purchase) and the Team Access
+        // addon license (seats=3, granted afterward). The seat cap must key
+        // off the addon license, not an arbitrary "latest row" pick.
+        $this->seed(FeatureSeeder::class);
+        $owner = User::factory()->create(['is_owner' => true]);
+        $manager = User::factory()->create(['tier' => 'pro']);
+        License::create([
+            'user_id' => $manager->id,
+            'lemon_key_hash' => hash('sha256', 'real-pro-key'),
+            'status' => 'active', 'tier' => 'pro', 'seats' => 1,
+        ]);
+        app(TeamAccessService::class)->grant($owner, $manager->fresh(), 3);
+        $manager = $manager->fresh();
+
+        // seats=3: manager(1) + 1 invite should succeed, a 3rd invite should not.
+        $this->service->invite($manager, 'first@example.com');
+        $this->service->invite($manager, 'second@example.com');
+
+        $this->expectException(SeatLimitReached::class);
+        $this->service->invite($manager, 'third@example.com');
     }
 }

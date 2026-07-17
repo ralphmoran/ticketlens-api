@@ -86,6 +86,35 @@ class ClientControllerTest extends TestCase
         $response->assertInertia(fn ($page) => $page->component('Console/Owner/Clients/Show'));
     }
 
+    public function test_show_team_access_is_null_when_not_granted(): void
+    {
+        $owner  = $this->makeOwner();
+        $client = $this->makeClient();
+
+        $response = $this->actingAs($owner)->get("/console/owner/clients/{$client->id}");
+
+        $response->assertInertia(fn ($page) => $page->where('teamAccess', null));
+    }
+
+    public function test_show_team_access_reflects_current_grant_state(): void
+    {
+        $this->seed(\Database\Seeders\FeatureSeeder::class);
+        $owner  = $this->makeOwner();
+        $client = $this->makeClient(['tier' => 'pro']);
+        $expiresAt = now()->addDays(7);
+        app(\App\Services\TeamAccessService::class)->grant($owner, $client->fresh(), 4, $expiresAt);
+
+        $response = $this->actingAs($owner)->get("/console/owner/clients/{$client->id}");
+
+        $response->assertInertia(function ($page) use ($expiresAt) {
+            $page->where('teamAccess.seats', 4);
+            $page->where('teamAccess.members', 1);
+            $page->where('teamAccess.expires_at', fn ($value) => \Illuminate\Support\Carbon::parse($value)->equalTo($expiresAt->clone()->startOfSecond()));
+
+            return $page;
+        });
+    }
+
     public function test_show_excludes_team_manager_features_from_grant_dropdown(): void
     {
         $owner  = $this->makeOwner();

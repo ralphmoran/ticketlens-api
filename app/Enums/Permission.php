@@ -16,17 +16,16 @@ enum Permission: int
     case AttentionQueue    = 512;  // 2^9 — Team: dev attention queue in Console
     case TeamViewHealth    = 1024; // 2^10 — Team lead: view Team Health dashboard (assigned by manager, not in tier preset)
     case WorkflowRules     = 2048; // 2^11 — Pro+: stale status detection and workflow automation rules
-    /** Not in any hardcoded tier composite below — the owner assigns this to tiers
-     * dynamically via the tier_features table (see TierController), so a Pro
-     * user gets it only via a purchased feature-grant while Team/Enterprise get it
-     * by default only if the owner has added it to that tier's feature set. */
-    case Recall            = 4096; // 2^12 — Pro add-on (feature-grant) / Team+ (owner-assignable via tier_features)
+    /** Always on for Team/Enterprise (in the team() composite below). For Free/Pro,
+     * only via a purchased feature-grant or an owner-issued UserFeatureGrant —
+     * never a tier-preset default for those two tiers. */
+    case Recall            = 4096; // 2^12 — Team+ default / Pro add-on (feature-grant)
 
     /** Composite tier presets */
     public static function free(): int       { return self::SavingsAnalytics->value; }                                                                                                                           // 64
     public static function pro(): int        { return self::Schedules->value | self::Digests->value | self::Summarize->value | self::SavingsAnalytics->value | self::WorkflowRules->value; }                    // 2119
-    public static function team(): int       { return self::pro() | self::Compliance->value | self::Export->value | self::MultiAccount->value | self::AttentionQueue->value; }                                   // 2687
-    public static function enterprise(): int { return self::team(); }                                                                                                               // 2687
+    public static function team(): int       { return self::pro() | self::Compliance->value | self::Export->value | self::MultiAccount->value | self::AttentionQueue->value | self::Recall->value; }             // 6783
+    public static function enterprise(): int { return self::team(); }                                                                                                               // 6783
     /** Team-manager bits OR'd onto the group owner's permissions (not in TIER_TEAM — rank-and-file seats don't get these). */
     public static function teamManagerMask(): int { return self::TeamManageMembers->value | self::TeamManageSeats->value; }                                                         // 384
     /** Team-lead bit — assigned by manager to elevate a member to lead (Team Health access). Not in any tier preset. */

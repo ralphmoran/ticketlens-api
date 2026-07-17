@@ -7,9 +7,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class License extends Model
 {
-    protected $fillable = ['user_id', 'issued_by_user_id', 'lemon_key_hash', 'status', 'tier', 'seats', 'expires_at'];
+    protected $fillable = ['user_id', 'issued_by_user_id', 'lemon_key_hash', 'status', 'tier', 'seats', 'expires_at', 'granted_by_owner_as_addon'];
 
-    protected $casts = ['expires_at' => 'datetime'];
+    protected $casts = ['expires_at' => 'datetime', 'granted_by_owner_as_addon' => 'boolean'];
 
     public function user(): BelongsTo
     {

@@ -6,6 +6,9 @@ use App\Enums\Permission;
 use App\Models\Group;
 use App\Models\License;
 use App\Models\User;
+use App\Models\UserFeatureGrant;
+use App\Services\TeamAccessService;
+use Database\Seeders\FeatureSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -232,6 +235,62 @@ class MembersControllerTest extends TestCase
             Permission::TeamViewHealth->value,
             $lead->fresh()->permissions & Permission::TeamViewHealth->value,
         );
+    }
+
+    // --- Grant-aware promote (Team Access managers) ---
+
+    public function test_promote_transfers_grant_based_manager_access(): void
+    {
+        $this->seed(FeatureSeeder::class);
+        $owner = User::factory()->create(['is_owner' => true]);
+        $manager = User::factory()->create(['tier' => 'pro', 'permissions' => Permission::pro()]);
+        $expiresAt = now()->addDays(10);
+        app(TeamAccessService::class)->grant($owner, $manager->fresh(), 3, $expiresAt);
+        $manager = $manager->fresh();
+        $group = $manager->ownedGroup;
+        $member = User::factory()->create(['tier' => 'pro', 'permissions' => Permission::pro()]);
+        $group->members()->attach($member->id);
+
+        $response = $this->actingAs($manager)->post("/console/admin/members/{$member->id}/promote");
+
+        $response->assertRedirect('/console/dashboard');
+        $this->assertSame($member->id, $group->fresh()->owner_id);
+
+        // Old owner's grants revoked
+        $this->assertSame(0, UserFeatureGrant::where('user_id', $manager->id)->active()->count());
+
+        // New owner has exactly team_manage_members + team_manage_seats, nothing broader,
+        // carrying the SAME expiry the old owner had.
+        $newGrants = UserFeatureGrant::where('user_id', $member->id)->active()->with('feature')->get();
+        $this->assertSame(
+            ['team_manage_members', 'team_manage_seats'],
+            $newGrants->pluck('feature.name')->sort()->values()->all(),
+        );
+        foreach ($newGrants as $grant) {
+            $this->assertSame($expiresAt->toDateTimeString(), $grant->expires_at->toDateTimeString());
+        }
+
+        // Raw permissions column untouched for either user — access lives in the grant.
+        $this->assertSame(Permission::pro(), $manager->fresh()->permissions);
+        $this->assertSame(Permission::pro(), $member->fresh()->permissions);
+
+        // Access actually follows the new owner now.
+        $this->actingAs($member->fresh())->get('/console/admin/members')->assertStatus(200);
+        $this->actingAs($manager->fresh())->get('/console/admin/members')->assertRedirect('/console/dashboard');
+    }
+
+    public function test_promote_does_not_disturb_a_real_team_managers_raw_bit_handoff(): void
+    {
+        // Regression lock: the existing raw-bit swap path (real Team/Enterprise
+        // managers, no grant involved) must produce identical results to before.
+        $manager = $this->makeManager();
+        $member  = $this->makeMember($manager->ownedGroup, ['permissions' => 127]);
+
+        $this->actingAs($manager)->post("/console/admin/members/{$member->id}/promote");
+
+        $this->assertSame(511, $member->fresh()->permissions);
+        $this->assertSame(127, $manager->fresh()->permissions);
+        $this->assertSame(0, UserFeatureGrant::where('user_id', $member->id)->active()->count());
     }
 
     // --- Role assignment ---

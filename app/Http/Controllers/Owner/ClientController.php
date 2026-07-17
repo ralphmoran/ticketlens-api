@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Owner;
 
 use App\Http\Controllers\Controller;
 use App\Models\Feature;
+use App\Models\License;
 use App\Models\User;
 use App\Models\UserFeatureGrant;
 use App\Services\AuditService;
@@ -97,7 +98,35 @@ class ClientController extends Controller
                 ->with('actor')
                 ->paginate($perPage, ['*'], 'audit_page')
                 ->withQueryString(),
+            'teamAccess' => $this->teamAccessSummary($user),
         ]);
+    }
+
+    /**
+     * Null when the client has no active Team Access grant — the Show page
+     * renders a grant form in that case, or the current state otherwise.
+     */
+    private function teamAccessSummary(User $user): ?array
+    {
+        $activeGrant = UserFeatureGrant::where('user_id', $user->id)
+            ->whereHas('feature', fn ($q) => $q->where('name', 'team_manage_members'))
+            ->active()
+            ->first();
+
+        if ($activeGrant === null) {
+            return null;
+        }
+
+        $addonLicense = License::where('user_id', $user->id)
+            ->where('granted_by_owner_as_addon', true)
+            ->where('status', 'active')
+            ->first();
+
+        return [
+            'seats'      => $addonLicense?->seats,
+            'expires_at' => $activeGrant->expires_at,
+            'members'    => $user->ownedGroup?->members()->count() ?? 0,
+        ];
     }
 
     public function update(Request $request, User $user): RedirectResponse

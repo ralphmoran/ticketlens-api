@@ -6,6 +6,7 @@ use App\Models\AuditLog;
 use App\Models\Feature;
 use App\Models\User;
 use App\Models\UserFeatureGrant;
+use Database\Seeders\FeatureSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -299,6 +300,86 @@ class GrantControllerTest extends TestCase
         );
 
         $response->assertStatus(404);
+    }
+
+    // --- Team-bit direct-grant guard + Recall group bootstrap ---
+
+    public function test_direct_grant_of_team_manage_members_is_rejected(): void
+    {
+        $this->seed(FeatureSeeder::class);
+        $owner   = $this->makeOwner();
+        $user    = $this->makeUser(['tier' => 'pro']);
+        $feature = Feature::where('name', 'team_manage_members')->firstOrFail();
+
+        $response = $this->actingAs($owner)->post(
+            "/console/owner/clients/{$user->id}/grants",
+            ['feature_id' => $feature->id],
+        );
+
+        $response->assertStatus(422);
+        $this->assertDatabaseMissing('user_feature_grants', ['user_id' => $user->id, 'feature_id' => $feature->id]);
+    }
+
+    public function test_direct_grant_of_team_manage_seats_is_rejected(): void
+    {
+        $this->seed(FeatureSeeder::class);
+        $owner   = $this->makeOwner();
+        $user    = $this->makeUser(['tier' => 'pro']);
+        $feature = Feature::where('name', 'team_manage_seats')->firstOrFail();
+
+        $response = $this->actingAs($owner)->post(
+            "/console/owner/clients/{$user->id}/grants",
+            ['feature_id' => $feature->id],
+        );
+
+        $response->assertStatus(422);
+        $this->assertDatabaseMissing('user_feature_grants', ['user_id' => $user->id, 'feature_id' => $feature->id]);
+    }
+
+    public function test_granting_recall_to_a_groupless_client_bootstraps_a_group(): void
+    {
+        $this->seed(FeatureSeeder::class);
+        $owner   = $this->makeOwner();
+        $user    = $this->makeUser(['tier' => 'pro']);
+        $recall  = Feature::where('name', 'recall')->firstOrFail();
+
+        $this->actingAs($owner)->post(
+            "/console/owner/clients/{$user->id}/grants",
+            ['feature_id' => $recall->id],
+        );
+
+        $this->assertNotNull($user->fresh()->ownedGroup);
+    }
+
+    public function test_granting_recall_to_a_client_who_already_owns_a_group_does_not_duplicate_it(): void
+    {
+        $this->seed(FeatureSeeder::class);
+        $owner   = $this->makeOwner();
+        $user    = $this->makeUser(['tier' => 'pro']);
+        app(\App\Services\TeamAccessService::class)->ensureGroupExists($user);
+        $existingGroupId = $user->fresh()->ownedGroup->id;
+        $recall  = Feature::where('name', 'recall')->firstOrFail();
+
+        $this->actingAs($owner)->post(
+            "/console/owner/clients/{$user->id}/grants",
+            ['feature_id' => $recall->id],
+        );
+
+        $this->assertSame($existingGroupId, $user->fresh()->ownedGroup->id);
+    }
+
+    public function test_granting_a_non_recall_feature_does_not_bootstrap_a_group(): void
+    {
+        $owner   = $this->makeOwner();
+        $user    = $this->makeUser(['tier' => 'pro']);
+        $feature = $this->makeFeature();
+
+        $this->actingAs($owner)->post(
+            "/console/owner/clients/{$user->id}/grants",
+            ['feature_id' => $feature->id],
+        );
+
+        $this->assertNull($user->fresh()->ownedGroup);
     }
 
     // --- Owner-target protection ---

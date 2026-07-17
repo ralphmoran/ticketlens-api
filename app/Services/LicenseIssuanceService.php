@@ -207,16 +207,7 @@ class LicenseIssuanceService
      */
     private function bootstrapTeamGroup(User $recipient, string $tier): void
     {
-        $group = $recipient->ownedGroup;
-
-        if ($group === null) {
-            $groupName = trim(($recipient->name ?? $recipient->email) . "'s Team");
-            $group     = Group::create(['name' => $groupName, 'owner_id' => $recipient->id]);
-        }
-
-        if (! $group->members()->where('users.id', $recipient->id)->exists()) {
-            $group->members()->attach($recipient->id);
-        }
+        Group::createForOwner($recipient);
 
         // Grant manager bits in addition to tier permissions. Rank-and-file
         // seats won't get these — only the group owner.

@@ -29,4 +29,25 @@ class Group extends Model
     {
         return $this->users();
     }
+
+    /**
+     * Idempotent: returns the owner's existing group if one exists,
+     * otherwise creates one and attaches the owner as its first member.
+     * Never mutates the owner's tier or permissions — callers layer that on.
+     */
+    public static function createForOwner(User $owner): self
+    {
+        $group = $owner->ownedGroup;
+
+        if ($group === null) {
+            $groupName = trim(($owner->name ?? $owner->email) . "'s Team");
+            $group     = self::create(['name' => $groupName, 'owner_id' => $owner->id]);
+        }
+
+        if (! $group->members()->where('users.id', $owner->id)->exists()) {
+            $group->members()->attach($owner->id);
+        }
+
+        return $group;
+    }
 }

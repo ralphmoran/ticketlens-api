@@ -203,10 +203,14 @@ class WebhookTest extends TestCase
 
     public function test_webhook_reflects_an_owner_customized_tier_feature_set_not_the_hardcoded_preset(): void
     {
-        // The owner turns Recall on for Team via console/owner/tiers (tier_features),
-        // dynamically diverging from the hardcoded Permission::team() composite.
-        $recall = \App\Models\Feature::where('name', 'recall')->firstOrFail();
-        \Illuminate\Support\Facades\DB::table('tier_features')->insert(['tier' => 'team', 'feature_id' => $recall->id]);
+        // The owner turns Team Health view on for Team via console/owner/tiers
+        // (tier_features), dynamically diverging from the hardcoded
+        // Permission::team() composite. TeamViewHealth (1024) is explicitly
+        // documented as manager-assigned, never a tier preset default — unlike
+        // Recall, which is now baked into team() itself and can't demonstrate
+        // this divergence anymore.
+        $teamViewHealth = \App\Models\Feature::where('name', 'team_view_health')->firstOrFail();
+        \Illuminate\Support\Facades\DB::table('tier_features')->insert(['tier' => 'team', 'feature_id' => $teamViewHealth->id]);
 
         $user = User::factory()->create(['tier' => 'free', 'permissions' => 64]);
 
@@ -219,7 +223,7 @@ class WebhookTest extends TestCase
         $this->assertSame('team', $fresh->tier);
         $this->assertNotSame(
             0,
-            $fresh->permissions & Permission::Recall->value,
+            $fresh->permissions & Permission::TeamViewHealth->value,
             'a subscription activation must reflect the owner\'s dynamic tier_features customization, not silently revert to the hardcoded Permission::team() composite',
         );
     }

@@ -190,6 +190,21 @@ class ClientHealthTest extends TestCase
         $response->assertInertia(fn ($page) => $page->where('arpu', $proPrice));
     }
 
+    public function test_arpu_excludes_owner_comped_team_access_seats(): void
+    {
+        // A Team-Access addon license (comped by the owner, no purchase behind
+        // it) must never count toward MRR/ARPU — only the real Pro license does.
+        $owner   = $this->makeOwner();
+        $proUser = $this->makeClient('pro');
+        License::create(['user_id' => $proUser->id, 'lemon_key_hash' => str_repeat('a', 64), 'tier' => 'pro', 'seats' => 1, 'status' => 'active', 'expires_at' => null]);
+        License::create(['user_id' => $proUser->id, 'lemon_key_hash' => str_repeat('e', 64), 'tier' => 'pro', 'seats' => 4, 'status' => 'active', 'expires_at' => null, 'granted_by_owner_as_addon' => true]);
+
+        $response = $this->actingAs($owner)->get('/console/owner/health');
+
+        $proPrice = config('tiers.prices.pro', 8);
+        $response->assertInertia(fn ($page) => $page->where('arpu', $proPrice));
+    }
+
     // ── Seat utilization ─────────────────────────────────────────────────────
 
     public function test_seat_utilization_returns_total_and_used_seats(): void

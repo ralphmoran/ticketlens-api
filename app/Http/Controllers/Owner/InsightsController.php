@@ -206,6 +206,7 @@ class InsightsController
         $prices = config('tiers.prices');
 
         return (float) License::where('status', 'active')
+            ->where('granted_by_owner_as_addon', false)
             ->where(fn ($q) => $q->whereNull('expires_at')->orWhere('expires_at', '>', now()))
             ->get(['tier', 'seats'])
             ->sum(fn ($l) => ($prices[$l->tier] ?? 0) * $l->seats);
@@ -215,7 +216,10 @@ class InsightsController
     {
         $prices = config('tiers.prices');
 
+        // granted_by_owner_as_addon licenses are comped seat capacity, not a
+        // purchase — excluded so this never inflates reported MRR.
         return License::where('status', 'active')
+            ->where('granted_by_owner_as_addon', false)
             ->where(fn ($q) => $q->whereNull('expires_at')->orWhere('expires_at', '>', now()))
             ->selectRaw('tier, COUNT(*) as count, SUM(seats) as seats')
             ->groupBy('tier')

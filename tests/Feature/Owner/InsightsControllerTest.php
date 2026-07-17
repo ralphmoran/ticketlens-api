@@ -53,6 +53,39 @@ class InsightsControllerTest extends TestCase
             ->assertInertia(fn ($page) => $page->component('Console/Owner/Insights'));
     }
 
+    public function test_monthly_revenue_excludes_owner_comped_team_access_seats(): void
+    {
+        $owner   = $this->makeOwner();
+        $proUser = User::factory()->create(['tier' => 'pro']);
+        \App\Models\License::create(['user_id' => $proUser->id, 'lemon_key_hash' => str_repeat('a', 64), 'tier' => 'pro', 'seats' => 1, 'status' => 'active', 'expires_at' => null]);
+        \App\Models\License::create(['user_id' => $proUser->id, 'lemon_key_hash' => str_repeat('e', 64), 'tier' => 'pro', 'seats' => 4, 'status' => 'active', 'expires_at' => null, 'granted_by_owner_as_addon' => true]);
+
+        $proPrice = config('tiers.prices.pro', 8);
+
+        $this->actingAs($owner)->get('/console/owner/insights')
+            ->assertInertia(fn ($page) => $page->where('monthly_revenue', $proPrice));
+    }
+
+    public function test_licenses_by_tier_excludes_owner_comped_team_access_seats(): void
+    {
+        $owner   = $this->makeOwner();
+        $proUser = User::factory()->create(['tier' => 'pro']);
+        \App\Models\License::create(['user_id' => $proUser->id, 'lemon_key_hash' => str_repeat('a', 64), 'tier' => 'pro', 'seats' => 1, 'status' => 'active', 'expires_at' => null]);
+        \App\Models\License::create(['user_id' => $proUser->id, 'lemon_key_hash' => str_repeat('e', 64), 'tier' => 'pro', 'seats' => 4, 'status' => 'active', 'expires_at' => null, 'granted_by_owner_as_addon' => true]);
+
+        $proPrice = config('tiers.prices.pro', 8);
+
+        $this->actingAs($owner)->get('/console/owner/insights')
+            ->assertInertia(function ($page) use ($proPrice) {
+                $page->has('licenses_by_tier', 1);
+                $page->where('licenses_by_tier.0.tier', 'pro');
+                $page->where('licenses_by_tier.0.count', 1);
+                $page->where('licenses_by_tier.0.revenue', $proPrice);
+
+                return $page;
+            });
+    }
+
     public function test_insights_returns_popular_commands(): void
     {
         $owner = $this->makeOwner();

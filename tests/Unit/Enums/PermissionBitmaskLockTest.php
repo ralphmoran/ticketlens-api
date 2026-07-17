@@ -30,10 +30,10 @@ class PermissionBitmaskLockTest extends TestCase
         $this->assertSame(2119, Permission::pro());
     }
 
-    public function test_team_tier_equals_2687(): void
+    public function test_team_tier_equals_6783(): void
     {
-        // pro (2119) | 8 (Compliance) | 16 (Export) | 32 (MultiAccount) | 512 (AttentionQueue) = 2687
-        $this->assertSame(2687, Permission::team());
+        // pro (2119) | 8 (Compliance) | 16 (Export) | 32 (MultiAccount) | 512 (AttentionQueue) | 4096 (Recall) = 6783
+        $this->assertSame(6783, Permission::team());
     }
 
     public function test_enterprise_tier_equals_team(): void
@@ -115,14 +115,15 @@ class PermissionBitmaskLockTest extends TestCase
         $this->assertSame(4096, Permission::Recall->value);
     }
 
-    public function test_recall_is_not_in_any_hardcoded_tier_composite(): void
+    public function test_recall_is_default_for_team_and_enterprise_but_never_pro(): void
     {
-        // Recall is owner-assignable per tier dynamically via tier_features — it
-        // must never be baked into these hardcoded composites, or a Pro/Team user
-        // would get it unconditionally regardless of the owner's tier_features config.
+        // Recall is always-on for Team/Enterprise (hardcoded in the team() composite).
+        // Pro never gets it as a tier default — only via a purchased feature-grant or
+        // an owner-issued UserFeatureGrant. Baking it into pro() would make it free
+        // for every Pro user regardless of payment or owner action.
         $this->assertSame(0, Permission::pro() & Permission::Recall->value);
-        $this->assertSame(0, Permission::team() & Permission::Recall->value);
-        $this->assertSame(0, Permission::enterprise() & Permission::Recall->value);
+        $this->assertNotSame(0, Permission::team() & Permission::Recall->value);
+        $this->assertNotSame(0, Permission::enterprise() & Permission::Recall->value);
     }
 
     public function test_label_is_defined_for_every_case_no_unhandled_match_error(): void

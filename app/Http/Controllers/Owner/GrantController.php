@@ -7,12 +7,22 @@ use App\Models\Feature;
 use App\Models\User;
 use App\Models\UserFeatureGrant;
 use App\Services\AuditService;
+use App\Services\TeamAccessService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 
 class GrantController extends Controller
 {
-    public function __construct(private readonly AuditService $audit) {}
+    // These two bits are never grantable through this generic endpoint —
+    // granting them requires TeamAccessService's group-bootstrap +
+    // dedicated-seats-license side effects (see TeamAccessController),
+    // not a bare permission row.
+    private const TEAM_MANAGE_FEATURE_NAMES = ['team_manage_members', 'team_manage_seats'];
+
+    public function __construct(
+        private readonly AuditService $audit,
+        private readonly TeamAccessService $teamAccess,
+    ) {}
 
     public function store(Request $request, User $user): RedirectResponse
     {
@@ -30,6 +40,12 @@ class GrantController extends Controller
 
         $feature = Feature::findOrFail($validated['feature_id']);
 
+        abort_if(
+            in_array($feature->name, self::TEAM_MANAGE_FEATURE_NAMES, true),
+            422,
+            'Grant Team Access via the Team Access panel, not a generic feature grant.',
+        );
+
         $grant = UserFeatureGrant::create([
             'user_id'    => $user->id,
             'feature_id' => $feature->id,
@@ -37,6 +53,13 @@ class GrantController extends Controller
             'expires_at' => $validated['expires_at'] ?? null,
             'note'       => $validated['note'] ?? null,
         ]);
+
+        // Recall requires a group to sync into — grant it one directly (no
+        // seats, no invite-ability) rather than leaving a solo client's Recall
+        // entitlement unusable until the owner separately grants Team Access.
+        if ($feature->name === 'recall') {
+            $this->teamAccess->ensureGroupExists($user);
+        }
 
         $this->audit->logFromRequest($request, 'grant.created', $user, null, [
             'feature_id'    => $feature->id,

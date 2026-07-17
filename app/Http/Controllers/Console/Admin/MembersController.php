@@ -9,6 +9,7 @@ use App\Models\License;
 use App\Models\User;
 use App\Services\AuditService;
 use App\Services\MembersService;
+use App\Services\TeamAccessService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -24,6 +25,7 @@ class MembersController extends Controller
     public function __construct(
         private readonly AuditService $audit,
         private readonly MembersService $members,
+        private readonly TeamAccessService $teamAccess,
     ) {}
 
     public function store(Request $request): RedirectResponse
@@ -66,9 +68,12 @@ class MembersController extends Controller
                 },
             ]);
 
+        // Same dual-license shape as MembersService::invite() — a Team-Access
+        // addon license always has more seats than a real Free/Pro license,
+        // so ordering by seats descending deterministically picks it.
         $license = License::where('user_id', $request->user()->id)
             ->where('status', 'active')
-            ->latest()
+            ->orderByDesc('seats')
             ->first(['id', 'tier', 'seats', 'expires_at']);
 
         return Inertia::render('Console/Admin/Members', [
@@ -163,12 +168,25 @@ class MembersController extends Controller
             // Swap owner_id
             $group->update(['owner_id' => $user->id]);
 
-            // Grant manager bits to new owner, revoke from old
+            // Exactly one mechanism grants the new owner access, matching
+            // whichever the old owner actually had — never both, or a later
+            // TeamAccessService::revoke() (grant-only) would leave a raw-bit
+            // manager permanently un-revocable.
             $mask = Permission::teamManagerMask();
-            $user->permissions |= $mask;
-            $user->save();
+            $managerHasRawBits = ($manager->permissions & $mask) !== 0;
+
+            if ($managerHasRawBits) {
+                $user->permissions |= $mask;
+                $user->save();
+            }
+            // Always stripped from the old owner — a no-op if they never had
+            // the raw bits (grant-based managers never do).
             $manager->permissions &= ~$mask;
             $manager->save();
+
+            // Grant-based path (Free/Pro Team Access managers) — unconditional,
+            // a no-op when the old owner had no grants to move.
+            $this->teamAccess->transferManagerGrant($manager, $user);
         });
 
         $this->audit->log(

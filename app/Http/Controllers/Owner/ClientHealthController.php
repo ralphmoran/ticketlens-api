@@ -122,8 +122,11 @@ class ClientHealthController
             return 0.0;
         }
 
+        // granted_by_owner_as_addon licenses are comped seat capacity, not a
+        // purchase — excluded so this never inflates reported MRR/ARPU.
         $licenses = License::whereHas('user', fn ($q) => $q->whereNotIn('id', $ownerIds))
             ->where('status', 'active')
+            ->where('granted_by_owner_as_addon', false)
             ->whereIn('tier', $paidTiers)
             ->get(['tier', 'seats']);
 

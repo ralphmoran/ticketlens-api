@@ -277,6 +277,10 @@ Route::prefix('console')->name('console.')->group(function () {
             Route::post('/clients/{user}/grants', [\App\Http\Controllers\Owner\GrantController::class, 'store'])->name('grants.store');
             Route::delete('/clients/{user}/grants/{grant}', [\App\Http\Controllers\Owner\GrantController::class, 'destroy'])->name('grants.destroy');
 
+            // Team Access — owner grants Free/Pro clients a Group + invite-ability
+            Route::post('/clients/{user}/team-access', [\App\Http\Controllers\Owner\TeamAccessController::class, 'store'])->name('team-access.store');
+            Route::delete('/clients/{user}/team-access', [\App\Http\Controllers\Owner\TeamAccessController::class, 'destroy'])->name('team-access.destroy');
+
             // Impersonation — start only (stop lives outside this group, see above)
             Route::post('/impersonate/{user}', [\App\Http\Controllers\Owner\ImpersonationController::class, 'store'])->name('impersonate.start');
 

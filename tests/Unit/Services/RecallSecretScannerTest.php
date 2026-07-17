@@ -126,6 +126,25 @@ class RecallSecretScannerTest extends TestCase
         $this->assertTrue($result['rejected']);
     }
 
+    // ---- external_id is a system-generated filename, not user free text ----
+
+    public function test_cli_generated_external_id_does_not_falsely_combine_with_body_text(): void
+    {
+        // Real Local Live Test failure: the CLI's own note filename
+        // ("1784260956978-7b556e.md") sits next to the body's trailing "5xx."
+        // in the flattened token stream. joinedChunkRuns used to glue them
+        // into "5xx.1784260956978-7b556e.md" (entropy 3.81, over the 3.75
+        // threshold) and reject a note that contains no secret at all.
+        $result = $this->scanner->scan([
+            'title'       => 'Retry gotcha (live test)',
+            'tags'        => ['livetest'],
+            'body'        => 'Retry needs exponential backoff on 5xx.',
+            'external_id' => '1784260956978-7b556e.md',
+        ]);
+        $this->assertFalse($result['rejected']);
+        $this->assertSame([], $result['warnings']);
+    }
+
     // ---- email: warning, not rejection ----
 
     public function test_an_email_address_triggers_a_warning_not_a_rejection(): void

@@ -68,11 +68,18 @@ class RecallSecretScanner
             }
         }
 
-        $tokens     = array_values(array_filter(preg_split('/\s+/', $combined)));
-        $candidates = [...$tokens, ...$this->joinedChunkRuns($tokens)];
+        // external_id is a system-generated filename (CLI note ID), never
+        // user-authored free text. It's still checked on its own below, but
+        // excluded from joinedChunkRuns: joining it with the trailing word of
+        // another field produces a synthetic string whose entropy is an
+        // artifact of concatenation, not a real secret (e.g. a body ending in
+        // "5xx." glued to "...-7b556e.md").
+        $freeText   = implode("\n", [$title, ...$aliases, ...$tags, $body, ...$sources]);
+        $tokens     = array_values(array_filter(preg_split('/\s+/', $freeText)));
+        $candidates = [...$tokens, ...$this->joinedChunkRuns($tokens), $externalId];
 
         foreach ($candidates as $token) {
-            if (! preg_match(self::EMAIL_RE, $token) && $this->looksRandom($token, $combined)) {
+            if ($token !== '' && ! preg_match(self::EMAIL_RE, $token) && $this->looksRandom($token, $combined)) {
                 $reasons[] = 'Contains a long, random-looking string that could be a secret.';
                 break;
             }

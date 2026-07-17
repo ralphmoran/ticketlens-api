@@ -11,7 +11,7 @@ class ComplianceRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'ticketKey' => ['nullable', 'string', 'regex:/^[A-Z]+-\d+$/', 'max:50'],
+            'ticketKey' => ['nullable', 'string', 'regex:/^[A-Z][A-Z0-9]+-\d+$/', 'max:50'],
             'brief'     => ['required', 'string', 'max:50000'],
         ];
     }

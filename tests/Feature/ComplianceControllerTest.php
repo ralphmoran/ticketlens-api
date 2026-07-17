@@ -76,6 +76,24 @@ class ComplianceControllerTest extends TestCase
         $response->assertJsonStructure(['requirements', 'results', 'coveragePercent']);
     }
 
+    public function test_returns_200_for_a_digit_prefixed_ticket_key(): void
+    {
+        [, $token] = $this->makeTeamUserWithToken();
+        $this->mock(AiService::class, function ($mock) {
+            $mock->shouldReceive('summarize')->once()->andReturn(
+                "Must validate email | FOUND\nMust validate email | FOUND"
+            );
+        });
+
+        $response = $this->withToken($token)->postJson('/v1/compliance', [
+            'brief'     => "# Acceptance Criteria\n- Must validate email",
+            'ticketKey' => 'CNV1-2',
+        ]);
+
+        $response->assertStatus(200);
+        $response->assertJsonStructure(['requirements', 'results', 'coveragePercent']);
+    }
+
     public function test_returns_401_without_auth_header(): void
     {
         $response = $this->postJson('/v1/compliance', [

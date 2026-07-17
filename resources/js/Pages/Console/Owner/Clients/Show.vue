@@ -449,23 +449,25 @@ const TIER_LABELS = { free: 'Free', pro: 'Pro', team: 'Team', enterprise: 'Enter
             </div>
 
             <div v-if="teamAccess" class="tl-banner-inset tl-card-gap-sm">
-                <div class="tl-row tl-row--wrap tl-row--tight">
-                    <span class="tl-badge tl-badge--success tl-badge--caps">Active</span>
-                    <span class="tl-body--muted">{{ teamAccess.seats }} seats · {{ teamAccess.members }} member{{ teamAccess.members === 1 ? '' : 's' }}</span>
-                    <span v-if="teamAccess.expires_at" class="tl-badge tl-badge--brand">
-                        <TlIcon name="clock" :strokeWidth="2" class="tl-ic tl-ic--xs" />
-                        expires {{ formatDate(teamAccess.expires_at) }}
-                    </span>
-                    <span v-else class="tl-badge tl-badge--brand">Permanent</span>
+                <div class="tl-row tl-row--between tl-row--wrap">
+                    <div class="tl-row tl-row--wrap tl-row--tight">
+                        <span class="tl-badge tl-badge--success tl-badge--caps">Active</span>
+                        <span class="tl-toggle-row-title">{{ teamAccess.seats }} seats · {{ teamAccess.members }} member{{ teamAccess.members === 1 ? '' : 's' }}</span>
+                        <span v-if="teamAccess.expires_at" class="tl-badge tl-badge--brand">
+                            <TlIcon name="clock" :strokeWidth="2" class="tl-ic tl-ic--xs" />
+                            expires {{ formatDate(teamAccess.expires_at) }}
+                        </span>
+                        <span v-else class="tl-badge tl-badge--brand">Permanent</span>
+                    </div>
+                    <button
+                        type="button"
+                        @click="revokeTeamAccess"
+                        class="tl-chip-btn tl-chip-btn--warn tl-row tl-row--tight"
+                    >
+                        <TlIcon name="close" class="tl-ic tl-ic--sm" />
+                        Revoke
+                    </button>
                 </div>
-                <button
-                    type="button"
-                    @click="revokeTeamAccess"
-                    class="tl-btn tl-btn--secondary tl-btn--sm tl-card-gap-sm"
-                >
-                    <TlIcon name="close" class="tl-ic tl-ic--sm" />
-                    Revoke Team Access
-                </button>
             </div>
 
             <div v-else class="tl-banner-inset tl-card-gap-sm">

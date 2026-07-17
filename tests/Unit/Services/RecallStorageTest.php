@@ -195,4 +195,116 @@ class RecallStorageTest extends TestCase
         $this->assertSame($firstVerifier->id, $final->verified_by, 'the first verifier is the permanent record');
         $this->assertEquals($firstVerifiedAt, $final->verified_at);
     }
+
+    // ---- soft delete ----
+
+    public function test_deleting_a_note_soft_deletes_it_and_excludes_it_from_default_queries(): void
+    {
+        $group  = $this->makeGroupWithOwner();
+        $author = User::factory()->create();
+        $note   = $this->storage->push($group, $author, ['external_id' => 'x.md', 'title' => 't', 'body' => 'x']);
+
+        $note->delete();
+
+        $this->assertNull(RecallNote::find($note->id));
+        $this->assertNotNull(RecallNote::withTrashed()->find($note->id)->deleted_at);
+    }
+
+    public function test_storage_delete_soft_deletes_the_note(): void
+    {
+        $group  = $this->makeGroupWithOwner();
+        $author = User::factory()->create();
+        $note   = $this->storage->push($group, $author, ['external_id' => 'x.md', 'title' => 't', 'body' => 'x']);
+
+        $this->storage->delete($note);
+
+        $this->assertNull(RecallNote::find($note->id));
+        $this->assertNotNull(RecallNote::withTrashed()->find($note->id)->deleted_at);
+    }
+
+    public function test_pushing_the_same_external_id_after_deletion_restores_the_note_instead_of_violating_the_unique_constraint(): void
+    {
+        $group  = $this->makeGroupWithOwner();
+        $author = User::factory()->create();
+        $note   = $this->storage->push($group, $author, ['external_id' => 'x.md', 'title' => 'v1', 'body' => 'a']);
+        $this->storage->delete($note);
+
+        $restored = $this->storage->push($group, $author, ['external_id' => 'x.md', 'title' => 'v2', 'body' => 'b']);
+
+        $this->assertDatabaseCount('recall_notes', 1);
+        $this->assertNull($restored->deleted_at);
+        $this->assertSame('v2', $restored->title);
+    }
+
+    public function test_a_repush_after_deletion_resets_status_to_unverified_even_if_it_was_verified_before_deletion(): void
+    {
+        $group    = $this->makeGroupWithOwner();
+        $author   = User::factory()->create();
+        $verifier = User::factory()->create();
+        $note     = $this->storage->push($group, $author, ['external_id' => 'x.md', 'title' => 'v1', 'body' => 'a']);
+        $this->storage->verify($note, $verifier);
+        $this->storage->delete($note->fresh());
+
+        $restored = $this->storage->push($group, $author, ['external_id' => 'x.md', 'title' => 'v2', 'body' => 'b']);
+
+        $this->assertSame('unverified', $restored->status, 'a delete must not let a stale verification carry over silently on repush');
+    }
+
+    // ---- pull tombstones ----
+
+    public function test_pull_tombstones_only_includes_notes_deleted_after_since(): void
+    {
+        $group  = $this->makeGroupWithOwner();
+        $author = User::factory()->create();
+
+        $old = $this->storage->push($group, $author, ['external_id' => 'old.md', 'title' => 'Old', 'body' => 'x']);
+        $this->storage->delete($old);
+        RecallNote::withTrashed()->where('id', $old->id)->update(['deleted_at' => now()->subDays(2)]);
+
+        $recent = $this->storage->push($group, $author, ['external_id' => 'recent.md', 'title' => 'Recent', 'body' => 'x']);
+        $this->storage->delete($recent);
+
+        $tombstones = $this->storage->pullTombstones($group, now()->subDay());
+
+        $this->assertCount(1, $tombstones);
+        $this->assertSame('recent.md', $tombstones->first()->external_id);
+    }
+
+    public function test_pull_tombstones_are_scoped_to_the_given_group(): void
+    {
+        $groupA = $this->makeGroupWithOwner();
+        $groupB = $this->makeGroupWithOwner();
+        $author = User::factory()->create();
+
+        $noteA = $this->storage->push($groupA, $author, ['external_id' => 'a.md', 'title' => 'A', 'body' => 'x']);
+        $this->storage->delete($noteA);
+        $noteB = $this->storage->push($groupB, $author, ['external_id' => 'b.md', 'title' => 'B', 'body' => 'x']);
+        $this->storage->delete($noteB);
+
+        $tombstones = $this->storage->pullTombstones($groupA);
+
+        $this->assertCount(1, $tombstones);
+        $this->assertSame('a.md', $tombstones->first()->external_id);
+    }
+
+    public function test_pull_tombstones_never_returns_more_than_the_configured_cap(): void
+    {
+        // Tombstone rows carry no body — a much higher cap than pull()'s
+        // PULL_LIMIT is safe (tiny rows) and meaningfully reduces the chance
+        // of a heavy-deletion group ever orphaning a local file (the oldest
+        // excess tombstones would otherwise fall out of the window and never
+        // be returned again once the client's cursor moves past them).
+        $group  = $this->makeGroupWithOwner();
+        $author = User::factory()->create();
+
+        for ($i = 0; $i < 1005; $i++) {
+            $note = RecallNote::create([
+                'group_id' => $group->id, 'author_id' => $author->id, 'external_id' => "n{$i}.md",
+                'title' => "N{$i}", 'aliases' => [], 'tickets' => [], 'tags' => [], 'sources' => [], 'body' => 'x',
+            ]);
+            $note->delete();
+        }
+
+        $this->assertSame(1000, $this->storage->pullTombstones($group)->count());
+    }
 }

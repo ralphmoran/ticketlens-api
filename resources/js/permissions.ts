@@ -10,6 +10,7 @@ export const Permission = {
     TeamManageSeats:   256,
     AttentionQueue:    512,
     WorkflowRules:     2048,
+    Recall:            4096,
 } as const
 
 export type PermissionKey = keyof typeof Permission

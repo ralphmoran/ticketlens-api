@@ -134,6 +134,22 @@ class PushControllerTest extends TestCase
         $this->assertSame(0, RecallNote::count());
     }
 
+    public function test_an_external_id_not_shaped_like_a_cli_generated_id_is_rejected(): void
+    {
+        // RecallSecretScanner exempts external_id from its entropy heuristic on
+        // the assumption it's always a system-generated id, never user-authored
+        // free text. That assumption must be server-enforced here, not just
+        // true by CLI convention — otherwise a caller bypassing the CLI could
+        // smuggle an arbitrary high-entropy string through the one field the
+        // scanner no longer checks for randomness.
+        [, $token] = $this->makeEntitledUserWithToken();
+
+        $this->withToken($token)
+            ->postJson('/v1/recall/push', $this->validPayload(['external_id' => 'not-the-generated-shape']))
+            ->assertStatus(422);
+        $this->assertSame(0, RecallNote::count());
+    }
+
     public function test_a_ticket_key_with_a_digit_in_the_prefix_like_cnv1_2_is_accepted(): void
     {
         // Regression: the tickets.* regex must match the CLI's own

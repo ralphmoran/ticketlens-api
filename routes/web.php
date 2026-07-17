@@ -210,6 +210,7 @@ Route::prefix('console')->name('console.')->group(function () {
             // entitlement itself (team.manager alone doesn't imply it — Recall is a
             // per-user grant/tier, so a manager can legitimately lack it).
             Route::post('/recall/{note}/verify', [\App\Http\Controllers\Console\Admin\RecallController::class, 'verify'])->name('recall.verify')->middleware('permission:Recall');
+            Route::delete('/recall/{note}', [\App\Http\Controllers\Console\Admin\RecallController::class, 'destroy'])->name('recall.destroy')->middleware('permission:Recall');
         });
 
         // Brief templates — read for all auth users; mutations require team.manager (owner bypasses)

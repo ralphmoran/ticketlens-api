@@ -252,6 +252,7 @@ const navGroups = computed(() => [
         requiresTeamOrLead: true,
         items: [
             { label: 'Team Health',          href: '/console/admin/team-health',          icon: 'heart-pulse',      managerOnly: false, ownerExcluded: false, permission: null },
+            { label: 'Recall',               href: '/console/admin/recall',               icon: 'search',           managerOnly: false, ownerExcluded: true,  permission: Permission.Recall },
             { label: 'Response Stats',       href: '/console/admin/stats',                icon: 'trending-up',      managerOnly: false, ownerExcluded: false, permission: null },
             { label: 'Compliance Analytics', href: '/console/admin/compliance-analytics', icon: 'clipboard-check',  managerOnly: false, ownerExcluded: false, permission: null },
             { label: 'Members',              href: '/console/admin/members',              icon: 'user-group',       managerOnly: true,  ownerExcluded: true,  permission: Permission.TeamManageMembers },

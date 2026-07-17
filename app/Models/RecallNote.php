@@ -4,9 +4,12 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class RecallNote extends Model
 {
+    use SoftDeletes;
+
     protected $fillable = [
         'group_id', 'author_id', 'tracker_profile_id', 'external_id', 'title',
         'aliases', 'tickets', 'tags', 'sources', 'body', 'status',

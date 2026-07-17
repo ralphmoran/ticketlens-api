@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Console\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Group;
 use App\Models\RecallNote;
+use App\Services\AuditService;
 use App\Services\RecallStorage;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -13,6 +14,8 @@ use Inertia\Response;
 
 class RecallController extends Controller
 {
+    public function __construct(private readonly AuditService $audit) {}
+
     public function index(Request $request): Response
     {
         $group = $this->resolveGroup($request);
@@ -25,6 +28,7 @@ class RecallController extends Controller
                 ->through(fn (RecallNote $note) => [
                     'id'         => $note->id,
                     'title'      => $note->title,
+                    'body'       => $note->body,
                     'tickets'    => $note->tickets,
                     'tags'       => $note->tags,
                     'author'     => $note->author?->name,
@@ -38,7 +42,7 @@ class RecallController extends Controller
         return Inertia::render('Console/Admin/Recall', [
             'group'     => $group ? ['id' => $group->id, 'name' => $group->name] : null,
             'notes'     => $notes,
-            'canVerify' => $user->is_owner || $user->ownedGroup?->id === $group?->id,
+            'canManage' => $user->is_owner || $user->ownedGroup?->id === $group?->id,
         ]);
     }
 
@@ -53,6 +57,32 @@ class RecallController extends Controller
         app(RecallStorage::class)->verify($note, $request->user());
 
         return back()->with('success', 'Note verified.');
+    }
+
+    public function destroy(Request $request, RecallNote $note): RedirectResponse
+    {
+        // Same resolution + authorization shape as verify() — see its comment.
+        $group = $this->resolveGroup($request);
+        abort_unless($group !== null && $note->group_id === $group->id, 403);
+
+        // title/external_id/group_id captured before deletion so the log still
+        // identifies what was removed. target is null, not the actor — a
+        // RecallNote isn't a User, and AuditService::log()'s target column only
+        // ever points at one. Logged after delete() succeeds, matching every
+        // other destructive action in this codebase — a failed delete must
+        // never leave a misleading "deleted" entry in the trail.
+        $oldValue = ['title' => $note->title, 'external_id' => $note->external_id, 'group_id' => $note->group_id];
+
+        app(RecallStorage::class)->delete($note);
+
+        $this->audit->logFromRequest(
+            request: $request,
+            action: 'recall.deleted',
+            oldValue: $oldValue,
+            metadata: ['note_id' => $note->id],
+        );
+
+        return back()->with('success', 'Note deleted.');
     }
 
     private function resolveGroup(Request $request): ?Group

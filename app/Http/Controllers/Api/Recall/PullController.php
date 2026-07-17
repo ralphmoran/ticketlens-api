@@ -24,12 +24,14 @@ class PullController
         // the class of cross-tenant read this endpoint must never allow.
         $group = $user->ownedGroup ?? $user->groups()->first();
         if ($group === null) {
-            return response()->json(['notes' => []]);
+            return response()->json(['notes' => [], 'deleted' => []]);
         }
 
         $request->validate(['since' => ['sometimes', 'date']]);
-        $since = $request->query('since') ? Carbon::parse($request->query('since')) : null;
-        $notes = app(RecallStorage::class)->pull($group, $since);
+        $since  = $request->query('since') ? Carbon::parse($request->query('since')) : null;
+        $storage = app(RecallStorage::class);
+        $notes  = $storage->pull($group, $since);
+        $deleted = $storage->pullTombstones($group, $since);
 
         return response()->json([
             'notes' => $notes->map(fn ($note) => [
@@ -43,6 +45,10 @@ class PullController
                 'body'        => $note->body,
                 'status'      => $note->status,
                 'created'     => $note->created_at->toIso8601String(),
+            ]),
+            'deleted' => $deleted->map(fn ($note) => [
+                'external_id' => $note->external_id,
+                'tickets'     => $note->tickets,
             ]),
         ]);
     }

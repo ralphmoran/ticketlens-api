@@ -69,14 +69,19 @@ class RecallSecretScanner
         }
 
         // external_id is a system-generated filename (CLI note ID), never
-        // user-authored free text. It's still checked on its own below, but
-        // excluded from joinedChunkRuns: joining it with the trailing word of
-        // another field produces a synthetic string whose entropy is an
-        // artifact of concatenation, not a real secret (e.g. a body ending in
-        // "5xx." glued to "...-7b556e.md").
+        // user-authored free text — excluded entirely from the entropy/
+        // random-string heuristic below, not just from joinedChunkRuns. A
+        // random ID is, by construction, random-looking: scanning it for
+        // "does this look like a secret" is a category error that rejects
+        // some fraction of every real note purely by chance (observed twice
+        // in Local Live Test — once via cross-field joining, once on its
+        // own: "1784306812255-0dbb0e.md" alone has entropy 3.795, over the
+        // 3.75 threshold). It still participates in $combined above, so a
+        // literal secret SIGNATURE (AKIA/JWT/sk-/gh_) landing in external_id
+        // is still hard-rejected — only the entropy heuristic exempts it.
         $freeText   = implode("\n", [$title, ...$aliases, ...$tags, $body, ...$sources]);
         $tokens     = array_values(array_filter(preg_split('/\s+/', $freeText)));
-        $candidates = [...$tokens, ...$this->joinedChunkRuns($tokens), $externalId];
+        $candidates = [...$tokens, ...$this->joinedChunkRuns($tokens)];
 
         foreach ($candidates as $token) {
             if ($token !== '' && ! preg_match(self::EMAIL_RE, $token) && $this->looksRandom($token, $combined)) {

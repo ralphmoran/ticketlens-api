@@ -140,6 +140,61 @@ class PullControllerTest extends TestCase
         $plaintext = 'tl_' . str_repeat('z', 40);
         CliToken::create(['user_id' => $user->id, 'name' => 'CLI Token', 'token_hash' => CliToken::hashToken($plaintext)]);
 
-        $this->withToken($plaintext)->getJson('/v1/recall/pull')->assertStatus(200)->assertJson(['notes' => []]);
+        $this->withToken($plaintext)->getJson('/v1/recall/pull')->assertStatus(200)->assertJson(['notes' => [], 'deleted' => []]);
+    }
+
+    // ---- tombstones (deleted notes) ----
+
+    public function test_response_includes_a_deleted_array_with_external_id_and_tickets_for_removed_notes(): void
+    {
+        $owner = User::factory()->create(['is_owner' => true]);
+        $group = Group::create(['name' => 'T', 'owner_id' => $owner->id]);
+        [$user, $token] = $this->makeEntitledMember($group, $owner, 'a');
+
+        $note = RecallNote::create([
+            'group_id' => $group->id, 'author_id' => $user->id, 'external_id' => 'gone.md',
+            'title' => 'Gone', 'aliases' => [], 'tickets' => ['PROD-1'], 'tags' => [], 'sources' => [], 'body' => 'x',
+        ]);
+        $note->delete();
+
+        $response = $this->withToken($token)->getJson('/v1/recall/pull')->assertStatus(200)->json('deleted');
+
+        $this->assertCount(1, $response);
+        $this->assertSame('gone.md', $response[0]['external_id']);
+        $this->assertSame(['PROD-1'], $response[0]['tickets']);
+    }
+
+    public function test_a_still_live_note_never_appears_in_the_deleted_array(): void
+    {
+        $owner = User::factory()->create(['is_owner' => true]);
+        $group = Group::create(['name' => 'T', 'owner_id' => $owner->id]);
+        [$user, $token] = $this->makeEntitledMember($group, $owner, 'a');
+
+        RecallNote::create([
+            'group_id' => $group->id, 'author_id' => $user->id, 'external_id' => 'alive.md',
+            'title' => 'Alive', 'aliases' => [], 'tickets' => [], 'tags' => [], 'sources' => [], 'body' => 'x',
+        ]);
+
+        $response = $this->withToken($token)->getJson('/v1/recall/pull')->assertStatus(200)->json('deleted');
+        $this->assertCount(0, $response);
+    }
+
+    public function test_a_user_never_sees_another_groups_tombstones(): void
+    {
+        $owner  = User::factory()->create(['is_owner' => true]);
+        $groupA = Group::create(['name' => 'A', 'owner_id' => $owner->id]);
+        $groupB = Group::create(['name' => 'B', 'owner_id' => User::factory()->create()->id]);
+
+        [$userA, $tokenA] = $this->makeEntitledMember($groupA, $owner, 'a');
+        [$userB, ] = $this->makeEntitledMember($groupB, $owner, 'b');
+
+        $noteB = RecallNote::create([
+            'group_id' => $groupB->id, 'author_id' => $userB->id, 'external_id' => 'b.md',
+            'title' => 'B', 'aliases' => [], 'tickets' => [], 'tags' => [], 'sources' => [], 'body' => 'x',
+        ]);
+        $noteB->delete();
+
+        $response = $this->withToken($tokenA)->getJson('/v1/recall/pull')->assertStatus(200)->json('deleted');
+        $this->assertCount(0, $response);
     }
 }

@@ -14,7 +14,12 @@ class PushRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'external_id' => ['required', 'string', 'max:100'],
+            // Matches the CLI's own EXTERNAL_ID_PATTERN (recall-vault.mjs) exactly —
+            // RecallSecretScanner exempts this field from its entropy heuristic on
+            // the assumption it's always this system-generated shape, never
+            // user-authored text. That assumption must be enforced here, not just
+            // true by CLI convention.
+            'external_id' => ['required', 'string', 'max:100', 'regex:/^\d+-[0-9a-f]{6}\.md$/'],
             'title'       => ['required', 'string', 'max:200'],
             'body'        => ['required', 'string', 'max:50000'],
             'aliases'     => ['sometimes', 'array', 'max:10'],

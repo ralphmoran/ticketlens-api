@@ -150,6 +150,7 @@
   /* Generic structural helpers */
   .tl-trunc    { @apply truncate; }
   .tl-min-w-0  { @apply min-w-0; }
+  .tl-pre-wrap { white-space: pre-wrap; }
   .tl-push-end { @apply ml-auto; }
   .tl-spin     { @apply animate-spin; }
   .tl-row--top { @apply items-start; }

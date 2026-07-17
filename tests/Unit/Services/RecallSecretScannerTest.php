@@ -145,6 +145,26 @@ class RecallSecretScannerTest extends TestCase
         $this->assertSame([], $result['warnings']);
     }
 
+    public function test_a_cli_generated_external_id_is_never_flagged_as_a_random_looking_string_on_its_own(): void
+    {
+        // Second Local Live Test failure: a DIFFERENT CLI-generated id
+        // ("1784306812255-0dbb0e.md") with otherwise completely clean title/
+        // tags/body was rejected on its own — no joining involved. Its
+        // standalone Shannon entropy (3.795) crosses the 3.75 threshold
+        // purely because a random ID is, by definition, random-looking. The
+        // entropy heuristic exists to catch a user-authored secret pasted
+        // into free text — a system-generated filename was never that, and
+        // scanning it for "looks random" is a category error: some fraction
+        // of every real ID will cross the threshold by chance.
+        $result = $this->scanner->scan([
+            'title'       => 'Impact verification note',
+            'tags'        => ['impacttest'],
+            'body'        => 'Impact-verification body text for tombstone round trip.',
+            'external_id' => '1784306812255-0dbb0e.md',
+        ]);
+        $this->assertFalse($result['rejected']);
+    }
+
     // ---- email: warning, not rejection ----
 
     public function test_an_email_address_triggers_a_warning_not_a_rejection(): void

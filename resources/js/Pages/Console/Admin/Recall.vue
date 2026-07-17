@@ -1,15 +1,20 @@
 <script setup>
+import { ref } from 'vue'
 import { router } from '@inertiajs/vue3'
 import ConsoleLayout from '@/Layouts/ConsoleLayout.vue'
 import TlIcon from '@/components/TlIcon.vue'
+import { useConfirm } from '@/composables/useConfirm'
 
 defineOptions({ layout: ConsoleLayout })
 
 const props = defineProps({
     group:     { type: Object, default: null },
     notes:     { type: Object, default: () => ({ data: [], current_page: 1, last_page: 1, total: 0 }) },
-    canVerify: { type: Boolean, default: false },
+    canManage: { type: Boolean, default: false },
 })
+
+const { confirm } = useConfirm()
+const expandedId = ref(null)
 
 function formatDate(iso) {
     return new Date(iso).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
@@ -20,10 +25,27 @@ function currentGroupId() {
     return raw && /^\d+$/.test(raw) ? raw : null
 }
 
-function verify(note) {
+function withGroupId(path) {
     const groupId = currentGroupId()
-    const url = groupId ? `/console/admin/recall/${note.id}/verify?group_id=${groupId}` : `/console/admin/recall/${note.id}/verify`
-    router.post(url, {}, { preserveScroll: true })
+    return groupId ? `${path}?group_id=${groupId}` : path
+}
+
+function toggleExpand(note) {
+    expandedId.value = expandedId.value === note.id ? null : note.id
+}
+
+function verify(note) {
+    router.post(withGroupId(`/console/admin/recall/${note.id}/verify`), {}, { preserveScroll: true })
+}
+
+async function destroyNote(note) {
+    const ok = await confirm({
+        title:        'Delete this note?',
+        message:      `"${note.title}" will be removed from the team's Recall vault.`,
+        confirmLabel: 'Delete',
+    })
+    if (!ok) return
+    router.delete(withGroupId(`/console/admin/recall/${note.id}`), { preserveScroll: true })
 }
 
 function goPage(page) {
@@ -59,13 +81,16 @@ function goPage(page) {
                             <th class="tl-th">Author</th>
                             <th class="tl-th">Status</th>
                             <th class="tl-th">Created</th>
-                            <th v-if="canVerify" class="tl-th tl-th--right">Actions</th>
+                            <th class="tl-th tl-th--right">Actions</th>
                         </tr>
                     </thead>
                     <tbody class="tl-divide">
-                        <tr v-for="note in notes.data" :key="note.id" class="tl-tr">
+                        <template v-for="note in notes.data" :key="note.id">
+                        <tr class="tl-tr">
                             <td class="tl-td">
-                                <p class="tl-cell-primary">{{ note.title }}</p>
+                                <button type="button" class="tl-cell-link tl-cell-primary" @click="toggleExpand(note)">
+                                    {{ note.title }}
+                                </button>
                                 <p v-if="note.tags?.length" class="tl-hint">{{ note.tags.join(', ') }}</p>
                             </td>
                             <td class="tl-td tl-mono--xs">{{ note.tickets?.join(', ') || '—' }}</td>
@@ -75,21 +100,37 @@ function goPage(page) {
                                 <span v-else class="tl-badge tl-badge--neutral">Unverified</span>
                             </td>
                             <td class="tl-td tl-cell-muted">{{ formatDate(note.created_at) }}</td>
-                            <td v-if="canVerify" class="tl-td tl-td--right">
-                                <button
-                                    v-if="note.status !== 'verified'"
-                                    type="button"
-                                    @click="verify(note)"
-                                    class="tl-btn-ghost tl-btn-ghost--info"
-                                >
-                                    <TlIcon name="badge-check" class="tl-ic tl-ic--sm" />
-                                    Verify
-                                </button>
-                                <span v-else class="tl-hint">—</span>
+                            <td class="tl-td tl-td--right">
+                                <div class="tl-row tl-row--tight tl-row--end">
+                                    <button
+                                        v-if="canManage && note.status !== 'verified'"
+                                        type="button"
+                                        @click="verify(note)"
+                                        class="tl-btn-ghost tl-btn-ghost--info"
+                                    >
+                                        <TlIcon name="badge-check" class="tl-ic tl-ic--sm" />
+                                        Verify
+                                    </button>
+                                    <button
+                                        v-if="canManage"
+                                        type="button"
+                                        @click="destroyNote(note)"
+                                        class="tl-btn-ghost tl-btn-ghost--danger"
+                                    >
+                                        <TlIcon name="trash" class="tl-ic tl-ic--sm" />
+                                        Delete
+                                    </button>
+                                </div>
                             </td>
                         </tr>
+                        <tr v-if="expandedId === note.id" class="tl-tr">
+                            <td colspan="6" class="tl-td tl-banner-inset tl-card-gap-sm">
+                                <p class="tl-body--muted tl-mono--xs tl-pre-wrap">{{ note.body }}</p>
+                            </td>
+                        </tr>
+                        </template>
                         <tr v-if="!notes.data.length">
-                            <td :colspan="canVerify ? 6 : 5" class="tl-td--empty">
+                            <td colspan="6" class="tl-td--empty">
                                 No team notes yet — notes captured via the CLI's <span class="tl-mono--xs">tl note add</span> show up here once synced.
                             </td>
                         </tr>

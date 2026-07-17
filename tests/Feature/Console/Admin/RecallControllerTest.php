@@ -84,6 +84,69 @@ class RecallControllerTest extends TestCase
                 ->where('notes.data.0.title', 'Group A note'));
     }
 
+    public function test_index_defaults_to_ten_per_page(): void
+    {
+        [$manager, $group] = $this->makeManager();
+        for ($i = 0; $i < 11; $i++) {
+            RecallNote::create([
+                'group_id' => $group->id, 'author_id' => $manager->id, 'external_id' => "n{$i}.md",
+                'title' => "Note {$i}", 'aliases' => [], 'tickets' => [], 'tags' => [], 'sources' => [], 'body' => 'x',
+            ]);
+        }
+
+        $this->actingAs($manager)->get('/console/admin/recall')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page->has('notes.data', 10)->where('notes.total', 11));
+    }
+
+    public function test_index_search_matches_title(): void
+    {
+        [$manager, $group] = $this->makeManager();
+        RecallNote::create([
+            'group_id' => $group->id, 'author_id' => $manager->id, 'external_id' => 'a.md',
+            'title' => 'Retry gotcha', 'aliases' => [], 'tickets' => [], 'tags' => [], 'sources' => [], 'body' => 'x',
+        ]);
+        RecallNote::create([
+            'group_id' => $group->id, 'author_id' => $manager->id, 'external_id' => 'b.md',
+            'title' => 'Unrelated note', 'aliases' => [], 'tickets' => [], 'tags' => [], 'sources' => [], 'body' => 'x',
+        ]);
+
+        $this->actingAs($manager)->get('/console/admin/recall?search=gotcha')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page->has('notes.data', 1)->where('notes.data.0.title', 'Retry gotcha'));
+    }
+
+    public function test_index_search_matches_body(): void
+    {
+        [$manager, $group] = $this->makeManager();
+        RecallNote::create([
+            'group_id' => $group->id, 'author_id' => $manager->id, 'external_id' => 'a.md',
+            'title' => 'x', 'aliases' => [], 'tickets' => [], 'tags' => [], 'sources' => [], 'body' => 'Needs exponential backoff.',
+        ]);
+        RecallNote::create([
+            'group_id' => $group->id, 'author_id' => $manager->id, 'external_id' => 'b.md',
+            'title' => 'y', 'aliases' => [], 'tickets' => [], 'tags' => [], 'sources' => [], 'body' => 'Something else entirely.',
+        ]);
+
+        $this->actingAs($manager)->get('/console/admin/recall?search=backoff')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page->has('notes.data', 1)->where('notes.data.0.body', 'Needs exponential backoff.'));
+    }
+
+    public function test_index_search_never_crosses_group_boundaries(): void
+    {
+        [$managerA, $groupA] = $this->makeManager();
+        $groupB = Group::create(['name' => 'B', 'owner_id' => User::factory()->create()->id]);
+        RecallNote::create([
+            'group_id' => $groupB->id, 'author_id' => User::factory()->create()->id, 'external_id' => 'b.md',
+            'title' => 'Shared keyword', 'aliases' => [], 'tickets' => [], 'tags' => [], 'sources' => [], 'body' => 'x',
+        ]);
+
+        $this->actingAs($managerA)->get('/console/admin/recall?search=Shared')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page->has('notes.data', 0));
+    }
+
     public function test_index_includes_the_note_body_so_a_verifier_can_read_it_before_deciding(): void
     {
         [$manager, $group] = $this->makeManager();

@@ -18,13 +18,22 @@ class RecallController extends Controller
 
     public function index(Request $request): Response
     {
-        $group = $this->resolveGroup($request);
+        $group  = $this->resolveGroup($request);
+        $search = $request->string('search')->trim()->value();
+        // Same clamp as AuditController::index() — bounds page size the same
+        // way across every admin list page in this codebase.
+        $perPage = min(max(1, (int) $request->input('per_page', 10)), 100);
 
         $notes = $group
             ? RecallNote::where('group_id', $group->id)
+                ->when($search, fn ($query) => $query->where(function ($query) use ($search) {
+                    $query->where('title', 'like', "%{$search}%")
+                          ->orWhere('body', 'like', "%{$search}%");
+                }))
                 ->with('author')
                 ->orderByDesc('updated_at')
-                ->paginate(25)
+                ->paginate($perPage)
+                ->withQueryString()
                 ->through(fn (RecallNote $note) => [
                     'id'         => $note->id,
                     'title'      => $note->title,
@@ -43,6 +52,7 @@ class RecallController extends Controller
             'group'     => $group ? ['id' => $group->id, 'name' => $group->name] : null,
             'notes'     => $notes,
             'canManage' => $user->is_owner || $user->ownedGroup?->id === $group?->id,
+            'filters'   => ['search' => $search, 'per_page' => $perPage],
         ]);
     }
 

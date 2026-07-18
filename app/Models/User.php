@@ -14,7 +14,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-#[Fillable(['name', 'email', 'password', 'suspended_at', 'anthropic_key', 'openai_key'])]
+#[Fillable(['name', 'email', 'phone', 'password', 'suspended_at', 'anthropic_key', 'openai_key'])]
 #[Hidden(['password', 'remember_token', 'anthropic_key', 'openai_key'])]
 class User extends Authenticatable implements MustVerifyEmail
 {

@@ -100,6 +100,8 @@ Route::prefix('console')->name('console.')->group(function () {
 
         // Account — accessible to all authenticated users
         Route::get('/account', [\App\Http\Controllers\Console\AccountController::class, 'index'])->name('account');
+        Route::patch('/account', [\App\Http\Controllers\Console\AccountController::class, 'update'])->name('account.update')->middleware('throttle:10,1');
+        Route::patch('/account/password', [\App\Http\Controllers\Console\AccountController::class, 'updatePassword'])->name('account.password.update')->middleware('throttle:10,1');
         Route::post('/account/cli-token', [\App\Http\Controllers\Console\AccountController::class, 'generateCliToken'])->name('account.cli-token.generate');
         Route::delete('/account/cli-token', [\App\Http\Controllers\Console\AccountController::class, 'revokeCliToken'])->name('account.cli-token.revoke');
 

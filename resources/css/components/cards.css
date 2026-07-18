@@ -302,3 +302,16 @@
   .tl-log-row--xs { @apply text-xs; }
   .tl-log-time--wide { @apply w-44; }
 }
+
+@layer components {
+  /* Profile card — gradient banner + overlapping avatar (Account Settings) */
+  .tl-profile-banner {
+    @apply h-20 w-full;
+    border-radius: var(--tl-radius-xl) var(--tl-radius-xl) 0 0;
+    background: linear-gradient(135deg, var(--tl-brand-tint), var(--tl-info-tint));
+  }
+  .tl-profile-avatar-row {
+    @apply -mt-8 px-5 flex items-end gap-4;
+  }
+  .tl-profile-identity { @apply pb-1; }
+}

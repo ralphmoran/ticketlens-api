@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Console;
 use App\Models\CliToken;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -20,6 +22,7 @@ class AccountController
             'account' => [
                 'name'    => $user->name,
                 'email'   => $user->email,
+                'phone'   => $user->phone,
                 'tier'    => $user->tier,
                 'license' => $license ? [
                     'status'     => $license->status,
@@ -27,6 +30,43 @@ class AccountController
                 ] : null,
             ],
         ]);
+    }
+
+    public function update(Request $request): RedirectResponse
+    {
+        $data = $request->validate([
+            'name'  => ['required', 'string', 'max:255'],
+            'phone' => ['nullable', 'string', 'max:30'],
+        ]);
+
+        $request->user()->update([
+            'name'  => $data['name'],
+            'phone' => $data['phone'],
+        ]);
+
+        return back()->with('success', 'Profile updated.');
+    }
+
+    public function updatePassword(Request $request): RedirectResponse
+    {
+        $data = $request->validate([
+            'current_password' => ['required', function ($attribute, $value, $fail) use ($request) {
+                if (! Hash::check($value, $request->user()->password)) {
+                    $fail('Current password is incorrect.');
+                }
+            }],
+            'password' => ['required', 'confirmed', 'min:8'],
+        ]);
+
+        $request->user()->update([
+            'password' => Hash::make($data['password']),
+        ]);
+
+        // Kills any other active session (stolen cookie, shared device, old tab) —
+        // the scenario this feature exists for: "I think someone else has access."
+        Auth::logoutOtherDevices($data['password']);
+
+        return back()->with('success', 'Password changed.');
     }
 
     public function generateCliToken(Request $request): RedirectResponse

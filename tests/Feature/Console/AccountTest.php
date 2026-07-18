@@ -89,4 +89,147 @@ class AccountTest extends TestCase
                 ->missing('cli_token')
             );
     }
+
+    public function test_flash_success_is_shared_with_inertia(): void
+    {
+        $user = User::factory()->create(['tier' => 'pro', 'permissions' => 71]);
+        \App\Models\CliToken::create([
+            'user_id'    => $user->id,
+            'name'       => 'CLI Token',
+            'token_hash' => \App\Models\CliToken::hashToken('tl_existingtoken1234567890abcdefg'),
+        ]);
+
+        // revokeCliToken() already sets ->with('success', ...) — this was previously
+        // dropped by HandleInertiaRequests never forwarding it into the shared prop.
+        $this->actingAs($user)->delete('/console/account/cli-token');
+
+        $this->actingAs($user)->get('/console/account')
+            ->assertInertia(fn ($page) => $page
+                ->where('flash.success', 'CLI access token revoked.')
+            );
+    }
+
+    public function test_account_page_exposes_phone(): void
+    {
+        $user = User::factory()->create(['tier' => 'pro', 'permissions' => 71, 'phone' => '+1-555-0100']);
+
+        $this->actingAs($user)->get('/console/account')
+            ->assertStatus(200)
+            ->assertInertia(fn ($page) => $page
+                ->component('Console/Account')
+                ->where('account.phone', '+1-555-0100')
+            );
+    }
+
+    public function test_update_saves_name_and_phone(): void
+    {
+        $user = User::factory()->create(['name' => 'Old Name', 'phone' => null]);
+
+        $response = $this->actingAs($user)->patch('/console/account', [
+            'name'  => 'New Name',
+            'phone' => '+1-555-0199',
+        ]);
+
+        $response->assertRedirect();
+        $response->assertSessionHas('success', 'Profile updated.');
+        $this->assertEquals('New Name', $user->fresh()->name);
+        $this->assertEquals('+1-555-0199', $user->fresh()->phone);
+    }
+
+    public function test_update_accepts_null_phone(): void
+    {
+        $user = User::factory()->create(['phone' => '+1-555-0100']);
+
+        $response = $this->actingAs($user)->patch('/console/account', [
+            'name'  => $user->name,
+            'phone' => null,
+        ]);
+
+        $response->assertRedirect();
+        $this->assertNull($user->fresh()->phone);
+    }
+
+    public function test_update_rejects_missing_name(): void
+    {
+        $user = User::factory()->create(['name' => 'Keep Me']);
+
+        $response = $this->actingAs($user)->patch('/console/account', ['phone' => '+1-555-0100']);
+
+        $response->assertSessionHasErrors('name');
+        $this->assertEquals('Keep Me', $user->fresh()->name);
+    }
+
+    public function test_update_never_touches_ai_keys_even_if_submitted(): void
+    {
+        $user = User::factory()->create(['name' => 'Original Name', 'anthropic_key' => 'sk-ant-original']);
+
+        $response = $this->actingAs($user)->patch('/console/account', [
+            'name'          => 'Updated Name',
+            'phone'         => null,
+            'anthropic_key' => 'sk-ant-injected',
+        ]);
+
+        // Prove the update actually ran (not a vacuous pass from a 404/no-op).
+        $response->assertRedirect();
+        $this->assertEquals('Updated Name', $user->fresh()->name);
+        $this->assertEquals('sk-ant-original', $user->fresh()->anthropic_key);
+    }
+
+    public function test_update_password_succeeds_with_correct_current_password(): void
+    {
+        $user = User::factory()->create(['password' => \Illuminate\Support\Facades\Hash::make('old-password-123')]);
+
+        $response = $this->actingAs($user)->patch('/console/account/password', [
+            'current_password'          => 'old-password-123',
+            'password'                  => 'new-password-456',
+            'password_confirmation'     => 'new-password-456',
+        ]);
+
+        $response->assertRedirect();
+        $response->assertSessionHas('success', 'Password changed.');
+        $this->assertTrue(\Illuminate\Support\Facades\Hash::check('new-password-456', $user->fresh()->password));
+    }
+
+    public function test_update_password_rejects_wrong_current_password(): void
+    {
+        $user = User::factory()->create(['password' => \Illuminate\Support\Facades\Hash::make('old-password-123')]);
+
+        $response = $this->actingAs($user)->patch('/console/account/password', [
+            'current_password'      => 'totally-wrong',
+            'password'               => 'new-password-456',
+            'password_confirmation'  => 'new-password-456',
+        ]);
+
+        $response->assertSessionHasErrors('current_password');
+        $this->assertTrue(\Illuminate\Support\Facades\Hash::check('old-password-123', $user->fresh()->password));
+    }
+
+    public function test_update_password_keeps_the_current_session_authenticated(): void
+    {
+        $user = User::factory()->create(['password' => \Illuminate\Support\Facades\Hash::make('old-password-123')]);
+
+        // logoutOtherDevices() must not sign out the session that performed the change.
+        $this->actingAs($user)->patch('/console/account/password', [
+            'current_password'      => 'old-password-123',
+            'password'               => 'new-password-456',
+            'password_confirmation'  => 'new-password-456',
+        ]);
+
+        $this->actingAs($user)->get('/console/account')->assertStatus(200);
+        $this->assertAuthenticatedAs($user);
+    }
+
+    public function test_update_password_rejects_confirmation_mismatch(): void
+    {
+        $user = User::factory()->create(['password' => \Illuminate\Support\Facades\Hash::make('old-password-123')]);
+
+        $response = $this->actingAs($user)->patch('/console/account/password', [
+            'current_password'      => 'old-password-123',
+            'password'               => 'new-password-456',
+            'password_confirmation'  => 'does-not-match',
+        ]);
+
+        $response->assertSessionHasErrors('password');
+        $this->assertTrue(\Illuminate\Support\Facades\Hash::check('old-password-123', $user->fresh()->password));
+    }
 }

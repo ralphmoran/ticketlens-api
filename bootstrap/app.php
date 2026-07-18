@@ -21,7 +21,13 @@ return Application::configure(basePath: dirname(__DIR__))
         // For ngrok or external load balancers add their CIDR here.
         $middleware->trustProxies(at: ['127.0.0.1', '10.0.0.0/8', '172.16.0.0/12', '192.168.0.0/16']);
         $middleware->append(\App\Http\Middleware\SecurityHeaders::class);
-        $middleware->web(append: [\App\Http\Middleware\HandleInertiaRequests::class]);
+        $middleware->web(append: [
+            \App\Http\Middleware\HandleInertiaRequests::class,
+            // Invalidates a session mid-flight if the account's password hash changed
+            // elsewhere — the mechanism Auth::logoutOtherDevices() in
+            // AccountController::updatePassword() relies on to actually revoke sessions.
+            \Illuminate\Session\Middleware\AuthenticateSession::class,
+        ]);
         $middleware->redirectGuestsTo(fn () => route('console.login'));
         $middleware->redirectUsersTo(fn () => route('console.dashboard'));
         // LemonSqueezy posts without a browser session — HMAC signature is the auth mechanism

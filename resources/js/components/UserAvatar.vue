@@ -4,6 +4,7 @@ import { computed } from 'vue'
 const props = defineProps({
     name: { type: String, required: true },
     tier: { type: String, default: 'free' },
+    size: { type: String, default: 'md' }, // 'md' (default, unchanged) | 'lg' (profile banner)
 })
 
 const TIER_BG = {
@@ -25,7 +26,7 @@ const bgClass = computed(() => TIER_BG[props.tier] ?? 'tl-avatar--neutral')
 </script>
 
 <template>
-    <span class="tl-avatar" :class="bgClass" :title="name">{{ initials }}</span>
+    <span class="tl-avatar" :class="[bgClass, size === 'lg' ? 'tl-avatar--lg' : '']" :title="name">{{ initials }}</span>
 </template>
 
 <style scoped>
@@ -39,6 +40,12 @@ const bgClass = computed(() => TIER_BG[props.tier] ?? 'tl-avatar--neutral')
     font-size:       0.75rem;
     font-weight:     700;
     flex-shrink:     0;
+}
+.tl-avatar--lg {
+    width:       4rem;
+    height:      4rem;
+    font-size:   1.5rem;
+    border:      3px solid var(--tl-card);
 }
 .tl-avatar--neutral { background: var(--tl-surface-muted); color: var(--tl-text-muted); }
 .tl-avatar--brand   { background: var(--tl-brand);         color: #fff; }

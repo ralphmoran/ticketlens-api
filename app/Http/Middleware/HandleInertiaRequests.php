@@ -98,6 +98,7 @@ class HandleInertiaRequests extends Middleware
             'flash' => [
                 'cli_token_generated' => $request->session()->get('cli_token_generated'),
                 'status'              => $request->session()->get('status'),
+                'success'             => $request->session()->get('success'),
             ],
             'auth' => [
                 'user'                 => $user ? $user->only('id', 'name', 'email', 'tier', 'permissions') : null,

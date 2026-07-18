@@ -64,9 +64,12 @@ class AccountController
 
         // Kills any other active session (stolen cookie, shared device, old tab) —
         // the scenario this feature exists for: "I think someone else has access."
+        // logoutOtherDevices() migrates the session, which drops Laravel's tracked
+        // "previous URL" — back() would then fall back to '/' and land the user on
+        // the dashboard with no visible confirmation. Redirect explicitly instead.
         Auth::logoutOtherDevices($data['password']);
 
-        return back()->with('success', 'Password changed.');
+        return redirect()->route('console.account')->with('success', 'Password changed.');
     }
 
     public function generateCliToken(Request $request): RedirectResponse

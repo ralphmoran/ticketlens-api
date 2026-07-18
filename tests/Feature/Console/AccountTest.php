@@ -185,7 +185,12 @@ class AccountTest extends TestCase
             'password_confirmation'     => 'new-password-456',
         ]);
 
-        $response->assertRedirect();
+        // Specifically the account page, not wherever back() falls back to —
+        // regression guard: logoutOtherDevices() migrates the session, which
+        // drops Laravel's tracked "previous URL," so a bare back() previously
+        // landed the user on the dashboard with the success message invisible
+        // (Dashboard.vue doesn't render flash.success). Found via manual testing.
+        $response->assertRedirect('/console/account');
         $response->assertSessionHas('success', 'Password changed.');
         $this->assertTrue(\Illuminate\Support\Facades\Hash::check('new-password-456', $user->fresh()->password));
     }

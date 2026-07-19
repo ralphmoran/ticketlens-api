@@ -207,6 +207,9 @@ Route::prefix('console')->name('console.')->group(function () {
             Route::post('/rules/stale',          [\App\Http\Controllers\Console\Admin\RulesController::class, 'saveStale'])->name('rules.stale.save');
             Route::patch('/rules/stale/toggle',  [\App\Http\Controllers\Console\Admin\RulesController::class, 'toggleStale'])->name('rules.stale.toggle');
             Route::delete('/rules/stale',        [\App\Http\Controllers\Console\Admin\RulesController::class, 'destroyStale'])->name('rules.stale.destroy');
+            Route::post('/rules/custom',         [\App\Http\Controllers\Console\Admin\RulesController::class, 'saveCustom'])->name('rules.custom.save');
+            Route::patch('/rules/custom/toggle', [\App\Http\Controllers\Console\Admin\RulesController::class, 'toggleCustom'])->name('rules.custom.toggle');
+            Route::delete('/rules/custom',       [\App\Http\Controllers\Console\Admin\RulesController::class, 'destroyCustom'])->name('rules.custom.destroy');
 
             // Recall verify — manager-only trust-promotion action, ALSO requires Recall
             // entitlement itself (team.manager alone doesn't imply it — Recall is a

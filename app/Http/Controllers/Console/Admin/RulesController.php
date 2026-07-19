@@ -10,6 +10,8 @@ use App\Models\WorkflowRule;
 use App\Services\SseEventService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -50,6 +52,7 @@ class RulesController extends Controller
                 'clients'          => $clients,
                 'selected_manager' => null,
                 'stale_rule'       => null,
+                'custom_rule'      => null,
                 'known_statuses'   => [],
             ]);
         }
@@ -74,6 +77,10 @@ class RulesController extends Controller
     {
         $staleRule = WorkflowRule::where('group_id', $group->id)
             ->where('type', 'stale')
+            ->first();
+
+        $customRule = WorkflowRule::where('group_id', $group->id)
+            ->where('type', 'custom')
             ->first();
 
         $memberIds = $group->members()->pluck('users.id');
@@ -103,6 +110,11 @@ class RulesController extends Controller
                 'id'      => $staleRule->id,
                 'enabled' => $staleRule->enabled,
                 'config'  => $staleRule->config,
+            ] : null,
+            'custom_rule'    => $customRule ? [
+                'id'      => $customRule->id,
+                'enabled' => $customRule->enabled,
+                'config'  => $customRule->config,
             ] : null,
             'known_statuses' => $statuses,
         ];
@@ -148,6 +160,79 @@ class RulesController extends Controller
         app(SseEventService::class)->publish($group->id, 'rule.changed', []);
 
         return back()->with('success', 'Stale rule saved.');
+    }
+
+    public function saveCustom(Request $request): RedirectResponse
+    {
+        $group = $this->resolveGroup($request->user(), $request);
+
+        $validator = Validator::make($request->all(), [
+            'enabled'                  => ['required', 'boolean'],
+            'rules'                    => ['required', 'array', 'min:1', 'max:50'],
+            'rules.*.action'           => ['required', Rule::in(['force-urgent', 'ignore'])],
+            'rules.*.match'            => ['required', 'array'],
+            'rules.*.match.priority'   => ['nullable', 'string', 'max:100'],
+            'rules.*.match.label'      => ['nullable', 'string', 'max:100'],
+            'rules.*.match.status'     => ['nullable', 'string', 'max:100'],
+            'rules.*.match.keyPrefix'  => ['nullable', 'string', 'max:100'],
+            'rules.*.reason'           => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $validator->after(function ($validator) use ($request) {
+            foreach ($request->input('rules', []) as $i => $rule) {
+                $match = array_filter($rule['match'] ?? [], fn ($v) => $v !== null && $v !== '');
+                if (empty($match)) {
+                    $validator->errors()->add("rules.{$i}.match", 'At least one match field is required.');
+                }
+            }
+        });
+
+        $data = $validator->validate();
+
+        $rules = array_map(function (array $rule): array {
+            if (isset($rule['reason'])) {
+                $rule['reason'] = preg_replace('/[\x00-\x1F\x7F]/', '', $rule['reason']);
+            }
+            return $rule;
+        }, $data['rules']);
+
+        WorkflowRule::updateOrCreate(
+            ['group_id' => $group->id, 'type' => 'custom'],
+            [
+                'enabled' => $data['enabled'],
+                'config'  => ['rules' => $rules],
+            ],
+        );
+
+        app(SseEventService::class)->publish($group->id, 'rule.changed', []);
+
+        return back()->with('success', 'Custom rule saved.');
+    }
+
+    public function toggleCustom(Request $request): RedirectResponse
+    {
+        $group = $this->resolveGroup($request->user(), $request);
+        $data  = $request->validate(['enabled' => ['required', 'boolean']]);
+
+        $rule = WorkflowRule::where('group_id', $group->id)->where('type', 'custom')->first();
+        abort_unless($rule !== null, 404, 'No custom rule exists to toggle.');
+
+        $rule->update(['enabled' => $data['enabled']]);
+
+        app(SseEventService::class)->publish($group->id, 'rule.changed', []);
+
+        return back()->with('success', $data['enabled'] ? 'Custom rule enabled.' : 'Custom rule disabled.');
+    }
+
+    public function destroyCustom(Request $request): RedirectResponse
+    {
+        $group = $this->resolveGroup($request->user(), $request);
+
+        WorkflowRule::where('group_id', $group->id)->where('type', 'custom')->delete();
+
+        app(SseEventService::class)->publish($group->id, 'rule.changed', []);
+
+        return back()->with('success', 'Custom rule removed.');
     }
 
     public function toggleStale(Request $request): RedirectResponse

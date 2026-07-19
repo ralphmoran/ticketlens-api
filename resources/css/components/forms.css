@@ -136,6 +136,7 @@
 
   /* Validation */
   .tl-error { @apply text-xs mt-1; color: var(--tl-danger); }
+  .tl-error--row { @apply basis-full; }
   .tl-input--error { border-color: var(--tl-danger) !important; }
 
   /* Combo search (input + attached results list) */

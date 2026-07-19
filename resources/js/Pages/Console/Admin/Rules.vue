@@ -18,6 +18,7 @@ watch(() => eventsStore.lastEvent, (e) => {
 
 const props = defineProps({
     stale_rule:       { type: Object,  default: null },
+    custom_rule:      { type: Object,  default: null },
     known_statuses:   { type: Array,   default: () => [] },
     owner_mode:       { type: Boolean, default: false },
     clients:          { type: Array,   default: () => [] },
@@ -113,6 +114,85 @@ async function destroyStale() {
             form.stale_days = 14
             form.statuses   = []
             pendingStatuses.value = []
+        },
+    })
+}
+
+// ── Custom rule form ──────────────────────────────────────────────────────────
+
+const MATCH_FIELDS = [
+    { value: 'priority',  label: 'Priority' },
+    { value: 'label',     label: 'Label' },
+    { value: 'status',    label: 'Status' },
+    { value: 'keyPrefix', label: 'Key prefix' },
+]
+
+function ruleToRow(rule) {
+    const matchField = Object.keys(rule.match ?? {})[0] ?? 'priority'
+    return {
+        matchField,
+        matchValue: rule.match?.[matchField] ?? '',
+        action:     rule.action ?? 'force-urgent',
+        reason:     rule.reason ?? '',
+    }
+}
+
+const customForm = useForm({
+    manager_id: props.selected_manager?.id ?? null,
+    enabled:    props.custom_rule?.enabled ?? true,
+    rules:      props.custom_rule?.config?.rules?.map(ruleToRow) ?? [],
+})
+
+const hasCustomRule = computed(() => props.custom_rule !== null)
+const customToggling = ref(false)
+
+function toggleCustomEnabled() {
+    customForm.enabled = !customForm.enabled
+
+    if (!hasCustomRule.value) return  // no rule yet — value staged for Enable Rule
+
+    customToggling.value = true
+    router.patch('/console/admin/rules/custom/toggle', { enabled: customForm.enabled, manager_id: customForm.manager_id }, {
+        preserveScroll: true,
+        onFinish: () => { customToggling.value = false },
+    })
+}
+
+function addCustomRule() {
+    customForm.rules = [...customForm.rules, { matchField: 'priority', matchValue: '', action: 'force-urgent', reason: '' }]
+}
+
+function removeCustomRule(index) {
+    customForm.rules = customForm.rules.filter((_, i) => i !== index)
+}
+
+function saveCustom() {
+    customForm
+        .transform(data => ({
+            manager_id: data.manager_id,
+            enabled:    data.enabled,
+            rules:      data.rules.map(row => ({
+                match:  { [row.matchField]: row.matchValue },
+                action: row.action,
+                reason: row.reason || null,
+            })),
+        }))
+        .post('/console/admin/rules/custom', { preserveScroll: true })
+}
+
+async function destroyCustom() {
+    const ok = await confirm({
+        title:        'Remove custom rules?',
+        message:      'This team will no longer force-urgent or ignore tickets by these rules. You can re-enable at any time.',
+        confirmLabel: 'Remove',
+    })
+    if (!ok) return
+    router.delete('/console/admin/rules/custom', {
+        data: { manager_id: customForm.manager_id },
+        preserveScroll: true,
+        onSuccess: () => {
+            customForm.enabled = true
+            customForm.rules   = []
         },
     })
 }
@@ -373,6 +453,127 @@ async function destroyStale() {
                         type="button"
                         class="tl-btn tl-btn--danger-outline"
                         @click="destroyStale"
+                    >
+                        <TlIcon name="trash" class="tl-ic tl-ic--xs" />
+                        Remove
+                    </button>
+                    <span v-if="$page.props.flash?.success" class="tl-feedback tl-feedback--success">
+                        {{ $page.props.flash.success }}
+                    </span>
+                </div>
+            </form>
+        </div>
+
+        <!-- Custom Attention Rules card -->
+        <div class="tl-card tl-card--flush tl-section-gap">
+
+            <div class="tl-card-head">
+                <div class="tl-section-icon tl-section-icon--info">
+                    <TlIcon name="flag" class="tl-ic" />
+                </div>
+                <div class="tl-card-head-body">
+                    <h2 class="tl-title">Custom Attention Rules</h2>
+                    <p class="tl-hint">Force-urgent or ignore tickets matching specific conditions</p>
+                </div>
+                <span
+                    class="tl-badge"
+                    :class="hasCustomRule && custom_rule.enabled ? 'tl-badge--success' : 'tl-badge--neutral'"
+                >
+                    {{ hasCustomRule && custom_rule.enabled ? 'Active' : 'Off' }}
+                </span>
+            </div>
+
+            <form class="tl-card--sm" @submit.prevent="saveCustom">
+
+                <div class="tl-toggle-row">
+                    <div>
+                        <p class="tl-toggle-row-title">Enable custom rules</p>
+                        <p class="tl-hint">Toggles immediately — no save needed</p>
+                    </div>
+                    <button
+                        type="button"
+                        role="switch"
+                        :aria-checked="customForm.enabled"
+                        :disabled="customToggling"
+                        @click="toggleCustomEnabled"
+                        class="tl-switch"
+                    >
+                        <span />
+                    </button>
+                </div>
+
+                <div v-if="customForm.rules.length" class="tl-divide tl-form-stack">
+                    <div
+                        v-for="(row, index) in customForm.rules"
+                        :key="index"
+                        class="tl-row tl-rule-row tl-row--wrap"
+                    >
+                        <select v-model="row.matchField" class="tl-select tl-select--sm" :disabled="!customForm.enabled">
+                            <option v-for="f in MATCH_FIELDS" :key="f.value" :value="f.value">{{ f.label }}</option>
+                        </select>
+                        <input
+                            v-model="row.matchValue"
+                            type="text"
+                            placeholder="value…"
+                            aria-label="Match value"
+                            class="tl-input tl-input--sm tl-btn--grow"
+                            :disabled="!customForm.enabled"
+                        />
+                        <select v-model="row.action" class="tl-select tl-select--sm" :disabled="!customForm.enabled">
+                            <option value="force-urgent">Force urgent</option>
+                            <option value="ignore">Ignore</option>
+                        </select>
+                        <input
+                            v-model="row.reason"
+                            type="text"
+                            placeholder="reason (optional)…"
+                            aria-label="Reason"
+                            class="tl-input tl-input--sm tl-btn--grow"
+                            :disabled="!customForm.enabled"
+                        />
+                        <button
+                            type="button"
+                            @click="removeCustomRule(index)"
+                            class="tl-icon-btn tl-icon-btn--snug tl-icon-btn--danger"
+                            title="Remove rule"
+                            :disabled="!customForm.enabled"
+                        >
+                            <TlIcon name="trash" class="tl-ic tl-ic--sm" />
+                        </button>
+                        <p v-if="customForm.errors[`rules.${index}.match`]" class="tl-error tl-error--row">{{ customForm.errors[`rules.${index}.match`] }}</p>
+                        <p v-if="customForm.errors[`rules.${index}.action`]" class="tl-error tl-error--row">{{ customForm.errors[`rules.${index}.action`] }}</p>
+                    </div>
+                </div>
+                <p v-else class="tl-hint">No rules yet — add one below.</p>
+
+                <p v-if="customForm.errors.rules" class="tl-error">{{ customForm.errors.rules }}</p>
+
+                <div class="tl-form-actions">
+                    <button
+                        type="button"
+                        class="tl-btn tl-btn--secondary tl-btn--sm"
+                        :disabled="!customForm.enabled"
+                        @click="addCustomRule"
+                    >
+                        <TlIcon name="plus" class="tl-ic tl-ic--sm" />
+                        Add Rule
+                    </button>
+                </div>
+
+                <div class="tl-card-actions">
+                    <button
+                        type="submit"
+                        class="tl-btn tl-btn--primary"
+                        :disabled="customForm.processing || customForm.rules.length === 0"
+                    >
+                        <TlIcon name="check" class="tl-ic tl-ic--sm" />
+                        {{ hasCustomRule ? 'Update Rules' : 'Enable Rules' }}
+                    </button>
+                    <button
+                        v-if="hasCustomRule"
+                        type="button"
+                        class="tl-btn tl-btn--danger-outline"
+                        @click="destroyCustom"
                     >
                         <TlIcon name="trash" class="tl-ic tl-ic--xs" />
                         Remove

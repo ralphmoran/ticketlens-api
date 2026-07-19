@@ -257,6 +257,176 @@ class ProfileSyncTest extends TestCase
         $this->assertNull($profile['stale_rule']);
     }
 
+    // ── Custom (attention) rules ──────────────────────────────────────────────
+
+    public function test_profile_includes_attention_rules_field(): void
+    {
+        $user  = $this->makeUser();
+        $token = $this->makeToken($user);
+
+        TrackerProfile::create([
+            'user_id' => $user->id, 'name' => 'work', 'tracker_type' => 'jira',
+            'base_url' => 'https://a.atlassian.net', 'auth_method' => 'cloud',
+        ]);
+
+        $profile = $this->withToken($token)->getJson('/v1/profiles')
+            ->assertOk()
+            ->json('profiles.0');
+
+        $this->assertArrayHasKey('attention_rules', $profile);
+        $this->assertNull($profile['attention_rules']);
+    }
+
+    public function test_team_custom_rules_applied_to_profile(): void
+    {
+        $user  = User::factory()->create(['tier' => 'pro', 'permissions' => 2119]);
+        $token = $this->makeToken($user);
+        $group = Group::create(['name' => 'Acme', 'owner_id' => $user->id]);
+        $group->members()->attach($user->id);
+
+        WorkflowRule::create([
+            'group_id' => $group->id,
+            'type'     => 'custom',
+            'config'   => ['rules' => [
+                ['match' => ['priority' => 'Highest'], 'action' => 'force-urgent', 'reason' => 'P1'],
+            ]],
+            'enabled'  => true,
+        ]);
+
+        TrackerProfile::create([
+            'user_id' => $user->id, 'name' => 'work', 'tracker_type' => 'jira',
+            'base_url' => 'https://a.atlassian.net', 'auth_method' => 'cloud',
+        ]);
+
+        $profile = $this->withToken($token)->getJson('/v1/profiles')
+            ->assertOk()
+            ->json('profiles.0');
+
+        $this->assertEquals(
+            [['match' => ['priority' => 'Highest'], 'action' => 'force-urgent', 'reason' => 'P1']],
+            $profile['attention_rules']
+        );
+    }
+
+    public function test_disabled_custom_team_rule_is_not_applied(): void
+    {
+        $user  = User::factory()->create(['tier' => 'pro', 'permissions' => 2119]);
+        $token = $this->makeToken($user);
+        $group = Group::create(['name' => 'Acme', 'owner_id' => $user->id]);
+        $group->members()->attach($user->id);
+
+        WorkflowRule::create([
+            'group_id' => $group->id,
+            'type'     => 'custom',
+            'config'   => ['rules' => [['match' => ['priority' => 'Highest'], 'action' => 'force-urgent', 'reason' => null]]],
+            'enabled'  => false,
+        ]);
+
+        TrackerProfile::create([
+            'user_id' => $user->id, 'name' => 'work', 'tracker_type' => 'jira',
+            'base_url' => 'https://a.atlassian.net', 'auth_method' => 'cloud',
+        ]);
+
+        $profile = $this->withToken($token)->getJson('/v1/profiles')
+            ->assertOk()
+            ->json('profiles.0');
+
+        $this->assertNull($profile['attention_rules']);
+    }
+
+    public function test_does_not_return_other_groups_custom_rules(): void
+    {
+        $user  = User::factory()->create(['tier' => 'pro', 'permissions' => 2119]);
+        $token = $this->makeToken($user);
+        $ownGroup = Group::create(['name' => 'Mine', 'owner_id' => $user->id]);
+        $ownGroup->members()->attach($user->id);
+
+        $other      = User::factory()->create(['tier' => 'pro', 'permissions' => 2119]);
+        $otherGroup = Group::create(['name' => 'Theirs', 'owner_id' => $other->id]);
+        $otherGroup->members()->attach($other->id);
+
+        WorkflowRule::create([
+            'group_id' => $otherGroup->id,
+            'type'     => 'custom',
+            'config'   => ['rules' => [['match' => ['priority' => 'Highest'], 'action' => 'force-urgent', 'reason' => null]]],
+            'enabled'  => true,
+        ]);
+
+        TrackerProfile::create([
+            'user_id' => $user->id, 'name' => 'work', 'tracker_type' => 'jira',
+            'base_url' => 'https://a.atlassian.net', 'auth_method' => 'cloud',
+        ]);
+
+        $profile = $this->withToken($token)->getJson('/v1/profiles')
+            ->assertOk()
+            ->json('profiles.0');
+
+        $this->assertNull($profile['attention_rules']);
+    }
+
+    public function test_credential_invariant_attention_rules_contains_no_auth_keys(): void
+    {
+        $user  = User::factory()->create(['tier' => 'pro', 'permissions' => 2119]);
+        $token = $this->makeToken($user);
+        $group = Group::create(['name' => 'Acme', 'owner_id' => $user->id]);
+        $group->members()->attach($user->id);
+
+        WorkflowRule::create([
+            'group_id' => $group->id,
+            'type'     => 'custom',
+            'config'   => ['rules' => [['match' => ['priority' => 'Highest'], 'action' => 'force-urgent', 'reason' => 'P1']]],
+            'enabled'  => true,
+        ]);
+
+        TrackerProfile::create([
+            'user_id' => $user->id, 'name' => 'work', 'tracker_type' => 'jira',
+            'base_url' => 'https://a.atlassian.net', 'auth_method' => 'cloud',
+        ]);
+
+        $profile        = $this->withToken($token)->getJson('/v1/profiles')->json('profiles.0');
+        $attentionRules = $profile['attention_rules'] ?? [];
+
+        $forbidden = ['token', 'api_token', 'password', 'secret', 'key', 'credential', 'pat'];
+        foreach ($attentionRules as $rule) {
+            foreach ($forbidden as $key) {
+                $this->assertArrayNotHasKey($key, $rule,
+                    "Credential key '{$key}' must never appear in attention_rules");
+            }
+        }
+    }
+
+    // ── Group resolution bug fix ──────────────────────────────────────────────
+
+    public function test_stale_rule_resolves_via_owned_group_not_membership_only(): void
+    {
+        $user  = User::factory()->create(['tier' => 'pro', 'permissions' => 2119]);
+        $token = $this->makeToken($user);
+
+        // User owns "Owned" but is a MEMBER of "OtherTeam" only — not a member of their own group.
+        $owned = Group::create(['name' => 'Owned', 'owner_id' => $user->id]);
+        $other = Group::create(['name' => 'OtherTeam', 'owner_id' => User::factory()->create()->id]);
+        $other->members()->attach($user->id);
+
+        WorkflowRule::create([
+            'group_id' => $owned->id,
+            'type'     => 'stale',
+            'config'   => ['stale_days' => 14, 'statuses' => ['In Review']],
+            'enabled'  => true,
+        ]);
+
+        TrackerProfile::create([
+            'user_id' => $user->id, 'name' => 'work', 'tracker_type' => 'jira',
+            'base_url' => 'https://a.atlassian.net', 'auth_method' => 'cloud',
+        ]);
+
+        $profile = $this->withToken($token)->getJson('/v1/profiles')
+            ->assertOk()
+            ->json('profiles.0');
+
+        // Must resolve via ownedGroup, not $user->groups()->first() (which would be OtherTeam, no rule)
+        $this->assertEquals(['stale_days' => 14, 'statuses' => ['In Review']], $profile['stale_rule']);
+    }
+
     public function test_credential_invariant_stale_rule_contains_no_auth_keys(): void
     {
         $user  = User::factory()->create(['tier' => 'pro', 'permissions' => 2119]);

@@ -81,6 +81,37 @@ class RulesControllerTest extends TestCase
             );
     }
 
+    public function test_index_returns_null_custom_rule_when_none_configured(): void
+    {
+        $user = $this->makeManager();
+
+        $response = $this->actingAs($user)->get('/console/admin/rules');
+        $response->assertOk()
+            ->assertInertia(fn ($page) => $page->where('custom_rule', null));
+    }
+
+    public function test_index_returns_existing_custom_rule(): void
+    {
+        $user  = $this->makeManager();
+        $group = $user->ownedGroup;
+
+        WorkflowRule::create([
+            'group_id' => $group->id,
+            'type'     => 'custom',
+            'config'   => ['rules' => [
+                ['match' => ['priority' => 'Highest'], 'action' => 'force-urgent', 'reason' => 'P1 always urgent'],
+            ]],
+            'enabled'  => true,
+        ]);
+
+        $response = $this->actingAs($user)->get('/console/admin/rules');
+        $response->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('custom_rule.enabled', true)
+                ->where('custom_rule.config.rules.0.action', 'force-urgent')
+            );
+    }
+
     public function test_index_includes_known_statuses_from_snapshots(): void
     {
         $user  = $this->makeManager();
@@ -179,6 +210,285 @@ class RulesControllerTest extends TestCase
         $this->actingAs($user)->post('/console/admin/rules/stale', [
             'enabled' => true, 'stale_days' => 7, 'statuses' => ['In Review'],
         ])->assertRedirect('/console/dashboard');
+    }
+
+    // ── Save custom rule ──────────────────────────────────────────────────────
+
+    public function test_save_custom_creates_rule(): void
+    {
+        $user  = $this->makeManager();
+        $group = $user->ownedGroup;
+
+        $this->actingAs($user)->post('/console/admin/rules/custom', [
+            'enabled' => true,
+            'rules'   => [
+                ['match' => ['priority' => 'Highest'], 'action' => 'force-urgent', 'reason' => 'P1 always urgent'],
+            ],
+        ])->assertRedirect();
+
+        $this->assertDatabaseHas('workflow_rules', [
+            'group_id' => $group->id,
+            'type'     => 'custom',
+            'enabled'  => true,
+        ]);
+    }
+
+    public function test_save_custom_strips_control_characters_from_reason(): void
+    {
+        $user  = $this->makeManager();
+        $group = $user->ownedGroup;
+
+        $this->actingAs($user)->post('/console/admin/rules/custom', [
+            'enabled' => true,
+            'rules'   => [
+                ['match' => ['priority' => 'Highest'], 'action' => 'force-urgent', 'reason' => "P1\x1b[31m urgent\x07"],
+            ],
+        ])->assertRedirect();
+
+        $rule = WorkflowRule::where('group_id', $group->id)->where('type', 'custom')->first();
+        $this->assertSame('P1[31m urgent', $rule->config['rules'][0]['reason']);
+    }
+
+    public function test_save_custom_updates_existing_rule(): void
+    {
+        $user  = $this->makeManager();
+        $group = $user->ownedGroup;
+
+        WorkflowRule::create([
+            'group_id' => $group->id,
+            'type'     => 'custom',
+            'config'   => ['rules' => [['match' => ['label' => 'backlog'], 'action' => 'ignore', 'reason' => null]]],
+            'enabled'  => true,
+        ]);
+
+        $this->actingAs($user)->post('/console/admin/rules/custom', [
+            'enabled' => false,
+            'rules'   => [
+                ['match' => ['status' => 'Blocked'], 'action' => 'force-urgent', 'reason' => 'blocked'],
+            ],
+        ])->assertRedirect();
+
+        $this->assertEquals(1, WorkflowRule::where('group_id', $group->id)->where('type', 'custom')->count());
+        $rule = WorkflowRule::where('group_id', $group->id)->where('type', 'custom')->first();
+        $this->assertFalse($rule->enabled);
+        $this->assertEquals('Blocked', $rule->config['rules'][0]['match']['status']);
+    }
+
+    public function test_save_custom_rejects_invalid_action(): void
+    {
+        $user = $this->makeManager();
+
+        $this->actingAs($user)->post('/console/admin/rules/custom', [
+            'enabled' => true,
+            'rules'   => [
+                ['match' => ['priority' => 'Highest'], 'action' => 'delete-ticket', 'reason' => null],
+            ],
+        ])->assertSessionHasErrors('rules.0.action');
+    }
+
+    public function test_save_custom_rejects_rule_with_empty_match(): void
+    {
+        $user = $this->makeManager();
+
+        $this->actingAs($user)->post('/console/admin/rules/custom', [
+            'enabled' => true,
+            'rules'   => [
+                ['match' => [], 'action' => 'force-urgent', 'reason' => null],
+            ],
+        ])->assertSessionHasErrors('rules.0.match');
+    }
+
+    public function test_save_custom_rejects_more_than_50_rules(): void
+    {
+        $user  = $this->makeManager();
+        $rules = array_fill(0, 51, ['match' => ['priority' => 'Highest'], 'action' => 'force-urgent', 'reason' => null]);
+
+        $this->actingAs($user)->post('/console/admin/rules/custom', [
+            'enabled' => true,
+            'rules'   => $rules,
+        ])->assertSessionHasErrors('rules');
+    }
+
+    public function test_save_custom_rejects_empty_rules_array(): void
+    {
+        $user = $this->makeManager();
+
+        $this->actingAs($user)->post('/console/admin/rules/custom', [
+            'enabled' => true,
+            'rules'   => [],
+        ])->assertSessionHasErrors('rules');
+    }
+
+    public function test_save_custom_blocks_non_manager_via_middleware(): void
+    {
+        $user  = User::factory()->create(['tier' => 'free', 'permissions' => 64]);
+        $group = Group::create(['name' => 'Free', 'owner_id' => $user->id]);
+        $group->members()->attach($user->id);
+
+        $this->actingAs($user)->post('/console/admin/rules/custom', [
+            'enabled' => true,
+            'rules'   => [['match' => ['priority' => 'Highest'], 'action' => 'force-urgent', 'reason' => null]],
+        ])->assertRedirect('/console/dashboard');
+    }
+
+    public function test_non_manager_member_cannot_save_custom_rule(): void
+    {
+        $manager = $this->makeManager();
+        $member  = User::factory()->create(['tier' => 'team', 'permissions' => 2687]);
+        $manager->ownedGroup->members()->attach($member->id);
+
+        $this->actingAs($member)->post('/console/admin/rules/custom', [
+            'enabled' => true,
+            'rules'   => [['match' => ['priority' => 'Highest'], 'action' => 'force-urgent', 'reason' => null]],
+        ])->assertRedirect('/console/dashboard');
+    }
+
+    public function test_save_custom_publishes_rule_changed_event(): void
+    {
+        $manager = $this->makeManager();
+        $group   = $manager->ownedGroup;
+
+        $this->mock(SseEventService::class)
+            ->shouldReceive('publish')
+            ->once()
+            ->with($group->id, 'rule.changed', []);
+
+        $this->actingAs($manager)->post('/console/admin/rules/custom', [
+            'enabled' => true,
+            'rules'   => [['match' => ['priority' => 'Highest'], 'action' => 'force-urgent', 'reason' => null]],
+        ])->assertRedirect();
+    }
+
+    public function test_owner_can_save_custom_rule_for_selected_manager(): void
+    {
+        $owner   = $this->makeOwner();
+        $manager = $this->makeManager();
+
+        $this->actingAs($owner)->post('/console/admin/rules/custom', [
+            'manager_id' => $manager->id,
+            'enabled'    => true,
+            'rules'      => [['match' => ['priority' => 'Highest'], 'action' => 'force-urgent', 'reason' => null]],
+        ])->assertRedirect();
+
+        $this->assertDatabaseHas('workflow_rules', [
+            'group_id' => $manager->ownedGroup->id,
+            'type'     => 'custom',
+            'enabled'  => true,
+        ]);
+    }
+
+    public function test_owner_save_custom_without_manager_id_returns_422(): void
+    {
+        $owner = $this->makeOwner();
+
+        $this->actingAs($owner)->post('/console/admin/rules/custom', [
+            'enabled' => true,
+            'rules'   => [['match' => ['priority' => 'Highest'], 'action' => 'force-urgent', 'reason' => null]],
+        ])->assertStatus(422);
+    }
+
+    // ── Toggle custom rule ────────────────────────────────────────────────────
+
+    public function test_toggle_custom_disables_rule(): void
+    {
+        $user  = $this->makeManager();
+        $group = $user->ownedGroup;
+
+        $rule = WorkflowRule::create([
+            'group_id' => $group->id,
+            'type'     => 'custom',
+            'config'   => ['rules' => [['match' => ['priority' => 'Highest'], 'action' => 'force-urgent', 'reason' => null]]],
+            'enabled'  => true,
+        ]);
+
+        $this->actingAs($user)
+            ->patch('/console/admin/rules/custom/toggle', ['enabled' => false])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('workflow_rules', ['id' => $rule->id, 'enabled' => false]);
+    }
+
+    public function test_toggle_custom_enables_rule(): void
+    {
+        $user  = $this->makeManager();
+        $group = $user->ownedGroup;
+
+        $rule = WorkflowRule::create([
+            'group_id' => $group->id,
+            'type'     => 'custom',
+            'config'   => ['rules' => [['match' => ['priority' => 'Highest'], 'action' => 'force-urgent', 'reason' => null]]],
+            'enabled'  => false,
+        ]);
+
+        $this->actingAs($user)
+            ->patch('/console/admin/rules/custom/toggle', ['enabled' => true])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('workflow_rules', ['id' => $rule->id, 'enabled' => true]);
+    }
+
+    public function test_toggle_custom_returns_404_when_no_rule(): void
+    {
+        $user = $this->makeManager();
+
+        $this->actingAs($user)
+            ->patch('/console/admin/rules/custom/toggle', ['enabled' => true])
+            ->assertStatus(404);
+    }
+
+    // ── Destroy custom rule ───────────────────────────────────────────────────
+
+    public function test_destroy_custom_deletes_rule(): void
+    {
+        $user  = $this->makeManager();
+        $group = $user->ownedGroup;
+
+        WorkflowRule::create([
+            'group_id' => $group->id,
+            'type'     => 'custom',
+            'config'   => ['rules' => [['match' => ['priority' => 'Highest'], 'action' => 'force-urgent', 'reason' => null]]],
+            'enabled'  => true,
+        ]);
+
+        $this->actingAs($user)->delete('/console/admin/rules/custom')->assertRedirect();
+
+        $this->assertDatabaseMissing('workflow_rules', ['group_id' => $group->id, 'type' => 'custom']);
+    }
+
+    public function test_non_manager_member_cannot_delete_custom_rule(): void
+    {
+        $manager = $this->makeManager();
+        $member  = User::factory()->create(['tier' => 'team', 'permissions' => 2687]);
+        $manager->ownedGroup->members()->attach($member->id);
+
+        WorkflowRule::create([
+            'group_id' => $manager->ownedGroup->id,
+            'type'     => 'custom',
+            'config'   => ['rules' => [['match' => ['priority' => 'Highest'], 'action' => 'force-urgent', 'reason' => null]]],
+            'enabled'  => true,
+        ]);
+
+        $this->actingAs($member)->delete('/console/admin/rules/custom')
+            ->assertRedirect('/console/dashboard');
+
+        $this->assertDatabaseHas('workflow_rules', [
+            'group_id' => $manager->ownedGroup->id,
+            'type'     => 'custom',
+        ]);
+    }
+
+    public function test_owner_index_returns_custom_rule_null_when_no_manager_selected(): void
+    {
+        $owner = $this->makeOwner();
+        $this->makeManager();
+
+        $this->actingAs($owner)->get('/console/admin/rules')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('Console/Admin/Rules')
+                ->where('owner_mode', true)
+                ->where('custom_rule', null)
+            );
     }
 
     // ── Destroy stale rule ────────────────────────────────────────────────────

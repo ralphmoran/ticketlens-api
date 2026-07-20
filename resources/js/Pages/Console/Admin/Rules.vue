@@ -20,6 +20,7 @@ const props = defineProps({
     stale_rule:       { type: Object,  default: null },
     custom_rule:      { type: Object,  default: null },
     known_statuses:   { type: Array,   default: () => [] },
+    profiles:         { type: Array,   default: () => [] },
     owner_mode:       { type: Boolean, default: false },
     clients:          { type: Array,   default: () => [] },
     selected_manager: { type: Object,  default: null },
@@ -126,6 +127,31 @@ const MATCH_FIELDS = [
     { value: 'status',    label: 'Status' },
     { value: 'keyPrefix', label: 'Key prefix' },
 ]
+
+// Fields with a real, CLI-observed value list (populated on `triage --push`).
+// Priority/label have no capture path yet — those stay free text.
+const DATALIST_FIELDS = ['status', 'keyPrefix']
+
+const valueSourceProfileId = ref(props.profiles[0]?.id ?? null)
+
+// Owner switching clients or an SSE-triggered reload swaps `profiles` without
+// remounting this component — drop a selection that no longer exists in the list.
+watch(() => props.profiles, (list) => {
+    if (!list.find(p => p.id === valueSourceProfileId.value)) {
+        valueSourceProfileId.value = list[0]?.id ?? null
+    }
+})
+
+const valueSourceProfile = computed(
+    () => props.profiles.find(p => p.id === valueSourceProfileId.value) ?? null,
+)
+
+function valueOptionsFor(matchField) {
+    if (!valueSourceProfile.value) return []
+    if (matchField === 'status')    return valueSourceProfile.value.known_statuses
+    if (matchField === 'keyPrefix') return valueSourceProfile.value.ticket_prefixes
+    return []
+}
 
 function ruleToRow(rule) {
     const matchField = Object.keys(rule.match ?? {})[0] ?? 'priority'
@@ -310,7 +336,7 @@ async function destroyCustom() {
         </div>
 
         <!-- Stale Status Detection card -->
-        <div class="tl-card tl-card--flush">
+        <div class="tl-card tl-card--flush tl-section-gap">
 
             <!-- Card header: icon + title + badge + toggle -->
             <div class="tl-card-head">
@@ -465,7 +491,7 @@ async function destroyCustom() {
         </div>
 
         <!-- Custom Attention Rules card -->
-        <div class="tl-card tl-card--flush tl-section-gap">
+        <div class="tl-card tl-card--flush">
 
             <div class="tl-card-head">
                 <div class="tl-section-icon tl-section-icon--info">
@@ -502,6 +528,14 @@ async function destroyCustom() {
                     </button>
                 </div>
 
+                <div v-if="profiles.length" class="tl-stack--sm">
+                    <label class="tl-label tl-label--field" for="rule-value-source">Source values from</label>
+                    <select id="rule-value-source" v-model="valueSourceProfileId" class="tl-select tl-select--sm">
+                        <option v-for="p in profiles" :key="p.id" :value="p.id">{{ p.owner_name }} — {{ p.name }}</option>
+                    </select>
+                    <p class="tl-hint">Populates Status / Key prefix suggestions below with real values seen on the last triage push. Still free text — type anything.</p>
+                </div>
+
                 <div v-if="customForm.rules.length" class="tl-divide tl-form-stack">
                     <div
                         v-for="(row, index) in customForm.rules"
@@ -518,7 +552,11 @@ async function destroyCustom() {
                             aria-label="Match value"
                             class="tl-input tl-input--sm tl-btn--grow"
                             :disabled="!customForm.enabled"
+                            :list="DATALIST_FIELDS.includes(row.matchField) ? `rule-values-${index}` : null"
                         />
+                        <datalist v-if="DATALIST_FIELDS.includes(row.matchField)" :id="`rule-values-${index}`">
+                            <option v-for="v in valueOptionsFor(row.matchField)" :key="v" :value="v" />
+                        </datalist>
                         <select v-model="row.action" class="tl-select tl-select--sm" :disabled="!customForm.enabled">
                             <option value="force-urgent">Force urgent</option>
                             <option value="ignore">Ignore</option>

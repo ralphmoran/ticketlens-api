@@ -2,7 +2,9 @@
 
 namespace Tests\Unit;
 
+use App\Enums\Permission;
 use App\Models\Feature;
+use App\Models\Group;
 use App\Models\User;
 use App\Services\TierService;
 use Tests\TestCase;
@@ -144,5 +146,58 @@ class TierServiceTest extends TestCase
 
         $this->assertEquals(1,  $proUser->fresh()->permissions, 'Non-owner pro user gets tier preset.');
         $this->assertEquals(42, $owner->fresh()->permissions,   'Owner permissions must be untouched by bulk sync.');
+    }
+
+    // ---- Group-owner manager bits must survive tier sync ----
+
+    public function test_sync_user_grants_manager_bits_to_group_owner(): void
+    {
+        $user = User::factory()->create(['tier' => 'team', 'permissions' => 0]);
+        Group::create(['name' => 'Owner Team', 'owner_id' => $user->id]);
+
+        $this->service->syncUser($user);
+
+        $permissions = $user->fresh()->permissions;
+        $this->assertTrue(
+            ($permissions & Permission::teamManagerMask()) === Permission::teamManagerMask(),
+            'Group owner must retain manager bits after tier sync.',
+        );
+    }
+
+    public function test_sync_user_does_not_grant_manager_bits_to_rank_and_file_member(): void
+    {
+        $user = User::factory()->create(['tier' => 'team', 'permissions' => 0]);
+        // No owned group — a plain team-tier seat, not a manager.
+
+        $this->service->syncUser($user);
+
+        $permissions = $user->fresh()->permissions;
+        $this->assertSame(
+            0,
+            $permissions & Permission::teamManagerMask(),
+            'Rank-and-file team-tier member must not get manager bits.',
+        );
+    }
+
+    public function test_sync_all_for_tier_grants_manager_bits_to_group_owners(): void
+    {
+        $owner  = User::factory()->create(['tier' => 'team', 'permissions' => 0]);
+        $member = User::factory()->create(['tier' => 'team', 'permissions' => 0]);
+        Group::create(['name' => 'Owner Team', 'owner_id' => $owner->id]);
+
+        $this->service->syncAllForTier('team');
+
+        $ownerPermissions  = $owner->fresh()->permissions;
+        $memberPermissions = $member->fresh()->permissions;
+        $this->assertSame(
+            Permission::teamManagerMask(),
+            $ownerPermissions & Permission::teamManagerMask(),
+            'Bulk sync must grant manager bits to group owners.',
+        );
+        $this->assertSame(
+            0,
+            $memberPermissions & Permission::teamManagerMask(),
+            'Bulk sync must not grant manager bits to rank-and-file members.',
+        );
     }
 }

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Console\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Group;
+use App\Models\TrackerProfile;
 use App\Models\TriageSnapshot;
 use App\Models\User;
 use App\Models\WorkflowRule;
@@ -54,6 +55,7 @@ class RulesController extends Controller
                 'stale_rule'       => null,
                 'custom_rule'      => null,
                 'known_statuses'   => [],
+                'profiles'         => [],
             ]);
         }
 
@@ -85,10 +87,11 @@ class RulesController extends Controller
 
         $memberIds = $group->members()->pluck('users.id');
 
-        $profileStatuses = \App\Models\TrackerProfile::whereIn('user_id', $memberIds)
-            ->whereNotNull('known_statuses')
-            ->get(['known_statuses'])
-            ->flatMap(fn ($p) => $p->known_statuses ?? []);
+        $memberProfiles = TrackerProfile::whereIn('user_id', $memberIds)
+            ->with('user:id,name,email')
+            ->get(['id', 'user_id', 'name', 'known_statuses', 'ticket_prefixes']);
+
+        $profileStatuses = $memberProfiles->flatMap(fn ($p) => $p->known_statuses ?? []);
 
         if ($profileStatuses->isNotEmpty()) {
             $statuses = $profileStatuses->filter()->unique()->sort()->values();
@@ -105,6 +108,17 @@ class RulesController extends Controller
                 ->values();
         }
 
+        $profiles = $memberProfiles
+            ->map(fn ($p) => [
+                'id'              => $p->id,
+                'name'            => $p->name,
+                'owner_name'      => $p->user->name,
+                'owner_email'     => $p->user->email,
+                'known_statuses'  => collect($p->known_statuses ?? [])->unique()->values(),
+                'ticket_prefixes' => collect($p->ticket_prefixes ?? [])->unique()->values(),
+            ])
+            ->values();
+
         return [
             'stale_rule'     => $staleRule ? [
                 'id'      => $staleRule->id,
@@ -117,6 +131,7 @@ class RulesController extends Controller
                 'config'  => $customRule->config,
             ] : null,
             'known_statuses' => $statuses,
+            'profiles'       => $profiles,
         ];
     }
 

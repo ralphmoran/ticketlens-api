@@ -3,6 +3,7 @@
 namespace Tests\Feature\Console\Admin;
 
 use App\Models\Group;
+use App\Models\TrackerProfile;
 use App\Models\TriageSnapshot;
 use App\Models\User;
 use App\Models\WorkflowRule;
@@ -132,6 +133,70 @@ class RulesControllerTest extends TestCase
         $this->actingAs($user)->get('/console/admin/rules')
             ->assertOk()
             ->assertInertia(fn ($page) => $page->has('known_statuses'));
+    }
+
+    public function test_index_includes_profiles_with_known_values(): void
+    {
+        $user = $this->makeManager();
+
+        TrackerProfile::create([
+            'user_id'         => $user->id,
+            'name'            => 'acme-jira',
+            'tracker_type'    => 'jira',
+            'base_url'        => 'https://acme.atlassian.net',
+            'auth_method'     => 'cloud',
+            'email'           => $user->email,
+            'ticket_prefixes' => ['ACME'],
+            'known_statuses'  => ['Open', 'In Progress'],
+        ]);
+
+        $this->actingAs($user)->get('/console/admin/rules')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('profiles.0.name', 'acme-jira')
+                ->where('profiles.0.owner_email', $user->email)
+                ->where('profiles.0.known_statuses', ['Open', 'In Progress'])
+                ->where('profiles.0.ticket_prefixes', ['ACME'])
+            );
+    }
+
+    public function test_index_profiles_include_every_group_members_connections(): void
+    {
+        $manager = $this->makeManager();
+        $member  = User::factory()->create(['tier' => 'team', 'permissions' => 2687]);
+        $manager->ownedGroup->members()->attach($member->id);
+
+        TrackerProfile::create([
+            'user_id'      => $member->id,
+            'name'         => 'member-jira',
+            'tracker_type' => 'jira',
+            'base_url'     => 'https://member.atlassian.net',
+            'auth_method'  => 'cloud',
+            'email'        => $member->email,
+        ]);
+
+        $this->actingAs($manager)->get('/console/admin/rules')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page->where('profiles.0.owner_email', $member->email));
+    }
+
+    public function test_index_does_not_leak_other_groups_profiles(): void
+    {
+        $user = $this->makeManager();
+
+        $otherUser = User::factory()->create(['tier' => 'team', 'permissions' => 2687]);
+        TrackerProfile::create([
+            'user_id'      => $otherUser->id,
+            'name'         => 'other-team-jira',
+            'tracker_type' => 'jira',
+            'base_url'     => 'https://other.atlassian.net',
+            'auth_method'  => 'cloud',
+            'email'        => $otherUser->email,
+        ]);
+
+        $this->actingAs($user)->get('/console/admin/rules')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page->where('profiles', []));
     }
 
     // ── Save stale rule ───────────────────────────────────────────────────────

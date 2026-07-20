@@ -338,7 +338,7 @@ async function destroyCustom() {
         <!-- Stale Status Detection card -->
         <div class="tl-card tl-card--flush tl-section-gap">
 
-            <!-- Card header: icon + title + badge + toggle -->
+            <!-- Card header: icon + title + live enabled switch -->
             <div class="tl-card-head">
                 <div class="tl-section-icon tl-section-icon--warn">
                     <TlIcon name="clock" class="tl-ic" />
@@ -347,38 +347,27 @@ async function destroyCustom() {
                     <h2 class="tl-title">Stale Status Detection</h2>
                     <p class="tl-hint">Flag tickets stuck in the same status too long</p>
                 </div>
-                <span
-                    class="tl-badge"
-                    :class="hasRule && stale_rule.enabled ? 'tl-badge--success' : 'tl-badge--neutral'"
+                <span class="tl-hint">{{ form.enabled ? 'Active' : 'Off' }}</span>
+                <button
+                    type="button"
+                    role="switch"
+                    aria-label="Enable detection"
+                    :aria-checked="form.enabled"
+                    :disabled="toggling"
+                    @click="toggleEnabled"
+                    class="tl-switch"
+                    title="Toggles immediately — no save needed"
                 >
-                    {{ hasRule && stale_rule.enabled ? 'Active' : 'Off' }}
-                </span>
+                    <span />
+                </button>
             </div>
 
             <!-- Form body: two-column grid to fill the card width -->
             <form class="tl-card--sm" @submit.prevent="saveStale">
                 <div class="tl-grid-2">
 
-                    <!-- Left: enabled toggle + threshold -->
+                    <!-- Left: threshold -->
                     <div class="tl-form-stack">
-
-                        <!-- Enabled toggle -->
-                        <div class="tl-toggle-row">
-                            <div>
-                                <p class="tl-toggle-row-title">Enable detection</p>
-                                <p class="tl-hint">Toggles immediately — no save needed</p>
-                            </div>
-                            <button
-                                type="button"
-                                role="switch"
-                                :aria-checked="form.enabled"
-                                :disabled="toggling"
-                                @click="toggleEnabled"
-                                class="tl-switch"
-                            >
-                                <span />
-                            </button>
-                        </div>
 
                         <div class="tl-stack--sm">
                         <label class="tl-label tl-label--field">Days before stale</label>
@@ -501,32 +490,22 @@ async function destroyCustom() {
                     <h2 class="tl-title">Custom Attention Rules</h2>
                     <p class="tl-hint">Force-urgent or ignore tickets matching specific conditions</p>
                 </div>
-                <span
-                    class="tl-badge"
-                    :class="hasCustomRule && custom_rule.enabled ? 'tl-badge--success' : 'tl-badge--neutral'"
+                <span class="tl-hint">{{ customForm.enabled ? 'Active' : 'Off' }}</span>
+                <button
+                    type="button"
+                    role="switch"
+                    aria-label="Enable custom rules"
+                    :aria-checked="customForm.enabled"
+                    :disabled="customToggling"
+                    @click="toggleCustomEnabled"
+                    class="tl-switch"
+                    title="Toggles immediately — no save needed"
                 >
-                    {{ hasCustomRule && custom_rule.enabled ? 'Active' : 'Off' }}
-                </span>
+                    <span />
+                </button>
             </div>
 
             <form class="tl-card--sm" @submit.prevent="saveCustom">
-
-                <div class="tl-toggle-row">
-                    <div>
-                        <p class="tl-toggle-row-title">Enable custom rules</p>
-                        <p class="tl-hint">Toggles immediately — no save needed</p>
-                    </div>
-                    <button
-                        type="button"
-                        role="switch"
-                        :aria-checked="customForm.enabled"
-                        :disabled="customToggling"
-                        @click="toggleCustomEnabled"
-                        class="tl-switch"
-                    >
-                        <span />
-                    </button>
-                </div>
 
                 <div v-if="profiles.length" class="tl-stack--sm">
                     <label class="tl-label tl-label--field" for="rule-value-source">Source values from</label>

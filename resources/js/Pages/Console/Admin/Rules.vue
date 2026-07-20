@@ -475,7 +475,7 @@ async function destroyCustom() {
                         <TlIcon name="trash" class="tl-ic tl-ic--xs" />
                         Remove
                     </button>
-                    <span v-if="$page.props.flash?.success" class="tl-feedback tl-feedback--success">
+                    <span v-if="$page.props.flash?.success && $page.props.flash?.rule_type === 'stale'" class="tl-feedback tl-feedback--success">
                         {{ $page.props.flash.success }}
                     </span>
                 </div>
@@ -598,7 +598,7 @@ async function destroyCustom() {
                         <TlIcon name="trash" class="tl-ic tl-ic--xs" />
                         Remove
                     </button>
-                    <span v-if="$page.props.flash?.success" class="tl-feedback tl-feedback--success">
+                    <span v-if="$page.props.flash?.success && $page.props.flash?.rule_type === 'custom'" class="tl-feedback tl-feedback--success">
                         {{ $page.props.flash.success }}
                     </span>
                 </div>

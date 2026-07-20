@@ -219,6 +219,27 @@ class RulesControllerTest extends TestCase
         ]);
     }
 
+    public function test_save_stale_flash_is_scoped_to_stale_card(): void
+    {
+        $user = $this->makeManager();
+
+        $this->actingAs($user)->post('/console/admin/rules/stale', [
+            'enabled'    => true,
+            'stale_days' => 14,
+            'statuses'   => ['In Review'],
+        ])->assertSessionHas('rule_type', 'stale');
+    }
+
+    public function test_save_custom_flash_is_scoped_to_custom_card(): void
+    {
+        $user = $this->makeManager();
+
+        $this->actingAs($user)->post('/console/admin/rules/custom', [
+            'enabled' => true,
+            'rules'   => [['match' => ['priority' => 'Highest'], 'action' => 'force-urgent', 'reason' => null]],
+        ])->assertSessionHas('rule_type', 'custom');
+    }
+
     public function test_save_stale_updates_existing_rule(): void
     {
         $user  = $this->makeManager();

@@ -174,7 +174,7 @@ class RulesController extends Controller
 
         app(SseEventService::class)->publish($group->id, 'rule.changed', []);
 
-        return back()->with('success', 'Stale rule saved.');
+        return back()->with(['success' => 'Stale rule saved.', 'rule_type' => 'stale']);
     }
 
     public function saveCustom(Request $request): RedirectResponse
@@ -221,7 +221,7 @@ class RulesController extends Controller
 
         app(SseEventService::class)->publish($group->id, 'rule.changed', []);
 
-        return back()->with('success', 'Custom rule saved.');
+        return back()->with(['success' => 'Custom rule saved.', 'rule_type' => 'custom']);
     }
 
     public function toggleCustom(Request $request): RedirectResponse
@@ -236,7 +236,10 @@ class RulesController extends Controller
 
         app(SseEventService::class)->publish($group->id, 'rule.changed', []);
 
-        return back()->with('success', $data['enabled'] ? 'Custom rule enabled.' : 'Custom rule disabled.');
+        return back()->with([
+            'success'   => $data['enabled'] ? 'Custom rule enabled.' : 'Custom rule disabled.',
+            'rule_type' => 'custom',
+        ]);
     }
 
     public function destroyCustom(Request $request): RedirectResponse
@@ -247,7 +250,7 @@ class RulesController extends Controller
 
         app(SseEventService::class)->publish($group->id, 'rule.changed', []);
 
-        return back()->with('success', 'Custom rule removed.');
+        return back()->with(['success' => 'Custom rule removed.', 'rule_type' => 'custom']);
     }
 
     public function toggleStale(Request $request): RedirectResponse
@@ -262,7 +265,10 @@ class RulesController extends Controller
 
         app(SseEventService::class)->publish($group->id, 'rule.changed', []);
 
-        return back()->with('success', $data['enabled'] ? 'Stale rule enabled.' : 'Stale rule disabled.');
+        return back()->with([
+            'success'   => $data['enabled'] ? 'Stale rule enabled.' : 'Stale rule disabled.',
+            'rule_type' => 'stale',
+        ]);
     }
 
     public function destroyStale(Request $request): RedirectResponse
@@ -273,6 +279,6 @@ class RulesController extends Controller
 
         app(SseEventService::class)->publish($group->id, 'rule.changed', []);
 
-        return back()->with('success', 'Stale rule removed.');
+        return back()->with(['success' => 'Stale rule removed.', 'rule_type' => 'stale']);
     }
 }

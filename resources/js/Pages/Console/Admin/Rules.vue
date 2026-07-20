@@ -370,9 +370,10 @@ async function destroyCustom() {
                     <div class="tl-form-stack">
 
                         <div class="tl-stack--sm">
-                        <label class="tl-label tl-label--field">Days before stale</label>
+                        <label class="tl-label tl-label--field" for="stale-days">Days before stale</label>
                         <div class="tl-row">
                             <input
+                                id="stale-days"
                                 v-model.number="form.stale_days"
                                 type="number"
                                 min="1"
@@ -389,7 +390,7 @@ async function destroyCustom() {
 
                     <!-- Right: status picker -->
                     <div class="tl-stack--sm">
-                        <label class="tl-label tl-label--field">Statuses to watch</label>
+                        <p class="tl-label tl-label--field">Statuses to watch</p>
 
                         <!-- Known status chips -->
                         <div v-if="known_statuses.length" class="tl-row tl-row--wrap tl-row--tight">
@@ -414,9 +415,11 @@ async function destroyCustom() {
                         <!-- Manual entry -->
                         <div class="tl-row tl-form-actions">
                             <input
+                                id="stale-status-manual"
                                 v-model="statusInput"
                                 type="text"
                                 placeholder="Add status manually…"
+                                aria-label="Add status manually"
                                 class="tl-input tl-input--sm tl-btn--grow"
                                 :disabled="!form.enabled"
                                 @keydown.enter.prevent="addStatus"

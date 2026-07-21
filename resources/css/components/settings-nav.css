@@ -10,8 +10,17 @@
     @apply flex flex-col md:flex-row gap-8 items-start;
   }
 
+  .tl-settings-nav-wrap {
+    @apply relative w-full md:w-56 shrink-0;
+  }
+  .tl-settings-nav-wrap::after {
+    content: '';
+    @apply md:hidden absolute inset-y-0 right-0 w-8 pointer-events-none;
+    background: linear-gradient(to right, transparent, var(--tl-bg));
+  }
+
   .tl-settings-nav {
-    @apply flex flex-row md:flex-col gap-1 w-full md:w-56 shrink-0;
+    @apply flex flex-row md:flex-col gap-1 w-full;
     @apply overflow-x-auto md:overflow-visible;
     scrollbar-width: none;
   }

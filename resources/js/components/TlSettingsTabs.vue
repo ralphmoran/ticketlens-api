@@ -49,18 +49,20 @@ const groups = computed(() => {
 </script>
 
 <template>
-    <nav class="tl-settings-nav" aria-label="Settings">
-        <template v-for="group in groups" :key="group.label">
-            <p class="tl-settings-nav-group-label">{{ group.label }}</p>
-            <a
-                v-for="tab in group.tabs"
-                :key="tab.key"
-                :href="tab.href"
-                class="tl-settings-nav-item"
-                :class="tab.key === activeKey ? 'tl-settings-nav-item--active' : ''"
-            >
-                {{ tab.label }}
-            </a>
-        </template>
-    </nav>
+    <div class="tl-settings-nav-wrap">
+        <nav class="tl-settings-nav" aria-label="Settings">
+            <template v-for="group in groups" :key="group.label">
+                <p class="tl-settings-nav-group-label">{{ group.label }}</p>
+                <a
+                    v-for="tab in group.tabs"
+                    :key="tab.key"
+                    :href="tab.href"
+                    class="tl-settings-nav-item"
+                    :class="tab.key === activeKey ? 'tl-settings-nav-item--active' : ''"
+                >
+                    {{ tab.label }}
+                </a>
+            </template>
+        </nav>
+    </div>
 </template>

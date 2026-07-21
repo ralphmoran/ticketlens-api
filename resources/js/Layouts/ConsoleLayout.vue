@@ -558,9 +558,97 @@ onUnmounted(() => {
                 >
                     <TlIcon :name="themeMode === 'dark' ? 'sun' : 'moon'" class="tl-ic" />
                 </button>
-                <img v-if="user?.avatar_url" :src="user.avatar_url" :alt="user?.name" class="tl-avatar tl-avatar-img">
-                <div v-else class="tl-avatar">
-                    {{ user?.name?.charAt(0)?.toUpperCase() ?? '?' }}
+
+                <!-- Notification bell -->
+                <div class="tl-avatar-wrap" data-notifications-dropdown>
+                    <button
+                        type="button"
+                        @click="toggleNotificationsDropdown"
+                        class="tl-icon-btn relative"
+                        :aria-expanded="notificationsDropdownOpen"
+                        aria-label="Notifications"
+                    >
+                        <TlIcon name="bell" class="tl-ic" />
+                        <span v-if="pending.count > 0" class="tl-bell-dot tl-bell-dot--pulse" />
+                    </button>
+
+                    <Transition name="tl-pop">
+                        <div v-if="notificationsDropdownOpen" class="tl-dropdown tl-dropdown--wide">
+                            <div class="tl-dropdown-header">
+                                <p class="tl-dropdown-name">Notifications</p>
+                            </div>
+
+                            <p v-if="pending.count === 0" class="tl-notif-empty">You're all caught up.</p>
+
+                            <a
+                                v-if="pending.categories?.recall?.available"
+                                href="/console/admin/recall"
+                                class="tl-dropdown-item"
+                            >
+                                <TlIcon name="search" class="tl-ic" />
+                                {{ pending.categories.recall.count }} Recall note{{ pending.categories.recall.count === 1 ? '' : 's' }} to review
+                            </a>
+
+                            <a
+                                v-if="pending.categories?.license?.triggered"
+                                href="/console/account"
+                                class="tl-dropdown-item"
+                            >
+                                <TlIcon name="warning-triangle" class="tl-ic" />
+                                License needs attention ({{ pending.categories.license.status }})
+                            </a>
+
+                            <div class="tl-dropdown-item tl-dropdown-item--disabled" title="Coming soon">
+                                <TlIcon name="user-group" class="tl-ic" />
+                                Pending team invites
+                                <span class="tl-badge tl-badge--neutral tl-notif-soon">Soon</span>
+                            </div>
+                            <div class="tl-dropdown-item tl-dropdown-item--disabled" title="Coming soon">
+                                <TlIcon name="git-branch" class="tl-ic" />
+                                Workflow rule failures
+                                <span class="tl-badge tl-badge--neutral tl-notif-soon">Soon</span>
+                            </div>
+                        </div>
+                    </Transition>
+                </div>
+
+                <!-- Settings gear -->
+                <a href="/console/account" title="Settings" class="tl-icon-btn">
+                    <TlIcon name="settings" class="tl-ic" />
+                </a>
+
+                <!-- Avatar with dropdown -->
+                <div class="tl-avatar-wrap" data-avatar-dropdown>
+                    <button
+                        type="button"
+                        @click="toggleAvatarDropdown"
+                        class="tl-avatar"
+                        :aria-expanded="avatarDropdownOpen"
+                        aria-label="User menu"
+                    >
+                        <img v-if="user?.avatar_url" :src="user.avatar_url" :alt="user?.name" class="tl-avatar-img">
+                        <template v-else>{{ user?.name?.charAt(0)?.toUpperCase() ?? '?' }}</template>
+                    </button>
+
+                    <Transition name="tl-pop">
+                        <div v-if="avatarDropdownOpen" class="tl-dropdown">
+                            <div class="tl-dropdown-header">
+                                <p class="tl-dropdown-name">{{ user?.name }}</p>
+                                <span class="tl-badge tl-cap" :class="tierBadge(user?.tier)">{{ user?.tier }}</span>
+                            </div>
+                            <div v-if="user?.tier === 'free'" class="tl-promo-card tl-promo-card--compact">
+                                <p>Unlock Pro features &mdash; Schedules, Digests, Summarize and more</p>
+                                <a
+                                    href="/console/upgrade"
+                                    @click="avatarDropdownOpen = false"
+                                    class="tl-btn tl-btn--inverse"
+                                >
+                                    Upgrade
+                                    <TlIcon name="arrow-right" class="tl-ic tl-ic--sm" />
+                                </a>
+                            </div>
+                        </div>
+                    </Transition>
                 </div>
             </div>
         </header>

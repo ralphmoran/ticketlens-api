@@ -146,6 +146,18 @@
   .tl-dropdown-name { @apply text-xs font-semibold truncate; color: var(--tl-text); }
   .tl-dropdown--wide { @apply w-72; }
 
+  /* Wide dropdown (notifications) can overflow past the viewport edge when its
+     trigger icon isn't the rightmost header item — pin it under the header instead. */
+  @media (max-width: 640px) {
+    .tl-dropdown--wide {
+      position: fixed;
+      top: 4rem;
+      right: 1rem;
+      left: 1rem;
+      width: auto;
+    }
+  }
+
   .tl-dropdown-item {
     @apply flex w-full items-center gap-2 px-3 py-2 text-sm cursor-pointer;
     color: var(--tl-text-secondary);

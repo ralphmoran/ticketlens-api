@@ -1,5 +1,6 @@
 <script setup>
 import ConsoleLayout from '@/Layouts/ConsoleLayout.vue'
+import TlSettingsTabs from '@/components/TlSettingsTabs.vue'
 import { computed } from 'vue'
 import { formatDate } from '@/composables/useDateFormat'
 
@@ -25,7 +26,10 @@ const barClass = computed(() => {
 </script>
 
 <template>
-    <div class="tl-page tl-page--narrow">
+    <div class="tl-page">
+    <div class="tl-settings-layout">
+        <TlSettingsTabs active-key="seats" />
+        <div class="tl-settings-content">
 
         <div class="tl-page-header">
             <div>
@@ -65,5 +69,8 @@ const barClass = computed(() => {
                 </div>
             </dl>
         </div>
+
+        </div>
+    </div>
     </div>
 </template>

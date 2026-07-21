@@ -241,8 +241,10 @@ const navGroups = computed(() => [
         collapseIcon: 'dashboard',
         requiresTeamManager: false,
         items: [
-            { label: 'Dashboard',   href: '/console/dashboard',   permission: null, icon: 'dashboard' },
-            { label: 'Analytics',   href: '/console/analytics',   permission: null, icon: 'chart-bar' },
+            { label: 'Dashboard',       href: '/console/dashboard',             permission: null, icon: 'dashboard' },
+            { label: 'Analytics',       href: '/console/analytics',             permission: null, icon: 'chart-bar' },
+            { label: 'Response Stats',  href: '/console/admin/stats',           permission: null, icon: 'trending-up', requiresTeamContext: true },
+            { label: 'Process Metrics', href: '/console/admin/process-metrics', permission: Permission.TeamManageMembers, icon: 'gauge', managerOnly: true, ownerExcluded: false },
         ]
     },
     {
@@ -255,6 +257,7 @@ const navGroups = computed(() => [
             { label: 'Summarize',      href: '/console/summarize',      permission: Permission.Summarize,  icon: 'document-text' },
             { label: 'Compliance',     href: '/console/compliance',     permission: Permission.Compliance, icon: 'shield-check' },
             { label: 'Export',         href: '/console/export',         permission: Permission.Export,     icon: 'download' },
+            { label: 'Workflow Rules', href: '/console/admin/rules',    permission: Permission.WorkflowRules, icon: 'git-branch', managerOnly: true, ownerExcluded: false },
         ]
     },
     {
@@ -274,14 +277,10 @@ const navGroups = computed(() => [
         items: [
             { label: 'Team Health',          href: '/console/admin/team-health',          icon: 'heart-pulse',      managerOnly: false, ownerExcluded: false, permission: null },
             { label: 'Recall',               href: '/console/admin/recall',               icon: 'search',           managerOnly: false, ownerExcluded: true,  permission: Permission.Recall },
-            { label: 'Response Stats',       href: '/console/admin/stats',                icon: 'trending-up',      managerOnly: false, ownerExcluded: false, permission: null },
             { label: 'Compliance Analytics', href: '/console/admin/compliance-analytics', icon: 'clipboard-check',  managerOnly: false, ownerExcluded: false, permission: null },
             { label: 'Members',              href: '/console/admin/members',              icon: 'user-group',       managerOnly: true,  ownerExcluded: true,  permission: Permission.TeamManageMembers },
-            { label: 'Process Metrics',      href: '/console/admin/process-metrics',      icon: 'gauge',            managerOnly: true,  ownerExcluded: false, permission: Permission.TeamManageMembers },
-            { label: 'Seats',                href: '/console/admin/seats',                icon: 'key',              managerOnly: true,  ownerExcluded: true,  permission: Permission.TeamManageSeats },
             { label: 'Alerts',               href: '/console/admin/alerts',               icon: 'bell',             managerOnly: true,  ownerExcluded: false, permission: null },
             { label: 'Digests',              href: '/console/admin/digests',              icon: 'send',             managerOnly: true,  ownerExcluded: false, permission: null },
-            { label: 'Workflow Rules',       href: '/console/admin/rules',                icon: 'git-branch',       managerOnly: true,  ownerExcluded: false, permission: Permission.WorkflowRules },
             { label: 'Brief Templates',      href: '/console/admin/templates',            icon: 'document-text',    managerOnly: false, ownerExcluded: false, permission: null, paidOnly: true },
         ]
     },
@@ -329,6 +328,7 @@ const visibleGroups = computed(() =>
                 if (item.ownerExcluded && isOwner.value) return false
                 if (item.managerOnly && !isOwner.value && !isTeamManager.value) return false
                 if (item.paidOnly && !isOwner.value && !isTeamManager.value && !['pro', 'team', 'enterprise'].includes(user.value?.tier)) return false
+                if (item.requiresTeamContext && !isOwner.value && !isTeamManager.value && !isTeamLead.value) return false
                 return item.permission === null || isOwner.value || can(item.permission)
             })
         }))

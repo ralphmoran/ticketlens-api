@@ -1,7 +1,7 @@
 <script setup>
 /**
  * TlSettingsTabs — left-column nav shared by every Settings page (Account,
- * Connections, Jira Config, AI Settings, Integrations). Purely presentational:
+ * Connections, Jira Config, AI Settings, Integrations, Seats). Purely presentational:
  * real <a href> links between separate Inertia page visits, not client-side
  * tab switching — each page keeps its own route/controller/props untouched.
  *
@@ -38,6 +38,9 @@ const groups = computed(() => {
     const teamConfig = []
     if (auth.is_team_manager) {
         teamConfig.push({ key: 'jira', label: 'Jira Config', href: '/console/admin/jira' })
+    }
+    if (auth.is_team_manager && auth.can?.TeamManageSeats) {
+        teamConfig.push({ key: 'seats', label: 'Seats', href: '/console/admin/seats' })
     }
     // Matches the pre-redesign sidebar's per-item ownerExcluded flags: Jira Config was
     // owner-excluded, Integrations was not (owner also manages Slack for themselves).

@@ -162,6 +162,13 @@
     box-shadow: var(--tl-shadow-md);
   }
   .tl-promo-card > p { @apply text-sm font-medium; color: var(--tl-brand-fg); }
+
+  /* Narrow-container variant (e.g. inside the 13rem avatar dropdown) — fixed column layout, no viewport breakpoint */
+  .tl-promo-card--compact {
+    @apply p-3 flex-col items-stretch gap-2;
+  }
+  .tl-promo-card--compact > p { @apply text-xs; }
+  .tl-promo-card--compact > .tl-btn { @apply justify-center; }
 }
 
 @layer components {

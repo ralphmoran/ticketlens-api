@@ -359,6 +359,16 @@ function toggleAvatarDropdown() {
     avatarDropdownOpen.value = !avatarDropdownOpen.value
 }
 
+// Mirrors Account.vue's tierStyles — kept local since this is the only other usage site.
+const tierStyles = {
+    free:       'tl-badge--neutral',
+    pro:        'tl-badge--brand',
+    team:       'tl-badge--info',
+    enterprise: 'tl-badge--warn',
+    owner:      'tl-badge--warn',
+}
+const tierBadge = (tier) => tierStyles[tier?.toLowerCase()] ?? tierStyles.free
+
 // Auto-focus the palette input when it opens.
 watch(paletteOpen, async (val) => {
     if (val) {
@@ -596,24 +606,19 @@ onUnmounted(() => {
                         >
                             <div class="tl-dropdown-header">
                                 <p class="tl-dropdown-name">{{ user?.name }}</p>
-                                <p class="tl-dropdown-tier">{{ user?.tier }}</p>
+                                <span class="tl-badge tl-cap" :class="tierBadge(user?.tier)">{{ user?.tier }}</span>
                             </div>
-                            <a
-                                href="/console/account"
-                                @click="avatarDropdownOpen = false"
-                                class="tl-dropdown-item"
-                            >
-                                <TlIcon name="settings" class="tl-ic" />
-                                Settings
-                            </a>
-                            <button
-                                type="button"
-                                @click="logout"
-                                class="tl-dropdown-item"
-                            >
-                                <TlIcon name="logout" class="tl-ic" />
-                                Sign out
-                            </button>
+                            <div v-if="user?.tier === 'free'" class="tl-promo-card tl-promo-card--compact">
+                                <p>Unlock Pro features &mdash; Schedules, Digests, Summarize and more</p>
+                                <a
+                                    href="/console/upgrade"
+                                    @click="avatarDropdownOpen = false"
+                                    class="tl-btn tl-btn--inverse"
+                                >
+                                    Upgrade
+                                    <TlIcon name="arrow-right" class="tl-ic tl-ic--sm" />
+                                </a>
+                            </div>
                         </div>
                     </Transition>
                 </div>

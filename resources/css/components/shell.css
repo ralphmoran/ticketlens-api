@@ -144,16 +144,6 @@
   }
   .tl-dropdown-header { @apply px-3 py-2.5; border-bottom: 1px solid var(--tl-border); }
   .tl-dropdown-name { @apply text-xs font-semibold truncate; color: var(--tl-text); }
-  .tl-dropdown-tier { @apply text-xs font-mono truncate capitalize; color: var(--tl-text-muted); }
-  .tl-dropdown-item {
-    @apply flex w-full items-center gap-2 px-3 py-2 text-sm cursor-pointer;
-    color: var(--tl-text-secondary);
-    transition: background-color var(--tl-transition), color var(--tl-transition);
-  }
-  .tl-dropdown-item:hover {
-    background-color: var(--tl-surface-2);
-    color: var(--tl-text);
-  }
 
   /* ── Sidebar ──────────────────────────────────────────────────────── */
   .tl-sidebar-backdrop {

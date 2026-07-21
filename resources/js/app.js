@@ -1,3 +1,4 @@
+import './bootstrap.js'
 import './echo.js'
 import { createApp, h } from 'vue'
 import { createInertiaApp } from '@inertiajs/vue3'

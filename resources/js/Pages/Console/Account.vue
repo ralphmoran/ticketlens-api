@@ -177,7 +177,7 @@ async function revokeToken() {
                     </button>
                 </div>
             </div>
-            <p v-if="avatarForm.errors.avatar" class="tl-error tl-card-gap">{{ avatarForm.errors.avatar }}</p>
+            <p v-if="avatarForm.errors.avatar" class="tl-error tl-avatar-error">{{ avatarForm.errors.avatar }}</p>
 
             <form class="tl-card--sm" @submit.prevent="saveProfile">
                 <div class="tl-form-stack">

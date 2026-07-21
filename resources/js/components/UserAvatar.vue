@@ -51,9 +51,9 @@ const bgClass = computed(() => TIER_BG[props.tier] ?? 'tl-avatar--neutral')
     flex-shrink:     0;
 }
 .tl-avatar--lg {
-    width:       4rem;
-    height:      4rem;
-    font-size:   1.5rem;
+    width:       5.5rem;
+    height:      5.5rem;
+    font-size:   2rem;
     border:      3px solid var(--tl-card);
 }
 .tl-avatar--neutral { background: var(--tl-surface-muted); color: var(--tl-text-muted); }

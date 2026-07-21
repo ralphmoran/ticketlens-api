@@ -315,4 +315,5 @@
   }
   .tl-profile-identity { @apply pb-1; }
   .tl-profile-avatar-actions { @apply pb-1 ml-auto flex gap-2; }
+  .tl-avatar-error { @apply px-5 mb-6; }
 }

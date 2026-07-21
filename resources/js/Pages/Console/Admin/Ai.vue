@@ -66,6 +66,7 @@ async function apiFetch(url, options = {}) {
         headers: {
             'Content-Type': 'application/json',
             'Accept': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
             'X-XSRF-TOKEN': csrf ? decodeURIComponent(csrf) : '',
             ...(options.headers ?? {}),
         },

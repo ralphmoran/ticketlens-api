@@ -320,7 +320,33 @@
   .tl-profile-avatar-row {
     @apply -mt-8 px-5 flex items-end gap-4;
   }
-  .tl-profile-identity { @apply pb-1; }
-  .tl-profile-avatar-actions { @apply pb-1 ml-auto flex gap-2; }
+  .tl-profile-identity { @apply pb-1 min-w-0; }
   .tl-avatar-error { @apply px-5 mb-6; }
+
+  /* Avatar edit overlay — pencil/delete icons revealed on hover, always visible on touch */
+  .tl-avatar-edit { @apply relative inline-flex shrink-0 rounded-full; }
+  .tl-avatar-edit-overlay {
+    @apply absolute inset-0 flex items-center justify-center gap-1 rounded-full opacity-0;
+    background: rgba(0, 0, 0, 0.45);
+    transition: opacity var(--tl-transition);
+  }
+  .tl-avatar-edit:hover .tl-avatar-edit-overlay,
+  .tl-avatar-edit:focus-within .tl-avatar-edit-overlay {
+    @apply opacity-100;
+  }
+  @media (hover: none) {
+    .tl-avatar-edit-overlay {
+      @apply opacity-100;
+    }
+  }
+  .tl-avatar-edit-btn {
+    @apply flex items-center justify-center rounded-full cursor-pointer;
+    width: 1.75rem;
+    height: 1.75rem;
+    color: #fff;
+    background: rgba(255, 255, 255, 0.15);
+    transition: background-color var(--tl-transition);
+  }
+  .tl-avatar-edit-btn:hover { background: rgba(255, 255, 255, 0.3); }
+  .tl-avatar-edit-btn--danger:hover { background: var(--tl-danger); }
 }

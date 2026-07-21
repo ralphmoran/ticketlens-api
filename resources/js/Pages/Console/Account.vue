@@ -158,12 +158,8 @@ async function revokeToken() {
         <div class="tl-card tl-card--flush">
             <div class="tl-profile-banner" />
             <div class="tl-profile-avatar-row">
-                <UserAvatar :name="account.name" :tier="account.tier" :avatar-url="account.avatar_url" size="lg" />
-                <div class="tl-profile-identity">
-                    <p class="tl-title">{{ account.name }}</p>
-                    <p class="tl-def-value--mono">{{ account.email }}</p>
-                </div>
-                <div class="tl-profile-avatar-actions">
+                <div class="tl-avatar-edit">
+                    <UserAvatar :name="account.name" :tier="account.tier" :avatar-url="account.avatar_url" size="lg" />
                     <input
                         ref="avatarInput"
                         type="file"
@@ -171,14 +167,30 @@ async function revokeToken() {
                         class="tl-sr-only"
                         @change="onAvatarSelected"
                     />
-                    <button type="button" class="tl-btn tl-btn--secondary tl-btn--sm" :disabled="avatarForm.processing" @click="triggerAvatarPicker">
-                        <TlIcon name="upload-cloud" class="tl-ic tl-ic--xs" />
-                        Change photo
-                    </button>
-                    <button v-if="account.avatar_url" type="button" class="tl-btn tl-btn--danger-outline tl-btn--sm" @click="removeAvatar">
-                        <TlIcon name="trash" class="tl-ic tl-ic--xs" />
-                        Remove photo
-                    </button>
+                    <div class="tl-avatar-edit-overlay">
+                        <button
+                            type="button"
+                            class="tl-avatar-edit-btn"
+                            :disabled="avatarForm.processing"
+                            aria-label="Change photo"
+                            @click="triggerAvatarPicker"
+                        >
+                            <TlIcon name="pencil" class="tl-ic tl-ic--xs" />
+                        </button>
+                        <button
+                            v-if="account.avatar_url"
+                            type="button"
+                            class="tl-avatar-edit-btn tl-avatar-edit-btn--danger"
+                            aria-label="Remove photo"
+                            @click="removeAvatar"
+                        >
+                            <TlIcon name="trash" class="tl-ic tl-ic--xs" />
+                        </button>
+                    </div>
+                </div>
+                <div class="tl-profile-identity">
+                    <p class="tl-title">{{ account.name }}</p>
+                    <p class="tl-def-value--mono">{{ account.email }}</p>
                 </div>
             </div>
             <p v-if="avatarForm.errors.avatar" class="tl-error tl-avatar-error">{{ avatarForm.errors.avatar }}</p>

@@ -144,6 +144,40 @@
   }
   .tl-dropdown-header { @apply px-3 py-2.5; border-bottom: 1px solid var(--tl-border); }
   .tl-dropdown-name { @apply text-xs font-semibold truncate; color: var(--tl-text); }
+  .tl-dropdown--wide { @apply w-72; }
+
+  .tl-dropdown-item {
+    @apply flex w-full items-center gap-2 px-3 py-2 text-sm cursor-pointer;
+    color: var(--tl-text-secondary);
+    transition: background-color var(--tl-transition), color var(--tl-transition);
+  }
+  .tl-dropdown-item:hover {
+    background-color: var(--tl-surface-2);
+    color: var(--tl-text);
+  }
+  .tl-dropdown-item--disabled {
+    cursor: not-allowed;
+    color: var(--tl-text-muted);
+  }
+  .tl-dropdown-item--disabled:hover {
+    background-color: transparent;
+    color: var(--tl-text-muted);
+  }
+  .tl-notif-empty { @apply px-3 py-4 text-sm text-center; color: var(--tl-text-muted); }
+  .tl-notif-soon { @apply ml-auto text-[10px]; }
+
+  /* ── Notification bell dot ────────────────────────────────────────── */
+  .tl-bell-dot {
+    @apply absolute top-1 right-1 block w-2 h-2 rounded-full;
+    background-color: var(--tl-danger);
+  }
+  .tl-bell-dot--pulse {
+    animation: tl-bell-pulse 1.8s ease-in-out infinite;
+  }
+  @keyframes tl-bell-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 var(--tl-danger-border); }
+    50%      { box-shadow: 0 0 0 4px transparent; }
+  }
 
   /* ── Sidebar ──────────────────────────────────────────────────────── */
   .tl-sidebar-backdrop {

@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Events\NotificationUpdated;
 use App\Events\RuleChanged;
 use App\Events\TriagePushed;
 use Illuminate\Broadcasting\BroadcastException;
@@ -10,8 +11,9 @@ use RuntimeException;
 class SseEventService
 {
     private const EVENT_MAP = [
-        'rule.changed'  => RuleChanged::class,
-        'triage.pushed' => TriagePushed::class,
+        'rule.changed'          => RuleChanged::class,
+        'triage.pushed'         => TriagePushed::class,
+        'notification.updated' => NotificationUpdated::class,
     ];
 
     public function publish(int $groupId, string $type, array $payload): void

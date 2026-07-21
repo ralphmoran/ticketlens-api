@@ -22,8 +22,9 @@ export function useServerEvents() {
 
         channelName = `group.${groupId}`
         channel     = window.Echo.private(channelName)
-            .listen('.rule.changed',  (e) => store.dispatch({ type: 'rule.changed',  data: e }))
-            .listen('.triage.pushed', (e) => store.dispatch({ type: 'triage.pushed', data: e }))
+            .listen('.rule.changed',         (e) => store.dispatch({ type: 'rule.changed',         data: e }))
+            .listen('.triage.pushed',        (e) => store.dispatch({ type: 'triage.pushed',        data: e }))
+            .listen('.notification.updated', (e) => store.dispatch({ type: 'notification.updated', data: e }))
     }
 
     function unsubscribe() {

@@ -2,6 +2,7 @@
 import { ref, computed } from 'vue'
 import { router } from '@inertiajs/vue3'
 import ConsoleLayout from '@/Layouts/ConsoleLayout.vue'
+import TlSettingsTabs from '@/components/TlSettingsTabs.vue'
 import TlIcon from '@/components/TlIcon.vue'
 import { useOAuthPopup } from '@/composables/useOAuthPopup.js'
 import { useConfirm } from '@/composables/useConfirm'
@@ -130,6 +131,9 @@ async function disconnect() {
 
 <template>
     <div class="tl-page tl-page--narrow">
+    <div class="tl-settings-layout">
+        <TlSettingsTabs active-key="integrations" />
+        <div class="tl-settings-content">
 
         <div class="tl-page-header">
             <div>
@@ -264,5 +268,7 @@ async function disconnect() {
                 </button>
             </template>
         </div>
+        </div>
+    </div>
     </div>
 </template>

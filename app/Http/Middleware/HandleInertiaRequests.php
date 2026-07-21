@@ -54,14 +54,7 @@ class HandleInertiaRequests extends Middleware
                 : UserFeatureGrant::where('user_id', $user->id)->active()->with('feature')->get();
 
             $effectivePermissions = app(PermissionService::class)->effectiveWithGrants($user, $grants);
-
-            // Matches EnsureTeamManager middleware predicate: manager bit AND owned group.
-            // Both are required — a bit without a group is meaningless (nothing to
-            // manage), a group without the bit is revoked manager access.
-            $hasManagerBit = ($effectivePermissions & Permission::TeamManageMembers->value) !== 0;
-            // Owners are a platform singleton whose role is orthogonal to team roles.
-            // Guard by is_owner, not by bitmask value — the bitmask is a derived consequence.
-            $isTeamManager = !$user->is_owner && $hasManagerBit && $user->isTeamManager();
+            $isTeamManager        = app(PermissionService::class)->isEffectiveTeamManager($user, $effectivePermissions);
 
             // Lead: has TeamViewHealth bit but is not the manager.
             // The bit is only assigned by managers to their own group members.

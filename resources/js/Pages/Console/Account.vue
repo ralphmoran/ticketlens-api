@@ -1,6 +1,7 @@
 <script setup>
 import { ref } from 'vue'
 import ConsoleLayout from '@/Layouts/ConsoleLayout.vue'
+import TlSettingsTabs from '@/components/TlSettingsTabs.vue'
 import TlIcon from '@/components/TlIcon.vue'
 import UserAvatar from '@/components/UserAvatar.vue'
 import { Link, useForm, router, usePage } from '@inertiajs/vue3'
@@ -136,7 +137,10 @@ async function revokeToken() {
 </script>
 
 <template>
-    <div class="tl-page tl-page--narrow tl-stack">
+    <div class="tl-page tl-page--narrow">
+    <div class="tl-settings-layout">
+        <TlSettingsTabs active-key="profile" />
+        <div class="tl-settings-content tl-stack">
 
         <!-- Page header -->
         <div>
@@ -326,5 +330,7 @@ async function revokeToken() {
             </Link>
         </div>
 
+        </div>
+    </div>
     </div>
 </template>

@@ -1,8 +1,10 @@
 <script setup>
 import { ref, computed, reactive, watch, nextTick, onMounted, onUnmounted } from 'vue'
 import { usePage, router } from '@inertiajs/vue3'
+import axios from 'axios'
 import { usePermissions } from '../composables/usePermissions'
 import { useServerEvents } from '../composables/useServerEvents'
+import { useEventsStore } from '../stores/events'
 import { Permission } from '../permissions'
 import TlIcon from '../components/TlIcon.vue'
 import TlConfirmModal from '../components/TlConfirmModal.vue'
@@ -10,6 +12,7 @@ import TlToastStack from '../components/TlToastStack.vue'
 import TlRuleBanner from '../components/TlRuleBanner.vue'
 
 useServerEvents()
+const eventsStore = useEventsStore()
 
 const page = usePage()
 const { can } = usePermissions()
@@ -170,6 +173,25 @@ const paletteInputRef = ref(null)
 // Avatar dropdown
 const avatarDropdownOpen = ref(false)
 
+// ── Notification bell ─────────────────────────────────────────────────────
+const notificationsDropdownOpen = ref(false)
+const pending = ref({ count: 0, categories: null })
+
+async function fetchNotifications() {
+    // Fire-and-forget, matching the SSE broadcast convention (SseEventService::publish) —
+    // a failed poll just leaves the badge at its last-known value until the next trigger.
+    try {
+        const { data } = await axios.get('/console/notifications')
+        pending.value = data
+    } catch {
+        // no-op — network blip or session expiry, not worth surfacing for a background badge
+    }
+}
+
+function toggleNotificationsDropdown() {
+    notificationsDropdownOpen.value = !notificationsDropdownOpen.value
+}
+
 function showOwnerSub() {
     clearTimeout(ownerSubTimer)
     // Close any open group panel immediately — prevents overlap
@@ -221,7 +243,6 @@ const navGroups = computed(() => [
         items: [
             { label: 'Dashboard',   href: '/console/dashboard',   permission: null, icon: 'dashboard' },
             { label: 'Analytics',   href: '/console/analytics',   permission: null, icon: 'chart-bar' },
-            { label: 'Connections', href: '/console/connections',  permission: null, icon: 'link' },
         ]
     },
     {
@@ -258,13 +279,10 @@ const navGroups = computed(() => [
             { label: 'Members',              href: '/console/admin/members',              icon: 'user-group',       managerOnly: true,  ownerExcluded: true,  permission: Permission.TeamManageMembers },
             { label: 'Process Metrics',      href: '/console/admin/process-metrics',      icon: 'gauge',            managerOnly: true,  ownerExcluded: false, permission: Permission.TeamManageMembers },
             { label: 'Seats',                href: '/console/admin/seats',                icon: 'key',              managerOnly: true,  ownerExcluded: true,  permission: Permission.TeamManageSeats },
-            { label: 'Integrations',         href: '/console/admin/integrations',         icon: 'plug',             managerOnly: true,  ownerExcluded: false, permission: null },
             { label: 'Alerts',               href: '/console/admin/alerts',               icon: 'bell',             managerOnly: true,  ownerExcluded: false, permission: null },
             { label: 'Digests',              href: '/console/admin/digests',              icon: 'send',             managerOnly: true,  ownerExcluded: false, permission: null },
             { label: 'Workflow Rules',       href: '/console/admin/rules',                icon: 'git-branch',       managerOnly: true,  ownerExcluded: false, permission: Permission.WorkflowRules },
             { label: 'Brief Templates',      href: '/console/admin/templates',            icon: 'document-text',    managerOnly: false, ownerExcluded: false, permission: null, paidOnly: true },
-            { label: 'AI Settings',          href: '/console/admin/ai',                   icon: 'sparkles',         managerOnly: false, ownerExcluded: false, permission: Permission.Summarize },
-            { label: 'Jira Config',          href: '/console/admin/jira',                 icon: 'jira',             managerOnly: true,  ownerExcluded: true,  permission: null },
         ]
     },
 ])
@@ -369,6 +387,12 @@ const tierStyles = {
 }
 const tierBadge = (tier) => tierStyles[tier?.toLowerCase()] ?? tierStyles.free
 
+// Refetch the bell payload whenever a manager's Recall action changes it —
+// matches the same watch(lastEvent) pattern TlRuleBanner.vue uses for '.rule.changed'.
+watch(() => eventsStore.lastEvent, (e) => {
+    if (e?.type === 'notification.updated') fetchNotifications()
+})
+
 // Auto-focus the palette input when it opens.
 watch(paletteOpen, async (val) => {
     if (val) {
@@ -418,13 +442,19 @@ function handleKeydown(e) {
     if (e.key === 'Escape') {
         closePalette()
         avatarDropdownOpen.value = false
+        notificationsDropdownOpen.value = false
+    }
+}
+
+function closeIfClickedOutside(openRef, selector, event) {
+    if (openRef.value && !event.target.closest(selector)) {
+        openRef.value = false
     }
 }
 
 function handleClickOutside(e) {
-    if (avatarDropdownOpen.value && !e.target.closest('[data-avatar-dropdown]')) {
-        avatarDropdownOpen.value = false
-    }
+    closeIfClickedOutside(avatarDropdownOpen, '[data-avatar-dropdown]', e)
+    closeIfClickedOutside(notificationsDropdownOpen, '[data-notifications-dropdown]', e)
 }
 
 function slideEnter(el) {
@@ -466,6 +496,7 @@ onMounted(() => {
     window.addEventListener('keydown', handleKeydown)
     window.addEventListener('resize', onWindowResize)
     document.addEventListener('click', handleClickOutside)
+    if (user.value) fetchNotifications()
 })
 onUnmounted(() => {
     lgMql.removeEventListener('change', onMqlChange)
@@ -576,6 +607,60 @@ onUnmounted(() => {
                 >
                     <TlIcon :name="themeMode === 'dark' ? 'sun' : 'moon'" class="tl-ic" />
                 </button>
+
+                <!-- Notification bell -->
+                <div class="tl-avatar-wrap" data-notifications-dropdown>
+                    <button
+                        type="button"
+                        @click="toggleNotificationsDropdown"
+                        class="tl-icon-btn relative"
+                        :aria-expanded="notificationsDropdownOpen"
+                        aria-label="Notifications"
+                        title="Notifications"
+                    >
+                        <TlIcon name="bell" class="tl-ic" />
+                        <span v-if="pending.count > 0" class="tl-bell-dot tl-bell-dot--pulse" />
+                    </button>
+
+                    <Transition name="tl-pop">
+                        <div v-if="notificationsDropdownOpen" class="tl-dropdown tl-dropdown--wide">
+                            <div class="tl-dropdown-header">
+                                <p class="tl-dropdown-name">Notifications</p>
+                            </div>
+
+                            <p v-if="pending.count === 0" class="tl-notif-empty">You're all caught up.</p>
+
+                            <a
+                                v-if="pending.categories?.recall?.available"
+                                href="/console/admin/recall"
+                                class="tl-dropdown-item"
+                            >
+                                <TlIcon name="search" class="tl-ic" />
+                                {{ pending.categories.recall.count }} Recall note{{ pending.categories.recall.count === 1 ? '' : 's' }} to review
+                            </a>
+
+                            <a
+                                v-if="pending.categories?.license?.triggered"
+                                href="/console/account"
+                                class="tl-dropdown-item"
+                            >
+                                <TlIcon name="warning-triangle" class="tl-ic" />
+                                License needs attention ({{ pending.categories.license.status }})
+                            </a>
+
+                            <div class="tl-dropdown-item tl-dropdown-item--disabled" title="Coming soon">
+                                <TlIcon name="user-group" class="tl-ic" />
+                                Pending team invites
+                                <span class="tl-badge tl-badge--neutral tl-notif-soon">Soon</span>
+                            </div>
+                            <div class="tl-dropdown-item tl-dropdown-item--disabled" title="Coming soon">
+                                <TlIcon name="git-branch" class="tl-ic" />
+                                Workflow rule failures
+                                <span class="tl-badge tl-badge--neutral tl-notif-soon">Soon</span>
+                            </div>
+                        </div>
+                    </Transition>
+                </div>
 
                 <!-- Settings gear -->
                 <a

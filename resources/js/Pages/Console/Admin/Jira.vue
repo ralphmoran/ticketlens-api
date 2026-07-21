@@ -3,6 +3,7 @@ import { ref, reactive, computed } from 'vue'
 import { router } from '@inertiajs/vue3'
 import axios from 'axios'
 import ConsoleLayout from '@/Layouts/ConsoleLayout.vue'
+import TlSettingsTabs from '@/components/TlSettingsTabs.vue'
 
 defineOptions({ layout: ConsoleLayout })
 
@@ -135,7 +136,10 @@ function remove() {
 </script>
 
 <template>
-    <div class="tl-page tl-page--narrow tl-stack">
+    <div class="tl-page tl-page--narrow">
+    <div class="tl-settings-layout">
+        <TlSettingsTabs active-key="jira" />
+        <div class="tl-settings-content tl-stack">
 
         <div class="tl-page-header">
             <div>
@@ -320,5 +324,7 @@ function remove() {
             </p>
         </div>
 
+        </div>
+    </div>
     </div>
 </template>

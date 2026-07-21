@@ -1,5 +1,6 @@
 <script setup>
 import ConsoleLayout from '@/Layouts/ConsoleLayout.vue'
+import TlSettingsTabs from '@/components/TlSettingsTabs.vue'
 import TlIcon from '@/components/TlIcon.vue'
 import { useForm, router } from '@inertiajs/vue3'
 import { ref, computed } from 'vue'
@@ -130,6 +131,9 @@ const destroy = async (profile) => {
 
 <template>
     <div class="tl-page">
+    <div class="tl-settings-layout">
+        <TlSettingsTabs active-key="connections" />
+        <div class="tl-settings-content">
 
         <!-- Header -->
         <div class="tl-page-header">
@@ -324,5 +328,7 @@ const destroy = async (profile) => {
             </div>
         </Teleport>
 
+        </div>
+    </div>
     </div>
 </template>

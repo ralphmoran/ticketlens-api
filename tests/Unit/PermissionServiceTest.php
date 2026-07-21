@@ -2,7 +2,9 @@
 
 namespace Tests\Unit;
 
+use App\Enums\Permission;
 use App\Models\Feature;
+use App\Models\Group;
 use App\Models\User;
 use App\Models\UserFeatureGrant;
 use App\Services\PermissionService;
@@ -178,5 +180,55 @@ class PermissionServiceTest extends TestCase
         $user->load('groups');
 
         $this->assertSame(0b0111, $this->service->effective($user));
+    }
+
+    // ---- isEffectiveTeamManager(): ports HandleInertiaRequests' 3-part inline check ----
+    // Mirrors the exact scenario matrix locked by InertiaSharedPropsTest so both layers
+    // agree on what "manager" means.
+
+    public function test_is_effective_team_manager_false_when_bit_present_but_no_owned_group(): void
+    {
+        $user = User::factory()->create([
+            'permissions' => Permission::team() | Permission::teamManagerMask(),
+        ]);
+
+        $this->assertFalse(
+            $this->service->isEffectiveTeamManager($user, $this->service->effective($user))
+        );
+    }
+
+    public function test_is_effective_team_manager_false_when_owns_group_but_bit_absent(): void
+    {
+        $user = User::factory()->create(['permissions' => Permission::team()]);
+        Group::create(['name' => 'Orphaned', 'owner_id' => $user->id]);
+
+        $this->assertFalse(
+            $this->service->isEffectiveTeamManager($user, $this->service->effective($user))
+        );
+    }
+
+    public function test_is_effective_team_manager_true_when_bit_present_and_owns_group(): void
+    {
+        $user = User::factory()->create([
+            'permissions' => Permission::team() | Permission::teamManagerMask(),
+        ]);
+        Group::create(['name' => 'Real Team', 'owner_id' => $user->id]);
+
+        $this->assertTrue(
+            $this->service->isEffectiveTeamManager($user, $this->service->effective($user))
+        );
+    }
+
+    public function test_is_effective_team_manager_false_for_owner_even_with_bit_and_group(): void
+    {
+        $owner = User::factory()->create([
+            'is_owner'    => true,
+            'permissions' => Permission::team() | Permission::teamManagerMask(),
+        ]);
+        Group::create(['name' => 'Owner Group', 'owner_id' => $owner->id]);
+
+        $this->assertFalse(
+            $this->service->isEffectiveTeamManager($owner, $this->service->effective($owner))
+        );
     }
 }

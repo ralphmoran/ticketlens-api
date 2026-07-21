@@ -3,10 +3,11 @@
 namespace App\Http\Controllers\Console\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\Group;
 use App\Models\RecallNote;
+use App\Services\ActiveGroupResolver;
 use App\Services\AuditService;
 use App\Services\RecallStorage;
+use App\Services\SseEventService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -14,11 +15,14 @@ use Inertia\Response;
 
 class RecallController extends Controller
 {
-    public function __construct(private readonly AuditService $audit) {}
+    public function __construct(
+        private readonly AuditService $audit,
+        private readonly ActiveGroupResolver $groupResolver,
+    ) {}
 
     public function index(Request $request): Response
     {
-        $group  = $this->resolveGroup($request);
+        $group  = $this->groupResolver->forRequest($request);
         $search = $request->string('search')->trim()->value();
         // Same clamp as AuditController::index() — bounds page size the same
         // way across every admin list page in this codebase.
@@ -61,10 +65,11 @@ class RecallController extends Controller
         // Same resolution as index(): owner reads group_id (this route is also inside
         // team.manager, which already lets owners through), non-owner is confirmed a
         // manager by that same middleware, so ownedGroup is guaranteed non-null there.
-        $group = $this->resolveGroup($request);
+        $group = $this->groupResolver->forRequest($request);
         abort_unless($group !== null && $note->group_id === $group->id, 403);
 
         app(RecallStorage::class)->verify($note, $request->user());
+        app(SseEventService::class)->publish($group->id, 'notification.updated', []);
 
         return back()->with('success', 'Note verified.');
     }
@@ -72,7 +77,7 @@ class RecallController extends Controller
     public function destroy(Request $request, RecallNote $note): RedirectResponse
     {
         // Same resolution + authorization shape as verify() — see its comment.
-        $group = $this->resolveGroup($request);
+        $group = $this->groupResolver->forRequest($request);
         abort_unless($group !== null && $note->group_id === $group->id, 403);
 
         // title/external_id/group_id captured before deletion so the log still
@@ -84,6 +89,7 @@ class RecallController extends Controller
         $oldValue = ['title' => $note->title, 'external_id' => $note->external_id, 'group_id' => $note->group_id];
 
         app(RecallStorage::class)->delete($note);
+        app(SseEventService::class)->publish($group->id, 'notification.updated', []);
 
         $this->audit->logFromRequest(
             request: $request,
@@ -93,17 +99,5 @@ class RecallController extends Controller
         );
 
         return back()->with('success', 'Note deleted.');
-    }
-
-    private function resolveGroup(Request $request): ?Group
-    {
-        $user = $request->user();
-
-        if ($user->is_owner) {
-            $groupId = $request->integer('group_id');
-            return $groupId ? Group::find($groupId) : null;
-        }
-
-        return $user->ownedGroup ?? $user->groups()->first();
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\Permission;
 use App\Models\User;
 use App\Models\UserFeatureGrant;
 use Illuminate\Support\Collection;
@@ -76,5 +77,23 @@ class PermissionService
         }
 
         return ($this->effective($user) & $permission) !== 0;
+    }
+
+    /**
+     * Matches EnsureTeamManager middleware predicate: manager bit AND owned group.
+     * Both are required — a bit without a group is meaningless (nothing to manage),
+     * a group without the bit is revoked manager access. Owners are a platform
+     * singleton whose role is orthogonal to team roles, guarded by is_owner directly
+     * rather than by bitmask value (the bitmask is a derived consequence for owners).
+     */
+    public function isEffectiveTeamManager(User $user, int $effectivePermissions): bool
+    {
+        if ($user->is_owner) {
+            return false;
+        }
+
+        $hasManagerBit = ($effectivePermissions & Permission::TeamManageMembers->value) !== 0;
+
+        return $hasManagerBit && $user->isTeamManager();
     }
 }

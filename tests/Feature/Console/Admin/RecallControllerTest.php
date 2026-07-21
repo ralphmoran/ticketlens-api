@@ -7,6 +7,7 @@ use App\Models\Group;
 use App\Models\RecallNote;
 use App\Models\User;
 use App\Models\UserFeatureGrant;
+use App\Services\SseEventService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -211,6 +212,22 @@ class RecallControllerTest extends TestCase
         $this->assertNotNull($fresh->verified_at);
     }
 
+    public function test_verify_publishes_notification_updated_event(): void
+    {
+        [$manager, $group] = $this->makeManager();
+        $note = RecallNote::create([
+            'group_id' => $group->id, 'author_id' => $manager->id, 'external_id' => 'a.md',
+            'title' => 'x', 'aliases' => [], 'tickets' => [], 'tags' => [], 'sources' => [], 'body' => 'x',
+        ]);
+
+        $this->mock(SseEventService::class)
+            ->shouldReceive('publish')
+            ->once()
+            ->with($group->id, 'notification.updated', []);
+
+        $this->actingAs($manager)->post("/console/admin/recall/{$note->id}/verify")->assertRedirect();
+    }
+
     public function test_owner_can_verify_a_note_in_a_group_they_do_not_personally_own(): void
     {
         // Regression: verify() must resolve group the same way index() does (via
@@ -268,6 +285,22 @@ class RecallControllerTest extends TestCase
 
         $this->assertNull(RecallNote::find($note->id));
         $this->assertNotNull(RecallNote::withTrashed()->find($note->id)->deleted_at);
+    }
+
+    public function test_destroy_publishes_notification_updated_event(): void
+    {
+        [$manager, $group] = $this->makeManager();
+        $note = RecallNote::create([
+            'group_id' => $group->id, 'author_id' => $manager->id, 'external_id' => 'a.md',
+            'title' => 'x', 'aliases' => [], 'tickets' => [], 'tags' => [], 'sources' => [], 'body' => 'x',
+        ]);
+
+        $this->mock(SseEventService::class)
+            ->shouldReceive('publish')
+            ->once()
+            ->with($group->id, 'notification.updated', []);
+
+        $this->actingAs($manager)->delete("/console/admin/recall/{$note->id}")->assertRedirect();
     }
 
     public function test_destroy_blocks_a_non_manager_even_if_recall_entitled(): void

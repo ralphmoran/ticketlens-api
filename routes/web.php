@@ -117,6 +117,9 @@ Route::prefix('console')->name('console.')->group(function () {
         // Upgrade page — shown when permission is denied
         Route::get('/upgrade', [\App\Http\Controllers\Console\UpgradeController::class, 'index'])->name('upgrade');
 
+        // Notification bell — every authenticated user; NotificationService scopes what each sees.
+        Route::get('/notifications', [\App\Http\Controllers\Console\NotificationsController::class, 'index'])->name('notifications');
+
         // Workflow modules (permission-gated)
         Route::middleware('permission:Schedules')->group(function () {
             $ctrl = \App\Http\Controllers\Console\SchedulesController::class;

@@ -2,6 +2,7 @@
 import { ref, reactive, computed } from 'vue'
 import { router, usePage } from '@inertiajs/vue3'
 import ConsoleLayout from '@/Layouts/ConsoleLayout.vue'
+import TlSettingsTabs from '@/Components/TlSettingsTabs.vue'
 import TlIcon from '@/Components/TlIcon.vue'
 import { formatDate } from '@/composables/useDateFormat'
 import { useConfirm } from '@/composables/useConfirm'
@@ -124,6 +125,9 @@ async function testProvider(provider) {
 
 <template>
     <div class="tl-page">
+    <div class="tl-settings-layout">
+        <TlSettingsTabs active-key="ai" />
+        <div class="tl-settings-content">
 
         <!-- Page header -->
         <div class="tl-page-header">
@@ -364,5 +368,7 @@ async function testProvider(provider) {
             </div>
 
         </div>
+        </div>
+    </div>
     </div>
 </template>

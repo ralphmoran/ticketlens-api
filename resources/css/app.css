@@ -9,6 +9,7 @@
 @import './components/typography.css';
 @import './components/layout.css';
 @import './components/tabs.css';
+@import './components/settings-nav.css';
 @import './components/banners.css';
 @import './components/charts.css';
 @import './components/shell.css';

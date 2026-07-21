@@ -1,0 +1,43 @@
+/*
+ * Settings two-pane layout — shared by Account/Connections/Jira/Ai/Integrations.
+ * Left column: TlSettingsTabs.vue vertical nav. Right column: the page's own
+ * existing content, unchanged. Distinct from tabs.css's horizontal underline
+ * `.tl-tab` — this is a vertical grouped list, not a switcher.
+ */
+
+@layer components {
+  .tl-settings-layout {
+    @apply flex flex-col md:flex-row gap-8 items-start;
+  }
+
+  .tl-settings-nav {
+    @apply flex flex-col gap-1 w-full md:w-56 shrink-0;
+  }
+
+  .tl-settings-nav-group-label {
+    @apply px-3 pt-4 pb-1 text-xs font-semibold uppercase tracking-wide;
+    color: var(--tl-text-muted);
+  }
+  .tl-settings-nav-group-label:first-child {
+    @apply pt-0;
+  }
+
+  .tl-settings-nav-item {
+    @apply px-3 py-2 text-sm rounded-md cursor-pointer;
+    color: var(--tl-text-secondary);
+    transition: background-color var(--tl-transition), color var(--tl-transition);
+  }
+  .tl-settings-nav-item:hover {
+    background-color: var(--tl-surface-2);
+    color: var(--tl-text);
+  }
+  .tl-settings-nav-item--active {
+    background-color: var(--tl-surface-2);
+    color: var(--tl-brand-soft);
+    font-weight: 500;
+  }
+
+  .tl-settings-content {
+    @apply flex-1 min-w-0 w-full;
+  }
+}

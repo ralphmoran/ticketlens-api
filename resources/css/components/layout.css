@@ -8,6 +8,13 @@
     @apply px-4 sm:px-6 lg:px-8 py-8 max-w-6xl mx-auto;
   }
 
+  /* Visually hidden but keyboard/screen-reader accessible (e.g. a native file input triggered by a styled button). */
+  .tl-sr-only {
+    @apply absolute w-px h-px p-0 -m-px overflow-hidden whitespace-nowrap;
+    clip: rect(0, 0, 0, 0);
+    border: 0;
+  }
+
   .tl-page--narrow {
     @apply max-w-3xl;
   }

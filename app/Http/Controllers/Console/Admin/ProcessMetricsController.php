@@ -29,11 +29,7 @@ class ProcessMetricsController
 
     private function ownerIndex(Request $request): Response|RedirectResponse
     {
-        $clients = User::whereHas('ownedGroup')
-            ->orderBy('name')
-            ->get(['id', 'name', 'email', 'tier'])
-            ->map(fn ($u) => ['id' => $u->id, 'name' => $u->name, 'email' => $u->email, 'tier' => $u->tier])
-            ->values();
+        $clients = User::clientPickerOptions();
 
         $managerId = $request->query('manager_id');
 

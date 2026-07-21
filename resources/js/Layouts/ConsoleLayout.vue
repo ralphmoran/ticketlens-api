@@ -517,7 +517,8 @@ onUnmounted(() => {
                 >
                     <TlIcon :name="themeMode === 'dark' ? 'sun' : 'moon'" class="tl-ic" />
                 </button>
-                <div class="tl-avatar">
+                <img v-if="user?.avatar_url" :src="user.avatar_url" :alt="user?.name" class="tl-avatar tl-avatar-img">
+                <div v-else class="tl-avatar">
                     {{ user?.name?.charAt(0)?.toUpperCase() ?? '?' }}
                 </div>
             </div>
@@ -584,7 +585,8 @@ onUnmounted(() => {
                         :aria-expanded="avatarDropdownOpen"
                         aria-label="User menu"
                     >
-                        {{ user?.name?.charAt(0)?.toUpperCase() ?? '?' }}
+                        <img v-if="user?.avatar_url" :src="user.avatar_url" :alt="user?.name" class="tl-avatar-img">
+                        <template v-else>{{ user?.name?.charAt(0)?.toUpperCase() ?? '?' }}</template>
                     </button>
 
                     <Transition name="tl-pop">
@@ -852,7 +854,8 @@ onUnmounted(() => {
                 class="tl-sidebar-footer"
                 :class="effectiveCollapsed ? 'tl-sidebar-footer--collapsed' : 'tl-sidebar-footer--expanded'"
             >
-                <div class="tl-avatar">
+                <img v-if="user?.avatar_url" :src="user.avatar_url" :alt="user?.name" class="tl-avatar tl-avatar-img">
+                <div v-else class="tl-avatar">
                     {{ user?.name?.charAt(0)?.toUpperCase() ?? '?' }}
                 </div>
                 <div v-show="!effectiveCollapsed" class="tl-sidebar-user">

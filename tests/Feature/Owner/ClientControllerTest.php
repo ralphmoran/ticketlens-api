@@ -34,6 +34,19 @@ class ClientControllerTest extends TestCase
         $response->assertInertia(fn ($page) => $page->component('Console/Owner/Clients/Index'));
     }
 
+    public function test_clients_list_exposes_null_avatar_url_when_none_set(): void
+    {
+        $owner = $this->makeOwner();
+        $this->makeClient(['email' => 'noavatar@test.com']);
+
+        $response = $this->actingAs($owner)->get('/console/owner/clients');
+
+        $response->assertInertia(fn ($page) => $page
+            ->where('clients.data.0.avatar_url', null)
+            ->missing('clients.data.0.avatar_path')
+        );
+    }
+
     public function test_non_owner_cannot_list_clients(): void
     {
         $user = $this->makeClient(['permissions' => 1023]);

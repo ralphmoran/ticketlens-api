@@ -89,6 +89,7 @@ class ProcessMetricsTest extends TestCase
                 ->where('compliance', [])
                 ->has('clients', 1)
                 ->where('clients.0.name', 'Alice')
+                ->where('clients.0.avatar_url', null)
             );
     }
 

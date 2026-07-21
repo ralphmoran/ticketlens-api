@@ -314,4 +314,5 @@
     @apply -mt-8 px-5 flex items-end gap-4;
   }
   .tl-profile-identity { @apply pb-1; }
+  .tl-profile-avatar-actions { @apply pb-1 ml-auto flex gap-2; }
 }

@@ -726,6 +726,7 @@ class RulesControllerTest extends TestCase
                 ->where('owner_mode', true)
                 ->where('selected_manager', null)
                 ->has('clients')
+                ->where('clients.0.avatar_url', null)
             );
     }
 

@@ -24,7 +24,7 @@ class LicenseController extends Controller
 
     public function index(Request $request): Response
     {
-        $query = License::with(['user:id,name,email', 'issuedBy:id,name,email'])
+        $query = License::with(['user:id,name,email,avatar_path', 'issuedBy:id,name,email'])
             ->orderBy('created_at', 'desc');
 
         if ($source = $request->string('source')->value()) {
@@ -52,7 +52,15 @@ class LicenseController extends Controller
         $perPage = min(max(1, (int) $request->input('per_page', 10)), 100);
 
         return Inertia::render('Console/Owner/Licenses/Index', [
-            'licenses' => $query->paginate($perPage)->withQueryString(),
+            'licenses' => $query->paginate($perPage)->withQueryString()
+                ->through(function (License $license) {
+                    if ($license->user) {
+                        $license->user->avatar_url = $license->user->avatarUrl();
+                        $license->user->makeHidden('avatar_path');
+                    }
+
+                    return $license;
+                }),
             'filters'  => array_merge($request->only('source', 'tier', 'status', 'search'), ['per_page' => $perPage]),
         ]);
     }

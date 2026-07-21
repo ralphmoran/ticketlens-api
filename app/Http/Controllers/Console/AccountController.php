@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers\Console;
 
+use App\Exceptions\AvatarProcessingException;
 use App\Models\CliToken;
+use App\Services\AvatarService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -13,6 +15,10 @@ use Inertia\Response;
 
 class AccountController
 {
+    public function __construct(private readonly AvatarService $avatars)
+    {
+    }
+
     public function index(Request $request): Response
     {
         $user    = $request->user();
@@ -20,11 +26,12 @@ class AccountController
 
         return Inertia::render('Console/Account', [
             'account' => [
-                'name'    => $user->name,
-                'email'   => $user->email,
-                'phone'   => $user->phone,
-                'tier'    => $user->tier,
-                'license' => $license ? [
+                'name'       => $user->name,
+                'email'      => $user->email,
+                'phone'      => $user->phone,
+                'tier'       => $user->tier,
+                'avatar_url' => $user->avatarUrl(),
+                'license'    => $license ? [
                     'status'     => $license->status,
                     'expires_at' => $license->expires_at?->toDateString(),
                 ] : null,
@@ -98,4 +105,28 @@ class AccountController
         return redirect()->back()->with('success', 'CLI access token revoked.');
     }
 
+    public function updateAvatar(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'avatar' => ['required', 'image', 'mimes:jpeg,png,webp', 'max:2048'],
+        ]);
+
+        try {
+            $path = $this->avatars->store($request->file('avatar'), $request->user());
+        } catch (AvatarProcessingException $e) {
+            return back()->withErrors(['avatar' => $e->getMessage()]);
+        }
+
+        $request->user()->update(['avatar_path' => $path]);
+
+        return back()->with('success', 'Photo updated.');
+    }
+
+    public function destroyAvatar(Request $request): RedirectResponse
+    {
+        $this->avatars->destroy($request->user());
+        $request->user()->update(['avatar_path' => null]);
+
+        return back()->with('success', 'Photo removed.');
+    }
 }

@@ -104,6 +104,8 @@ Route::prefix('console')->name('console.')->group(function () {
         Route::patch('/account/password', [\App\Http\Controllers\Console\AccountController::class, 'updatePassword'])->name('account.password.update')->middleware('throttle:10,1');
         Route::post('/account/cli-token', [\App\Http\Controllers\Console\AccountController::class, 'generateCliToken'])->name('account.cli-token.generate');
         Route::delete('/account/cli-token', [\App\Http\Controllers\Console\AccountController::class, 'revokeCliToken'])->name('account.cli-token.revoke');
+        Route::post('/account/avatar', [\App\Http\Controllers\Console\AccountController::class, 'updateAvatar'])->name('account.avatar.update')->middleware('throttle:10,1');
+        Route::delete('/account/avatar', [\App\Http\Controllers\Console\AccountController::class, 'destroyAvatar'])->name('account.avatar.destroy')->middleware('throttle:10,1');
 
         // Connections — tracker profile management, all tiers
         $connCtrl = \App\Http\Controllers\Console\ConnectionsController::class;

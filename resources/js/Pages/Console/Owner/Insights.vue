@@ -358,7 +358,7 @@ function setPeriod(p) {
                         <tbody class="tl-divide">
                             <tr v-for="acct in top_accounts.data" :key="acct.user_id" class="tl-tr">
                                 <td class="tl-td">
-                                    <UserAvatar :name="acct.name ?? acct.email" :tier="acct.tier ?? 'free'" />
+                                    <UserAvatar :name="acct.name ?? acct.email" :tier="acct.tier ?? 'free'" :avatar-url="acct.avatar_url" />
                                 </td>
                                 <td class="tl-td">
                                     <p class="tl-cell-primary">{{ acct.name ?? '—' }}</p>
@@ -420,7 +420,7 @@ function setPeriod(p) {
                         <tbody class="tl-divide">
                             <tr v-for="row in roi_per_account.data" :key="row.user_id" class="tl-tr">
                                 <td class="tl-td">
-                                    <UserAvatar :name="row.name ?? row.email" :tier="row.tier ?? 'free'" />
+                                    <UserAvatar :name="row.name ?? row.email" :tier="row.tier ?? 'free'" :avatar-url="row.avatar_url" />
                                 </td>
                                 <td class="tl-td">
                                     <p class="tl-cell-primary">{{ row.name ?? '—' }}</p>

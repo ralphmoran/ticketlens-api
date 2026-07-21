@@ -289,6 +289,7 @@ class StatsControllerTest extends TestCase
                 ->where('selected_manager', null)
                 ->has('clients', 1)
                 ->where('clients.0.name', 'Eve')
+                ->where('clients.0.avatar_url', null)
             );
     }
 

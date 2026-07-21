@@ -5,6 +5,8 @@ namespace Tests\Feature\Console;
 use App\Models\User;
 use Tests\TestCase;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 
 class AccountTest extends TestCase
 {
@@ -236,5 +238,128 @@ class AccountTest extends TestCase
 
         $response->assertSessionHasErrors('password');
         $this->assertTrue(\Illuminate\Support\Facades\Hash::check('old-password-123', $user->fresh()->password));
+    }
+
+    // ---- Avatar upload ----
+
+    public function test_account_page_exposes_null_avatar_url_when_none_set(): void
+    {
+        $user = User::factory()->create(['avatar_path' => null]);
+
+        $this->actingAs($user)->get('/console/account')
+            ->assertInertia(fn ($page) => $page->where('account.avatar_url', null));
+    }
+
+    public function test_avatar_upload_stores_path_and_exposes_url(): void
+    {
+        Storage::fake('public');
+        $user = User::factory()->create(['avatar_path' => null]);
+
+        $response = $this->actingAs($user)->post('/console/account/avatar', [
+            'avatar' => UploadedFile::fake()->image('me.jpg', 400, 400),
+        ]);
+
+        $response->assertRedirect();
+        $response->assertSessionHas('success', 'Photo updated.');
+        $this->assertNotNull($user->fresh()->avatar_path);
+
+        $this->actingAs($user->fresh())->get('/console/account')
+            ->assertInertia(fn ($page) => $page->where('account.avatar_url', fn ($url) => str_contains($url, '/storage/avatars/')));
+    }
+
+    public function test_avatar_upload_rejects_non_image(): void
+    {
+        Storage::fake('public');
+        $user = User::factory()->create(['avatar_path' => null]);
+
+        $response = $this->actingAs($user)->post('/console/account/avatar', [
+            'avatar' => UploadedFile::fake()->create('not-a-photo.pdf', 100, 'application/pdf'),
+        ]);
+
+        $response->assertSessionHasErrors('avatar');
+        $this->assertNull($user->fresh()->avatar_path);
+    }
+
+    public function test_avatar_upload_rejects_oversized_file(): void
+    {
+        Storage::fake('public');
+        $user = User::factory()->create(['avatar_path' => null]);
+
+        $response = $this->actingAs($user)->post('/console/account/avatar', [
+            'avatar' => UploadedFile::fake()->create('huge.jpg', 3000, 'image/jpeg'), // KB, over 2048 max
+        ]);
+
+        $response->assertSessionHasErrors('avatar');
+        $this->assertNull($user->fresh()->avatar_path);
+    }
+
+    public function test_avatar_upload_replaces_previous_photo(): void
+    {
+        Storage::fake('public');
+        $user = User::factory()->create(['avatar_path' => null]);
+
+        $this->actingAs($user)->post('/console/account/avatar', [
+            'avatar' => UploadedFile::fake()->image('first.jpg', 300, 300),
+        ]);
+        $firstPath = $user->fresh()->avatar_path;
+
+        $this->actingAs($user->fresh())->post('/console/account/avatar', [
+            'avatar' => UploadedFile::fake()->image('second.jpg', 300, 300),
+        ]);
+
+        Storage::disk('public')->assertMissing($firstPath);
+        $this->assertNotEquals($firstPath, $user->fresh()->avatar_path);
+    }
+
+    public function test_avatar_upload_only_ever_affects_the_authenticated_user(): void
+    {
+        Storage::fake('public');
+        $user = User::factory()->create(['avatar_path' => null]);
+
+        // No route parameter accepts a target user id — the endpoint has no
+        // path/body field an attacker could set to point at another account.
+        $response = $this->actingAs($user)->post('/console/account/avatar', [
+            'avatar'  => UploadedFile::fake()->image('me.jpg', 300, 300),
+            'user_id' => 999999,
+        ]);
+
+        $response->assertRedirect();
+        $this->assertEquals($user->id, $user->fresh()->id);
+    }
+
+    public function test_avatar_remove_clears_path_and_deletes_file(): void
+    {
+        Storage::fake('public');
+        $user = User::factory()->create(['avatar_path' => null]);
+        $this->actingAs($user)->post('/console/account/avatar', [
+            'avatar' => UploadedFile::fake()->image('me.jpg', 300, 300),
+        ]);
+        $path = $user->fresh()->avatar_path;
+
+        $response = $this->actingAs($user->fresh())->delete('/console/account/avatar');
+
+        $response->assertRedirect();
+        $response->assertSessionHas('success', 'Photo removed.');
+        $this->assertNull($user->fresh()->avatar_path);
+        Storage::disk('public')->assertMissing($path);
+    }
+
+    public function test_avatar_remove_is_idempotent_when_no_avatar_exists(): void
+    {
+        $user = User::factory()->create(['avatar_path' => null]);
+
+        $response = $this->actingAs($user)->delete('/console/account/avatar');
+
+        $response->assertRedirect();
+        $this->assertNull($user->fresh()->avatar_path);
+    }
+
+    public function test_avatar_upload_requires_authentication(): void
+    {
+        $response = $this->post('/console/account/avatar', [
+            'avatar' => UploadedFile::fake()->image('me.jpg', 300, 300),
+        ]);
+
+        $response->assertRedirect('/console/login');
     }
 }

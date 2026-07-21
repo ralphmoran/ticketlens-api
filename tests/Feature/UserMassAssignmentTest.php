@@ -44,4 +44,13 @@ class UserMassAssignmentTest extends TestCase
 
         $this->assertDatabaseHas('users', ['id' => $user->id, 'tier' => 'pro', 'permissions' => 2119]);
     }
+
+    public function test_avatar_path_is_mass_assignable(): void
+    {
+        $user = User::factory()->create(['avatar_path' => null]);
+
+        $user->update(['avatar_path' => 'avatars/some-uuid.jpg']);
+
+        $this->assertEquals('avatars/some-uuid.jpg', $user->fresh()->avatar_path);
+    }
 }

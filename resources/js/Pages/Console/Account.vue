@@ -13,7 +13,7 @@ const props = defineProps({
     account: {
         type: Object,
         required: true,
-        // { name: string, email: string, phone: string|null, tier: string, license: null | { status: string, expires_at: string|null } }
+        // { name: string, email: string, phone: string|null, tier: string, avatar_url: string|null, license: null | { status: string, expires_at: string|null } }
     },
 })
 
@@ -37,6 +37,40 @@ const licenseStatusStyles = {
 
 const tierBadge = (tier) => tierStyles[tier?.toLowerCase()] ?? tierStyles.free
 const licenseBadge = (status) => licenseStatusStyles[status?.toLowerCase()] ?? licenseStatusStyles.expired
+
+// ── Avatar ───────────────────────────────────────────────────────────────────
+
+const avatarInput = ref(null)
+const avatarForm = useForm({ avatar: null })
+
+function triggerAvatarPicker() {
+    avatarInput.value?.click()
+}
+
+function onAvatarSelected(event) {
+    const file = event.target.files[0]
+    if (!file) return
+
+    avatarForm.avatar = file
+    avatarForm.post('/console/account/avatar', {
+        forceFormData: true,
+        preserveScroll: true,
+        onFinish: () => {
+            avatarForm.reset()
+            if (avatarInput.value) avatarInput.value.value = ''
+        },
+    })
+}
+
+async function removeAvatar() {
+    const ok = await confirm({
+        title:        'Remove profile photo?',
+        message:      'Your avatar will revert to your initials.',
+        confirmLabel: 'Remove',
+    })
+    if (!ok) return
+    router.delete('/console/account/avatar', { preserveScroll: true })
+}
 
 // ── Profile form ─────────────────────────────────────────────────────────────
 
@@ -120,12 +154,30 @@ async function revokeToken() {
         <div class="tl-card tl-card--flush">
             <div class="tl-profile-banner" />
             <div class="tl-profile-avatar-row">
-                <UserAvatar :name="account.name" :tier="account.tier" size="lg" />
+                <UserAvatar :name="account.name" :tier="account.tier" :avatar-url="account.avatar_url" size="lg" />
                 <div class="tl-profile-identity">
                     <p class="tl-title">{{ account.name }}</p>
                     <p class="tl-def-value--mono">{{ account.email }}</p>
                 </div>
+                <div class="tl-profile-avatar-actions">
+                    <input
+                        ref="avatarInput"
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp"
+                        class="tl-sr-only"
+                        @change="onAvatarSelected"
+                    />
+                    <button type="button" class="tl-btn tl-btn--secondary tl-btn--sm" :disabled="avatarForm.processing" @click="triggerAvatarPicker">
+                        <TlIcon name="upload-cloud" class="tl-ic tl-ic--xs" />
+                        Change photo
+                    </button>
+                    <button v-if="account.avatar_url" type="button" class="tl-btn tl-btn--danger-outline tl-btn--sm" @click="removeAvatar">
+                        <TlIcon name="trash" class="tl-ic tl-ic--xs" />
+                        Remove photo
+                    </button>
+                </div>
             </div>
+            <p v-if="avatarForm.errors.avatar" class="tl-error tl-card-gap">{{ avatarForm.errors.avatar }}</p>
 
             <form class="tl-card--sm" @submit.prevent="saveProfile">
                 <div class="tl-form-stack">

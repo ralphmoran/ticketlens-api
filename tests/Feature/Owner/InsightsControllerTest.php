@@ -231,6 +231,7 @@ class InsightsControllerTest extends TestCase
             ->assertInertia(fn ($page) => $page
                 ->has('top_accounts')
                 ->where('top_accounts.data.0.name', 'Alice Tester')
+                ->where('top_accounts.data.0.avatar_url', null)
             );
     }
 
@@ -245,6 +246,7 @@ class InsightsControllerTest extends TestCase
             ->assertInertia(fn ($page) => $page
                 ->has('roi_per_account')
                 ->where('roi_per_account.data.0.name', 'Bob Sender')
+                ->where('roi_per_account.data.0.avatar_url', null)
             );
     }
 

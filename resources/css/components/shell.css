@@ -124,6 +124,10 @@
   }
   button.tl-avatar:hover { background-color: var(--tl-border-strong); }
   .tl-avatar-wrap { @apply relative; }
+  /* object-fit/radius only — sizing comes from .tl-avatar itself when combined on the same element (e.g. <img class="tl-avatar tl-avatar-img">). */
+  .tl-avatar-img { @apply object-cover; border-radius: inherit; }
+  /* When nested as a bare child of .tl-avatar (e.g. inside button.tl-avatar), it has no size of its own — fill the parent instead. */
+  .tl-avatar > .tl-avatar-img { @apply w-full h-full; }
 
   /* ── Dropdown menu ────────────────────────────────────────────────── */
   .tl-dropdown {

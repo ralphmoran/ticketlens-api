@@ -10,6 +10,7 @@ use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -122,7 +123,7 @@ class InsightsController
             ->when($search, fn (Builder $q) => $q->where(fn (Builder $q2) => $q2
                 ->where('users.name', 'like', "%{$search}%")
                 ->orWhere('users.email', 'like', "%{$search}%")))
-            ->select(['users.id as user_id', 'users.name', 'users.email', 'users.tier', 'agg.tokens_saved', 'agg.commands_run']);
+            ->select(['users.id as user_id', 'users.name', 'users.email', 'users.tier', 'users.avatar_path', 'agg.tokens_saved', 'agg.commands_run']);
     }
 
     private function popularCommands(\Illuminate\Support\Carbon $cutoff): array
@@ -157,6 +158,7 @@ class InsightsController
                     'name'              => $row->name,
                     'email'             => $row->email,
                     'tier'              => $row->tier,
+                    'avatar_url'        => $this->resolveAvatarUrl($row->avatar_path),
                     'tokens_saved'      => $tokensSaved,
                     'estimated_savings' => $estSavings,
                     'roi'               => $roi,
@@ -186,6 +188,7 @@ class InsightsController
                 'name'         => $row->name,
                 'email'        => $row->email,
                 'tier'         => $row->tier,
+                'avatar_url'   => $this->resolveAvatarUrl($row->avatar_path),
                 'commands_run' => (int) $row->commands_run,
                 'tokens_saved' => (int) $row->tokens_saved,
             ]);
@@ -319,5 +322,14 @@ class InsightsController
     private function clampPerPage(Request $request, string $key): int
     {
         return min(max(1, (int) $request->input($key, 10)), 100);
+    }
+
+    /**
+     * Rows here are raw joinSub() query results, not User models, so
+     * User::avatarUrl() isn't available — same resolution logic, applied directly.
+     */
+    private function resolveAvatarUrl(?string $avatarPath): ?string
+    {
+        return $avatarPath ? Storage::disk('public')->url($avatarPath) : null;
     }
 }

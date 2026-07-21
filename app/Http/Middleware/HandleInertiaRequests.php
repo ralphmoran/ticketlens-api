@@ -102,7 +102,10 @@ class HandleInertiaRequests extends Middleware
                 'rule_type'           => $request->session()->get('rule_type'),
             ],
             'auth' => [
-                'user'                 => $user ? $user->only('id', 'name', 'email', 'tier', 'permissions') : null,
+                'user'                 => $user ? array_merge(
+                    $user->only('id', 'name', 'email', 'tier', 'permissions'),
+                    ['avatar_url' => $user->avatarUrl()],
+                ) : null,
                 'effectivePermissions' => $effectivePermissions,
                 'is_owner'             => $user?->is_owner ?? false,
                 'is_team_manager'      => $isTeamManager,

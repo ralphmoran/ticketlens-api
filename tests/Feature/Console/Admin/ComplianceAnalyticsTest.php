@@ -336,6 +336,7 @@ class ComplianceAnalyticsTest extends TestCase
                  ->where('selected_manager', null)
                  ->has('clients', 1)
                  ->where('clients.0.name', 'Alice')
+                 ->where('clients.0.avatar_url', null)
              );
     }
 

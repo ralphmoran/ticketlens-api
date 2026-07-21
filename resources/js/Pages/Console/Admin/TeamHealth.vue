@@ -132,7 +132,7 @@ onUnmounted(() => { clearInterval(timer); clearInterval(ticker) })
                         <tbody class="tl-divide">
                             <tr v-for="client in pagedClients" :key="client.id" class="tl-tr">
                                 <td class="tl-td">
-                                    <UserAvatar :name="client.name" :tier="client.tier ?? 'free'" />
+                                    <UserAvatar :name="client.name" :tier="client.tier ?? 'free'" :avatar-url="client.avatar_url" />
                                 </td>
                                 <td class="tl-td">
                                     <p class="tl-cell-primary">{{ client.name }}</p>

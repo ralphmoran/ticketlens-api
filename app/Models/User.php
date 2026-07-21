@@ -13,8 +13,9 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\Storage;
 
-#[Fillable(['name', 'email', 'phone', 'password', 'suspended_at', 'anthropic_key', 'openai_key'])]
+#[Fillable(['name', 'email', 'phone', 'password', 'suspended_at', 'anthropic_key', 'openai_key', 'avatar_path'])]
 #[Hidden(['password', 'remember_token', 'anthropic_key', 'openai_key'])]
 class User extends Authenticatable implements MustVerifyEmail
 {
@@ -72,6 +73,33 @@ class User extends Authenticatable implements MustVerifyEmail
             'anthropic_key'     => 'encrypted',
             'openai_key'        => 'encrypted',
         ];
+    }
+
+    public function avatarUrl(): ?string
+    {
+        return $this->avatar_path
+            ? Storage::disk('public')->url($this->avatar_path)
+            : null;
+    }
+
+    /**
+     * Owner-mode "select a manager" picker — shared by every admin analytics/rules
+     * page's ownerIndex(), which each render the same client list before a manager
+     * is chosen.
+     */
+    public static function clientPickerOptions(): \Illuminate\Support\Collection
+    {
+        return static::whereHas('ownedGroup')
+            ->orderBy('name')
+            ->get(['id', 'name', 'email', 'tier', 'avatar_path'])
+            ->map(fn (self $u) => [
+                'id'         => $u->id,
+                'name'       => $u->name,
+                'email'      => $u->email,
+                'tier'       => $u->tier,
+                'avatar_url' => $u->avatarUrl(),
+            ])
+            ->values();
     }
 
     public function groups(): \Illuminate\Database\Eloquent\Relations\BelongsToMany

@@ -152,7 +152,7 @@ const STATUS_COLORS = {
                     <tbody class="tl-divide">
                         <tr v-for="license in licenses.data" :key="license.id" class="tl-tr">
                             <td class="tl-td">
-                                <UserAvatar :name="license.user?.name ?? '—'" :tier="license.tier ?? 'free'" />
+                                <UserAvatar :name="license.user?.name ?? '—'" :tier="license.tier ?? 'free'" :avatar-url="license.user?.avatar_url" />
                             </td>
                             <td class="tl-td">
                                 <Link v-if="license.user?.id" :href="`/console/owner/clients/${license.user.id}`" class="tl-cell-primary tl-cell-link">{{ license.user.name ?? '—' }}</Link>

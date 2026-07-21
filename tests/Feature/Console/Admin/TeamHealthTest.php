@@ -244,6 +244,7 @@ class TeamHealthTest extends TestCase
                 ->where('workload', [])
                 ->has('clients', 1)
                 ->where('clients.0.name', 'Carol')
+                ->where('clients.0.avatar_url', null)
             );
     }
 

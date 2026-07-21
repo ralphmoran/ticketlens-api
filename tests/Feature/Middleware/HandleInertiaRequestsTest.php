@@ -29,6 +29,7 @@ class HandleInertiaRequestsTest extends TestCase
                 ->where('auth.user.email', 'alice@test.com')
                 ->where('auth.user.tier', 'free')
                 ->where('auth.user.permissions', 1)
+                ->where('auth.user.avatar_url', null)
             );
     }
 

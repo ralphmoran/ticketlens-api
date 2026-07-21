@@ -5,6 +5,7 @@ const props = defineProps({
     name: { type: String, required: true },
     tier: { type: String, default: 'free' },
     size: { type: String, default: 'md' }, // 'md' (default, unchanged) | 'lg' (profile banner)
+    avatarUrl: { type: String, default: null },
 })
 
 const TIER_BG = {
@@ -26,7 +27,15 @@ const bgClass = computed(() => TIER_BG[props.tier] ?? 'tl-avatar--neutral')
 </script>
 
 <template>
-    <span class="tl-avatar" :class="[bgClass, size === 'lg' ? 'tl-avatar--lg' : '']" :title="name">{{ initials }}</span>
+    <img
+        v-if="avatarUrl"
+        :src="avatarUrl"
+        :alt="name"
+        :title="name"
+        class="tl-avatar tl-avatar-img"
+        :class="size === 'lg' ? 'tl-avatar--lg' : ''"
+    >
+    <span v-else class="tl-avatar" :class="[bgClass, size === 'lg' ? 'tl-avatar--lg' : '']" :title="name">{{ initials }}</span>
 </template>
 
 <style scoped>

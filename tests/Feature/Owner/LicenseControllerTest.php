@@ -48,6 +48,8 @@ class LicenseControllerTest extends TestCase
             ->component('Console/Owner/Licenses/Index')
             ->has('licenses.data', 5)
             ->where('filters.per_page', 5)
+            ->where('licenses.data.0.user.avatar_url', null)
+            ->missing('licenses.data.0.user.avatar_path')
         );
     }
 

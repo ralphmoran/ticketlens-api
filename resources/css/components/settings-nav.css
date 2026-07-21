@@ -39,6 +39,7 @@
   .tl-settings-nav-item {
     @apply px-3 py-2 text-sm rounded-md cursor-pointer shrink-0 whitespace-nowrap;
     color: var(--tl-text-secondary);
+    border-bottom: 2px solid transparent;
     transition: background-color var(--tl-transition), color var(--tl-transition);
   }
   .tl-settings-nav-item:hover {
@@ -49,6 +50,16 @@
     background-color: var(--tl-surface-2);
     color: var(--tl-brand-soft);
     font-weight: 500;
+  }
+  @media (max-width: 767px) {
+    .tl-settings-nav-item--active {
+      border-bottom-color: var(--tl-brand);
+    }
+  }
+  @media (min-width: 768px) {
+    .tl-settings-nav-item {
+      border-bottom: none;
+    }
   }
 
   .tl-settings-content {

@@ -135,8 +135,8 @@
 
 @layer components {
   /* Inline pager (search pickers) */
-  .tl-pager { @apply flex items-center justify-between mt-4; }
-  .tl-pager-nav { @apply flex items-center gap-1; }
+  .tl-pager { @apply flex items-center justify-between gap-3 mt-4; }
+  .tl-pager-nav { @apply flex items-center flex-wrap gap-1; }
   .tl-pager-label { @apply text-xs font-mono; color: var(--tl-text-muted); }
   .tl-pager-btn {
     @apply p-1.5 cursor-pointer;

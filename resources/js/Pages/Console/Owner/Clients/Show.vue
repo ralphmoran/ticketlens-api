@@ -205,7 +205,7 @@ const TIER_LABELS = { free: 'Free', pro: 'Pro', team: 'Team', enterprise: 'Enter
 
         <!-- ── Client card ──────────────────────────────────────────── -->
         <div class="tl-card tl-card--lg tl-card-gap">
-            <div class="tl-row tl-row--between tl-row--top tl-label--spaced">
+            <div class="tl-row tl-row--between tl-row--top tl-row--wrap tl-label--spaced">
                 <div>
                     <h1 class="tl-modal-title">{{ client.name }}</h1>
                     <p class="tl-subtext">{{ client.email }}</p>

@@ -59,7 +59,7 @@ async function destroyNote(note) {
 </script>
 
 <template>
-    <div class="tl-page tl-page--wide tl-stack">
+    <div class="tl-page tl-stack">
 
         <div>
             <h1 class="tl-heading">Recall</h1>

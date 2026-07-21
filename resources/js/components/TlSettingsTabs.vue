@@ -10,7 +10,7 @@
  * grants no new access, it only chooses whether to show a link to a page
  * the viewer could already reach directly.
  */
-import { computed } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { usePage } from '@inertiajs/vue3'
 
 const props = defineProps({
@@ -18,6 +18,14 @@ const props = defineProps({
 })
 
 const page = usePage()
+const navRef = ref(null)
+
+onMounted(() => {
+    const nav = navRef.value
+    const activeEl = nav?.querySelector('.tl-settings-nav-item--active')
+    if (!nav || !activeEl) return
+    nav.scrollLeft = Math.max(0, activeEl.offsetLeft - (nav.clientWidth - activeEl.clientWidth) / 2)
+})
 
 const groups = computed(() => {
     const auth = page.props.auth ?? {}
@@ -50,7 +58,7 @@ const groups = computed(() => {
 
 <template>
     <div class="tl-settings-nav-wrap">
-        <nav class="tl-settings-nav" aria-label="Settings">
+        <nav ref="navRef" class="tl-settings-nav" aria-label="Settings">
             <template v-for="group in groups" :key="group.label">
                 <p class="tl-settings-nav-group-label">{{ group.label }}</p>
                 <a

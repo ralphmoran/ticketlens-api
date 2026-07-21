@@ -136,7 +136,7 @@ function remove() {
 </script>
 
 <template>
-    <div class="tl-page tl-page--narrow">
+    <div class="tl-page">
     <div class="tl-settings-layout">
         <TlSettingsTabs active-key="jira" />
         <div class="tl-settings-content tl-stack">

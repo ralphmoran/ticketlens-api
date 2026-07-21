@@ -137,7 +137,7 @@ async function revokeToken() {
 </script>
 
 <template>
-    <div class="tl-page tl-page--narrow">
+    <div class="tl-page">
     <div class="tl-settings-layout">
         <TlSettingsTabs active-key="profile" />
         <div class="tl-settings-content tl-stack">

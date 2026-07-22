@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Console\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Group;
+use App\Models\SlackIntegration;
 use App\Models\TrackerProfile;
 use App\Models\TriageSnapshot;
 use App\Models\User;
@@ -51,6 +52,9 @@ class RulesController extends Controller
                 'stale_rule'       => null,
                 'custom_rule'      => null,
                 'known_statuses'   => [],
+                'known_priorities' => [],
+                'known_labels'     => [],
+                'slack_connected'  => false,
                 'profiles'         => [],
             ]);
         }
@@ -89,20 +93,44 @@ class RulesController extends Controller
 
         $profileStatuses = $memberProfiles->flatMap(fn ($p) => $p->known_statuses ?? []);
 
+        // Fetched once regardless of the known_statuses branch taken below —
+        // priorities/labels have no per-profile cache column equivalent, so
+        // they always need this, and reusing it for the status fallback
+        // avoids a second identical query.
+        $snapshotTickets = TriageSnapshot::whereIn('user_id', $memberIds)
+            ->where('captured_at', '>=', now()->subDays(30))
+            ->orderByDesc('captured_at')
+            ->limit(20)
+            ->get(['tickets']);
+
         if ($profileStatuses->isNotEmpty()) {
             $statuses = $profileStatuses->filter()->unique()->sort()->values();
         } else {
-            $statuses = TriageSnapshot::whereIn('user_id', $memberIds)
-                ->where('captured_at', '>=', now()->subDays(30))
-                ->orderByDesc('captured_at')
-                ->limit(20)
-                ->get(['tickets'])
+            $statuses = $snapshotTickets
                 ->flatMap(fn ($s) => collect($s->tickets ?? [])->pluck('status'))
                 ->filter()
                 ->unique()
                 ->sort()
                 ->values();
         }
+
+        $priorities = $snapshotTickets
+            ->flatMap(fn ($s) => collect($s->tickets ?? [])->pluck('priority'))
+            ->filter()
+            ->unique()
+            ->sort()
+            ->values();
+
+        $labels = $snapshotTickets
+            ->flatMap(fn ($s) => collect($s->tickets ?? [])->flatMap(fn ($t) => $t['labels'] ?? []))
+            ->filter()
+            ->unique()
+            ->sort()
+            ->values();
+
+        $slackConnected = SlackIntegration::where('group_id', $group->id)
+            ->whereNotNull('channel_id')
+            ->exists();
 
         $profiles = $memberProfiles
             ->map(fn ($p) => [
@@ -116,18 +144,21 @@ class RulesController extends Controller
             ->values();
 
         return [
-            'stale_rule'     => $staleRule ? [
+            'stale_rule'       => $staleRule ? [
                 'id'      => $staleRule->id,
                 'enabled' => $staleRule->enabled,
                 'config'  => $staleRule->config,
             ] : null,
-            'custom_rule'    => $customRule ? [
+            'custom_rule'      => $customRule ? [
                 'id'      => $customRule->id,
                 'enabled' => $customRule->enabled,
                 'config'  => $customRule->config,
             ] : null,
-            'known_statuses' => $statuses,
-            'profiles'       => $profiles,
+            'known_statuses'   => $statuses,
+            'known_priorities' => $priorities,
+            'known_labels'     => $labels,
+            'slack_connected'  => $slackConnected,
+            'profiles'         => $profiles,
         ];
     }
 
@@ -180,7 +211,7 @@ class RulesController extends Controller
         $validator = Validator::make($request->all(), [
             'enabled'                  => ['required', 'boolean'],
             'rules'                    => ['required', 'array', 'min:1', 'max:50'],
-            'rules.*.action'           => ['required', Rule::in(['force-urgent', 'ignore'])],
+            'rules.*.action'           => ['required', Rule::in(['force-urgent', 'ignore', 'notify', 'schedule'])],
             'rules.*.match'            => ['required', 'array'],
             'rules.*.match.priority'   => ['nullable', 'string', 'max:100'],
             'rules.*.match.label'      => ['nullable', 'string', 'max:100'],
@@ -189,11 +220,19 @@ class RulesController extends Controller
             'rules.*.reason'           => ['nullable', 'string', 'max:255'],
         ]);
 
-        $validator->after(function ($validator) use ($request) {
+        $validator->after(function ($validator) use ($request, $group) {
+            $slackConnected = SlackIntegration::where('group_id', $group->id)
+                ->whereNotNull('channel_id')
+                ->exists();
+
             foreach ($request->input('rules', []) as $i => $rule) {
                 $match = array_filter($rule['match'] ?? [], fn ($v) => $v !== null && $v !== '');
                 if (empty($match)) {
                     $validator->errors()->add("rules.{$i}.match", 'At least one match field is required.');
+                }
+
+                if (in_array($rule['action'] ?? null, ['notify', 'schedule'], true) && ! $slackConnected) {
+                    $validator->errors()->add("rules.{$i}.action", 'Notify and schedule require a connected Slack workspace.');
                 }
             }
         });

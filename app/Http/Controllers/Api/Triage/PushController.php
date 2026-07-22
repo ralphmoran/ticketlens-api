@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\Triage;
 use App\Enums\Permission;
 use App\Http\Requests\Triage\PushRequest;
 use App\Jobs\EvaluateAlertsJob;
+use App\Jobs\EvaluateCustomNotifyRulesJob;
 use App\Models\TriageSnapshot;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -66,6 +67,7 @@ class PushController
         }
 
         EvaluateAlertsJob::dispatch($user->id, $snapshot->id);
+        EvaluateCustomNotifyRulesJob::dispatch($user->id, $snapshot->id);
 
         $group = $user->ownedGroup ?? $user->groups()->first();
         if ($group !== null) {

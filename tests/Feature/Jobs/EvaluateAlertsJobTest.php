@@ -214,6 +214,61 @@ class EvaluateAlertsJobTest extends TestCase
         ]);
     }
 
+    public function test_sends_needs_response_alert_with_escaped_summary(): void
+    {
+        $user  = $this->makeTeamUser();
+        $group = $user->groups()->first();
+        $this->makeSlack($group);
+        $this->makeAlertSettings($group);
+        $maliciousTicket = [
+            'key'               => 'P-1',
+            'summary'           => '<!channel> click <https://evil.example|here>',
+            'status'            => 'Code Review',
+            'assignee'          => 'Dev User',
+            'flags'             => ['needs-response'],
+            'compliance_status' => 'unknown',
+            'url'               => 'https://jira.example.com/browse/P-1',
+            'last_updated'      => now()->toISOString(),
+        ];
+        $snapshot = $this->makeSnapshot($user, [$maliciousTicket]);
+        $slack = $this->mockSlack();
+        $slack->shouldReceive('postMessage')->once()->with('xoxb-test', 'C001', Mockery::on(
+            fn ($text) => ! str_contains($text, '<!channel>')
+                && ! str_contains($text, '<https://evil.example|here>')
+                && str_contains($text, '&lt;!channel&gt;')
+        ));
+
+        (new EvaluateAlertsJob($user->id, $snapshot->id))->handle($slack);
+    }
+
+    public function test_sends_needs_response_alert_with_escaped_url(): void
+    {
+        $user  = $this->makeTeamUser();
+        $group = $user->groups()->first();
+        $this->makeSlack($group);
+        $this->makeAlertSettings($group);
+        $maliciousTicket = [
+            'key'               => 'P-1',
+            'summary'           => 'Normal summary',
+            'status'            => 'Code Review',
+            'assignee'          => 'Dev User',
+            'flags'             => ['needs-response'],
+            'compliance_status' => 'unknown',
+            'url'               => 'https://evil.example>*pwned*<!channel|',
+            'last_updated'      => now()->toISOString(),
+        ];
+        $snapshot = $this->makeSnapshot($user, [$maliciousTicket]);
+        $slack = $this->mockSlack();
+        $slack->shouldReceive('postMessage')->once()->with('xoxb-test', 'C001', Mockery::on(
+            fn ($text) => ! str_contains($text, '<!channel')
+                && ! preg_match('/https:\/\/evil\.example>/', $text)
+                && str_contains($text, '&lt;!channel')
+                && str_contains($text, 'evil.example&gt;')
+        ));
+
+        (new EvaluateAlertsJob($user->id, $snapshot->id))->handle($slack);
+    }
+
     public function test_sends_aging_alert_and_logs_it(): void
     {
         $user  = $this->makeTeamUser();

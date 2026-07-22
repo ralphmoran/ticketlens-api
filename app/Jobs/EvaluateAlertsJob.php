@@ -8,6 +8,7 @@ use App\Models\SentAlertLog;
 use App\Models\SlackIntegration;
 use App\Models\TriageSnapshot;
 use App\Models\User;
+use App\Services\SlackMrkdwnEscaper;
 use App\Services\SlackService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -215,10 +216,11 @@ class EvaluateAlertsJob implements ShouldQueue
 
     private function formatMessage(string $type, array $ticket): string
     {
-        $key      = $ticket['key'] ?? '?';
-        $summary  = $ticket['summary'] ?? '';
-        $assignee = ($ticket['assignee'] ?? null) ? " (assigned to {$ticket['assignee']})" : '';
-        $link     = ($ticket['url'] ?? null) ? "<{$ticket['url']}|{$key}>" : $key;
+        $escaper  = new SlackMrkdwnEscaper();
+        $key      = $escaper->escape($ticket['key'] ?? '?');
+        $summary  = $escaper->escape($ticket['summary'] ?? '');
+        $assignee = ($ticket['assignee'] ?? null) ? " (assigned to {$escaper->escape($ticket['assignee'])})" : '';
+        $link     = ($ticket['url'] ?? null) ? "<{$escaper->escape($ticket['url'])}|{$key}>" : $key;
 
         return match ($type) {
             'needs_response' => ":speech_balloon: *Needs response:* {$link} — {$summary}{$assignee}",

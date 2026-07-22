@@ -3,12 +3,14 @@
 namespace Tests\Feature\Console\Admin;
 
 use App\Models\Group;
+use App\Models\SlackIntegration;
 use App\Models\TrackerProfile;
 use App\Models\TriageSnapshot;
 use App\Models\User;
 use App\Models\WorkflowRule;
 use App\Services\SseEventService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 class RulesControllerTest extends TestCase
@@ -25,6 +27,19 @@ class RulesControllerTest extends TestCase
         $group = Group::create(['name' => "Team {$user->id}", 'owner_id' => $user->id]);
         $group->members()->attach($user->id);
         return $user;
+    }
+
+    private function connectSlack(Group $group): SlackIntegration
+    {
+        return SlackIntegration::create([
+            'group_id'       => $group->id,
+            'connected_by'   => $group->owner_id,
+            'workspace_id'   => 'W123',
+            'workspace_name' => 'Acme',
+            'bot_token'      => 'xoxb-test',
+            'channel_id'     => 'C001',
+            'channel_name'   => 'triages',
+        ]);
     }
 
     // ── Index ─────────────────────────────────────────────────────────────────
@@ -133,6 +148,84 @@ class RulesControllerTest extends TestCase
         $this->actingAs($user)->get('/console/admin/rules')
             ->assertOk()
             ->assertInertia(fn ($page) => $page->has('known_statuses'));
+    }
+
+    public function test_index_includes_known_priorities_and_labels_from_snapshots(): void
+    {
+        $user = $this->makeManager();
+
+        TriageSnapshot::create([
+            'user_id'          => $user->id,
+            'license_key_hash' => hash('sha256', 'key'),
+            'profile'          => 'work',
+            'tickets'          => [
+                ['key' => 'X-1', 'priority' => 'Highest', 'labels' => ['backend', 'critical']],
+                ['key' => 'X-2', 'priority' => 'Low',     'labels' => ['frontend']],
+            ],
+            'ticket_count' => 2,
+            'captured_at'  => now(),
+        ]);
+
+        $this->actingAs($user)->get('/console/admin/rules')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('known_priorities', ['Highest', 'Low'])
+                ->where('known_labels', ['backend', 'critical', 'frontend'])
+            );
+    }
+
+    public function test_index_known_priorities_and_labels_empty_when_no_snapshots(): void
+    {
+        $user = $this->makeManager();
+
+        $this->actingAs($user)->get('/console/admin/rules')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('known_priorities', [])
+                ->where('known_labels', [])
+            );
+    }
+
+    public function test_index_includes_slack_connected_true_when_integration_exists(): void
+    {
+        $user = $this->makeManager();
+        $this->connectSlack($user->ownedGroup);
+
+        $this->actingAs($user)->get('/console/admin/rules')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page->where('slack_connected', true));
+    }
+
+    public function test_index_includes_slack_connected_false_when_no_integration(): void
+    {
+        $user = $this->makeManager();
+
+        $this->actingAs($user)->get('/console/admin/rules')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page->where('slack_connected', false));
+    }
+
+    public function test_index_queries_snapshot_tickets_only_once(): void
+    {
+        $user = $this->makeManager();
+
+        TriageSnapshot::create([
+            'user_id'          => $user->id,
+            'license_key_hash' => hash('sha256', 'key'),
+            'profile'          => 'work',
+            'tickets'          => [['key' => 'X-1', 'status' => 'Open', 'priority' => 'Highest', 'labels' => ['a']]],
+            'ticket_count'     => 1,
+            'captured_at'      => now(),
+        ]);
+
+        DB::enableQueryLog();
+        DB::flushQueryLog();
+        $this->actingAs($user)->get('/console/admin/rules')->assertOk();
+        $queries = DB::getQueryLog();
+        DB::disableQueryLog();
+
+        $snapshotQueries = array_filter($queries, fn ($q) => str_contains($q['query'], 'triage_snapshots'));
+        $this->assertCount(1, $snapshotQueries, 'Expected exactly one triage_snapshots query, got ' . count($snapshotQueries));
     }
 
     public function test_index_includes_profiles_with_known_values(): void
@@ -370,6 +463,64 @@ class RulesControllerTest extends TestCase
                 ['match' => ['priority' => 'Highest'], 'action' => 'delete-ticket', 'reason' => null],
             ],
         ])->assertSessionHasErrors('rules.0.action');
+    }
+
+    public function test_save_custom_accepts_notify_action_when_slack_connected(): void
+    {
+        $user = $this->makeManager();
+        $this->connectSlack($user->ownedGroup);
+
+        $this->actingAs($user)->post('/console/admin/rules/custom', [
+            'enabled' => true,
+            'rules'   => [
+                ['match' => ['priority' => 'Highest'], 'action' => 'notify', 'reason' => 'ping the team'],
+            ],
+        ])->assertSessionHasNoErrors()->assertRedirect();
+
+        $this->assertSame('notify', WorkflowRule::where('type', 'custom')->first()->config['rules'][0]['action']);
+    }
+
+    public function test_save_custom_accepts_schedule_action_when_slack_connected(): void
+    {
+        $user = $this->makeManager();
+        $this->connectSlack($user->ownedGroup);
+
+        $this->actingAs($user)->post('/console/admin/rules/custom', [
+            'enabled' => true,
+            'rules'   => [
+                ['match' => ['priority' => 'Low'], 'action' => 'schedule', 'reason' => 'batch weekly'],
+            ],
+        ])->assertSessionHasNoErrors()->assertRedirect();
+
+        $this->assertSame('schedule', WorkflowRule::where('type', 'custom')->first()->config['rules'][0]['action']);
+    }
+
+    public function test_save_custom_rejects_notify_action_without_slack_integration(): void
+    {
+        $user = $this->makeManager();
+
+        $this->actingAs($user)->post('/console/admin/rules/custom', [
+            'enabled' => true,
+            'rules'   => [
+                ['match' => ['priority' => 'Highest'], 'action' => 'notify', 'reason' => 'ping the team'],
+            ],
+        ])->assertSessionHasErrors('rules.0.action');
+
+        $this->assertSame(0, WorkflowRule::where('type', 'custom')->count());
+    }
+
+    public function test_save_custom_rejects_schedule_action_without_slack_integration(): void
+    {
+        $user = $this->makeManager();
+
+        $this->actingAs($user)->post('/console/admin/rules/custom', [
+            'enabled' => true,
+            'rules'   => [
+                ['match' => ['priority' => 'Low'], 'action' => 'schedule', 'reason' => 'batch weekly'],
+            ],
+        ])->assertSessionHasErrors('rules.0.action');
+
+        $this->assertSame(0, WorkflowRule::where('type', 'custom')->count());
     }
 
     public function test_save_custom_rejects_rule_with_empty_match(): void

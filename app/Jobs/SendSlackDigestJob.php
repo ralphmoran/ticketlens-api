@@ -6,6 +6,9 @@ use App\Models\Group;
 use App\Models\SlackDigestSchedule;
 use App\Models\SlackIntegration;
 use App\Models\TriageSnapshot;
+use App\Models\WorkflowRule;
+use App\Services\CustomRuleMatcher;
+use App\Services\SlackMrkdwnEscaper;
 use App\Services\SlackService;
 use Carbon\Carbon;
 use Illuminate\Bus\Queueable;
@@ -64,7 +67,12 @@ class SendSlackDigestJob implements ShouldQueue
             return;
         }
 
-        $message = $this->buildMessage($snapshot->tickets ?? [], $group);
+        $customRule = WorkflowRule::where('group_id', $group->id)
+            ->where('type', 'custom')
+            ->where('enabled', true)
+            ->first();
+
+        $message = $this->buildMessage($snapshot->tickets ?? [], $group, $customRule?->config['rules'] ?? []);
 
         if ($schedule->target_type === 'user') {
             $slack->postDm($integration->bot_token, $schedule->target_id, $message);
@@ -75,13 +83,16 @@ class SendSlackDigestJob implements ShouldQueue
         $schedule->update(['last_delivered_at' => $this->now]);
     }
 
-    private function buildMessage(array $tickets, Group $group): string
+    private function buildMessage(array $tickets, Group $group, array $customRules = []): string
     {
-        $total          = count($tickets);
-        $needsResponse  = 0;
-        $aging          = 0;
-        $complianceGaps = 0;
-        $agingTickets   = [];
+        $total            = count($tickets);
+        $needsResponse    = 0;
+        $aging            = 0;
+        $complianceGaps   = 0;
+        $agingTickets     = [];
+        $scheduledTickets = [];
+        $matcher          = new CustomRuleMatcher();
+        $escaper          = new SlackMrkdwnEscaper();
 
         foreach ($tickets as $ticket) {
             $flags = $ticket['flags'] ?? [];
@@ -100,6 +111,11 @@ class SendSlackDigestJob implements ShouldQueue
             ) {
                 $complianceGaps++;
             }
+
+            $scheduleMatches = $matcher->matchingRules($ticket, $customRules, 'schedule');
+            if (! empty($scheduleMatches)) {
+                $scheduledTickets[] = [$ticket, $scheduleMatches[0]];
+            }
         }
 
         $lines = [
@@ -116,11 +132,23 @@ class SendSlackDigestJob implements ShouldQueue
             $lines[] = '';
             $lines[] = ':fire: *Top aging tickets:*';
             foreach ($topAging as $t) {
-                $key      = $t['key'] ?? '?';
-                $summary  = $t['summary'] ?? '';
-                $assignee = ($t['assignee'] ?? null) ? " ({$t['assignee']})" : '';
-                $link     = ($t['url'] ?? null) ? "<{$t['url']}|{$key}>" : $key;
+                $key      = $escaper->escape($t['key'] ?? '?');
+                $summary  = $escaper->escape($t['summary'] ?? '');
+                $assignee = ($t['assignee'] ?? null) ? " ({$escaper->escape($t['assignee'])})" : '';
+                $link     = ($t['url'] ?? null) ? "<{$escaper->escape($t['url'])}|{$key}>" : $key;
                 $lines[]  = "  • {$link} — {$summary}{$assignee}";
+            }
+        }
+
+        if (! empty($scheduledTickets)) {
+            $lines[] = '';
+            $lines[] = ':calendar: *Scheduled by rule:*';
+            foreach ($scheduledTickets as [$t, $rule]) {
+                $key     = $escaper->escape($t['key'] ?? '?');
+                $summary = $escaper->escape($t['summary'] ?? '');
+                $reason  = $escaper->escape($rule['reason'] ?? 'Matched a custom rule');
+                $link    = ($t['url'] ?? null) ? "<{$escaper->escape($t['url'])}|{$key}>" : $key;
+                $lines[] = "  • {$link} — {$summary} ({$reason})";
             }
         }
 

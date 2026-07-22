@@ -4,6 +4,7 @@ namespace Tests\Feature\Api\Triage;
 
 use App\Enums\Permission;
 use App\Jobs\EvaluateAlertsJob;
+use App\Jobs\EvaluateCustomNotifyRulesJob;
 use App\Models\CliToken;
 use App\Models\Group;
 use App\Models\TriageSnapshot;
@@ -205,6 +206,24 @@ class PushControllerTest extends TestCase
         Queue::assertNotPushed(EvaluateAlertsJob::class);
     }
 
+    public function test_evaluate_custom_notify_rules_job_dispatched_on_successful_push(): void
+    {
+        [$user, $token] = $this->makeUserWithToken();
+
+        $this->withToken($token)->postJson('/v1/triage/push', $this->validPayload());
+
+        Queue::assertPushed(EvaluateCustomNotifyRulesJob::class, fn ($job) => $job->getUserId() === $user->id);
+    }
+
+    public function test_evaluate_custom_notify_rules_job_not_dispatched_on_403(): void
+    {
+        [, $token] = $this->makeUserWithToken('free');
+
+        $this->withToken($token)->postJson('/v1/triage/push', $this->validPayload());
+
+        Queue::assertNotPushed(EvaluateCustomNotifyRulesJob::class);
+    }
+
     // ── git_branches ──────────────────────────────────────────────────────────
 
     public function test_push_stores_snapshot_without_git_branches(): void
@@ -338,6 +357,85 @@ class PushControllerTest extends TestCase
 
         $ticket = TriageSnapshot::first()->tickets[0];
         $this->assertSame('2026-05-11T09:30:00Z', $ticket['last_comment_at']);
+    }
+
+    // ── priority / labels ────────────────────────────────────────────────────
+
+    public function test_push_accepts_and_stores_priority_and_labels(): void
+    {
+        [, $token] = $this->makeUserWithToken();
+        $payload = $this->validPayload([
+            'tickets' => [
+                array_merge($this->validPayload()['tickets'][0], [
+                    'priority' => 'Highest',
+                    'labels'   => ['critical', 'backend'],
+                ]),
+            ],
+        ]);
+
+        $this->withToken($token)->postJson('/v1/triage/push', $payload)
+            ->assertStatus(200);
+
+        $ticket = TriageSnapshot::first()->tickets[0];
+        $this->assertSame('Highest', $ticket['priority']);
+        $this->assertSame(['critical', 'backend'], $ticket['labels']);
+    }
+
+    public function test_push_accepts_ticket_without_priority_or_labels(): void
+    {
+        [, $token] = $this->makeUserWithToken();
+
+        $this->withToken($token)->postJson('/v1/triage/push', $this->validPayload())
+            ->assertStatus(200);
+
+        $ticket = TriageSnapshot::first()->tickets[0];
+        $this->assertArrayNotHasKey('priority', $ticket);
+        $this->assertArrayNotHasKey('labels', $ticket);
+    }
+
+    public function test_push_rejects_priority_over_max_length(): void
+    {
+        [, $token] = $this->makeUserWithToken();
+        $payload = $this->validPayload([
+            'tickets' => [
+                array_merge($this->validPayload()['tickets'][0], [
+                    'priority' => str_repeat('x', 101),
+                ]),
+            ],
+        ]);
+
+        $this->withToken($token)->postJson('/v1/triage/push', $payload)
+            ->assertStatus(422);
+    }
+
+    public function test_push_rejects_more_than_fifty_labels(): void
+    {
+        [, $token] = $this->makeUserWithToken();
+        $payload = $this->validPayload([
+            'tickets' => [
+                array_merge($this->validPayload()['tickets'][0], [
+                    'labels' => array_fill(0, 51, 'x'),
+                ]),
+            ],
+        ]);
+
+        $this->withToken($token)->postJson('/v1/triage/push', $payload)
+            ->assertStatus(422);
+    }
+
+    public function test_push_rejects_label_over_max_length(): void
+    {
+        [, $token] = $this->makeUserWithToken();
+        $payload = $this->validPayload([
+            'tickets' => [
+                array_merge($this->validPayload()['tickets'][0], [
+                    'labels' => [str_repeat('x', 101)],
+                ]),
+            ],
+        ]);
+
+        $this->withToken($token)->postJson('/v1/triage/push', $payload)
+            ->assertStatus(422);
     }
 
     // ── LOCK: backward-compat — cli_activity is optional ─────────────────────

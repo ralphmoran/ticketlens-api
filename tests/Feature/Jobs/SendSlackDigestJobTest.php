@@ -10,6 +10,7 @@ use App\Models\SlackDigestSchedule;
 use App\Models\SlackIntegration;
 use App\Models\TriageSnapshot;
 use App\Models\User;
+use App\Models\WorkflowRule;
 use App\Services\SlackService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Mockery;
@@ -230,6 +231,192 @@ class SendSlackDigestJobTest extends TestCase
         $slack = Mockery::mock(SlackService::class);
         $slack->shouldReceive('postMessage')->once();
         $slack->shouldReceive('postDm')->once();
+
+        (new SendSlackDigestJob(\Carbon\Carbon::parse('2026-05-18 09:00:00', 'UTC')))->handle($slack);
+    }
+
+    public function test_job_escapes_mrkdwn_in_aging_ticket_summary(): void
+    {
+        [$group, $user] = $this->makeGroupWithUser();
+        $integration = $this->makeSlack($group);
+
+        $maliciousTicket = [
+            'key'               => 'PROJ-1',
+            'summary'           => '<!channel> click <https://evil.example|here>',
+            'status'            => 'In Progress',
+            'assignee'          => 'Dev User',
+            'flags'             => ['aging'],
+            'compliance_status' => 'unknown',
+            'url'               => 'https://jira.example.com/browse/PROJ-1',
+        ];
+        $this->makeSnapshot($user, [$maliciousTicket]);
+
+        $this->makeSchedule([
+            'group_id'    => $group->id,
+            'day_of_week' => 1,
+            'deliver_at'  => '09:00',
+            'timezone'    => 'UTC',
+            'target_type' => 'channel',
+            'target_id'   => $integration->channel_id,
+        ]);
+
+        $slack = Mockery::mock(SlackService::class);
+        $slack->shouldReceive('postMessage')
+            ->once()
+            ->withArgs(fn (string $token, string $channelId, string $text): bool =>
+                ! str_contains($text, '<!channel>')
+                && ! str_contains($text, '<https://evil.example|here>')
+                && str_contains($text, '&lt;!channel&gt;'));
+
+        (new SendSlackDigestJob(\Carbon\Carbon::parse('2026-05-18 09:00:00', 'UTC')))->handle($slack);
+    }
+
+    public function test_job_escapes_mrkdwn_in_aging_ticket_url(): void
+    {
+        [$group, $user] = $this->makeGroupWithUser();
+        $integration = $this->makeSlack($group);
+
+        $maliciousTicket = [
+            'key'               => 'PROJ-1',
+            'summary'           => 'Normal summary',
+            'status'            => 'In Progress',
+            'assignee'          => 'Dev User',
+            'flags'             => ['aging'],
+            'compliance_status' => 'unknown',
+            'url'               => 'https://evil.example>*pwned*<!channel|',
+        ];
+        $this->makeSnapshot($user, [$maliciousTicket]);
+
+        $this->makeSchedule([
+            'group_id'    => $group->id,
+            'day_of_week' => 1,
+            'deliver_at'  => '09:00',
+            'timezone'    => 'UTC',
+            'target_type' => 'channel',
+            'target_id'   => $integration->channel_id,
+        ]);
+
+        $slack = Mockery::mock(SlackService::class);
+        $slack->shouldReceive('postMessage')
+            ->once()
+            ->withArgs(fn (string $token, string $channelId, string $text): bool =>
+                ! str_contains($text, '<!channel')
+                && ! preg_match('/https:\/\/evil\.example>/', $text)
+                && str_contains($text, '&lt;!channel'));
+
+        (new SendSlackDigestJob(\Carbon\Carbon::parse('2026-05-18 09:00:00', 'UTC')))->handle($slack);
+    }
+
+    public function test_job_escapes_mrkdwn_in_scheduled_ticket_url(): void
+    {
+        [$group, $user] = $this->makeGroupWithUser();
+        $integration = $this->makeSlack($group);
+
+        WorkflowRule::create([
+            'group_id' => $group->id,
+            'type'     => 'custom',
+            'enabled'  => true,
+            'config'   => ['rules' => [
+                ['match' => ['priority' => 'Low'], 'action' => 'schedule', 'reason' => 'Low priority'],
+            ]],
+        ]);
+
+        $this->makeSnapshot($user, [
+            array_merge($this->ticket('PROJ-9'), ['priority' => 'Low', 'url' => 'https://evil.example>*pwned*<!channel|']),
+        ]);
+
+        $this->makeSchedule([
+            'group_id'    => $group->id,
+            'day_of_week' => 1,
+            'deliver_at'  => '09:00',
+            'timezone'    => 'UTC',
+            'target_type' => 'channel',
+            'target_id'   => $integration->channel_id,
+        ]);
+
+        $slack = Mockery::mock(SlackService::class);
+        $slack->shouldReceive('postMessage')
+            ->once()
+            ->withArgs(fn (string $token, string $channelId, string $text): bool =>
+                ! str_contains($text, '<!channel')
+                && ! preg_match('/https:\/\/evil\.example>/', $text)
+                && str_contains($text, '&lt;!channel'));
+
+        (new SendSlackDigestJob(\Carbon\Carbon::parse('2026-05-18 09:00:00', 'UTC')))->handle($slack);
+    }
+
+    // ── "schedule" action — matched tickets appear in the next digest ─────────
+
+    public function test_digest_lists_tickets_matching_a_schedule_action_rule(): void
+    {
+        [$group, $user] = $this->makeGroupWithUser();
+        $integration = $this->makeSlack($group);
+
+        WorkflowRule::create([
+            'group_id' => $group->id,
+            'type'     => 'custom',
+            'enabled'  => true,
+            'config'   => ['rules' => [
+                ['match' => ['priority' => 'Low'], 'action' => 'schedule', 'reason' => 'Low priority — batch weekly'],
+            ]],
+        ]);
+
+        $this->makeSnapshot($user, [
+            array_merge($this->ticket('PROJ-9', [], 'Backlog'), ['priority' => 'Low']),
+        ]);
+
+        $this->makeSchedule([
+            'group_id'    => $group->id,
+            'day_of_week' => 1,
+            'deliver_at'  => '09:00',
+            'timezone'    => 'UTC',
+            'target_type' => 'channel',
+            'target_id'   => $integration->channel_id,
+        ]);
+
+        $slack = Mockery::mock(SlackService::class);
+        $slack->shouldReceive('postMessage')
+            ->once()
+            ->withArgs(fn (string $token, string $channelId, string $text): bool =>
+                str_contains($text, 'Scheduled by rule')
+                && str_contains($text, 'PROJ-9')
+                && str_contains($text, 'Low priority — batch weekly'));
+
+        (new SendSlackDigestJob(\Carbon\Carbon::parse('2026-05-18 09:00:00', 'UTC')))->handle($slack);
+    }
+
+    public function test_digest_omits_schedule_section_when_no_rule_matches(): void
+    {
+        [$group, $user] = $this->makeGroupWithUser();
+        $integration = $this->makeSlack($group);
+
+        WorkflowRule::create([
+            'group_id' => $group->id,
+            'type'     => 'custom',
+            'enabled'  => true,
+            'config'   => ['rules' => [
+                ['match' => ['priority' => 'Low'], 'action' => 'schedule', 'reason' => 'Low priority'],
+            ]],
+        ]);
+
+        $this->makeSnapshot($user, [
+            array_merge($this->ticket('PROJ-9'), ['priority' => 'Highest']),
+        ]);
+
+        $this->makeSchedule([
+            'group_id'    => $group->id,
+            'day_of_week' => 1,
+            'deliver_at'  => '09:00',
+            'timezone'    => 'UTC',
+            'target_type' => 'channel',
+            'target_id'   => $integration->channel_id,
+        ]);
+
+        $slack = Mockery::mock(SlackService::class);
+        $slack->shouldReceive('postMessage')
+            ->once()
+            ->withArgs(fn (string $token, string $channelId, string $text): bool =>
+                ! str_contains($text, 'Scheduled by rule'));
 
         (new SendSlackDigestJob(\Carbon\Carbon::parse('2026-05-18 09:00:00', 'UTC')))->handle($slack);
     }

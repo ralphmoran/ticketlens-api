@@ -20,6 +20,9 @@ const props = defineProps({
     stale_rule:       { type: Object,  default: null },
     custom_rule:      { type: Object,  default: null },
     known_statuses:   { type: Array,   default: () => [] },
+    known_priorities: { type: Array,   default: () => [] },
+    known_labels:     { type: Array,   default: () => [] },
+    slack_connected:  { type: Boolean, default: false },
     profiles:         { type: Array,   default: () => [] },
     owner_mode:       { type: Boolean, default: false },
     clients:          { type: Array,   default: () => [] },
@@ -129,8 +132,7 @@ const MATCH_FIELDS = [
 ]
 
 // Fields with a real, CLI-observed value list (populated on `triage --push`).
-// Priority/label have no capture path yet — those stay free text.
-const DATALIST_FIELDS = ['status', 'keyPrefix']
+const DATALIST_FIELDS = ['status', 'keyPrefix', 'priority', 'label']
 
 const valueSourceProfileId = ref(props.profiles[0]?.id ?? null)
 
@@ -147,6 +149,10 @@ const valueSourceProfile = computed(
 )
 
 function valueOptionsFor(matchField) {
+    // Priority/label are team-wide aggregates (seen across recent pushes), not
+    // scoped to the selected profile — status/keyPrefix stay per-profile below.
+    if (matchField === 'priority') return props.known_priorities
+    if (matchField === 'label')    return props.known_labels
     if (!valueSourceProfile.value) return []
     if (matchField === 'status')    return valueSourceProfile.value.known_statuses
     if (matchField === 'keyPrefix') return valueSourceProfile.value.ticket_prefixes
@@ -492,6 +498,10 @@ async function destroyCustom() {
                 <div class="tl-card-head-body">
                     <h2 class="tl-title">Custom Attention Rules</h2>
                     <p class="tl-hint">Force-urgent or ignore tickets matching specific conditions</p>
+                    <p class="tl-hint">
+                        <strong class="tl-value">Force urgent / Ignore</strong> — local, enforced every CLI push, no Console needed.
+                        <strong class="tl-value">Notify / Add to digest</strong> — Team + Slack, enforced server-side.
+                    </p>
                 </div>
                 <span class="tl-hint">{{ customForm.enabled ? 'Active' : 'Off' }}</span>
                 <button
@@ -510,12 +520,18 @@ async function destroyCustom() {
 
             <form class="tl-card--sm" @submit.prevent="saveCustom">
 
+                <p v-if="!slack_connected" class="tl-hint">
+                    Notify / Add to digest are disabled — connect Slack on the
+                    <a href="/console/admin/integrations" class="tl-link tl-link--md">Integrations page</a>
+                    to enable them.
+                </p>
+
                 <div v-if="profiles.length" class="tl-stack--sm">
                     <label class="tl-label tl-label--field" for="rule-value-source">Source values from</label>
                     <select id="rule-value-source" v-model="valueSourceProfileId" class="tl-select tl-select--sm">
                         <option v-for="p in profiles" :key="p.id" :value="p.id">{{ p.owner_name }} — {{ p.name }}</option>
                     </select>
-                    <p class="tl-hint">Populates Status / Key prefix suggestions below with real values seen on the last triage push. Still free text — type anything.</p>
+                    <p class="tl-hint">Populates Status / Key prefix suggestions below with real values seen on the last triage push. Priority / Label suggestions come from the whole team's recent pushes. Still free text — type anything.</p>
                 </div>
 
                 <div v-if="customForm.rules.length" class="tl-divide tl-form-stack">
@@ -542,6 +558,8 @@ async function destroyCustom() {
                         <select v-model="row.action" class="tl-select tl-select--sm" :disabled="!customForm.enabled">
                             <option value="force-urgent">Force urgent</option>
                             <option value="ignore">Ignore</option>
+                            <option value="notify" :disabled="!slack_connected">Notify (Slack)</option>
+                            <option value="schedule" :disabled="!slack_connected">Add to digest</option>
                         </select>
                         <input
                             v-model="row.reason"

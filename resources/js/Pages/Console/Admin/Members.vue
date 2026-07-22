@@ -96,10 +96,12 @@ const atLimit    = () => hasLicense() && props.seats_used >= props.seats_total
         <div class="tl-card tl-card-gap">
             <h2 class="tl-title tl-title--spaced">Invite a member</h2>
             <div v-if="!hasLicense()" class="tl-banner tl-banner--danger tl-banner--slim tl-card-gap-sm">
-                No active license found. Contact your platform administrator.
+                <TlIcon name="warning-triangle" class="tl-ic tl-banner-icon" />
+                <span class="tl-banner-title">No active license found. Contact your platform administrator.</span>
             </div>
             <div v-else-if="atLimit()" class="tl-banner tl-banner--warn tl-banner--slim tl-card-gap-sm">
-                Seat limit reached. Upgrade your plan or remove a member to invite more.
+                <TlIcon name="warning-triangle" class="tl-ic tl-banner-icon" />
+                <span class="tl-banner-title">Seat limit reached. Upgrade your plan or remove a member to invite more.</span>
             </div>
             <form @submit.prevent="invite" class="tl-row tl-row--wrap tl-row--bottom">
                 <div class="tl-field-key">

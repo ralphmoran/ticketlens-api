@@ -540,6 +540,7 @@ async function destroyCustom() {
                         :key="index"
                         class="tl-row tl-rule-row tl-row--wrap"
                     >
+                        <label class="tl-form-label-col">Field</label>
                         <select v-model="row.matchField" class="tl-select tl-select--sm" :disabled="!customForm.enabled">
                             <option v-for="f in MATCH_FIELDS" :key="f.value" :value="f.value">{{ f.label }}</option>
                         </select>
@@ -555,6 +556,7 @@ async function destroyCustom() {
                         <datalist v-if="DATALIST_FIELDS.includes(row.matchField)" :id="`rule-values-${index}`">
                             <option v-for="v in valueOptionsFor(row.matchField)" :key="v" :value="v" />
                         </datalist>
+                        <label class="tl-form-label-col">Action</label>
                         <select v-model="row.action" class="tl-select tl-select--sm" :disabled="!customForm.enabled">
                             <option value="force-urgent">Force urgent</option>
                             <option value="ignore">Ignore</option>

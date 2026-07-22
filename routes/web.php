@@ -176,6 +176,7 @@ Route::prefix('console')->name('console.')->group(function () {
             Route::delete('/members/{user}',        [\App\Http\Controllers\Console\Admin\MembersController::class, 'destroy'])->name('members.destroy');
             Route::post('/members/{user}/promote',  [\App\Http\Controllers\Console\Admin\MembersController::class, 'promote'])->name('members.promote');
             Route::post('/members/{user}/role',     [\App\Http\Controllers\Console\Admin\MembersController::class, 'assignRole'])->name('members.role');
+            Route::post('/members/{user}/resend-invite', [\App\Http\Controllers\Console\Admin\MembersController::class, 'resendInvite'])->name('members.resend-invite')->middleware('throttle:10,1');
             Route::get('/seats',                    [\App\Http\Controllers\Console\Admin\SeatsController::class, 'index'])->name('seats.index');
             Route::get('/process-metrics',          [\App\Http\Controllers\Console\Admin\ProcessMetricsController::class, 'index'])->name('process-metrics');
             Route::get('/integrations',             [\App\Http\Controllers\Console\Admin\IntegrationsController::class, 'index'])->name('integrations');

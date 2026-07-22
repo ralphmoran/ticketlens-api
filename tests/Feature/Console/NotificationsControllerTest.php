@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Console;
 
+use App\Models\Group;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -24,9 +25,23 @@ class NotificationsControllerTest extends TestCase
             ->assertJsonStructure([
                 'count',
                 'categories' => [
-                    'recall', 'license',
-                    'invites' => ['available', 'comingSoon'],
+                    'recall', 'license', 'invites',
                     'workflowFailures' => ['available', 'comingSoon'],
+                ],
+            ]);
+    }
+
+    public function test_manager_gets_structured_invites_category(): void
+    {
+        $manager = User::factory()->create(['tier' => 'team', 'permissions' => 511]);
+        $group   = Group::create(['name' => 'T', 'owner_id' => $manager->id]);
+        $group->members()->attach($manager->id);
+
+        $this->actingAs($manager)->getJson('/console/notifications')
+            ->assertOk()
+            ->assertJsonStructure([
+                'categories' => [
+                    'invites' => ['available', 'count', 'items'],
                 ],
             ]);
     }

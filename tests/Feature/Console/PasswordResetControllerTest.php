@@ -92,6 +92,37 @@ class PasswordResetControllerTest extends TestCase
         $this->assertAuthenticatedAs($user);
     }
 
+    public function test_first_reset_sets_activated_at(): void
+    {
+        $user  = User::factory()->create(['email' => 'invited@example.com', 'email_verified_at' => now(), 'invited_at' => now(), 'activated_at' => null]);
+        $token = Password::broker()->createToken($user);
+
+        $this->post('/console/reset-password', [
+            'token'                 => $token,
+            'email'                 => 'invited@example.com',
+            'password'              => 'NewPassword1!',
+            'password_confirmation' => 'NewPassword1!',
+        ])->assertRedirect(route('console.dashboard'));
+
+        $this->assertNotNull($user->fresh()->activated_at);
+    }
+
+    public function test_ordinary_reset_does_not_change_already_set_activated_at(): void
+    {
+        $fixedActivation = now()->subDays(90);
+        $user  = User::factory()->create(['email' => 'active@example.com', 'email_verified_at' => now(), 'activated_at' => $fixedActivation]);
+        $token = Password::broker()->createToken($user);
+
+        $this->post('/console/reset-password', [
+            'token'                 => $token,
+            'email'                 => 'active@example.com',
+            'password'              => 'ForgotPassword1!',
+            'password_confirmation' => 'ForgotPassword1!',
+        ])->assertRedirect(route('console.dashboard'));
+
+        $this->assertSame($fixedActivation->toDateTimeString(), $user->fresh()->activated_at->toDateTimeString());
+    }
+
     public function test_reset_fails_with_invalid_token_and_returns_error(): void
     {
         $user = User::factory()->create(['email' => 'invited@example.com']);

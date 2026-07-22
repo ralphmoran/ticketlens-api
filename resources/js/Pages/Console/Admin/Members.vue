@@ -1,7 +1,7 @@
 <script setup>
 import ConsoleLayout from '@/Layouts/ConsoleLayout.vue'
 import TlIcon from '@/components/TlIcon.vue'
-import { router, useForm } from '@inertiajs/vue3'
+import { router, useForm, usePage } from '@inertiajs/vue3'
 import { formatDate } from '@/composables/useDateFormat'
 import { useConfirm } from '@/composables/useConfirm'
 
@@ -14,6 +14,8 @@ const props = defineProps({
     seats_total: Number,
     is_owner_of: Number,
 })
+
+const page = usePage()
 
 const inviteForm = useForm({ email: '', name: '' })
 
@@ -56,6 +58,10 @@ function setRole(memberId, role) {
     router.post(`/console/admin/members/${memberId}/role`, { role }, { preserveScroll: true })
 }
 
+function resendInvite(memberId) {
+    router.post(`/console/admin/members/${memberId}/resend-invite`, {}, { preserveScroll: true })
+}
+
 const hasLicense = () => props.seats_total !== null && props.seats_total !== undefined
 const atLimit    = () => hasLicense() && props.seats_used >= props.seats_total
 </script>
@@ -75,6 +81,15 @@ const atLimit    = () => hasLicense() && props.seats_used >= props.seats_total
                 </p>
                 <p v-else class="tl-num--warn tl-toggle-row-title">No active license</p>
             </div>
+        </div>
+
+        <div v-if="page.props.flash?.success" class="tl-banner tl-banner--success tl-card-gap">
+            <TlIcon name="check-circle" class="tl-ic tl-banner-icon" />
+            <span class="tl-banner-title">{{ page.props.flash.success }}</span>
+        </div>
+        <div v-if="page.props.errors?.resend" class="tl-banner tl-banner--danger tl-card-gap">
+            <TlIcon name="warning-triangle" class="tl-ic tl-banner-icon" />
+            <span class="tl-banner-title">{{ page.props.errors.resend }}</span>
         </div>
 
         <!-- Invite form -->
@@ -118,7 +133,10 @@ const atLimit    = () => hasLicense() && props.seats_used >= props.seats_total
                 <tbody class="tl-divide">
                     <tr v-for="member in members" :key="member.id" class="tl-tr">
                         <td class="tl-td">
-                            <p class="tl-cell-primary">{{ member.name }}</p>
+                            <div class="tl-row tl-row--tight">
+                                <p class="tl-cell-primary">{{ member.name }}</p>
+                                <span v-if="member.is_pending" class="tl-badge tl-badge--warn">Pending</span>
+                            </div>
                             <p class="tl-hint tl-mono--xs">{{ member.email }}</p>
                         </td>
                         <td class="tl-td">
@@ -130,6 +148,10 @@ const atLimit    = () => hasLicense() && props.seats_used >= props.seats_total
                         <td class="tl-td tl-td--right">
                             <div class="tl-row tl-row--end">
                                 <template v-if="member.role !== 'manager'">
+                                    <button v-if="member.is_pending" @click="resendInvite(member.id)" class="tl-btn-ghost tl-btn-ghost--neutral">
+                                        <TlIcon name="send" class="tl-ic tl-ic--sm" />
+                                        Resend invite
+                                    </button>
                                     <button v-if="member.role === 'dev'" @click="setRole(member.id, 'lead')" class="tl-btn-ghost tl-btn-ghost--info">
                                         <TlIcon name="arrow-up-circle" class="tl-ic tl-ic--sm" />
                                         Make lead

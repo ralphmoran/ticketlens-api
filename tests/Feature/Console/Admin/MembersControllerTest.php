@@ -293,6 +293,74 @@ class MembersControllerTest extends TestCase
         $this->assertSame(0, UserFeatureGrant::where('user_id', $member->id)->active()->count());
     }
 
+    // --- Resend invite ---
+
+    public function test_resend_invite_succeeds_for_pending_member(): void
+    {
+        $manager = $this->makeManager();
+        $pending = $this->makeMember($manager->ownedGroup, ['invited_at' => now(), 'activated_at' => null]);
+
+        $response = $this->actingAs($manager)->post("/console/admin/members/{$pending->id}/resend-invite");
+
+        $response->assertRedirect();
+        $response->assertSessionHas('success');
+    }
+
+    public function test_resend_invite_returns_404_for_member_outside_manager_group(): void
+    {
+        $manager      = $this->makeManager();
+        $otherManager = $this->makeManager();
+        $foreign      = $this->makeMember($otherManager->ownedGroup, ['invited_at' => now(), 'activated_at' => null]);
+
+        $response = $this->actingAs($manager)->post("/console/admin/members/{$foreign->id}/resend-invite");
+
+        $response->assertStatus(404);
+    }
+
+    public function test_resend_invite_returns_422_for_never_invited_member(): void
+    {
+        $manager = $this->makeManager();
+        // Default makeMember() — no invited_at, this member was never invited via this flow.
+        $member = $this->makeMember($manager->ownedGroup);
+
+        $response = $this->actingAs($manager)->post("/console/admin/members/{$member->id}/resend-invite");
+
+        $response->assertStatus(422);
+    }
+
+    public function test_resend_invite_returns_422_for_already_activated_member(): void
+    {
+        $manager  = $this->makeManager();
+        $activated = $this->makeMember($manager->ownedGroup, ['invited_at' => now()->subDays(5), 'activated_at' => now()]);
+
+        $response = $this->actingAs($manager)->post("/console/admin/members/{$activated->id}/resend-invite");
+
+        $response->assertStatus(422);
+    }
+
+    public function test_resend_invite_maps_throttled_status_to_resend_error(): void
+    {
+        $manager = $this->makeManager();
+        $pending = $this->makeMember($manager->ownedGroup, ['invited_at' => now(), 'activated_at' => null]);
+        // First resend succeeds and starts the throttle window; the second
+        // one immediately after must surface RESET_THROTTLED, not silently
+        // appear to succeed.
+        $this->actingAs($manager)->post("/console/admin/members/{$pending->id}/resend-invite");
+
+        $response = $this->actingAs($manager)->post("/console/admin/members/{$pending->id}/resend-invite");
+
+        $response->assertSessionHasErrors('resend');
+    }
+
+    public function test_resend_invite_requires_manager(): void
+    {
+        $user = User::factory()->create(['tier' => 'team', 'permissions' => 127]);
+
+        $response = $this->actingAs($user)->post("/console/admin/members/{$user->id}/resend-invite");
+
+        $response->assertRedirect('/console/dashboard');
+    }
+
     // --- Role assignment ---
 
     public function test_index_returns_role_for_each_member(): void
@@ -312,6 +380,23 @@ class MembersControllerTest extends TestCase
         // Verify specific roles via direct permission checks (avoids sort-order dependency)
         $this->assertSame(0, $dev->fresh()->permissions & Permission::TeamViewHealth->value);
         $this->assertNotSame(0, $lead->fresh()->permissions & Permission::TeamViewHealth->value);
+    }
+
+    public function test_index_includes_pending_status_per_member(): void
+    {
+        $manager = $this->makeManager();
+        $pending = $this->makeMember($manager->ownedGroup, ['invited_at' => now(), 'activated_at' => null]);
+        $active  = $this->makeMember($manager->ownedGroup, ['invited_at' => now()->subDays(10), 'activated_at' => now()]);
+
+        $response = $this->actingAs($manager)->get('/console/admin/members');
+
+        $response->assertInertia(fn ($page) => $page
+            ->where('members', fn ($members) =>
+                collect($members)->firstWhere('id', $pending->id)['is_pending'] === true
+                && collect($members)->firstWhere('id', $active->id)['is_pending'] === false
+                && collect($members)->firstWhere('id', $manager->id)['is_pending'] === false
+            )
+        );
     }
 
     public function test_manager_can_assign_lead_role_to_member(): void

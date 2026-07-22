@@ -34,6 +34,12 @@ class PasswordResetController
             function ($user, $password) {
                 $user->password = Hash::make($password);
                 $user->setRememberToken(Str::random(60));
+                // Only the first-ever reset counts as activation — an ordinary
+                // forgot-password reset by an already-active user must not
+                // touch this, or invite-pending tracking silently corrupts.
+                if ($user->activated_at === null) {
+                    $user->activated_at = now();
+                }
                 $user->save();
                 Auth::login($user);
                 request()->session()->regenerate();

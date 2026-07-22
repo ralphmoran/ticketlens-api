@@ -12,6 +12,7 @@ use App\Services\MembersService;
 use App\Services\TeamAccessService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Password;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -54,13 +55,14 @@ class MembersController extends Controller
 
         $members = $group->members()
             ->orderBy('users.email')
-            ->get(['users.id', 'users.name', 'users.email', 'users.tier', 'users.created_at', 'users.permissions'])
+            ->get(['users.id', 'users.name', 'users.email', 'users.tier', 'users.created_at', 'users.permissions', 'users.invited_at', 'users.activated_at'])
             ->map(fn ($m) => [
                 'id'         => $m->id,
                 'name'       => $m->name,
                 'email'      => $m->email,
                 'tier'       => $m->tier,
                 'created_at' => $m->created_at,
+                'is_pending' => $m->invited_at !== null && $m->activated_at === null,
                 'role'       => match (true) {
                     $m->id === $group->owner_id => 'manager',
                     (bool) ($m->permissions & Permission::TeamViewHealth->value) => 'lead',
@@ -148,6 +150,25 @@ class MembersController extends Controller
         );
 
         return back();
+    }
+
+    public function resendInvite(Request $request, User $user): RedirectResponse
+    {
+        $group = $request->user()->ownedGroup;
+
+        abort_unless($group !== null, 403);
+        // Tenant isolation — 404 not 403, matching destroy()/promote(): don't leak that the user exists elsewhere.
+        abort_unless($group->members()->where('users.id', $user->id)->exists(), 404);
+        abort_if($user->invited_at === null, 422, 'This member was never invited — nothing to resend.');
+        abort_if($user->activated_at !== null, 422, 'This member has already activated their account.');
+
+        $status = $this->members->resend($request->user(), $user, $group);
+
+        if ($status === Password::RESET_THROTTLED) {
+            return back()->withErrors(['resend' => 'An invite was already sent recently. Please wait before resending.']);
+        }
+
+        return back()->with('success', 'Invite resent.');
     }
 
     /**

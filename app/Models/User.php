@@ -70,6 +70,8 @@ class User extends Authenticatable implements MustVerifyEmail
             'permissions'       => 'integer',
             'is_owner'          => 'boolean',
             'suspended_at'      => 'datetime',
+            'invited_at'        => 'datetime',
+            'activated_at'      => 'datetime',
             'anthropic_key'     => 'encrypted',
             'openai_key'        => 'encrypted',
         ];

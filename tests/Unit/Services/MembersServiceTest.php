@@ -161,6 +161,77 @@ class MembersServiceTest extends TestCase
         $this->assertSame(0, $user->permissions & \App\Enums\Permission::teamManagerMask(), 'invitee must never get manager bits');
     }
 
+    public function test_invite_sets_invited_at_for_new_user(): void
+    {
+        $manager = $this->makeManagerWithSeats(5);
+
+        $user = $this->service->invite($manager, 'fresh@example.com');
+
+        $this->assertNotNull($user->invited_at);
+        $this->assertNull($user->activated_at);
+    }
+
+    public function test_invite_does_not_overwrite_invited_at_for_existing_user(): void
+    {
+        $manager = $this->makeManagerWithSeats(5);
+        $existing = User::factory()->create(['email' => 'already@example.com', 'activated_at' => now()->subDays(30)]);
+
+        $user = $this->service->invite($manager, 'already@example.com');
+
+        $this->assertNull($user->invited_at);
+        $this->assertNotNull($user->activated_at);
+    }
+
+    public function test_resend_sends_password_reset_link(): void
+    {
+        $manager = $this->makeManagerWithSeats(5);
+        $target  = $this->service->invite($manager, 'pending@example.com');
+        $this->travel(61)->seconds(); // clear invite()'s own reset-link throttle window
+        Notification::fake();
+
+        $this->service->resend($manager, $target, $manager->ownedGroup);
+
+        Notification::assertSentTo($target, ResetPassword::class);
+    }
+
+    public function test_resend_returns_broker_status(): void
+    {
+        $manager = $this->makeManagerWithSeats(5);
+        $target  = $this->service->invite($manager, 'pending@example.com');
+        $this->travel(61)->seconds();
+
+        $status = $this->service->resend($manager, $target, $manager->ownedGroup);
+
+        $this->assertSame(\Illuminate\Support\Facades\Password::RESET_LINK_SENT, $status);
+    }
+
+    public function test_resend_writes_audit_log(): void
+    {
+        $manager = $this->makeManagerWithSeats(5);
+        $target  = $this->service->invite($manager, 'pending@example.com');
+        $this->travel(61)->seconds();
+
+        $this->service->resend($manager, $target, $manager->ownedGroup);
+
+        $this->assertDatabaseHas('audit_logs', [
+            'actor_id'       => $manager->id,
+            'target_user_id' => $target->id,
+            'action'         => 'team.invite_resent',
+        ]);
+    }
+
+    public function test_resend_returns_throttled_status_when_rate_limited(): void
+    {
+        $manager = $this->makeManagerWithSeats(5);
+        // invite() already sent a reset link seconds ago — resending immediately
+        // must hit Laravel's throttle window, not silently appear to succeed.
+        $target = $this->service->invite($manager, 'pending@example.com');
+
+        $status = $this->service->resend($manager, $target, $manager->ownedGroup);
+
+        $this->assertSame(\Illuminate\Support\Facades\Password::RESET_THROTTLED, $status);
+    }
+
     public function test_seat_cap_uses_the_addon_license_not_whichever_is_latest(): void
     {
         // A Pro manager can hold two active licenses at once: their real Pro

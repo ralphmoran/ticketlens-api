@@ -69,6 +69,7 @@ class MembersService
                     default               => Permission::free(),
                 };
                 $user->email_verified_at = now();
+                $user->invited_at        = now();
                 $user->save();
             }
 
@@ -87,5 +88,29 @@ class MembersService
 
             return $user;
         });
+    }
+
+    /**
+     * Re-sends the invite/activation email to a pending member. Assumes the
+     * caller has already verified $target belongs to $group and is still
+     * pending (invited_at set, activated_at null) — this method does not
+     * re-check either, matching MembersController's other member actions
+     * (destroy/promote), which enforce tenant scope and state at the
+     * controller layer. $group is passed in rather than re-derived via
+     * $manager->ownedGroup since the controller already resolved it for its
+     * own tenant check.
+     */
+    public function resend(User $manager, User $target, Group $group): string
+    {
+        $status = Password::broker()->sendResetLink(['email' => $target->email]);
+
+        $this->audit->log(
+            actor: $manager,
+            action: 'team.invite_resent',
+            target: $target,
+            metadata: ['group_id' => $group->id, 'status' => $status],
+        );
+
+        return $status;
     }
 }

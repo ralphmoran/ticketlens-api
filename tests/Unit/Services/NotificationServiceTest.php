@@ -197,16 +197,62 @@ class NotificationServiceTest extends TestCase
 
     // ---- Deferred categories (v2) ----
 
-    public function test_invites_and_workflow_failures_are_marked_coming_soon(): void
+    public function test_workflow_failures_still_marked_coming_soon(): void
     {
         $user = User::factory()->create(['tier' => 'free']);
 
         $result = $this->service->pendingFor($user);
 
-        $this->assertFalse($result['categories']['invites']['available']);
-        $this->assertTrue($result['categories']['invites']['comingSoon']);
         $this->assertFalse($result['categories']['workflowFailures']['available']);
         $this->assertTrue($result['categories']['workflowFailures']['comingSoon']);
+    }
+
+    // ---- Invites category ----
+
+    public function test_manager_sees_pending_invites_in_their_group(): void
+    {
+        [$manager, $group] = $this->makeManager();
+        $group->members()->attach(User::factory()->create(['invited_at' => now(), 'activated_at' => null])->id);
+        $group->members()->attach(User::factory()->create(['invited_at' => now(), 'activated_at' => null])->id);
+
+        $result = $this->service->pendingFor($manager);
+
+        $this->assertTrue($result['categories']['invites']['available']);
+        $this->assertSame(2, $result['categories']['invites']['count']);
+        $this->assertCount(2, $result['categories']['invites']['items']);
+    }
+
+    public function test_non_manager_gets_null_invites_category(): void
+    {
+        $member = User::factory()->create(['tier' => 'pro']);
+        $group  = Group::create(['name' => 'G', 'owner_id' => User::factory()->create()->id]);
+        $group->members()->attach($member->id);
+
+        $result = $this->service->pendingFor($member);
+
+        $this->assertNull($result['categories']['invites']);
+    }
+
+    public function test_activated_member_excluded_from_pending_invites(): void
+    {
+        [$manager, $group] = $this->makeManager();
+        $group->members()->attach(User::factory()->create(['invited_at' => now()->subDays(10), 'activated_at' => now()])->id);
+
+        $result = $this->service->pendingFor($manager);
+
+        $this->assertSame(0, $result['categories']['invites']['count']);
+    }
+
+    public function test_pending_invites_from_other_group_never_leak(): void
+    {
+        [$manager]  = $this->makeManager();
+        $otherOwner = User::factory()->create();
+        $otherGroup = Group::create(['name' => 'Other', 'owner_id' => $otherOwner->id]);
+        $otherGroup->members()->attach(User::factory()->create(['invited_at' => now(), 'activated_at' => null])->id);
+
+        $result = $this->service->pendingFor($manager);
+
+        $this->assertSame(0, $result['categories']['invites']['count']);
     }
 
     // ---- Top-level count ----
@@ -221,6 +267,16 @@ class NotificationServiceTest extends TestCase
         $result = $this->service->pendingFor($manager);
 
         $this->assertSame(3, $result['count']);
+    }
+
+    public function test_top_level_count_includes_pending_invites(): void
+    {
+        [$manager, $group] = $this->makeManager();
+        $group->members()->attach(User::factory()->create(['invited_at' => now(), 'activated_at' => null])->id);
+
+        $result = $this->service->pendingFor($manager);
+
+        $this->assertSame(1, $result['count']);
     }
 
     public function test_top_level_count_is_zero_when_nothing_pending(): void

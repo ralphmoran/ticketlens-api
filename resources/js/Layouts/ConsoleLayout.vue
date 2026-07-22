@@ -598,11 +598,15 @@ onUnmounted(() => {
                                 License needs attention ({{ pending.categories.license.status }})
                             </a>
 
-                            <div class="tl-dropdown-item tl-dropdown-item--disabled" title="Coming soon">
+                            <a
+                                v-if="pending.categories?.invites?.available && pending.categories.invites.count > 0"
+                                href="/console/admin/members"
+                                class="tl-dropdown-item"
+                            >
                                 <TlIcon name="user-group" class="tl-ic" />
-                                Pending team invites
-                                <span class="tl-badge tl-badge--neutral tl-notif-soon">Soon</span>
-                            </div>
+                                {{ pending.categories.invites.count }} Pending team invite{{ pending.categories.invites.count === 1 ? '' : 's' }}
+                            </a>
+
                             <div class="tl-dropdown-item tl-dropdown-item--disabled" title="Coming soon">
                                 <TlIcon name="git-branch" class="tl-ic" />
                                 Workflow rule failures
@@ -736,11 +740,15 @@ onUnmounted(() => {
                                 License needs attention ({{ pending.categories.license.status }})
                             </a>
 
-                            <div class="tl-dropdown-item tl-dropdown-item--disabled" title="Coming soon">
+                            <a
+                                v-if="pending.categories?.invites?.available && pending.categories.invites.count > 0"
+                                href="/console/admin/members"
+                                class="tl-dropdown-item"
+                            >
                                 <TlIcon name="user-group" class="tl-ic" />
-                                Pending team invites
-                                <span class="tl-badge tl-badge--neutral tl-notif-soon">Soon</span>
-                            </div>
+                                {{ pending.categories.invites.count }} Pending team invite{{ pending.categories.invites.count === 1 ? '' : 's' }}
+                            </a>
+
                             <div class="tl-dropdown-item tl-dropdown-item--disabled" title="Coming soon">
                                 <TlIcon name="git-branch" class="tl-ic" />
                                 Workflow rule failures

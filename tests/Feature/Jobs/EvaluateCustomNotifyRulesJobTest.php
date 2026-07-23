@@ -180,6 +180,35 @@ class EvaluateCustomNotifyRulesJobTest extends TestCase
         ]);
     }
 
+    public function test_sends_notify_alert_for_clear_urgency_ticket_with_empty_flags(): void
+    {
+        // Regression pin for the CLI --push fix (skills/jtb/scripts/fetch-my-tickets.mjs):
+        // a 'clear'-urgency ticket is pushed with flags: [] (ticket-payload.mjs) — this job
+        // must match it on priority alone, exactly like any other pushed ticket. Before the
+        // CLI fix, a clear-urgency ticket never reached the snapshot at all; this proves the
+        // server-side half of the fix was always correct once the ticket arrives here.
+        $user  = $this->makeTeamUser();
+        $group = $user->groups()->first();
+        $this->makeSlack($group);
+        $this->makeCustomRule($group, [
+            ['match' => ['priority' => 'Highest'], 'action' => 'notify', 'reason' => 'P1 always urgent'],
+        ]);
+        $snapshot = $this->makeSnapshot($user, [$this->ticket('P-1', ['priority' => 'Highest', 'flags' => []])]);
+
+        $slack = $this->mockSlack();
+        $slack->shouldReceive('postMessage')->once()->with('xoxb-test', 'C001', Mockery::on(
+            fn ($text) => str_contains($text, 'P1 always urgent') && str_contains($text, 'P-1')
+        ));
+
+        (new EvaluateCustomNotifyRulesJob($user->id, $snapshot->id))->handle($slack);
+
+        $this->assertDatabaseHas('sent_alert_logs', [
+            'group_id'   => $group->id,
+            'alert_type' => 'custom_notify',
+            'ticket_key' => 'P-1',
+        ]);
+    }
+
     public function test_escapes_mrkdwn_in_reason(): void
     {
         $user  = $this->makeTeamUser();

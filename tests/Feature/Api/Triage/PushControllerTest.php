@@ -438,6 +438,47 @@ class PushControllerTest extends TestCase
             ->assertStatus(422);
     }
 
+    public function test_push_rejects_more_than_300_tickets(): void
+    {
+        [, $token] = $this->makeUserWithToken();
+        $ticket  = $this->validPayload()['tickets'][0];
+        $payload = $this->validPayload([
+            'tickets' => array_fill(0, 301, $ticket),
+        ]);
+
+        $this->withToken($token)->postJson('/v1/triage/push', $payload)
+            ->assertStatus(422);
+    }
+
+    public function test_push_accepts_exactly_300_tickets(): void
+    {
+        [, $token] = $this->makeUserWithToken();
+        $ticket  = $this->validPayload()['tickets'][0];
+        $tickets = [];
+        for ($i = 0; $i < 300; $i++) {
+            $tickets[] = array_merge($ticket, ['key' => "PROJ-{$i}"]);
+        }
+        $payload = $this->validPayload(['tickets' => $tickets]);
+
+        $this->withToken($token)->postJson('/v1/triage/push', $payload)
+            ->assertStatus(200);
+    }
+
+    public function test_push_rejects_more_than_20_flags_per_ticket(): void
+    {
+        [, $token] = $this->makeUserWithToken();
+        $payload = $this->validPayload([
+            'tickets' => [
+                array_merge($this->validPayload()['tickets'][0], [
+                    'flags' => array_fill(0, 21, 'needs-response'),
+                ]),
+            ],
+        ]);
+
+        $this->withToken($token)->postJson('/v1/triage/push', $payload)
+            ->assertStatus(422);
+    }
+
     // ── LOCK: backward-compat — cli_activity is optional ─────────────────────
 
     public function test_lock_push_without_cli_activity_succeeds(): void

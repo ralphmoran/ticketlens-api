@@ -16,7 +16,7 @@ class PushRequest extends FormRequest
         return [
             'profile'                   => ['required', 'string', 'max:100'],
             'captured_at'               => ['required', 'date'],
-            'tickets'                          => ['required', 'array'],
+            'tickets'                          => ['required', 'array', 'max:300'],
             'tickets.*.key'                    => ['required', 'string', 'max:50'],
             'tickets.*.summary'                => ['sometimes', 'nullable', 'string', 'max:500'],
             'tickets.*.status'                 => ['sometimes', 'nullable', 'string', 'max:100'],
@@ -25,7 +25,7 @@ class PushRequest extends FormRequest
             'tickets.*.labels'                 => ['sometimes', 'nullable', 'array', 'max:50'],
             'tickets.*.labels.*'               => ['string', 'max:100'],
             'tickets.*.url'                    => ['sometimes', 'nullable', 'string', 'max:2048'],
-            'tickets.*.flags'                  => ['sometimes', 'nullable', 'array'],
+            'tickets.*.flags'                  => ['sometimes', 'nullable', 'array', 'max:20'],
             'tickets.*.flags.*'                => ['string', 'max:50'],
             'tickets.*.attention_score'        => ['sometimes', 'nullable', 'numeric', 'min:0'],
             'tickets.*.last_updated'           => ['sometimes', 'nullable', 'string', 'max:50'],

@@ -345,6 +345,19 @@ class RulesControllerTest extends TestCase
             );
     }
 
+    public function test_index_unconnected_members_returns_full_list_untruncated(): void
+    {
+        $manager = $this->makeManager();
+        $extra   = User::factory()->count(10)->create(['tier' => 'team', 'permissions' => 2687]);
+        $manager->ownedGroup->members()->attach($extra->pluck('id'));
+
+        // Backend returns every unconnected member — truncation for display
+        // (e.g. "and N more") is the frontend's job, not the API's.
+        $this->actingAs($manager)->get('/console/admin/rules')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page->has('unconnected_members', 11));
+    }
+
     public function test_index_does_not_add_extra_trackerprofile_query(): void
     {
         $manager = $this->makeManager();

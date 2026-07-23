@@ -64,6 +64,14 @@ const form = useForm({
 
 const { confirm } = useConfirm()
 const hasRule     = computed(() => props.stale_rule !== null)
+
+const UNCONNECTED_NAMES_SHOWN = 5
+const unconnectedMembersSummary = computed(() => {
+    const names = props.unconnected_members.map(m => m.name)
+    if (names.length <= UNCONNECTED_NAMES_SHOWN) return names.join(', ')
+    const shown = names.slice(0, UNCONNECTED_NAMES_SHOWN).join(', ')
+    return `${shown} and ${names.length - UNCONNECTED_NAMES_SHOWN} more`
+})
 const statusInput = ref('')
 const pendingStatuses = ref([])
 const toggling    = ref(false)
@@ -529,7 +537,7 @@ async function destroyCustom() {
 
                 <p v-if="unconnected_members.length" class="tl-hint">
                     Force urgent / Ignore won't apply to
-                    {{ unconnected_members.map(m => m.name).join(', ') }}
+                    {{ unconnectedMembersSummary }}
                     — they haven't connected a tracker profile on the
                     <a href="/console/connections" class="tl-link tl-link--md">Connections page</a>.
                 </p>

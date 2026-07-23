@@ -292,6 +292,92 @@ class RulesControllerTest extends TestCase
             ->assertInertia(fn ($page) => $page->where('profiles', []));
     }
 
+    public function test_index_includes_unconnected_members_when_some_lack_trackerprofile(): void
+    {
+        $manager = $this->makeManager();
+
+        $this->actingAs($manager)->get('/console/admin/rules')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->has('unconnected_members', 1)
+                ->where('unconnected_members.0.name', $manager->name)
+            );
+    }
+
+    public function test_index_unconnected_members_empty_when_all_connected(): void
+    {
+        $manager = $this->makeManager();
+
+        TrackerProfile::create([
+            'user_id'      => $manager->id,
+            'name'         => 'manager-jira',
+            'tracker_type' => 'jira',
+            'base_url'     => 'https://manager.atlassian.net',
+            'auth_method'  => 'cloud',
+            'email'        => $manager->email,
+        ]);
+
+        $this->actingAs($manager)->get('/console/admin/rules')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page->where('unconnected_members', []));
+    }
+
+    public function test_index_unconnected_members_lists_only_members_missing_a_profile(): void
+    {
+        $manager = $this->makeManager();
+        $member  = User::factory()->create(['tier' => 'team', 'permissions' => 2687]);
+        $manager->ownedGroup->members()->attach($member->id);
+
+        TrackerProfile::create([
+            'user_id'      => $manager->id,
+            'name'         => 'manager-jira',
+            'tracker_type' => 'jira',
+            'base_url'     => 'https://manager.atlassian.net',
+            'auth_method'  => 'cloud',
+            'email'        => $manager->email,
+        ]);
+
+        $this->actingAs($manager)->get('/console/admin/rules')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->has('unconnected_members', 1)
+                ->where('unconnected_members.0.name', $member->name)
+            );
+    }
+
+    public function test_index_does_not_add_extra_trackerprofile_query(): void
+    {
+        $manager = $this->makeManager();
+
+        DB::enableQueryLog();
+        DB::flushQueryLog();
+        $this->actingAs($manager)->get('/console/admin/rules')->assertOk();
+        $queries = DB::getQueryLog();
+        DB::disableQueryLog();
+
+        // Scoped to buildRuleData()'s own queries — excludes the unrelated groups()
+        // lookup HandleInertiaRequests already runs on every request for shared auth props.
+        $rosterQueries = array_filter(
+            $queries,
+            fn ($q) => str_contains($q['query'], 'from "users"') && str_contains($q['query'], 'group_user')
+        );
+        $profileQueries = array_filter($queries, fn ($q) => str_contains($q['query'], 'tracker_profiles'));
+
+        // 1 query for the group roster (users x group_user) + 1 for TrackerProfile::whereIn.
+        // No extra query — unconnected members must be derived in-memory from these two.
+        $this->assertCount(1, $rosterQueries, 'Expected exactly 1 roster query, got ' . count($rosterQueries));
+        $this->assertCount(1, $profileQueries, 'Expected exactly 1 tracker_profiles query, got ' . count($profileQueries));
+    }
+
+    public function test_owner_empty_state_includes_unconnected_members_key(): void
+    {
+        $owner = $this->makeOwner();
+
+        $this->actingAs($owner)->get('/console/admin/rules')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page->where('unconnected_members', []));
+    }
+
     // ── Save stale rule ───────────────────────────────────────────────────────
 
     public function test_save_stale_creates_rule(): void

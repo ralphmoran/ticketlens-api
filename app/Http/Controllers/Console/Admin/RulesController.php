@@ -46,16 +46,17 @@ class RulesController extends Controller
 
         if ($managerId <= 0) {
             return Inertia::render('Console/Admin/Rules', [
-                'owner_mode'       => true,
-                'clients'          => $clients,
-                'selected_manager' => null,
-                'stale_rule'       => null,
-                'custom_rule'      => null,
-                'known_statuses'   => [],
-                'known_priorities' => [],
-                'known_labels'     => [],
-                'slack_connected'  => false,
-                'profiles'         => [],
+                'owner_mode'          => true,
+                'clients'             => $clients,
+                'selected_manager'    => null,
+                'stale_rule'          => null,
+                'custom_rule'         => null,
+                'known_statuses'      => [],
+                'known_priorities'    => [],
+                'known_labels'        => [],
+                'slack_connected'     => false,
+                'profiles'            => [],
+                'unconnected_members' => [],
             ]);
         }
 
@@ -85,7 +86,8 @@ class RulesController extends Controller
             ->where('type', 'custom')
             ->first();
 
-        $memberIds = $group->members()->pluck('users.id');
+        $roster    = $group->members()->get(['users.id', 'users.name']);
+        $memberIds = $roster->pluck('id');
 
         $memberProfiles = TrackerProfile::whereIn('user_id', $memberIds)
             ->with('user:id,name,email')
@@ -132,6 +134,13 @@ class RulesController extends Controller
             ->whereNotNull('channel_id')
             ->exists();
 
+        $connectedUserIds = $memberProfiles->pluck('user_id')->unique();
+
+        $unconnectedMembers = $roster
+            ->whereNotIn('id', $connectedUserIds)
+            ->map(fn ($u) => ['id' => $u->id, 'name' => $u->name])
+            ->values();
+
         $profiles = $memberProfiles
             ->map(fn ($p) => [
                 'id'              => $p->id,
@@ -144,21 +153,22 @@ class RulesController extends Controller
             ->values();
 
         return [
-            'stale_rule'       => $staleRule ? [
+            'stale_rule'          => $staleRule ? [
                 'id'      => $staleRule->id,
                 'enabled' => $staleRule->enabled,
                 'config'  => $staleRule->config,
             ] : null,
-            'custom_rule'      => $customRule ? [
+            'custom_rule'         => $customRule ? [
                 'id'      => $customRule->id,
                 'enabled' => $customRule->enabled,
                 'config'  => $customRule->config,
             ] : null,
-            'known_statuses'   => $statuses,
-            'known_priorities' => $priorities,
-            'known_labels'     => $labels,
-            'slack_connected'  => $slackConnected,
-            'profiles'         => $profiles,
+            'known_statuses'      => $statuses,
+            'known_priorities'    => $priorities,
+            'known_labels'        => $labels,
+            'slack_connected'     => $slackConnected,
+            'profiles'            => $profiles,
+            'unconnected_members' => $unconnectedMembers,
         ];
     }
 

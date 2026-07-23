@@ -17,16 +17,17 @@ watch(() => eventsStore.lastEvent, (e) => {
 })
 
 const props = defineProps({
-    stale_rule:       { type: Object,  default: null },
-    custom_rule:      { type: Object,  default: null },
-    known_statuses:   { type: Array,   default: () => [] },
-    known_priorities: { type: Array,   default: () => [] },
-    known_labels:     { type: Array,   default: () => [] },
-    slack_connected:  { type: Boolean, default: false },
-    profiles:         { type: Array,   default: () => [] },
-    owner_mode:       { type: Boolean, default: false },
-    clients:          { type: Array,   default: () => [] },
-    selected_manager: { type: Object,  default: null },
+    stale_rule:          { type: Object,  default: null },
+    custom_rule:         { type: Object,  default: null },
+    known_statuses:      { type: Array,   default: () => [] },
+    known_priorities:    { type: Array,   default: () => [] },
+    known_labels:        { type: Array,   default: () => [] },
+    slack_connected:     { type: Boolean, default: false },
+    unconnected_members: { type: Array,   default: () => [] },
+    profiles:            { type: Array,   default: () => [] },
+    owner_mode:          { type: Boolean, default: false },
+    clients:             { type: Array,   default: () => [] },
+    selected_manager:    { type: Object,  default: null },
 })
 
 // ── Owner client picker ───────────────────────────────────────────────────────
@@ -499,7 +500,7 @@ async function destroyCustom() {
                     <h2 class="tl-title">Custom Attention Rules</h2>
                     <p class="tl-hint">Force-urgent or ignore tickets matching specific conditions</p>
                     <p class="tl-hint">
-                        <strong class="tl-value">Force urgent / Ignore</strong> — local, enforced every CLI push, no Console needed.
+                        <strong class="tl-value">Force urgent / Ignore</strong> — local, enforced every CLI push, requires a connected tracker profile (Console → Connections).
                         <strong class="tl-value">Notify / Add to digest</strong> — Team + Slack, enforced server-side.
                     </p>
                 </div>
@@ -524,6 +525,13 @@ async function destroyCustom() {
                     Notify / Add to digest are disabled — connect Slack on the
                     <a href="/console/admin/integrations" class="tl-link tl-link--md">Integrations page</a>
                     to enable them.
+                </p>
+
+                <p v-if="unconnected_members.length" class="tl-hint">
+                    Force urgent / Ignore won't apply to
+                    {{ unconnected_members.map(m => m.name).join(', ') }}
+                    — they haven't connected a tracker profile on the
+                    <a href="/console/connections" class="tl-link tl-link--md">Connections page</a>.
                 </p>
 
                 <div v-if="profiles.length" class="tl-stack--sm">

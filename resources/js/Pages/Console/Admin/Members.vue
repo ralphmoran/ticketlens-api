@@ -105,13 +105,13 @@ const atLimit    = () => hasLicense() && props.seats_used >= props.seats_total
             </div>
             <form @submit.prevent="invite" class="tl-row tl-row--wrap tl-row--bottom">
                 <div class="tl-field-key">
-                    <label class="tl-label tl-label--field">Email</label>
-                    <input v-model="inviteForm.email" type="email" required placeholder="teammate@example.com" class="tl-input tl-input--sm tl-input--full" :class="{ 'tl-input--error': inviteForm.errors.email }" />
+                    <label class="tl-label tl-label--field" for="invite-email">Email</label>
+                    <input id="invite-email" v-model="inviteForm.email" type="email" required placeholder="teammate@example.com" class="tl-input tl-input--sm tl-input--full" :class="{ 'tl-input--error': inviteForm.errors.email }" />
                     <p v-if="inviteForm.errors.email" class="tl-error">{{ inviteForm.errors.email }}</p>
                 </div>
                 <div class="tl-field-key">
-                    <label class="tl-label tl-label--field">Name (optional)</label>
-                    <input v-model="inviteForm.name" type="text" maxlength="255" class="tl-input tl-input--sm tl-input--full" />
+                    <label class="tl-label tl-label--field" for="invite-name">Name (optional)</label>
+                    <input id="invite-name" v-model="inviteForm.name" type="text" maxlength="255" class="tl-input tl-input--sm tl-input--full" />
                 </div>
                 <button type="submit" :disabled="!inviteForm.email || inviteForm.processing || atLimit() || !hasLicense()" class="tl-btn tl-btn--primary">
                     <TlIcon name="plus" class="tl-ic tl-ic--sm" />

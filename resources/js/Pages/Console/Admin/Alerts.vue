@@ -413,8 +413,9 @@ function goRulesPage(page) {
                             </button>
                         </div>
                         <div class="tl-row">
-                            <label class="tl-hint-inline tl-body--muted">Cooldown</label>
+                            <label class="tl-hint-inline tl-body--muted" for="nr-cooldown">Cooldown</label>
                             <input
+                                id="nr-cooldown"
                                 v-model.number="nrCooldown"
                                 type="number"
                                 min="1"
@@ -463,8 +464,9 @@ function goRulesPage(page) {
                             </button>
                         </div>
                         <div class="tl-row">
-                            <label class="tl-hint-inline tl-body--muted">Cooldown</label>
+                            <label class="tl-hint-inline tl-body--muted" for="ag-cooldown">Cooldown</label>
                             <input
+                                id="ag-cooldown"
                                 v-model.number="agCooldown"
                                 type="number"
                                 min="1"
@@ -513,8 +515,9 @@ function goRulesPage(page) {
                             </button>
                         </div>
                         <div class="tl-row">
-                            <label class="tl-hint-inline tl-body--muted">Cooldown</label>
+                            <label class="tl-hint-inline tl-body--muted" for="cg-cooldown">Cooldown</label>
                             <input
+                                id="cg-cooldown"
                                 v-model.number="cgCooldown"
                                 type="number"
                                 min="1"
@@ -645,8 +648,8 @@ function goRulesPage(page) {
 
                     <!-- Alert type -->
                     <div class="tl-row">
-                        <label class="tl-form-label-col">Alert type</label>
-                        <select v-model="newRuleType" class="tl-select tl-btn--grow">
+                        <label class="tl-form-label-col" for="alert-type">Alert type</label>
+                        <select id="alert-type" v-model="newRuleType" class="tl-select tl-btn--grow">
                             <option value="needs_response">Needs-response</option>
                             <option value="aging">Aging ticket</option>
                             <option value="compliance_gap">Compliance gap</option>
@@ -656,7 +659,7 @@ function goRulesPage(page) {
                     <!-- Member picker -->
                     <div class="space-y-2">
                         <div class="tl-row">
-                            <label class="tl-form-label-col">Members</label>
+                            <p class="tl-form-label-col">Members</p>
                             <button
                                 type="button"
                                 :disabled="membersLoading"

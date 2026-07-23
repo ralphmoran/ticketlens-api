@@ -153,8 +153,9 @@ async function handleDelete(template) {
             <div class="tl-form-stack">
                 <!-- Name -->
                 <div>
-                    <label class="tl-label tl-label--field">Name</label>
+                    <label class="tl-label tl-label--field" for="template-name">Name</label>
                     <input
+                        id="template-name"
                         v-model="form.name"
                         type="text"
                         maxlength="100"
@@ -167,10 +168,11 @@ async function handleDelete(template) {
 
                 <!-- Description -->
                 <div>
-                    <label class="tl-label tl-label--field">
+                    <label class="tl-label tl-label--field" for="template-description">
                         Description <span class="tl-hint-inline">(optional)</span>
                     </label>
                     <input
+                        id="template-description"
                         v-model="form.description"
                         type="text"
                         maxlength="255"
@@ -181,7 +183,7 @@ async function handleDelete(template) {
 
                 <!-- Sections -->
                 <div>
-                    <label class="tl-label tl-label--field">Sections</label>
+                    <p class="tl-label tl-label--field">Sections</p>
                     <div class="tl-check-grid">
                         <label
                             v-for="key in SECTION_KEYS"

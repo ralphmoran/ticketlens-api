@@ -61,10 +61,11 @@ function submit() {
 
             <!-- Client picker -->
             <div>
-                <label class="tl-label tl-label--field">Recipient</label>
+                <label class="tl-label tl-label--field" for="license-recipient-search">Recipient</label>
                 <div class="tl-input-wrap">
                     <TlIcon name="search" class="tl-input-icon" />
                     <input
+                        id="license-recipient-search"
                         v-model="search"
                         type="text"
                         placeholder="Search by email or name…"
@@ -84,8 +85,8 @@ function submit() {
 
             <!-- Tier -->
             <div>
-                <label class="tl-label tl-label--field">Tier</label>
-                <select v-model="form.tier" class="tl-select tl-input--full">
+                <label class="tl-label tl-label--field" for="license-tier">Tier</label>
+                <select id="license-tier" v-model="form.tier" class="tl-select tl-input--full">
                     <option value="pro">Pro</option>
                     <option value="team">Team</option>
                     <option value="enterprise">Enterprise</option>
@@ -95,8 +96,9 @@ function submit() {
 
             <!-- Seats -->
             <div>
-                <label class="tl-label tl-label--field">Seats</label>
+                <label class="tl-label tl-label--field" for="license-seats">Seats</label>
                 <input
+                    id="license-seats"
                     v-model="form.seats"
                     type="number"
                     min="1"
@@ -110,8 +112,9 @@ function submit() {
 
             <!-- Expires -->
             <div>
-                <label class="tl-label tl-label--field">Expires (optional)</label>
+                <label class="tl-label tl-label--field" for="license-expires">Expires (optional)</label>
                 <input
+                    id="license-expires"
                     v-model="form.expires_at"
                     type="date"
                     class="tl-input tl-input--full"

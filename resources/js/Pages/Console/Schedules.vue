@@ -235,7 +235,7 @@ function nextRunLabel(iso) {
                 <!-- Owner client picker (create mode only) -->
                 <template v-if="isOwner && !isEditing">
                     <div>
-                        <label class="tl-field-label tl-field-label--xs">
+                        <label class="tl-field-label tl-field-label--xs" for="schedule-client-search">
                             Assign to client
                             <span class="tl-hint">(leave blank for yourself)</span>
                         </label>
@@ -252,6 +252,7 @@ function nextRunLabel(iso) {
                         <div class="tl-input-wrap">
                             <TlIcon name="search" class="tl-input-icon" />
                             <input
+                                id="schedule-client-search"
                                 v-model="clientSearch"
                                 type="text"
                                 placeholder="Search by name or email…"

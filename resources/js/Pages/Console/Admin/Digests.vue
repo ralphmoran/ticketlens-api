@@ -350,7 +350,7 @@ function goSchedulesPage(page) {
 
                     <!-- Target type -->
                     <div class="tl-row">
-                        <label class="tl-form-label-col">Deliver to</label>
+                        <p class="tl-form-label-col">Deliver to</p>
                         <div class="tl-row tl-row--tight">
                             <button
                                 type="button"
@@ -376,7 +376,7 @@ function goSchedulesPage(page) {
                     <!-- Channel picker (multi-select) -->
                     <div v-if="digestTargetType === 'channel'" class="space-y-2">
                         <div class="tl-row">
-                            <label class="tl-form-label-col">Channels</label>
+                            <p class="tl-form-label-col">Channels</p>
                             <button
                                 type="button"
                                 :disabled="channelsLoading"
@@ -397,6 +397,7 @@ function goSchedulesPage(page) {
                                 type="text"
                                 placeholder="Search channels…"
                                 class="tl-input tl-input--sm tl-input--full"
+                                aria-label="Search channels"
                             />
                             <div class="tl-scroll-list">
                                 <div
@@ -427,7 +428,7 @@ function goSchedulesPage(page) {
                     <!-- Member picker for DM -->
                     <div v-if="digestTargetType === 'user'" class="space-y-2">
                         <div class="tl-row">
-                            <label class="tl-form-label-col">Member</label>
+                            <p class="tl-form-label-col">Member</p>
                             <button
                                 type="button"
                                 :disabled="digestMembersLoading"
@@ -446,6 +447,7 @@ function goSchedulesPage(page) {
                                 type="text"
                                 placeholder="Search members…"
                                 class="tl-input tl-input--sm tl-input--full"
+                                aria-label="Search members"
                             />
                             <div class="tl-scroll-list">
                                 <div
@@ -469,16 +471,17 @@ function goSchedulesPage(page) {
 
                     <!-- Day of week -->
                     <div class="tl-row">
-                        <label class="tl-form-label-col">Day</label>
-                        <select v-model.number="digestDayOfWeek" class="tl-select tl-btn--grow">
+                        <label class="tl-form-label-col" for="digest-day">Day</label>
+                        <select id="digest-day" v-model.number="digestDayOfWeek" class="tl-select tl-btn--grow">
                             <option v-for="(name, idx) in DAY_NAMES" :key="idx" :value="idx">{{ name }}</option>
                         </select>
                     </div>
 
                     <!-- Time -->
                     <div class="tl-row">
-                        <label class="tl-form-label-col">Time</label>
+                        <label class="tl-form-label-col" for="digest-time">Time</label>
                         <input
+                            id="digest-time"
                             v-model="digestDeliverAt"
                             type="time"
                             class="tl-input tl-btn--grow"
@@ -487,8 +490,9 @@ function goSchedulesPage(page) {
 
                     <!-- Timezone -->
                     <div class="tl-row">
-                        <label class="tl-form-label-col">Timezone</label>
+                        <label class="tl-form-label-col" for="digest-timezone">Timezone</label>
                         <input
+                            id="digest-timezone"
                             v-model="digestTimezone"
                             type="text"
                             placeholder="America/New_York"

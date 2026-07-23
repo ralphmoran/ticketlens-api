@@ -170,7 +170,7 @@ function remove() {
             </div>
 
             <div v-if="form.jira_base_url">
-                <label class="tl-field-label">Auth Type</label>
+                <p class="tl-field-label">Auth Type</p>
                 <p class="tl-hint">
                     <span v-if="form.auth_type === 'cloud'">Jira Cloud detected — uses email + API token.</span>
                     <span v-else>Jira Server / DC detected — choose auth method:</span>
@@ -236,7 +236,7 @@ function remove() {
                 <h2 class="tl-title">Configuration</h2>
 
                 <div>
-                    <label class="tl-field-label">Ticket Prefixes</label>
+                    <p class="tl-field-label">Ticket Prefixes</p>
                     <template v-if="testDone">
                         <p class="tl-hint">Select which project prefixes to use for ticket detection.</p>
                         <div class="tl-check-grid">
@@ -257,6 +257,7 @@ function remove() {
                             type="text"
                             class="tl-input tl-input--full"
                             placeholder="PROJ, OPS, INFRA — or test connection to browse real keys"
+                            aria-label="Ticket prefixes"
                         />
                         <p class="tl-hint">Test the connection above to browse and select from real project keys.</p>
                     </template>
@@ -276,7 +277,7 @@ function remove() {
                 </div>
 
                 <div>
-                    <label class="tl-field-label">Triage Statuses</label>
+                    <p class="tl-field-label">Triage Statuses</p>
                     <template v-if="testDone">
                         <p class="tl-hint">Select which workflow statuses require attention in triage.</p>
                         <div class="tl-check-grid">
@@ -297,6 +298,7 @@ function remove() {
                             type="text"
                             class="tl-input tl-input--full"
                             placeholder="In Progress, In Review — or test connection to browse real statuses"
+                            aria-label="Triage statuses"
                         />
                         <p class="tl-hint">Test the connection above to browse and select from real workflow statuses.</p>
                     </template>

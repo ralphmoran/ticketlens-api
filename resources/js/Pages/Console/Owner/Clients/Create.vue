@@ -50,8 +50,9 @@ function submit() {
 
                 <!-- Name -->
                 <div class="tl-field">
-                    <label class="tl-label">Name</label>
+                    <label class="tl-label" for="client-name">Name</label>
                     <input
+                        id="client-name"
                         v-model="form.name"
                         type="text"
                         autocomplete="off"
@@ -64,8 +65,9 @@ function submit() {
 
                 <!-- Email -->
                 <div class="tl-field">
-                    <label class="tl-label">Email</label>
+                    <label class="tl-label" for="client-email">Email</label>
                     <input
+                        id="client-email"
                         v-model="form.email"
                         type="email"
                         autocomplete="off"
@@ -78,8 +80,9 @@ function submit() {
 
                 <!-- Password -->
                 <div class="tl-field">
-                    <label class="tl-label">Initial password</label>
+                    <label class="tl-label" for="client-password">Initial password</label>
                     <input
+                        id="client-password"
                         v-model="form.password"
                         type="password"
                         autocomplete="new-password"
@@ -93,8 +96,9 @@ function submit() {
 
                 <!-- Tier -->
                 <div class="tl-field">
-                    <label class="tl-label">Tier</label>
+                    <label class="tl-label" for="client-tier">Tier</label>
                     <select
+                        id="client-tier"
                         v-model="form.tier"
                         class="tl-select"
                         :class="{ 'tl-input--error': form.errors.tier }"

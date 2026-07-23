@@ -62,7 +62,7 @@ async function dismiss() {
 
         <!-- Key reveal -->
         <div class="tl-card tl-card--lg tl-card-gap">
-            <label class="tl-label tl-label--field">License key (shown once)</label>
+            <label class="tl-label tl-label--field" for="raw-key">License key (shown once)</label>
             <div class="tl-row">
                 <input
                     id="raw-key"

@@ -225,7 +225,7 @@ const destroy = async (profile) => {
 
                         <!-- Tracker type — data-driven: add to TRACKER_TYPES to support new trackers -->
                         <div>
-                            <label class="tl-label tl-label--field">Tracker</label>
+                            <p class="tl-label tl-label--field">Tracker</p>
                             <div class="tl-row tl-row--top">
                                 <label
                                     v-for="opt in TRACKER_TYPES"
@@ -245,16 +245,16 @@ const destroy = async (profile) => {
 
                         <!-- Profile name -->
                         <div>
-                            <label class="tl-label tl-label--field">Profile name</label>
-                            <input v-model="form.name" :disabled="!!editTarget" type="text" placeholder="work" class="tl-input tl-input--full" />
+                            <label class="tl-label tl-label--field" for="connection-profile-name">Profile name</label>
+                            <input id="connection-profile-name" v-model="form.name" :disabled="!!editTarget" type="text" placeholder="work" class="tl-input tl-input--full" />
                             <p class="tl-hint">Lowercase letters, numbers, hyphens only. Used as <code class="tl-code-inline">--profile=name</code> in the CLI.</p>
                             <p v-if="form.errors.name" class="tl-error">{{ form.errors.name }}</p>
                         </div>
 
                         <!-- Base URL -->
                         <div>
-                            <label class="tl-label tl-label--field">{{ isGitHub ? 'Repository URL' : 'Jira URL' }}</label>
-                            <input v-model="form.base_url" type="url"
+                            <label class="tl-label tl-label--field" for="connection-url">{{ isGitHub ? 'Repository URL' : 'Jira URL' }}</label>
+                            <input id="connection-url" v-model="form.base_url" type="url"
                                 :placeholder="isGitHub ? 'https://github.com/acme/widgets' : 'https://acme.atlassian.net'"
                                 class="tl-input tl-input--full" />
                             <p v-if="form.errors.base_url" class="tl-error">{{ form.errors.base_url }}</p>
@@ -262,8 +262,8 @@ const destroy = async (profile) => {
 
                         <!-- Auth method (Jira only) -->
                         <div v-if="!isGitHub">
-                            <label class="tl-label tl-label--field">Auth method</label>
-                            <select v-model="form.auth_method" class="tl-select tl-input--full">
+                            <label class="tl-label tl-label--field" for="connection-auth-method">Auth method</label>
+                            <select id="connection-auth-method" v-model="form.auth_method" class="tl-select tl-input--full">
                                 <option value="cloud">Cloud — email + API token</option>
                                 <option value="pat">Server/DC — Personal Access Token</option>
                                 <option value="basic">Server/DC — Username + Password</option>
@@ -272,8 +272,8 @@ const destroy = async (profile) => {
 
                         <!-- Email (Jira cloud/basic) -->
                         <div v-if="!isGitHub && (form.auth_method === 'cloud' || form.auth_method === 'basic')">
-                            <label class="tl-label tl-label--field">{{ form.auth_method === 'cloud' ? 'Email' : 'Username' }}</label>
-                            <input v-model="form.email" type="text" placeholder="you@company.com" class="tl-input tl-input--full" />
+                            <label class="tl-label tl-label--field" for="connection-email-or-username">{{ form.auth_method === 'cloud' ? 'Email' : 'Username' }}</label>
+                            <input id="connection-email-or-username" v-model="form.email" type="text" placeholder="you@company.com" class="tl-input tl-input--full" />
                         </div>
 
                         <!-- Credential hint — always shown, never a field -->
@@ -296,8 +296,8 @@ const destroy = async (profile) => {
 
                         <!-- Ticket prefixes -->
                         <div>
-                            <label class="tl-label tl-label--field">Ticket prefixes <span class="tl-hint-inline">(optional)</span></label>
-                            <input v-model="form.ticket_prefixes" type="text"
+                            <label class="tl-label tl-label--field" for="connection-ticket-prefixes">Ticket prefixes <span class="tl-hint-inline">(optional)</span></label>
+                            <input id="connection-ticket-prefixes" v-model="form.ticket_prefixes" type="text"
                                 :placeholder="isGitHub ? 'GH' : 'PROJ, OPS'"
                                 class="tl-input tl-input--full" />
                             <p class="tl-hint">Comma-separated. Used to auto-select this profile for a ticket key.</p>
@@ -305,8 +305,8 @@ const destroy = async (profile) => {
 
                         <!-- Triage statuses (Jira only) -->
                         <div v-if="!isGitHub">
-                            <label class="tl-label tl-label--field">Triage statuses <span class="tl-hint-inline">(optional)</span></label>
-                            <input v-model="form.triage_statuses" type="text" placeholder="In Progress, Code Review, QA" class="tl-input tl-input--full" />
+                            <label class="tl-label tl-label--field" for="connection-triage-statuses">Triage statuses <span class="tl-hint-inline">(optional)</span></label>
+                            <input id="connection-triage-statuses" v-model="form.triage_statuses" type="text" placeholder="In Progress, Code Review, QA" class="tl-input tl-input--full" />
                             <p class="tl-hint">Comma-separated Jira status names shown in triage.</p>
                         </div>
 

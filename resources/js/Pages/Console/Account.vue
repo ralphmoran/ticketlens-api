@@ -198,25 +198,25 @@ async function revokeToken() {
             <form class="tl-card--sm" @submit.prevent="saveProfile">
                 <div class="tl-form-stack">
                     <div class="tl-stack--sm">
-                        <label class="tl-label tl-label--field">Name</label>
-                        <input v-model="profileForm.name" type="text" class="tl-input tl-input--full" />
+                        <label class="tl-label tl-label--field" for="account-name">Name</label>
+                        <input id="account-name" v-model="profileForm.name" type="text" class="tl-input tl-input--full" />
                         <p v-if="profileForm.errors.name" class="tl-error">{{ profileForm.errors.name }}</p>
                     </div>
 
                     <div class="tl-stack--sm">
-                        <label class="tl-label tl-label--field">Phone</label>
-                        <input v-model="profileForm.phone" type="tel" placeholder="Optional" class="tl-input tl-input--full" />
+                        <label class="tl-label tl-label--field" for="account-phone">Phone</label>
+                        <input id="account-phone" v-model="profileForm.phone" type="tel" placeholder="Optional" class="tl-input tl-input--full" />
                         <p v-if="profileForm.errors.phone" class="tl-error">{{ profileForm.errors.phone }}</p>
                     </div>
 
                     <div class="tl-stack--sm">
-                        <label class="tl-label tl-label--field">Email</label>
-                        <input :value="account.email" type="email" readonly class="tl-input tl-input--full" />
+                        <label class="tl-label tl-label--field" for="account-email">Email</label>
+                        <input id="account-email" :value="account.email" type="email" readonly class="tl-input tl-input--full" />
                         <p class="tl-hint">Email changes aren't supported yet.</p>
                     </div>
 
                     <div class="tl-stack--sm">
-                        <label class="tl-label tl-label--field">Plan</label>
+                        <p class="tl-label tl-label--field">Plan</p>
                         <span class="tl-badge tl-cap" :class="tierBadge(account.tier)">{{ account.tier }}</span>
                     </div>
                 </div>
@@ -236,20 +236,20 @@ async function revokeToken() {
 
             <form class="tl-form-stack" @submit.prevent="savePassword">
                 <div class="tl-stack--sm">
-                    <label class="tl-label tl-label--field">Current password</label>
-                    <input v-model="passwordForm.current_password" type="password" class="tl-input tl-input--full" autocomplete="current-password" />
+                    <label class="tl-label tl-label--field" for="current-password">Current password</label>
+                    <input id="current-password" v-model="passwordForm.current_password" type="password" class="tl-input tl-input--full" autocomplete="current-password" />
                     <p v-if="passwordForm.errors.current_password" class="tl-error">{{ passwordForm.errors.current_password }}</p>
                 </div>
 
                 <div class="tl-stack--sm">
-                    <label class="tl-label tl-label--field">New password</label>
-                    <input v-model="passwordForm.password" type="password" class="tl-input tl-input--full" autocomplete="new-password" />
+                    <label class="tl-label tl-label--field" for="new-password">New password</label>
+                    <input id="new-password" v-model="passwordForm.password" type="password" class="tl-input tl-input--full" autocomplete="new-password" />
                     <p v-if="passwordForm.errors.password" class="tl-error">{{ passwordForm.errors.password }}</p>
                 </div>
 
                 <div class="tl-stack--sm">
-                    <label class="tl-label tl-label--field">Confirm new password</label>
-                    <input v-model="passwordForm.password_confirmation" type="password" class="tl-input tl-input--full" autocomplete="new-password" />
+                    <label class="tl-label tl-label--field" for="confirm-password">Confirm new password</label>
+                    <input id="confirm-password" v-model="passwordForm.password_confirmation" type="password" class="tl-input tl-input--full" autocomplete="new-password" />
                 </div>
 
                 <div class="tl-card-actions">
@@ -268,9 +268,10 @@ async function revokeToken() {
 
             <!-- One-time reveal -->
             <div v-if="page.props.flash?.cli_token_generated" class="tl-note-box tl-card-gap">
-                <label class="tl-label tl-label--field">CLI token (shown once — won't be shown again)</label>
+                <label class="tl-label tl-label--field" for="cli-token-reveal">CLI token (shown once — won't be shown again)</label>
                 <div class="tl-row">
                     <input
+                        id="cli-token-reveal"
                         :value="page.props.flash.cli_token_generated"
                         readonly
                         class="tl-input tl-btn--grow tl-mono"

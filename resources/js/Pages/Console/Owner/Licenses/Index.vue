@@ -232,8 +232,9 @@ const STATUS_COLORS = {
                     {{ editing.user?.name ?? editing.user?.email }} — {{ editing.tier }} license
                 </p>
 
-                <label class="tl-field-label tl-field-label--xs">Expiry date</label>
+                <label class="tl-field-label tl-field-label--xs" for="edit-expiry-date">Expiry date</label>
                 <input
+                    id="edit-expiry-date"
                     v-model="editDate"
                     type="date"
                     class="tl-input tl-input--full"

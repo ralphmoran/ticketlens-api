@@ -240,8 +240,8 @@ const TIER_LABELS = { free: 'Free', pro: 'Pro', team: 'Team', enterprise: 'Enter
 
             <!-- Tier selector -->
             <div v-if="!client.is_owner" class="tl-row">
-                <label class="tl-label tl-tier-label-col">Tier</label>
-                <select v-model="form.tier" class="tl-select tl-select--sm tl-select--tier">
+                <label class="tl-label tl-tier-label-col" for="client-tier-select">Tier</label>
+                <select id="client-tier-select" v-model="form.tier" class="tl-select tl-select--sm tl-select--tier">
                     <option value="free">Free</option>
                     <option value="pro">Pro</option>
                     <option value="team">Team</option>
@@ -386,8 +386,9 @@ const TIER_LABELS = { free: 'Free', pro: 'Pro', team: 'Team', enterprise: 'Enter
                         </p>
                         <div class="tl-row tl-row--wrap tl-row--bottom">
                             <div class="tl-field">
-                                <label class="tl-label">Expires</label>
+                                <label class="tl-label" for="grant-expires">Expires</label>
                                 <input
+                                    id="grant-expires"
                                     type="date"
                                     v-model="expandForm.expires_at"
                                     :min="today"
@@ -397,8 +398,9 @@ const TIER_LABELS = { free: 'Free', pro: 'Pro', team: 'Team', enterprise: 'Enter
                                 <span class="tl-hint">Leave blank for a permanent grant</span>
                             </div>
                             <div class="tl-field tl-field-key">
-                                <label class="tl-label">Note</label>
+                                <label class="tl-label" for="grant-note">Note</label>
                                 <input
+                                    id="grant-note"
                                     type="text"
                                     v-model="expandForm.note"
                                     placeholder="e.g. Pilot trial"

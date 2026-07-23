@@ -49,6 +49,7 @@ services:
 
     proxy:
         image: 'nginx:alpine'
+        restart: unless-stopped
         ports:
             - '80:80'
         volumes:

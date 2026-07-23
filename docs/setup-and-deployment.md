@@ -173,15 +173,21 @@ Run migrations:
 ./vendor/bin/sail artisan migrate
 ```
 
-### 5. Start the queue worker
+### 5. Queue worker
 
-Digest emails are dispatched as queued jobs. The worker must be running:
+Digest emails, Slack notifications, and other queued jobs are processed by the `worker` service in `compose.yaml` — it starts automatically with `sail up -d` and restarts on its own if it ever crashes (`restart: unless-stopped`), no separate terminal needed.
+
+To confirm it's running:
 
 ```bash
-./vendor/bin/sail artisan queue:work --sleep=1 --tries=3 --timeout=60
+docker ps --filter name=ticketlens-api-worker --format "table {{.Names}}\t{{.Status}}"
 ```
 
-Run this in a separate terminal and keep it running during local development.
+For debugging a specific job interactively, run a one-off foreground worker instead (stop it with Ctrl+C when done — it won't interfere with the persistent one):
+
+```bash
+./vendor/bin/sail artisan queue:work --sleep=1 --tries=3 --timeout=60 --once
+```
 
 > Use `--timeout=60` to match production. The `SendDigestEmail` job inherits the worker's timeout; a lower value here can kill jobs that complete fine in production.
 

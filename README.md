@@ -248,11 +248,7 @@ SLACK_REDIRECT_URI=https://your-ngrok-url.ngrok-free.app/console/slack/callback
 | `SendDigestEmail` | On demand (queued) | Delivers triage digest emails |
 | `RevokeExpiredGrantsJob` | Hourly | Marks expired feature grants as revoked, resyncs permissions |
 
-Start the queue worker during local development:
-
-```bash
-./vendor/bin/sail artisan queue:work --tries=3 --timeout=60
-```
+The queue worker runs as its own `sail up -d` service (`compose.yaml`'s `worker`) and restarts automatically if it crashes — no manual terminal needed. Check it's up with `docker ps --filter name=ticketlens-api-worker`.
 
 ---
 

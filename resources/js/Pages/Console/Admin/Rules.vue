@@ -535,12 +535,13 @@ async function destroyCustom() {
                     to enable them.
                 </p>
 
-                <p v-if="unconnected_members.length" class="tl-hint">
-                    Force urgent / Ignore won't apply to
-                    {{ unconnectedMembersSummary }}
-                    — they haven't connected a tracker profile on the
-                    <a href="/console/connections" class="tl-link tl-link--md">Connections page</a>.
-                </p>
+                <div v-if="unconnected_members.length" class="tl-banner tl-banner--warn tl-banner--slim tl-card-gap-sm">
+                    <TlIcon name="warning-triangle" class="tl-ic tl-banner-icon" />
+                    <span class="tl-banner-title">
+                        Force urgent / Ignore won't apply to {{ unconnectedMembersSummary }} — they haven't connected a tracker profile on the
+                        <a href="/console/connections" class="tl-link tl-link--md">Connections page</a>.
+                    </span>
+                </div>
 
                 <div v-if="profiles.length" class="tl-stack--sm">
                     <label class="tl-label tl-label--field" for="rule-value-source">Source values from</label>

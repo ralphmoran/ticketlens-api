@@ -37,10 +37,16 @@
   }
 
   .tl-settings-nav-item {
-    @apply px-3 py-2 text-sm rounded-md cursor-pointer shrink-0 whitespace-nowrap;
+    @apply inline-flex items-center gap-2 px-3 py-2 text-sm rounded-md cursor-pointer shrink-0 whitespace-nowrap;
     color: var(--tl-text-secondary);
     border-bottom: 2px solid transparent;
     transition: background-color var(--tl-transition), color var(--tl-transition);
+  }
+  .tl-settings-nav-item > .tl-ic {
+    color: var(--tl-text-muted);
+  }
+  .tl-settings-nav-item--active > .tl-ic {
+    color: var(--tl-brand-soft);
   }
   .tl-settings-nav-item:hover {
     background-color: var(--tl-surface-2);

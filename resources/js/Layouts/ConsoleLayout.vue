@@ -242,7 +242,6 @@ const navGroups = computed(() => [
         requiresTeamManager: false,
         items: [
             { label: 'Dashboard',       href: '/console/dashboard',             permission: null, icon: 'dashboard' },
-            { label: 'Connections',     href: '/console/connections',           permission: null, icon: 'link' },
             { label: 'Analytics',       href: '/console/analytics',             permission: null, icon: 'chart-bar' },
             { label: 'Response Stats',  href: '/console/admin/stats',           permission: null, icon: 'trending-up', requiresTeamContext: true },
             { label: 'Process Metrics', href: '/console/admin/process-metrics', permission: Permission.TeamManageMembers, icon: 'gauge', managerOnly: true, ownerExcluded: false },

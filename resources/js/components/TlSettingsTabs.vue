@@ -12,6 +12,7 @@
  */
 import { computed, onMounted, ref } from 'vue'
 import { usePage } from '@inertiajs/vue3'
+import TlIcon from '@/components/TlIcon.vue'
 
 const props = defineProps({
     activeKey: { type: String, required: true },
@@ -31,24 +32,24 @@ const groups = computed(() => {
     const auth = page.props.auth ?? {}
 
     const myAccount = [
-        { key: 'profile',     label: 'Profile',     href: '/console/account' },
-        { key: 'connections', label: 'Connections', href: '/console/connections' },
+        { key: 'profile',     label: 'Profile',     href: '/console/account',     icon: 'user-circle' },
+        { key: 'connections', label: 'Connections', href: '/console/connections', icon: 'link' },
     ]
 
     const teamConfig = []
     if (auth.is_team_manager) {
-        teamConfig.push({ key: 'jira', label: 'Jira Config', href: '/console/admin/jira' })
+        teamConfig.push({ key: 'jira', label: 'Jira Config', href: '/console/admin/jira', icon: 'jira' })
     }
     if (auth.is_team_manager && auth.can?.TeamManageSeats) {
-        teamConfig.push({ key: 'seats', label: 'Seats', href: '/console/admin/seats' })
+        teamConfig.push({ key: 'seats', label: 'Seats', href: '/console/admin/seats', icon: 'user-group' })
     }
     // Matches the pre-redesign sidebar's per-item ownerExcluded flags: Jira Config was
     // owner-excluded, Integrations was not (owner also manages Slack for themselves).
     if (auth.is_team_manager || auth.is_owner) {
-        teamConfig.push({ key: 'integrations', label: 'Integrations', href: '/console/admin/integrations' })
+        teamConfig.push({ key: 'integrations', label: 'Integrations', href: '/console/admin/integrations', icon: 'plug' })
     }
     if (auth.can?.Summarize) {
-        teamConfig.push({ key: 'ai', label: 'AI Settings', href: '/console/admin/ai' })
+        teamConfig.push({ key: 'ai', label: 'AI Settings', href: '/console/admin/ai', icon: 'sparkles' })
     }
 
     const result = [{ label: 'My Account', tabs: myAccount }]
@@ -71,6 +72,7 @@ const groups = computed(() => {
                     class="tl-settings-nav-item"
                     :class="tab.key === activeKey ? 'tl-settings-nav-item--active' : ''"
                 >
+                    <TlIcon :name="tab.icon" class="tl-ic tl-ic--sm" />
                     {{ tab.label }}
                 </a>
             </template>

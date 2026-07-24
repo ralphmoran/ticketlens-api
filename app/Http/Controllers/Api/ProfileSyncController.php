@@ -33,7 +33,7 @@ class ProfileSyncController extends Controller
             })
             ->values();
 
-        return response()->json(['profiles' => $profiles]);
+        return response()->json(['profiles' => $profiles, 'tier' => $user->tier]);
     }
 
     private function resolveGroup(User $user): ?Group

@@ -85,6 +85,14 @@ function complianceLabel(status, coverage) {
     return coverage !== null ? `${coverage}%` : status
 }
 
+function priorityBadge(priority) {
+    const rank = priorityRank(priority)
+    if (rank === 0) return 'tl-badge tl-badge--danger'
+    if (rank === 1) return 'tl-badge tl-badge--warn'
+    if (rank === 2) return 'tl-badge tl-badge--info'
+    return 'tl-badge tl-badge--neutral'
+}
+
 function flagBadge(flag) {
     return flag === 'needs-response' ? 'tl-badge tl-badge--brand' : 'tl-badge tl-badge--neutral'
 }
@@ -224,6 +232,7 @@ onUnmounted(() => clearInterval(timer))
                             <p v-else class="tl-hint tl-italic">No summary — run triage --push for full data</p>
                             <div class="tl-row tl-row--wrap tl-row--tight">
                                 <span v-if="ticket.status" class="tl-badge tl-badge--neutral">{{ ticket.status }}</span>
+                                <span v-if="ticket.priority" :class="priorityBadge(ticket.priority)">{{ ticket.priority }}</span>
                                 <span v-for="flag in ticket.flags" :key="flag" :class="flagBadge(flag)">
                                     {{ flagLabel(flag) }}
                                 </span>
@@ -244,6 +253,7 @@ onUnmounted(() => clearInterval(timer))
                                     <th class="tl-th">Key</th>
                                     <th class="tl-th">Summary</th>
                                     <th class="tl-th">Status</th>
+                                    <th class="tl-th">Priority</th>
                                     <th class="tl-th">Flags</th>
                                     <th class="tl-th tl-th--right">Compliance</th>
                                     <th class="tl-th tl-th--right">Score</th>
@@ -264,6 +274,10 @@ onUnmounted(() => clearInterval(timer))
                                     </td>
                                     <td class="tl-td">
                                         <span v-if="ticket.status" class="tl-badge tl-badge--neutral">{{ ticket.status }}</span>
+                                        <span v-else class="tl-hint">—</span>
+                                    </td>
+                                    <td class="tl-td">
+                                        <span v-if="ticket.priority" :class="priorityBadge(ticket.priority)">{{ ticket.priority }}</span>
                                         <span v-else class="tl-hint">—</span>
                                     </td>
                                     <td class="tl-td">

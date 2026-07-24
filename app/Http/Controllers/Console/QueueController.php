@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Console;
 
 use App\Models\TriageSnapshot;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -21,5 +22,16 @@ class QueueController
         return Inertia::render('Console/Queue', [
             'snapshots' => $snapshots,
         ]);
+    }
+
+    public function updateSortPreference(Request $request): RedirectResponse
+    {
+        $data = $request->validate([
+            'triage_sort_preference' => ['required', 'in:urgency,priority'],
+        ]);
+
+        $request->user()->update(['triage_sort_preference' => $data['triage_sort_preference']]);
+
+        return back();
     }
 }

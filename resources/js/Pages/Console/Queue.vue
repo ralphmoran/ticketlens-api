@@ -37,6 +37,15 @@ const refreshing = ref(false)
 const perPage    = ref(10)
 let timer = null
 
+const savingSortPreference = ref(false)
+function saveSortPreference(value) {
+    savingSortPreference.value = true
+    router.patch('/console/queue/sort-preference', { triage_sort_preference: value }, {
+        preserveScroll: true,
+        onFinish: () => { savingSortPreference.value = false },
+    })
+}
+
 // Track which snapshot IDs are expanded
 const expanded = ref(new Set())
 
@@ -137,10 +146,23 @@ onUnmounted(() => clearInterval(timer))
                 <h1 class="tl-heading">Attention Queue</h1>
                 <p class="tl-subtext">Your personal Jira ticket queue — pushed from the CLI</p>
             </div>
-            <button class="tl-btn tl-btn--secondary tl-btn--sm" :disabled="refreshing" @click="manualRefresh">
-                <TlIcon name="refresh" class="tl-ic tl-ic--sm" :class="{ 'tl-spin': refreshing }" />
-                Refresh
-            </button>
+            <div class="tl-row tl-row--tight">
+                <label class="tl-hint" for="queue-sort-preference">Sort by</label>
+                <select
+                    id="queue-sort-preference"
+                    class="tl-select tl-select--sm"
+                    :value="page.props.auth.user?.triage_sort_preference ?? 'urgency'"
+                    :disabled="savingSortPreference"
+                    @change="saveSortPreference($event.target.value)"
+                >
+                    <option value="urgency">Urgency</option>
+                    <option value="priority">Priority</option>
+                </select>
+                <button class="tl-btn tl-btn--secondary tl-btn--sm" :disabled="refreshing" @click="manualRefresh">
+                    <TlIcon name="refresh" class="tl-ic tl-ic--sm" :class="{ 'tl-spin': refreshing }" />
+                    Refresh
+                </button>
+            </div>
         </div>
 
         <!-- Feature description -->

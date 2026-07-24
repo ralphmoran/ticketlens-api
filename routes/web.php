@@ -141,6 +141,8 @@ Route::prefix('console')->name('console.')->group(function () {
         // Dev Attention Queue (Team tier)
         Route::get('/queue', [\App\Http\Controllers\Console\QueueController::class, 'index'])
             ->middleware('permission:AttentionQueue')->name('queue');
+        Route::patch('/queue/sort-preference', [\App\Http\Controllers\Console\QueueController::class, 'updateSortPreference'])
+            ->middleware('permission:AttentionQueue')->name('queue.sort-preference');
 
         // Team management
         Route::get('/team', [\App\Http\Controllers\Console\TeamController::class, 'index'])

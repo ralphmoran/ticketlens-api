@@ -31,7 +31,6 @@ class AccountController
                 'phone'                   => $user->phone,
                 'tier'                    => $user->tier,
                 'avatar_url'              => $user->avatarUrl(),
-                'triage_sort_preference'  => $user->triage_sort_preference,
                 'license'    => $license ? [
                     'status'     => $license->status,
                     'expires_at' => $license->expires_at?->toDateString(),
@@ -43,15 +42,13 @@ class AccountController
     public function update(Request $request): RedirectResponse
     {
         $data = $request->validate([
-            'name'                    => ['required', 'string', 'max:255'],
-            'phone'                   => ['nullable', 'string', 'max:30'],
-            'triage_sort_preference'  => ['sometimes', 'in:urgency,priority'],
+            'name'  => ['required', 'string', 'max:255'],
+            'phone' => ['nullable', 'string', 'max:30'],
         ]);
 
         $request->user()->update([
             'name'  => $data['name'],
             'phone' => $data['phone'],
-            ...(isset($data['triage_sort_preference']) ? ['triage_sort_preference' => $data['triage_sort_preference']] : []),
         ]);
 
         return back()->with('success', 'Profile updated.');

@@ -174,4 +174,55 @@ class QueueControllerTest extends TestCase
 
         $response->assertInertia(fn ($page) => $page->has('snapshots.data', 0));
     }
+
+    public function test_update_sort_preference_persists_priority(): void
+    {
+        $user = $this->makeTeamUser()->fresh();
+
+        $this->actingAs($user)
+            ->patch('/console/queue/sort-preference', ['triage_sort_preference' => 'priority'])
+            ->assertRedirect();
+
+        $this->assertSame('priority', $user->fresh()->triage_sort_preference);
+    }
+
+    public function test_update_sort_preference_persists_urgency(): void
+    {
+        $user = $this->makeTeamUser()->fresh();
+        $user->update(['triage_sort_preference' => 'priority']);
+
+        $this->actingAs($user)
+            ->patch('/console/queue/sort-preference', ['triage_sort_preference' => 'urgency'])
+            ->assertRedirect();
+
+        $this->assertSame('urgency', $user->fresh()->triage_sort_preference);
+    }
+
+    public function test_update_sort_preference_rejects_invalid_value(): void
+    {
+        $user = $this->makeTeamUser()->fresh();
+
+        $this->actingAs($user)
+            ->patch('/console/queue/sort-preference', ['triage_sort_preference' => 'bogus'])
+            ->assertSessionHasErrors('triage_sort_preference');
+
+        $this->assertSame('urgency', $user->fresh()->triage_sort_preference);
+    }
+
+    public function test_update_sort_preference_requires_authentication(): void
+    {
+        $this->patch('/console/queue/sort-preference', ['triage_sort_preference' => 'priority'])
+            ->assertRedirect('/console/login');
+    }
+
+    public function test_pro_user_cannot_update_sort_preference(): void
+    {
+        $user = $this->makeProUser()->fresh();
+
+        $this->actingAs($user)
+            ->patch('/console/queue/sort-preference', ['triage_sort_preference' => 'priority'])
+            ->assertRedirect('/console/upgrade');
+
+        $this->assertSame('urgency', $user->fresh()->triage_sort_preference);
+    }
 }

@@ -2,7 +2,7 @@
 import ConsoleLayout from '@/Layouts/ConsoleLayout.vue'
 import TlIcon from '@/components/TlIcon.vue'
 import TlPagination from '@/Components/TlPagination.vue'
-import { router } from '@inertiajs/vue3'
+import { router, usePage } from '@inertiajs/vue3'
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useEventsStore } from '@/stores/events'
 
@@ -16,6 +16,22 @@ watch(() => eventsStore.lastEvent, (e) => {
 const props = defineProps({
     snapshots: { type: Object, default: () => ({ data: [], current_page: 1, last_page: 1, total: 0 }) },
 })
+
+const page = usePage()
+
+// Same classification as the CLI's PRIORITY_ORDER (attention-scorer.mjs) — kept independent,
+// no shared source, since this is a self-service per-user preference, not synced from the CLI.
+const PRIORITY_ORDER = { highest: 0, urgent: 0, blocker: 0, high: 1, medium: 2, low: 3, lowest: 4 }
+function priorityRank(priority) {
+    if (!priority) return Infinity
+    const rank = PRIORITY_ORDER[priority.toLowerCase()]
+    return rank === undefined ? Infinity : rank
+}
+
+function sortedTickets(tickets) {
+    if (page.props.auth.user?.triage_sort_preference !== 'priority') return tickets
+    return [...tickets].sort((a, b) => priorityRank(a.priority) - priorityRank(b.priority))
+}
 
 const refreshing = ref(false)
 const perPage    = ref(10)
@@ -195,7 +211,7 @@ onUnmounted(() => clearInterval(timer))
                 <div v-if="expanded.has(snap.id)">
                     <!-- Mobile cards -->
                     <div class="tl-mobile-list">
-                        <div v-for="ticket in snap.tickets" :key="ticket.key" class="tl-mobile-row">
+                        <div v-for="ticket in sortedTickets(snap.tickets)" :key="ticket.key" class="tl-mobile-row">
                             <div class="tl-row tl-row--between tl-row--top">
                                 <a :href="ticket.url" target="_blank" rel="noopener" class="tl-kbd tl-kbd--link">
                                     {{ ticket.key }}
@@ -234,7 +250,7 @@ onUnmounted(() => clearInterval(timer))
                                 </tr>
                             </thead>
                             <tbody class="tl-divide">
-                                <tr v-for="ticket in snap.tickets" :key="ticket.key" class="tl-tr">
+                                <tr v-for="ticket in sortedTickets(snap.tickets)" :key="ticket.key" class="tl-tr">
                                     <td class="tl-td">
                                         <a v-if="ticket.url" :href="ticket.url" target="_blank" rel="noopener"
                                            class="tl-kbd tl-kbd--link tl-nowrap">

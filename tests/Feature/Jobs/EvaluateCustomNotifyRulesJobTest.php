@@ -42,13 +42,18 @@ class EvaluateCustomNotifyRulesJobTest extends TestCase
         ]);
     }
 
-    private function makeCustomRule(Group $group, array $rules, bool $enabled = true): WorkflowRule
+    private function makeCustomRule(Group $group, array $rules, bool $enabled = true, ?int $cooldownHours = null): WorkflowRule
     {
+        $config = ['rules' => $rules];
+        if ($cooldownHours !== null) {
+            $config['cooldown_hours'] = $cooldownHours;
+        }
+
         return WorkflowRule::create([
             'group_id' => $group->id,
             'type'     => 'custom',
             'enabled'  => $enabled,
-            'config'   => ['rules' => $rules],
+            'config'   => $config,
         ]);
     }
 
@@ -264,6 +269,52 @@ class EvaluateCustomNotifyRulesJobTest extends TestCase
             'alert_type'   => 'custom_notify',
             'ticket_key'   => 'P-1',
             'triggered_at' => now()->subHours(1),
+        ]);
+
+        $slack = $this->mockSlack();
+        $slack->shouldNotReceive('postMessage');
+
+        (new EvaluateCustomNotifyRulesJob($user->id, $snapshot->id))->handle($slack);
+    }
+
+    public function test_honors_shorter_custom_cooldown_than_the_4h_default(): void
+    {
+        $user  = $this->makeTeamUser();
+        $group = $user->groups()->first();
+        $this->makeSlack($group);
+        $this->makeCustomRule($group, [
+            ['match' => ['priority' => 'Highest'], 'action' => 'notify', 'reason' => 'P1'],
+        ], enabled: true, cooldownHours: 1);
+        $snapshot = $this->makeSnapshot($user, [$this->ticket('P-1', ['priority' => 'Highest'])]);
+
+        SentAlertLog::create([
+            'group_id'     => $group->id,
+            'alert_type'   => 'custom_notify',
+            'ticket_key'   => 'P-1',
+            'triggered_at' => now()->subHours(2), // past the 1h custom cooldown, still within the old 4h default
+        ]);
+
+        $slack = $this->mockSlack();
+        $slack->shouldReceive('postMessage')->once();
+
+        (new EvaluateCustomNotifyRulesJob($user->id, $snapshot->id))->handle($slack);
+    }
+
+    public function test_honors_longer_custom_cooldown_than_the_4h_default(): void
+    {
+        $user  = $this->makeTeamUser();
+        $group = $user->groups()->first();
+        $this->makeSlack($group);
+        $this->makeCustomRule($group, [
+            ['match' => ['priority' => 'Highest'], 'action' => 'notify', 'reason' => 'P1'],
+        ], enabled: true, cooldownHours: 24);
+        $snapshot = $this->makeSnapshot($user, [$this->ticket('P-1', ['priority' => 'Highest'])]);
+
+        SentAlertLog::create([
+            'group_id'     => $group->id,
+            'alert_type'   => 'custom_notify',
+            'ticket_key'   => 'P-1',
+            'triggered_at' => now()->subHours(5), // past the old 4h default, still within the 24h custom cooldown
         ]);
 
         $slack = $this->mockSlack();

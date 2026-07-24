@@ -220,6 +220,7 @@ class RulesController extends Controller
 
         $validator = Validator::make($request->all(), [
             'enabled'                  => ['required', 'boolean'],
+            'cooldown_hours'           => ['sometimes', 'integer', 'min:1', 'max:720'],
             'rules'                    => ['required', 'array', 'min:1', 'max:50'],
             'rules.*.action'           => ['required', Rule::in(['force-urgent', 'ignore', 'notify', 'schedule'])],
             'rules.*.match'            => ['required', 'array'],
@@ -260,7 +261,10 @@ class RulesController extends Controller
             ['group_id' => $group->id, 'type' => 'custom'],
             [
                 'enabled' => $data['enabled'],
-                'config'  => ['rules' => $rules],
+                'config'  => array_filter([
+                    'rules'          => $rules,
+                    'cooldown_hours' => $data['cooldown_hours'] ?? null,
+                ], fn ($v) => $v !== null),
             ],
         );
 

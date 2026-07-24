@@ -34,7 +34,7 @@ class EvaluateCustomNotifyRulesJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    private const COOLDOWN_HOURS = 4;
+    private const DEFAULT_COOLDOWN_HOURS = 4;
     private const ALERT_TYPE = 'custom_notify';
 
     public int $tries = 3;
@@ -80,15 +80,16 @@ class EvaluateCustomNotifyRulesJob implements ShouldQueue
             return;
         }
 
-        $rules   = $customRule->config['rules'] ?? [];
-        $matcher = new CustomRuleMatcher();
-        $escaper = new SlackMrkdwnEscaper();
+        $rules         = $customRule->config['rules'] ?? [];
+        $cooldownHours = (int) ($customRule->config['cooldown_hours'] ?? self::DEFAULT_COOLDOWN_HOURS);
+        $matcher       = new CustomRuleMatcher();
+        $escaper       = new SlackMrkdwnEscaper();
 
         // Batched once, checked in-memory per ticket — avoids a SELECT per
         // matched ticket (a broad match rule could match dozens per push).
         $recentlySentKeys = SentAlertLog::where('group_id', $group->id)
             ->where('alert_type', self::ALERT_TYPE)
-            ->where('triggered_at', '>=', now()->subHours(self::COOLDOWN_HOURS))
+            ->where('triggered_at', '>=', now()->subHours($cooldownHours))
             ->pluck('ticket_key')
             ->flip();
 

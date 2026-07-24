@@ -148,6 +148,12 @@ function remove() {
             </div>
         </div>
 
+        <p class="tl-body--muted">
+            <strong class="tl-value">Looking for staleness, custom alert rules, or notify cooldowns?</strong>
+            Those are managed on the
+            <a href="/console/admin/rules" class="tl-link tl-link--md">Workflow Rules page</a>.
+        </p>
+
         <!-- ── Connection Test ───────────────────────────────────── -->
         <div class="tl-card tl-card--lg tl-form-stack">
             <div>

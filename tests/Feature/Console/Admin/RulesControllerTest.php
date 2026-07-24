@@ -511,6 +511,66 @@ class RulesControllerTest extends TestCase
         ]);
     }
 
+    public function test_save_custom_persists_cooldown_hours(): void
+    {
+        $user  = $this->makeManager();
+        $group = $user->ownedGroup;
+
+        $this->actingAs($user)->post('/console/admin/rules/custom', [
+            'enabled'        => true,
+            'cooldown_hours' => 12,
+            'rules'          => [
+                ['match' => ['priority' => 'Highest'], 'action' => 'force-urgent', 'reason' => 'P1'],
+            ],
+        ])->assertRedirect();
+
+        $rule = WorkflowRule::where('group_id', $group->id)->where('type', 'custom')->first();
+        $this->assertSame(12, $rule->config['cooldown_hours']);
+        $this->assertNotEmpty($rule->config['rules'], 'rules must survive the same write, not be dropped');
+    }
+
+    public function test_save_custom_rejects_cooldown_hours_over_720(): void
+    {
+        $user = $this->makeManager();
+
+        $this->actingAs($user)->post('/console/admin/rules/custom', [
+            'enabled'        => true,
+            'cooldown_hours' => 721,
+            'rules'          => [
+                ['match' => ['priority' => 'Highest'], 'action' => 'force-urgent', 'reason' => 'P1'],
+            ],
+        ])->assertSessionHasErrors('cooldown_hours');
+    }
+
+    public function test_save_custom_rejects_cooldown_hours_below_1(): void
+    {
+        $user = $this->makeManager();
+
+        $this->actingAs($user)->post('/console/admin/rules/custom', [
+            'enabled'        => true,
+            'cooldown_hours' => 0,
+            'rules'          => [
+                ['match' => ['priority' => 'Highest'], 'action' => 'force-urgent', 'reason' => 'P1'],
+            ],
+        ])->assertSessionHasErrors('cooldown_hours');
+    }
+
+    public function test_save_custom_still_accepts_rules_without_cooldown_hours(): void
+    {
+        $user  = $this->makeManager();
+        $group = $user->ownedGroup;
+
+        $this->actingAs($user)->post('/console/admin/rules/custom', [
+            'enabled' => true,
+            'rules'   => [
+                ['match' => ['priority' => 'Highest'], 'action' => 'force-urgent', 'reason' => 'P1'],
+            ],
+        ])->assertRedirect();
+
+        $rule = WorkflowRule::where('group_id', $group->id)->where('type', 'custom')->first();
+        $this->assertArrayNotHasKey('cooldown_hours', $rule->config);
+    }
+
     public function test_save_custom_strips_control_characters_from_reason(): void
     {
         $user  = $this->makeManager();

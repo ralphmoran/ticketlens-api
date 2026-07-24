@@ -14,7 +14,7 @@ const props = defineProps({
     account: {
         type: Object,
         required: true,
-        // { name: string, email: string, phone: string|null, tier: string, avatar_url: string|null, license: null | { status: string, expires_at: string|null } }
+        // { name: string, email: string, phone: string|null, tier: string, avatar_url: string|null, triage_sort_preference: 'urgency'|'priority', license: null | { status: string, expires_at: string|null } }
     },
 })
 
@@ -76,8 +76,9 @@ async function removeAvatar() {
 // ── Profile form ─────────────────────────────────────────────────────────────
 
 const profileForm = useForm({
-    name:  props.account.name,
-    phone: props.account.phone ?? '',
+    name:                    props.account.name,
+    phone:                   props.account.phone ?? '',
+    triage_sort_preference:  props.account.triage_sort_preference,
 })
 
 function saveProfile() {
@@ -218,6 +219,16 @@ async function revokeToken() {
                     <div class="tl-stack--sm">
                         <p class="tl-label tl-label--field">Plan</p>
                         <span class="tl-badge tl-cap" :class="tierBadge(account.tier)">{{ account.tier }}</span>
+                    </div>
+
+                    <div class="tl-stack--sm">
+                        <label class="tl-label tl-label--field" for="account-sort-preference">Triage sort order</label>
+                        <select id="account-sort-preference" v-model="profileForm.triage_sort_preference" class="tl-input tl-input--full">
+                            <option value="urgency">Urgency (needs response, aging, stale)</option>
+                            <option value="priority">Priority (Highest first)</option>
+                        </select>
+                        <p class="tl-hint">Only affects your own triage view — the Console queue page and your CLI terminal output are set independently.</p>
+                        <p v-if="profileForm.errors.triage_sort_preference" class="tl-error">{{ profileForm.errors.triage_sort_preference }}</p>
                     </div>
                 </div>
 

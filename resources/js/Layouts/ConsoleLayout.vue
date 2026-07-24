@@ -258,6 +258,7 @@ const navGroups = computed(() => [
             { label: 'Compliance',     href: '/console/compliance',     permission: Permission.Compliance, icon: 'shield-check' },
             { label: 'Export',         href: '/console/export',         permission: Permission.Export,     icon: 'download' },
             { label: 'Workflow Rules', href: '/console/admin/rules',    permission: Permission.WorkflowRules, icon: 'git-branch', managerOnly: true, ownerExcluded: false },
+            { label: 'Jira Connection', href: '/console/admin/jira',    permission: null, icon: 'jira', managerOnly: true, ownerExcluded: false },
         ]
     },
     {

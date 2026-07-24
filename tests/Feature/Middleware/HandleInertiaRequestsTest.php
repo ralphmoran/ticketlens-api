@@ -21,7 +21,7 @@ class HandleInertiaRequestsTest extends TestCase
             'email'       => 'alice@test.com',
             'tier'        => 'free',
             'permissions' => 1,
-        ]);
+        ])->fresh(); // pick up triage_sort_preference's DB-level default, not just what create() set
 
         $this->actingAs($user)->get('/console/dashboard')
             ->assertInertia(fn ($page) => $page
@@ -30,6 +30,7 @@ class HandleInertiaRequestsTest extends TestCase
                 ->where('auth.user.tier', 'free')
                 ->where('auth.user.permissions', 1)
                 ->where('auth.user.avatar_url', null)
+                ->where('auth.user.triage_sort_preference', 'urgency')
             );
     }
 

@@ -179,9 +179,10 @@ function ruleToRow(rule) {
 }
 
 const customForm = useForm({
-    manager_id: props.selected_manager?.id ?? null,
-    enabled:    props.custom_rule?.enabled ?? true,
-    rules:      props.custom_rule?.config?.rules?.map(ruleToRow) ?? [],
+    manager_id:      props.selected_manager?.id ?? null,
+    enabled:         props.custom_rule?.enabled ?? true,
+    rules:           props.custom_rule?.config?.rules?.map(ruleToRow) ?? [],
+    cooldown_hours:  props.custom_rule?.config?.cooldown_hours ?? 4,
 })
 
 const hasCustomRule = computed(() => props.custom_rule !== null)
@@ -210,9 +211,10 @@ function removeCustomRule(index) {
 function saveCustom() {
     customForm
         .transform(data => ({
-            manager_id: data.manager_id,
-            enabled:    data.enabled,
-            rules:      data.rules.map(row => ({
+            manager_id:      data.manager_id,
+            enabled:         data.enabled,
+            cooldown_hours:  data.cooldown_hours,
+            rules:           data.rules.map(row => ({
                 match:  { [row.matchField]: row.matchValue },
                 action: row.action,
                 reason: row.reason || null,
@@ -347,6 +349,11 @@ async function destroyCustom() {
                 Enable <strong class="tl-value">Stale alerts</strong> on the
                 <a href="/console/admin/alerts" class="tl-link tl-link--md">Alerts page</a>
                 to get a Slack notification when stale tickets are detected.
+            </p>
+            <p class="tl-body--muted">
+                <strong class="tl-value">Looking for the status filter?</strong>
+                Which Jira statuses count as triage-worthy for your whole team is managed on the
+                <a href="/console/admin/jira" class="tl-link tl-link--md">Jira Connection page</a>.
             </p>
         </div>
 
@@ -541,6 +548,21 @@ async function destroyCustom() {
                         Force urgent / Ignore won't apply to {{ unconnectedMembersSummary }} — they haven't connected a tracker profile on the
                         <a href="/console/connections" class="tl-link tl-link--md">Connections page</a>.
                     </span>
+                </div>
+
+                <div class="tl-stack--sm">
+                    <label class="tl-label tl-label--field" for="custom-cooldown-hours">Notify cooldown (hours)</label>
+                    <input
+                        id="custom-cooldown-hours"
+                        v-model.number="customForm.cooldown_hours"
+                        type="number"
+                        min="1"
+                        max="720"
+                        class="tl-input tl-input--sm"
+                        :disabled="!customForm.enabled"
+                    />
+                    <p class="tl-hint">Don't resend the same ticket's notify alert for this many hours after it fires. Default 4.</p>
+                    <p v-if="customForm.errors.cooldown_hours" class="tl-error">{{ customForm.errors.cooldown_hours }}</p>
                 </div>
 
                 <div v-if="profiles.length" class="tl-stack--sm">

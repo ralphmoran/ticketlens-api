@@ -123,6 +123,50 @@ class AccountTest extends TestCase
             );
     }
 
+    public function test_account_page_exposes_triage_sort_preference_defaulting_to_urgency(): void
+    {
+        // No explicit override — proves the migration's DB-level default, not a runtime guess.
+        // ->fresh(): Eloquent's in-memory instance from create() doesn't know about a
+        // DB-applied default until re-queried; actingAs() would otherwise reuse that stale
+        // instance instead of the fresh() DB lookup a real request's auth guard performs.
+        $user = User::factory()->create(['tier' => 'pro', 'permissions' => 71])->fresh();
+
+        $this->actingAs($user)->get('/console/account')
+            ->assertStatus(200)
+            ->assertInertia(fn ($page) => $page
+                ->component('Console/Account')
+                ->where('account.triage_sort_preference', 'urgency')
+            );
+    }
+
+    public function test_update_saves_triage_sort_preference(): void
+    {
+        $user = User::factory()->create(['name' => 'Test User', 'triage_sort_preference' => 'urgency']);
+
+        $response = $this->actingAs($user)->patch('/console/account', [
+            'name'                    => 'Test User',
+            'phone'                   => null,
+            'triage_sort_preference'  => 'priority',
+        ]);
+
+        $response->assertRedirect();
+        $this->assertEquals('priority', $user->fresh()->triage_sort_preference);
+    }
+
+    public function test_update_rejects_invalid_triage_sort_preference(): void
+    {
+        $user = User::factory()->create(['name' => 'Test User', 'triage_sort_preference' => 'urgency']);
+
+        $response = $this->actingAs($user)->patch('/console/account', [
+            'name'                    => 'Test User',
+            'phone'                   => null,
+            'triage_sort_preference'  => 'not-a-real-value',
+        ]);
+
+        $response->assertSessionHasErrors('triage_sort_preference');
+        $this->assertEquals('urgency', $user->fresh()->triage_sort_preference);
+    }
+
     public function test_update_saves_name_and_phone(): void
     {
         $user = User::factory()->create(['name' => 'Old Name', 'phone' => null]);

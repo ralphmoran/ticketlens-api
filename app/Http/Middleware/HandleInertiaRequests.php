@@ -96,7 +96,7 @@ class HandleInertiaRequests extends Middleware
             ],
             'auth' => [
                 'user'                 => $user ? array_merge(
-                    $user->only('id', 'name', 'email', 'tier', 'permissions'),
+                    $user->only('id', 'name', 'email', 'tier', 'permissions', 'triage_sort_preference'),
                     ['avatar_url' => $user->avatarUrl()],
                 ) : null,
                 'effectivePermissions' => $effectivePermissions,

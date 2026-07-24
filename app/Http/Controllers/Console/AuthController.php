@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Services\TierService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response as HttpResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rules\Password;
@@ -23,7 +24,7 @@ class AuthController extends Controller
         return Inertia::render('Auth/Login');
     }
 
-    public function login(Request $request): RedirectResponse
+    public function login(Request $request): RedirectResponse|HttpResponse
     {
         $credentials = $request->validate([
             'email'    => ['required', 'email'],
@@ -46,6 +47,18 @@ class AuthController extends Controller
 
         if (! Auth::user()->hasVerifiedEmail()) {
             return redirect()->route('verification.notice');
+        }
+
+        // The CLI-auth handoff page is a plain Blade view, not an Inertia
+        // response — following it as a normal XHR redirect leaves Inertia's
+        // client trying to parse HTML as JSON, which throws and strands the
+        // navigation overlay. Force a hard browser navigation for it instead.
+        $intendedUrl = $request->session()->get('url.intended');
+
+        if ($intendedUrl && str_contains($intendedUrl, '/console/auth/cli')) {
+            $request->session()->forget('url.intended');
+
+            return Inertia::location($intendedUrl);
         }
 
         $destination = Auth::user()->is_owner

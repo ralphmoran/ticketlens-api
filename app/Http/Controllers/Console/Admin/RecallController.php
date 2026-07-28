@@ -3,7 +3,9 @@
 namespace App\Http\Controllers\Console\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Recall\UpdateSettingsRequest;
 use App\Models\RecallNote;
+use App\Models\RecallSettings;
 use App\Services\ActiveGroupResolver;
 use App\Services\AuditService;
 use App\Services\RecallStorage;
@@ -52,11 +54,20 @@ class RecallController extends Controller
 
         $user = $request->user();
 
+        $override = $group ? RecallSettings::where('group_id', $group->id)->first() : null;
+
         return Inertia::render('Console/Admin/Recall', [
             'group'     => $group ? ['id' => $group->id, 'name' => $group->name] : null,
             'notes'     => $notes,
             'canManage' => $user->is_owner || $user->ownedGroup?->id === $group?->id,
             'filters'   => ['search' => $search, 'per_page' => $perPage],
+            'settings'  => [
+                'values'     => $override
+                    ? $override->only(array_keys(RecallSettings::DEFAULTS))
+                    : RecallSettings::DEFAULTS,
+                'isOverride' => $override !== null,
+                'bounds'     => RecallSettings::BOUNDS,
+            ],
         ]);
     }
 
@@ -99,5 +110,31 @@ class RecallController extends Controller
         );
 
         return back()->with('success', 'Note deleted.');
+    }
+
+    public function updateSettings(UpdateSettingsRequest $request): RedirectResponse
+    {
+        // Same resolution + authorization shape as verify()/destroy() — this route
+        // is also inside team.manager, so a non-owner here is already a confirmed
+        // manager of *some* group; re-resolving here still confirms it's *this* one.
+        $group = $this->groupResolver->forRequest($request);
+        abort_unless($group !== null, 403);
+
+        $oldValue = RecallSettings::where('group_id', $group->id)->first()
+            ?->only(array_keys(RecallSettings::DEFAULTS)) ?? RecallSettings::DEFAULTS;
+
+        $settings = RecallSettings::updateOrCreate(
+            ['group_id' => $group->id],
+            $request->validated(),
+        );
+
+        $this->audit->logFromRequest(
+            request: $request,
+            action: 'recall.settings_updated',
+            oldValue: $oldValue,
+            newValue: $settings->only(array_keys(RecallSettings::DEFAULTS)),
+        );
+
+        return back()->with('success', 'Recall settings updated.');
     }
 }

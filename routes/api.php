@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\ComplianceController;
 use App\Http\Controllers\Api\DigestController;
 use App\Http\Controllers\Api\Recall\PullController as RecallPullController;
 use App\Http\Controllers\Api\Recall\PushController as RecallPushController;
+use App\Http\Controllers\Api\Recall\SettingsController as RecallSettingsController;
 use App\Http\Controllers\Api\ScheduleController;
 use App\Http\Controllers\Api\SummarizeController;
 use App\Http\Controllers\Api\TeamJiraConfigController;
@@ -32,6 +33,7 @@ RateLimiter::for('ai-test',     fn(Request $r) => Limit::perMinute(5)->by($r->be
 RateLimiter::for('triage',      fn(Request $r) => Limit::perMinute(30)->by($r->bearerToken() ?: $r->ip()));
 RateLimiter::for('recall',      fn(Request $r) => Limit::perMinute(30)->by($r->bearerToken() ?: $r->ip()));
 RateLimiter::for('team-config', fn(Request $r) => Limit::perMinute(30)->by($r->bearerToken() ?: $r->ip()));
+RateLimiter::for('recall-settings', fn(Request $r) => Limit::perMinute(30)->by($r->bearerToken() ?: $r->ip()));
 
 // Public license activation/validation — no auth, rate-limited by IP
 RateLimiter::for('license-act', fn(Request $r) => Limit::perMinute(10)->by($r->ip()));
@@ -83,6 +85,10 @@ Route::middleware(['throttle:api-global', 'auth.cli', 'license.tier:pro'])->grou
     Route::get('/v1/team/config', [TeamJiraConfigController::class, 'show'])
         ->middleware('throttle:team-config')
         ->name('api.team.config');
+
+    Route::get('/v1/recall/settings', [RecallSettingsController::class, 'show'])
+        ->middleware('throttle:recall-settings')
+        ->name('api.recall.settings');
 });
 
 // AI provider management: CLI users with a CliToken (sets $request->user() via auth.cli)

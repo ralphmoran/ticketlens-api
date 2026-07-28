@@ -127,6 +127,14 @@
     @apply absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin;
     color: var(--tl-text-subtle);
   }
+
+  /* Trailing unit label inside a numeric input, e.g. "15 [minutes]" — mirrors
+   * tl-input-icon's left-side adornment but on the right, as text not an icon. */
+  .tl-input-suffix {
+    @apply absolute right-3 top-1/2 -translate-y-1/2 text-xs pointer-events-none;
+    color: var(--tl-text-subtle);
+  }
+  .tl-input--with-suffix { @apply pr-16; }
   .tl-input-clear {
     @apply absolute right-2.5 top-1/2 -translate-y-1/2 cursor-pointer;
     color: var(--tl-text-subtle);

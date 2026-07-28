@@ -1,6 +1,6 @@
 <script setup>
-import { ref } from 'vue'
-import { router } from '@inertiajs/vue3'
+import { ref, computed } from 'vue'
+import { router, useForm } from '@inertiajs/vue3'
 import ConsoleLayout from '@/Layouts/ConsoleLayout.vue'
 import TlIcon from '@/components/TlIcon.vue'
 import TlPagination from '@/Components/TlPagination.vue'
@@ -14,6 +14,7 @@ const props = defineProps({
     notes:     { type: Object, default: () => ({ data: [], current_page: 1, last_page: 1, total: 0 }) },
     canManage: { type: Boolean, default: false },
     filters:   { type: Object, default: () => ({}) },
+    settings:  { type: Object, default: null },
 })
 
 const { confirm } = useConfirm()
@@ -41,6 +42,47 @@ function withGroupId(path) {
 
 function toggleExpand(note) {
     expandedId.value = expandedId.value === note.id ? null : note.id
+}
+
+// ── Recall queue settings ───────────────────────────────────────────────────
+// Wire + validation units are ms (flush_cooldown_ms, timeout_ms,
+// max_entry_age_ms) — useForm holds those directly so server-side validation
+// errors map straight onto the right field. The inputs display
+// minutes/seconds/days for readability via computed get/set proxies.
+const sv = props.settings?.values ?? {}
+const settingsForm = useForm({
+    flush_cooldown_ms: sv.flush_cooldown_ms ?? 900_000,
+    timeout_ms:         sv.timeout_ms ?? 4_000,
+    max_queue_size:     sv.max_queue_size ?? 200,
+    max_entry_age_ms:   sv.max_entry_age_ms ?? 2_592_000_000,
+})
+
+function unitProxy(field, unitMs) {
+    return computed({
+        get: () => Math.round(settingsForm[field] / unitMs),
+        set: (displayValue) => { settingsForm[field] = Math.round(displayValue * unitMs) },
+    })
+}
+const settingsMinutes   = unitProxy('flush_cooldown_ms', 60_000)
+const settingsSeconds   = unitProxy('timeout_ms', 1_000)
+const settingsDays      = unitProxy('max_entry_age_ms', 86_400_000)
+const settingsQueueSize = computed({
+    get: () => settingsForm.max_queue_size,
+    set: (v) => { settingsForm.max_queue_size = v },
+})
+
+const bounds = props.settings?.bounds ?? {}
+function boundsFor(field, unitMs = 1) {
+    const [min, max] = bounds[field] ?? [0, Number.MAX_SAFE_INTEGER]
+    return { min: Math.ceil(min / unitMs), max: Math.floor(max / unitMs) }
+}
+const minutesBounds = boundsFor('flush_cooldown_ms', 60_000)
+const secondsBounds = boundsFor('timeout_ms', 1_000)
+const queueBounds = boundsFor('max_queue_size')
+const daysBounds = boundsFor('max_entry_age_ms', 86_400_000)
+
+function saveSettings() {
+    settingsForm.put(withGroupId('/console/admin/recall/settings'), { preserveScroll: true })
 }
 
 function verify(note) {
@@ -186,6 +228,127 @@ async function destroyNote(note) {
                 v-model:perPage="filters.per_page"
                 @page="n => navigate({ page: n })"
             />
+
+            <div v-if="settings" class="tl-card tl-card--lg">
+                <div class="tl-row tl-row--between">
+                    <div>
+                        <h2 class="tl-modal-title">Recall queue settings</h2>
+                        <p class="tl-hint tl-label--spaced">
+                            Controls how your team's CLI retries a Recall note that failed to sync — network blip, timeout, or backend outage.
+                        </p>
+                    </div>
+                    <span v-if="settings.isOverride" class="tl-badge tl-badge--info">
+                        <TlIcon name="badge-check" class="tl-ic tl-ic--xs" />
+                        Team override
+                    </span>
+                    <span v-else class="tl-badge tl-badge--neutral">Platform default</span>
+                </div>
+
+                <form v-if="canManage" @submit.prevent="saveSettings" class="tl-form-stack">
+                    <div class="tl-grid-2">
+                        <div class="tl-field">
+                            <label class="tl-field-label" for="rs-cooldown">Retry cooldown</label>
+                            <div class="tl-input-wrap">
+                                <input
+                                    id="rs-cooldown"
+                                    v-model.number="settingsMinutes"
+                                    type="number"
+                                    :min="minutesBounds.min"
+                                    :max="minutesBounds.max"
+                                    class="tl-input tl-input--full tl-input--with-suffix"
+                                    :class="{ 'tl-input--error': settingsForm.errors.flush_cooldown_ms }"
+                                />
+                                <span class="tl-input-suffix">minutes</span>
+                            </div>
+                            <p v-if="settingsForm.errors.flush_cooldown_ms" class="tl-error">{{ settingsForm.errors.flush_cooldown_ms }}</p>
+                            <span v-else class="tl-hint">How long a down sync waits before retrying ({{ minutesBounds.min }}–{{ minutesBounds.max }} min).</span>
+                        </div>
+
+                        <div class="tl-field">
+                            <label class="tl-field-label" for="rs-timeout">Per-request timeout</label>
+                            <div class="tl-input-wrap">
+                                <input
+                                    id="rs-timeout"
+                                    v-model.number="settingsSeconds"
+                                    type="number"
+                                    :min="secondsBounds.min"
+                                    :max="secondsBounds.max"
+                                    class="tl-input tl-input--full tl-input--with-suffix"
+                                    :class="{ 'tl-input--error': settingsForm.errors.timeout_ms }"
+                                />
+                                <span class="tl-input-suffix">seconds</span>
+                            </div>
+                            <p v-if="settingsForm.errors.timeout_ms" class="tl-error">{{ settingsForm.errors.timeout_ms }}</p>
+                            <span v-else class="tl-hint">Per-attempt cap so a slow backend never stalls a command ({{ secondsBounds.min }}–{{ secondsBounds.max }} sec).</span>
+                        </div>
+
+                        <div class="tl-field">
+                            <label class="tl-field-label" for="rs-queue">Max queued notes</label>
+                            <div class="tl-input-wrap">
+                                <input
+                                    id="rs-queue"
+                                    v-model.number="settingsQueueSize"
+                                    type="number"
+                                    :min="queueBounds.min"
+                                    :max="queueBounds.max"
+                                    class="tl-input tl-input--full tl-input--with-suffix"
+                                    :class="{ 'tl-input--error': settingsForm.errors.max_queue_size }"
+                                />
+                                <span class="tl-input-suffix">notes</span>
+                            </div>
+                            <p v-if="settingsForm.errors.max_queue_size" class="tl-error">{{ settingsForm.errors.max_queue_size }}</p>
+                            <span v-else class="tl-hint">Oldest note is dropped once this cap is hit ({{ queueBounds.min }}–{{ queueBounds.max }}).</span>
+                        </div>
+
+                        <div class="tl-field">
+                            <label class="tl-field-label" for="rs-age">Queued note expiry</label>
+                            <div class="tl-input-wrap">
+                                <input
+                                    id="rs-age"
+                                    v-model.number="settingsDays"
+                                    type="number"
+                                    :min="daysBounds.min"
+                                    :max="daysBounds.max"
+                                    class="tl-input tl-input--full tl-input--with-suffix"
+                                    :class="{ 'tl-input--error': settingsForm.errors.max_entry_age_ms }"
+                                />
+                                <span class="tl-input-suffix">days</span>
+                            </div>
+                            <p v-if="settingsForm.errors.max_entry_age_ms" class="tl-error">{{ settingsForm.errors.max_entry_age_ms }}</p>
+                            <span v-else class="tl-hint">A perpetually-failing note is dropped after this long ({{ daysBounds.min }}–{{ daysBounds.max }} days).</span>
+                        </div>
+                    </div>
+
+                    <div class="tl-row">
+                        <button type="submit" class="tl-btn tl-btn--primary" :disabled="settingsForm.processing">
+                            {{ settingsForm.processing ? 'Saving…' : 'Save settings' }}
+                        </button>
+                        <span v-if="settingsForm.recentlySuccessful" class="tl-hint-inline tl-badge tl-badge--success">
+                            <TlIcon name="badge-check" class="tl-ic tl-ic--xs" />
+                            Saved
+                        </span>
+                    </div>
+                </form>
+
+                <div v-else class="tl-grid-2">
+                    <div class="tl-field">
+                        <span class="tl-field-label">Retry cooldown</span>
+                        <span class="tl-value">{{ settingsMinutes }} min</span>
+                    </div>
+                    <div class="tl-field">
+                        <span class="tl-field-label">Per-request timeout</span>
+                        <span class="tl-value">{{ settingsSeconds }} sec</span>
+                    </div>
+                    <div class="tl-field">
+                        <span class="tl-field-label">Max queued notes</span>
+                        <span class="tl-value">{{ settingsQueueSize }}</span>
+                    </div>
+                    <div class="tl-field">
+                        <span class="tl-field-label">Queued note expiry</span>
+                        <span class="tl-value">{{ settingsDays }} days</span>
+                    </div>
+                </div>
+            </div>
         </template>
     </div>
 </template>

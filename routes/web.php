@@ -224,6 +224,7 @@ Route::prefix('console')->name('console.')->group(function () {
             // per-user grant/tier, so a manager can legitimately lack it).
             Route::post('/recall/{note}/verify', [\App\Http\Controllers\Console\Admin\RecallController::class, 'verify'])->name('recall.verify')->middleware('permission:Recall');
             Route::delete('/recall/{note}', [\App\Http\Controllers\Console\Admin\RecallController::class, 'destroy'])->name('recall.destroy')->middleware('permission:Recall');
+            Route::put('/recall/settings', [\App\Http\Controllers\Console\Admin\RecallController::class, 'updateSettings'])->name('recall.settings.update')->middleware('permission:Recall');
         });
 
         // Brief templates — read for all auth users; mutations require team.manager (owner bypasses)

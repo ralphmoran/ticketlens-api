@@ -28,7 +28,7 @@
   }
   .tl-imp-banner-msg { @apply flex items-center gap-2 text-sm font-medium min-w-0; }
   .tl-imp-banner-msg .tl-trunc { @apply truncate; }
-  .tl-imp-banner-email { @apply hidden sm:inline; opacity: 0.7; }
+  .tl-imp-banner-email { @apply hidden sm:inline ml-1; opacity: 0.7; }
   .tl-imp-banner-name { @apply font-semibold; }
   .tl-imp-stop-btn {
     @apply shrink-0 text-xs px-3 py-1 font-semibold cursor-pointer;
@@ -400,7 +400,10 @@
   /* Confirm dialog */
   .tl-confirm-wrap {
     @apply fixed inset-0 flex items-center justify-center p-4;
-    z-index: var(--tl-z-overlay);
+    /* Above --tl-z-overlay: a confirm can be launched from within an
+       already-open overlay (e.g. TlDrawer's Delete button) and must always
+       paint on top of it, not rely on Teleport mount order. */
+    z-index: var(--tl-z-confirm);
   }
   .tl-confirm-backdrop {
     @apply absolute inset-0 backdrop-blur-sm;
@@ -414,7 +417,7 @@
     box-shadow: var(--tl-shadow-lg);
   }
 
-  /* Drawer (read-only detail slide-over) */
+  /* Drawer (detail slide-over) */
   .tl-drawer-wrap {
     @apply fixed inset-0;
     z-index: var(--tl-z-overlay);
@@ -429,12 +432,19 @@
     border-left: 1px solid var(--tl-border);
     box-shadow: var(--tl-shadow-lg);
   }
+  /* Same top offset as .tl-top-imp (header/sidebar) — the banner (z-index 60)
+     otherwise renders over the panel's own top: 0 and covers its header. */
+  .tl-drawer-panel--imp { top: 2.25rem; }
   .tl-drawer-panel:focus-visible {
     outline: none;
     box-shadow: var(--tl-shadow-lg), var(--tl-ring-brand);
   }
   .tl-drawer-head { @apply shrink-0; }
   .tl-drawer-body { @apply flex-1 min-h-0; }
+  .tl-drawer-section {
+    @apply pb-4;
+    border-bottom: 1px solid var(--tl-border);
+  }
 
   .tl-drawer-slide-enter-active,
   .tl-drawer-slide-leave-active { transition: transform 200ms ease-out; }

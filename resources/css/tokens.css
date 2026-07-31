@@ -97,6 +97,7 @@
   --tl-z-nav:     30;
   --tl-z-sidebar: 40;
   --tl-z-overlay: 50;
+  --tl-z-confirm: 55; /* above any overlay (e.g. TlDrawer) a confirm can be launched from */
   --tl-z-banner:  60;
 }
 

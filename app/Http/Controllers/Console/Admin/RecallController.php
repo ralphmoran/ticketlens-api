@@ -40,7 +40,7 @@ class RecallController extends Controller
                           ->orWhere('body', 'like', "%{$search}%")
                           ->orWhereRaw('tags LIKE ?', ["%{$search}%"]);
                 }))
-                ->with('author')
+                ->with('author:id,name,tier,avatar_path')
                 ->orderByDesc('updated_at')
                 ->paginate($perPage)
                 ->withQueryString()
@@ -50,7 +50,11 @@ class RecallController extends Controller
                     'body'       => $note->body,
                     'tickets'    => $note->tickets,
                     'tags'       => $note->tags,
-                    'author'     => $note->author?->name,
+                    'author'     => $note->author ? [
+                        'name'       => $note->author->name,
+                        'tier'       => $note->author->tier,
+                        'avatar_url' => $note->author->avatarUrl(),
+                    ] : null,
                     'status'     => $note->status,
                     'created_at' => $note->created_at->toIso8601String(),
                 ])

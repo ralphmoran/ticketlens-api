@@ -5,6 +5,7 @@ import ConsoleLayout from '@/Layouts/ConsoleLayout.vue'
 import TlIcon from '@/components/TlIcon.vue'
 import TlPagination from '@/Components/TlPagination.vue'
 import TlDrawer from '@/components/TlDrawer.vue'
+import UserAvatar from '@/components/UserAvatar.vue'
 import { useConfirm } from '@/composables/useConfirm'
 import { useTableFilters } from '@/composables/useTableFilters'
 import { timeAgo } from '@/composables/useDateFormat'
@@ -39,10 +40,21 @@ function withGroupId(path) {
     return groupId ? `${path}?group_id=${groupId}` : path
 }
 
-// ── Detail drawer (read-only — actions stay in the row, never duplicated) ──
-const drawerNote = ref(null)
-function openDrawer(note) { drawerNote.value = note }
-function closeDrawer() { drawerNote.value = null }
+// ── Detail drawer ────────────────────────────────────────────────────────
+// Stores only the id, not the note object — drawerNote is derived fresh from
+// props.notes on every render, so it stays in sync after a verify/delete
+// (in-page or from within the drawer) and auto-closes once its id is no
+// longer in notes.data (e.g. after a delete).
+const drawerNoteId = ref(null)
+const drawerIndex  = computed(() => props.notes.data.findIndex(note => note.id === drawerNoteId.value))
+const drawerNote   = computed(() => props.notes.data[drawerIndex.value] ?? null)
+const hasPrevNote  = computed(() => drawerIndex.value > 0)
+const hasNextNote  = computed(() => drawerIndex.value >= 0 && drawerIndex.value < props.notes.data.length - 1)
+
+function openDrawer(note) { drawerNoteId.value = note.id }
+function closeDrawer() { drawerNoteId.value = null }
+function goPrevNote() { if (hasPrevNote.value) drawerNoteId.value = props.notes.data[drawerIndex.value - 1].id }
+function goNextNote() { if (hasNextNote.value) drawerNoteId.value = props.notes.data[drawerIndex.value + 1].id }
 
 // ── Bulk selection — page-scoped only; cleared whenever the list changes ──
 const selectedIds = ref([])
@@ -176,21 +188,21 @@ async function destroyNote(note) {
 
             <!-- Notes tab -->
             <template v-if="activeTab === 'notes'">
-                <div class="tl-picker tl-card-gap">
-                    <div class="tl-input-wrap">
-                        <TlIcon name="search" class="tl-input-icon" />
-                        <input
-                            v-model="filters.search"
-                            type="search"
-                            placeholder="Search by title, tags, or note content…"
-                            class="tl-input tl-input--full tl-input--with-icon"
-                        />
+                <div class="tl-row tl-row--wrap tl-card-gap">
+                    <div class="tl-picker flex-1">
+                        <div class="tl-input-wrap">
+                            <TlIcon name="search" class="tl-input-icon" />
+                            <input
+                                v-model="filters.search"
+                                type="search"
+                                placeholder="Search by title, tags, or note content…"
+                                class="tl-input tl-input--full tl-input--with-icon"
+                            />
+                        </div>
                     </div>
-                </div>
 
-                <div v-if="selectedIds.length" class="tl-row tl-row--between tl-card tl-card--sm tl-card-gap">
-                    <p class="tl-hint">{{ selectedIds.length }} selected</p>
-                    <div class="tl-row tl-row--tight">
+                    <div v-if="selectedIds.length" class="tl-row tl-row--tight">
+                        <span class="tl-hint">{{ selectedIds.length }} selected</span>
                         <button type="button" class="tl-btn-ghost tl-btn-ghost--info" @click="bulkVerifySelected">
                             <TlIcon name="badge-check" class="tl-ic tl-ic--sm" />
                             Verify selected
@@ -225,10 +237,11 @@ async function destroyNote(note) {
                                         />
                                     </th>
                                     <th class="tl-th">Note</th>
+                                    <th class="tl-th tl-th--meter">Tags</th>
                                     <th class="tl-th tl-th--meter">Tickets</th>
-                                    <th class="tl-th tl-th--meter">Author</th>
                                     <th class="tl-th tl-th--meter">Status</th>
                                     <th class="tl-th tl-th--meter">Created</th>
+                                    <th class="tl-th tl-th--meter">Author</th>
                                     <th class="tl-th tl-th--right">Actions</th>
                                 </tr>
                             </thead>
@@ -252,18 +265,29 @@ async function destroyNote(note) {
                                             <TlIcon name="eye" class="tl-ic tl-ic--xs" />
                                             {{ note.title }}
                                         </button>
-                                        <div v-if="note.tags?.length" class="tl-row tl-row--tight tl-row--wrap tl-card-gap-sm">
-                                            <span class="tl-hint">Tags:</span>
+                                    </td>
+                                    <td class="tl-td">
+                                        <div v-if="note.tags?.length" class="tl-row tl-row--tight tl-row--wrap">
                                             <span v-for="tag in note.tags" :key="tag" class="tl-badge tl-badge--neutral">{{ tag }}</span>
                                         </div>
+                                        <span v-else class="tl-hint">—</span>
                                     </td>
                                     <td class="tl-td tl-mono--xs">{{ note.tickets?.join(', ') || '—' }}</td>
-                                    <td class="tl-td tl-trunc">{{ note.author || 'Unknown' }}</td>
                                     <td class="tl-td">
                                         <span v-if="note.status === 'verified'" class="tl-badge tl-badge--success">Verified</span>
                                         <span v-else class="tl-badge tl-badge--neutral">Unverified</span>
                                     </td>
                                     <td class="tl-td tl-cell-muted tl-nowrap">{{ timeAgo(note.created_at) }}</td>
+                                    <td class="tl-td">
+                                        <div class="tl-row tl-row--tight">
+                                            <UserAvatar
+                                                :name="note.author?.name ?? 'Unknown'"
+                                                :tier="note.author?.tier ?? 'free'"
+                                                :avatar-url="note.author?.avatar_url"
+                                            />
+                                            <span class="tl-trunc">{{ note.author?.name ?? 'Unknown' }}</span>
+                                        </div>
+                                    </td>
                                     <td class="tl-td tl-td--right">
                                         <div class="tl-row tl-row--tight tl-row--end">
                                             <button
@@ -288,7 +312,7 @@ async function destroyNote(note) {
                                     </td>
                                 </tr>
                                 <tr v-if="!notes.data.length">
-                                    <td :colspan="canManage ? 7 : 6" class="tl-td--empty">
+                                    <td :colspan="canManage ? 8 : 7" class="tl-td--empty">
                                         <template v-if="filters.search">
                                             No notes match <strong class="tl-value">{{ filters.search }}</strong>.
                                         </template>
@@ -436,37 +460,73 @@ async function destroyNote(note) {
 
             <!-- Detail drawer -->
             <TlDrawer :open="!!drawerNote" title="Note details" @close="closeDrawer">
-                <div v-if="drawerNote" class="tl-form-stack">
-                    <div class="tl-field">
-                        <span class="tl-field-label">Title</span>
-                        <p class="tl-value">{{ drawerNote.title }}</p>
-                    </div>
-                    <div class="tl-field">
-                        <span class="tl-field-label">Status</span>
-                        <span v-if="drawerNote.status === 'verified'" class="tl-badge tl-badge--success">Verified</span>
-                        <span v-else class="tl-badge tl-badge--neutral">Unverified</span>
-                    </div>
-                    <div v-if="drawerNote.tags?.length" class="tl-field">
-                        <span class="tl-field-label">Tags</span>
-                        <div class="tl-row tl-row--tight tl-row--wrap">
-                            <span v-for="tag in drawerNote.tags" :key="tag" class="tl-badge tl-badge--neutral">{{ tag }}</span>
+                <template #header-actions>
+                    <button type="button" class="tl-btn-ghost" :disabled="!hasPrevNote" aria-label="Previous note" @click="goPrevNote">
+                        <TlIcon name="chevron-left" class="tl-ic" />
+                    </button>
+                    <button type="button" class="tl-btn-ghost" :disabled="!hasNextNote" aria-label="Next note" @click="goNextNote">
+                        <TlIcon name="chevron-right" class="tl-ic" />
+                    </button>
+                </template>
+
+                <div v-if="drawerNote" class="tl-stack">
+                    <span class="tl-sr-only" aria-live="polite">Viewing note {{ drawerIndex + 1 }} of {{ notes.data.length }}: {{ drawerNote.title }}</span>
+
+                    <!-- Author + title header -->
+                    <div class="tl-row tl-row--top tl-drawer-section">
+                        <UserAvatar
+                            size="lg"
+                            :name="drawerNote.author?.name ?? 'Unknown'"
+                            :tier="drawerNote.author?.tier ?? 'free'"
+                            :avatar-url="drawerNote.author?.avatar_url"
+                        />
+                        <div class="tl-min-w-0">
+                            <p class="tl-value">{{ drawerNote.title }}</p>
+                            <p class="tl-hint">{{ drawerNote.author?.name ?? 'Unknown' }} · {{ timeAgo(drawerNote.created_at) }}</p>
                         </div>
                     </div>
-                    <div class="tl-field">
-                        <span class="tl-field-label">Tickets</span>
-                        <p class="tl-value tl-mono--xs">{{ drawerNote.tickets?.join(', ') || '—' }}</p>
+
+                    <!-- Metadata sections -->
+                    <div class="tl-form-stack tl-drawer-section">
+                        <div class="tl-field">
+                            <span class="tl-field-label">Status</span>
+                            <span v-if="drawerNote.status === 'verified'" class="tl-badge tl-badge--success">Verified</span>
+                            <span v-else class="tl-badge tl-badge--neutral">Unverified</span>
+                        </div>
+                        <div class="tl-field">
+                            <span class="tl-field-label">Tags</span>
+                            <div v-if="drawerNote.tags?.length" class="tl-row tl-row--tight tl-row--wrap">
+                                <span v-for="tag in drawerNote.tags" :key="tag" class="tl-badge tl-badge--neutral">{{ tag }}</span>
+                            </div>
+                            <span v-else class="tl-hint">—</span>
+                        </div>
+                        <div class="tl-field">
+                            <span class="tl-field-label">Tickets</span>
+                            <p class="tl-value tl-mono--xs">{{ drawerNote.tickets?.join(', ') || '—' }}</p>
+                        </div>
                     </div>
-                    <div class="tl-field">
-                        <span class="tl-field-label">Author</span>
-                        <p class="tl-value">{{ drawerNote.author || 'Unknown' }}</p>
-                    </div>
-                    <div class="tl-field">
-                        <span class="tl-field-label">Created</span>
-                        <p class="tl-value">{{ timeAgo(drawerNote.created_at) }}</p>
-                    </div>
-                    <div class="tl-field">
+
+                    <!-- Body -->
+                    <div class="tl-field tl-drawer-section">
                         <span class="tl-field-label">Body</span>
                         <p class="tl-body--muted tl-mono--xs tl-pre-wrap">{{ drawerNote.body }}</p>
+                    </div>
+
+                    <!-- Actions -->
+                    <div v-if="canManage" class="tl-row tl-row--tight">
+                        <button
+                            v-if="drawerNote.status !== 'verified'"
+                            type="button"
+                            class="tl-btn-ghost tl-btn-ghost--info"
+                            @click="verify(drawerNote)"
+                        >
+                            <TlIcon name="badge-check" class="tl-ic tl-ic--sm" />
+                            Verify
+                        </button>
+                        <button type="button" class="tl-btn-ghost tl-btn-ghost--danger" @click="destroyNote(drawerNote)">
+                            <TlIcon name="trash" class="tl-ic tl-ic--sm" />
+                            Delete
+                        </button>
                     </div>
                 </div>
             </TlDrawer>

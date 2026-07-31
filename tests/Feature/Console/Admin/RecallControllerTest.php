@@ -165,6 +165,22 @@ class RecallControllerTest extends TestCase
             ->assertInertia(fn ($page) => $page->has('notes.data', 0));
     }
 
+    public function test_index_returns_the_authors_name_tier_and_avatar_for_the_drawer(): void
+    {
+        [$manager, $group] = $this->makeManager();
+        RecallNote::create([
+            'group_id' => $group->id, 'author_id' => $manager->id, 'external_id' => 'a.md',
+            'title' => 'x', 'aliases' => [], 'tickets' => [], 'tags' => [], 'sources' => [], 'body' => 'x',
+        ]);
+
+        $this->actingAs($manager)->get('/console/admin/recall')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('notes.data.0.author.name', $manager->name)
+                ->where('notes.data.0.author.tier', 'team')
+                ->where('notes.data.0.author.avatar_url', null));
+    }
+
     public function test_index_includes_the_note_body_so_a_verifier_can_read_it_before_deciding(): void
     {
         [$manager, $group] = $this->makeManager();

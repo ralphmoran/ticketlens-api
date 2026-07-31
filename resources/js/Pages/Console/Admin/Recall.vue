@@ -259,11 +259,12 @@ async function destroyNote(note) {
                                     <td class="tl-td">
                                         <button
                                             type="button"
-                                            class="tl-cell-link tl-cell-primary tl-row tl-row--tight"
+                                            class="tl-cell-link tl-cell-primary tl-row tl-row--tight max-w-sm tl-min-w-0"
+                                            :title="note.title"
                                             @click="openDrawer(note)"
                                         >
                                             <TlIcon name="eye" class="tl-ic tl-ic--xs" />
-                                            {{ note.title }}
+                                            <span class="tl-trunc">{{ note.title }}</span>
                                         </button>
                                     </td>
                                     <td class="tl-td">

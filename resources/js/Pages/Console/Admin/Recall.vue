@@ -6,6 +6,7 @@ import TlIcon from '@/components/TlIcon.vue'
 import TlPagination from '@/Components/TlPagination.vue'
 import { useConfirm } from '@/composables/useConfirm'
 import { useTableFilters } from '@/composables/useTableFilters'
+import { timeAgo } from '@/composables/useDateFormat'
 
 defineOptions({ layout: ConsoleLayout })
 
@@ -30,10 +31,6 @@ const { filters, loading, navigate } = useTableFilters({
     per_page:  props.filters?.per_page ?? 10,
     group_id:  currentGroupId(),
 }, '/console/admin/recall')
-
-function formatDate(iso) {
-    return new Date(iso).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
-}
 
 function withGroupId(path) {
     const groupId = currentGroupId()
@@ -177,7 +174,7 @@ async function destroyNote(note) {
                                     <span v-if="note.status === 'verified'" class="tl-badge tl-badge--success">Verified</span>
                                     <span v-else class="tl-badge tl-badge--neutral">Unverified</span>
                                 </td>
-                                <td class="tl-td tl-cell-muted tl-nowrap">{{ formatDate(note.created_at) }}</td>
+                                <td class="tl-td tl-cell-muted tl-nowrap">{{ timeAgo(note.created_at) }}</td>
                                 <td class="tl-td tl-td--right">
                                     <div class="tl-row tl-row--tight tl-row--end">
                                         <button

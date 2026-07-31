@@ -6,6 +6,7 @@ import { usePermissions } from '@/composables/usePermissions'
 import { usePage, router } from '@inertiajs/vue3'
 import { computed, ref } from 'vue'
 import { Permission } from '@/permissions'
+import { timeAgo } from '@/composables/useDateFormat'
 
 defineOptions({ layout: ConsoleLayout })
 
@@ -42,15 +43,6 @@ const pushesMonth    = computed(() => props.stats.pushes_this_month ?? '—')
 const activeTickets  = computed(() => props.stats.current_ticket_count ?? '—')
 const pushStreak     = computed(() => props.stats.push_streak != null ? `${props.stats.push_streak}d` : '—')
 const hasPushHistory = computed(() => props.stats.last_push != null)
-
-function timeAgo(iso) {
-    if (!iso) return '—'
-    const diff = Math.floor((Date.now() - new Date(iso).getTime()) / 1000)
-    if (diff < 60)    return `${diff}s ago`
-    if (diff < 3600)  return `${Math.floor(diff / 60)}m ago`
-    if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`
-    return `${Math.floor(diff / 86400)}d ago`
-}
 
 const lastPushLabel = computed(() => timeAgo(props.stats.last_push))
 

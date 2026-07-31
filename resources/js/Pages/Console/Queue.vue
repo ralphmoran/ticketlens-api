@@ -5,6 +5,7 @@ import TlPagination from '@/Components/TlPagination.vue'
 import { router, usePage } from '@inertiajs/vue3'
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useEventsStore } from '@/stores/events'
+import { timeAgo } from '@/composables/useDateFormat'
 
 defineOptions({ layout: ConsoleLayout })
 
@@ -64,13 +65,6 @@ function formatDate(iso) {
         month: 'short', day: 'numeric', year: 'numeric',
         hour: '2-digit', minute: '2-digit',
     })
-}
-
-function timeAgo(iso) {
-    const diff = Math.floor((Date.now() - new Date(iso).getTime()) / 1000)
-    if (diff < 60)   return `${diff}s ago`
-    if (diff < 3600) return `${Math.floor(diff / 60)}m ago`
-    return `${Math.floor(diff / 3600)}h ago`
 }
 
 function attentionClass(score) {

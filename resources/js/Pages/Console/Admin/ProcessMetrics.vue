@@ -6,6 +6,7 @@ import UserAvatar from '@/Components/UserAvatar.vue'
 import { useClientPaginator } from '@/composables/useClientPaginator'
 import { router } from '@inertiajs/vue3'
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import { timeAgo } from '@/composables/useDateFormat'
 
 defineOptions({ layout: ConsoleLayout })
 
@@ -49,15 +50,6 @@ function selectManager(id) {
 
 const hasData      = computed(() => props.velocity.length > 0)
 const totalTickets = computed(() => props.velocity.reduce((s, m) => s + m.total, 0))
-
-function timeAgo(iso) {
-    if (!iso) return '—'
-    const diff = Math.floor((Date.now() - new Date(iso).getTime()) / 1000)
-    if (diff < 60)   return `${diff}s ago`
-    if (diff < 3600) return `${Math.floor(diff / 60)}m ago`
-    if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`
-    return `${Math.floor(diff / 86400)}d ago`
-}
 
 // Reactive label: shows when user last clicked Refresh, falls back to data timestamp
 const refreshLabel = computed(() => {

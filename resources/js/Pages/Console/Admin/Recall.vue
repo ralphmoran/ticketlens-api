@@ -461,10 +461,10 @@ async function destroyNote(note) {
             <!-- Detail drawer -->
             <TlDrawer :open="!!drawerNote" title="Note details" @close="closeDrawer">
                 <template #header-actions>
-                    <button type="button" class="tl-btn-ghost" :disabled="!hasPrevNote" aria-label="Previous note" @click="goPrevNote">
+                    <button type="button" class="tl-btn-ghost tl-btn-ghost--neutral" :disabled="!hasPrevNote" aria-label="Previous note" @click="goPrevNote">
                         <TlIcon name="chevron-left" class="tl-ic" />
                     </button>
-                    <button type="button" class="tl-btn-ghost" :disabled="!hasNextNote" aria-label="Next note" @click="goNextNote">
+                    <button type="button" class="tl-btn-ghost tl-btn-ghost--neutral" :disabled="!hasNextNote" aria-label="Next note" @click="goNextNote">
                         <TlIcon name="chevron-right" class="tl-ic" />
                     </button>
                 </template>

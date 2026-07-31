@@ -66,7 +66,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
                             <h2 v-if="title" id="tl-drawer-title" class="tl-modal-title">{{ title }}</h2>
                             <div class="tl-row tl-row--tight">
                                 <slot name="header-actions" />
-                                <button type="button" class="tl-btn-ghost" @click="close">
+                                <button type="button" class="tl-btn-ghost tl-btn-ghost--neutral" @click="close">
                                     <TlIcon name="close" class="tl-ic" />
                                     <span class="tl-sr-only">Close</span>
                                 </button>

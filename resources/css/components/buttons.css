@@ -101,6 +101,10 @@
     outline: none;
     box-shadow: var(--tl-ring-brand);
   }
+  .tl-btn-ghost:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
 
   .tl-btn-ghost--danger { color: var(--tl-danger); }
   .tl-btn-ghost--danger:hover { background-color: var(--tl-danger-tint); }

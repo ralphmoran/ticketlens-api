@@ -404,6 +404,11 @@
        already-open overlay (e.g. TlDrawer's Delete button) and must always
        paint on top of it, not rely on Teleport mount order. */
     z-index: var(--tl-z-confirm);
+    /* Teleport('body') renders this outside .tl-shell, so it doesn't inherit
+       the shell's theme color override — without this it falls through to
+       <body>'s raw bg-gray-950/text-gray-100 (a pre-hydration paint guard),
+       making any un-color-modified text/icon inside nearly invisible. */
+    color: var(--tl-text-primary);
   }
   .tl-confirm-backdrop {
     @apply absolute inset-0 backdrop-blur-sm;
@@ -421,6 +426,8 @@
   .tl-drawer-wrap {
     @apply fixed inset-0;
     z-index: var(--tl-z-overlay);
+    /* Same reasoning as .tl-confirm-wrap above. */
+    color: var(--tl-text-primary);
   }
   .tl-drawer-backdrop {
     @apply absolute inset-0 backdrop-blur-sm;

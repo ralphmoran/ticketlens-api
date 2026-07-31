@@ -224,10 +224,10 @@ async function destroyNote(note) {
 
                     <div class="tl-card tl-card--flush" :class="{ 'tl-inert': loading }">
                         <div class="tl-table-scroll">
-                        <table class="tl-table">
+                        <table class="tl-table tl-table--fixed">
                             <thead>
                                 <tr class="tl-thead">
-                                    <th v-if="canManage" class="tl-th">
+                                    <th v-if="canManage" class="tl-th w-14">
                                         <input
                                             type="checkbox"
                                             class="tl-checkbox"
@@ -242,7 +242,7 @@ async function destroyNote(note) {
                                     <th class="tl-th tl-th--meter">Status</th>
                                     <th class="tl-th tl-th--meter hidden xl:table-cell">Created</th>
                                     <th class="tl-th tl-th--meter">Author</th>
-                                    <th class="tl-th tl-th--right">Actions</th>
+                                    <th class="tl-th tl-th--right w-28">Actions</th>
                                 </tr>
                             </thead>
                             <tbody class="tl-divide">
@@ -256,10 +256,10 @@ async function destroyNote(note) {
                                             @change="toggleSelect(note.id)"
                                         />
                                     </td>
-                                    <td class="tl-td">
+                                    <td class="tl-td w-full">
                                         <button
                                             type="button"
-                                            class="tl-cell-link tl-cell-primary tl-row tl-row--tight max-w-[130px] tl-min-w-0"
+                                            class="tl-cell-link tl-cell-primary tl-row tl-row--tight w-full max-w-[220px] tl-min-w-0"
                                             @click="openDrawer(note)"
                                         >
                                             <TlIcon name="eye" class="tl-ic tl-ic--xs" />
@@ -471,7 +471,7 @@ async function destroyNote(note) {
                     </button>
                 </template>
 
-                <div v-if="drawerNote" class="tl-stack">
+                <div v-if="drawerNote" class="tl-stack pb-6">
                     <span class="tl-sr-only" aria-live="polite">Viewing note {{ drawerIndex + 1 }} of {{ notes.data.length }}: {{ drawerNote.title }}</span>
 
                     <!-- Author + title header -->
@@ -519,15 +519,21 @@ async function destroyNote(note) {
                         <button
                             v-if="drawerNote.status !== 'verified'"
                             type="button"
+                            title="Verify"
+                            aria-label="Verify"
                             class="tl-btn-ghost tl-btn-ghost--info"
                             @click="verify(drawerNote)"
                         >
                             <TlIcon name="badge-check" class="tl-ic tl-ic--sm" />
-                            Verify
                         </button>
-                        <button type="button" class="tl-btn-ghost tl-btn-ghost--danger" @click="destroyNote(drawerNote)">
+                        <button
+                            type="button"
+                            title="Delete"
+                            aria-label="Delete"
+                            class="tl-btn-ghost tl-btn-ghost--danger"
+                            @click="destroyNote(drawerNote)"
+                        >
                             <TlIcon name="trash" class="tl-ic tl-ic--sm" />
-                            Delete
                         </button>
                     </div>
                 </div>

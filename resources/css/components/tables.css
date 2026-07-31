@@ -14,6 +14,45 @@
     margin-top: 1rem;
   }
 
+  /* Opt-in: column widths become exactly what the header row specifies
+     (e.g. .tl-th--meter's 8rem) instead of auto-layout's content-driven
+     guess. Lets exactly one unspecified-width column (e.g. a title/name
+     column) absorb all remaining space and truncate reliably, while every
+     other column stays a fixed, predictable width. Scoped to this modifier
+     rather than the base .tl-table so unrelated tables are unaffected.
+
+     table-layout:fixed only locks column widths when the table's own width
+     is a DEFINITE value (width:auto makes browsers fall back to content-
+     based sizing, silently undoing the whole point) — so width:100% (from
+     the shared .tl-table) must stay a definite percentage, not auto.
+     But width:100% alone means: if the specified column widths sum to more
+     than the container, the browser proportionally SHRINKS every column,
+     including squeezing the unspecified "remainder" column to ~0 and
+     breaking its content, instead of overflowing into the .tl-table-scroll
+     wrapper the way auto-layout naturally did. min-width:max-content is the
+     fix: it stops that shrink below what the fixed columns actually need,
+     while the definite width:100% still governs sizing whenever there's
+     room to spare — table grows into the scrollable wrapper on a narrow
+     viewport instead of collapsing. */
+  .tl-table--fixed {
+    table-layout: fixed;
+    min-width: max-content;
+  }
+
+  /* Below this app's own lg breakpoint (sidebar collapses to a mobile
+     header/hamburger elsewhere in ConsoleLayout), table-layout:fixed cannot
+     honor a sane minimum on the unspecified "remainder" column — browsers
+     ignore min-width/max-width on cells under fixed layout, so that column
+     can shrink to just a couple of characters instead of overflowing.
+     Revert to ordinary content-driven auto layout on true mobile widths,
+     where .tl-table-scroll's horizontal scroll is the accepted fallback. */
+  @media (max-width: 1023px) {
+    .tl-table--fixed {
+      table-layout: auto;
+      min-width: 0;
+    }
+  }
+
   .tl-thead {
     @apply text-xs uppercase tracking-wider;
     border-bottom: 1px solid var(--tl-border);

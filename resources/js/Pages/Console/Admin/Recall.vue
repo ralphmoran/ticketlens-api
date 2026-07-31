@@ -517,16 +517,6 @@ async function destroyNote(note) {
                     <!-- Actions -->
                     <div v-if="canManage" class="tl-row tl-row--tight">
                         <button
-                            v-if="drawerNote.status !== 'verified'"
-                            type="button"
-                            title="Verify"
-                            aria-label="Verify"
-                            class="tl-btn-ghost tl-btn-ghost--info"
-                            @click="verify(drawerNote)"
-                        >
-                            <TlIcon name="badge-check" class="tl-ic tl-ic--sm" />
-                        </button>
-                        <button
                             type="button"
                             title="Delete"
                             aria-label="Delete"
@@ -534,6 +524,15 @@ async function destroyNote(note) {
                             @click="destroyNote(drawerNote)"
                         >
                             <TlIcon name="trash" class="tl-ic tl-ic--sm" />
+                        </button>
+                        <button
+                            v-if="drawerNote.status !== 'verified'"
+                            type="button"
+                            class="tl-btn tl-btn--primary flex-1"
+                            @click="verify(drawerNote)"
+                        >
+                            <TlIcon name="badge-check" class="tl-ic tl-ic--sm" />
+                            Verify
                         </button>
                     </div>
                 </div>

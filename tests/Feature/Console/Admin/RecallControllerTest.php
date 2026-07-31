@@ -134,6 +134,23 @@ class RecallControllerTest extends TestCase
             ->assertInertia(fn ($page) => $page->has('notes.data', 1)->where('notes.data.0.body', 'Needs exponential backoff.'));
     }
 
+    public function test_index_search_matches_tags(): void
+    {
+        [$manager, $group] = $this->makeManager();
+        RecallNote::create([
+            'group_id' => $group->id, 'author_id' => $manager->id, 'external_id' => 'a.md',
+            'title' => 'x', 'aliases' => [], 'tickets' => [], 'tags' => ['routeone', 'schema-scope'], 'sources' => [], 'body' => 'y',
+        ]);
+        RecallNote::create([
+            'group_id' => $group->id, 'author_id' => $manager->id, 'external_id' => 'b.md',
+            'title' => 'x', 'aliases' => [], 'tickets' => [], 'tags' => ['unrelated'], 'sources' => [], 'body' => 'y',
+        ]);
+
+        $this->actingAs($manager)->get('/console/admin/recall?search=schema-scope')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page->has('notes.data', 1)->where('notes.data.0.tags', ['routeone', 'schema-scope']));
+    }
+
     public function test_index_search_never_crosses_group_boundaries(): void
     {
         [$managerA, $groupA] = $this->makeManager();
@@ -226,6 +243,22 @@ class RecallControllerTest extends TestCase
             ->with($group->id, 'notification.updated', []);
 
         $this->actingAs($manager)->post("/console/admin/recall/{$note->id}/verify")->assertRedirect();
+    }
+
+    public function test_verify_writes_no_audit_log(): void
+    {
+        // Lock: unlike destroy() and updateSettings(), verify() has never called
+        // AuditService — bulkVerify() must preserve this asymmetry rather than
+        // "fixing" it as a side effect of adding bulk actions.
+        [$manager, $group] = $this->makeManager();
+        $note = RecallNote::create([
+            'group_id' => $group->id, 'author_id' => $manager->id, 'external_id' => 'a.md',
+            'title' => 'x', 'aliases' => [], 'tickets' => [], 'tags' => [], 'sources' => [], 'body' => 'x',
+        ]);
+
+        $this->actingAs($manager)->post("/console/admin/recall/{$note->id}/verify")->assertRedirect();
+
+        $this->assertDatabaseCount('audit_logs', 0);
     }
 
     public function test_owner_can_verify_a_note_in_a_group_they_do_not_personally_own(): void
@@ -374,5 +407,194 @@ class RecallControllerTest extends TestCase
         $this->assertSame('a.md', $log->old_value['external_id']);
         $this->assertSame($group->id, $log->old_value['group_id']);
         $this->assertSame($note->id, $log->metadata['note_id']);
+    }
+
+    // ---- bulkVerify: batches verify() across a page-scoped selection ----
+
+    public function test_bulk_verify_marks_every_selected_note_verified(): void
+    {
+        [$manager, $group] = $this->makeManager();
+        $noteA = RecallNote::create([
+            'group_id' => $group->id, 'author_id' => $manager->id, 'external_id' => 'a.md',
+            'title' => 'x', 'aliases' => [], 'tickets' => [], 'tags' => [], 'sources' => [], 'body' => 'x',
+        ]);
+        $noteB = RecallNote::create([
+            'group_id' => $group->id, 'author_id' => $manager->id, 'external_id' => 'b.md',
+            'title' => 'x', 'aliases' => [], 'tickets' => [], 'tags' => [], 'sources' => [], 'body' => 'x',
+        ]);
+
+        $this->actingAs($manager)->post('/console/admin/recall/bulk-verify', ['ids' => [$noteA->id, $noteB->id]])
+            ->assertRedirect();
+
+        $this->assertSame('verified', $noteA->fresh()->status);
+        $this->assertSame('verified', $noteB->fresh()->status);
+    }
+
+    public function test_bulk_verify_ignores_note_ids_belonging_to_a_different_group_idor(): void
+    {
+        [$managerA, $groupA] = $this->makeManager();
+        $groupB   = Group::create(['name' => 'B', 'owner_id' => User::factory()->create()->id]);
+        $foreign  = RecallNote::create([
+            'group_id' => $groupB->id, 'author_id' => User::factory()->create()->id, 'external_id' => 'b.md',
+            'title' => 'x', 'aliases' => [], 'tickets' => [], 'tags' => [], 'sources' => [], 'body' => 'x',
+        ]);
+
+        $this->actingAs($managerA)->post('/console/admin/recall/bulk-verify', ['ids' => [$foreign->id]])
+            ->assertRedirect();
+
+        $this->assertSame('unverified', $foreign->fresh()->status);
+    }
+
+    public function test_bulk_verify_processes_the_valid_id_when_batch_mixes_own_and_foreign_group_ids(): void
+    {
+        [$managerA, $groupA] = $this->makeManager();
+        $groupB  = Group::create(['name' => 'B', 'owner_id' => User::factory()->create()->id]);
+        $ownNote = RecallNote::create([
+            'group_id' => $groupA->id, 'author_id' => $managerA->id, 'external_id' => 'a.md',
+            'title' => 'x', 'aliases' => [], 'tickets' => [], 'tags' => [], 'sources' => [], 'body' => 'x',
+        ]);
+        $foreign = RecallNote::create([
+            'group_id' => $groupB->id, 'author_id' => User::factory()->create()->id, 'external_id' => 'b.md',
+            'title' => 'x', 'aliases' => [], 'tickets' => [], 'tags' => [], 'sources' => [], 'body' => 'x',
+        ]);
+
+        $this->actingAs($managerA)->post('/console/admin/recall/bulk-verify', ['ids' => [$ownNote->id, $foreign->id]])
+            ->assertRedirect();
+
+        $this->assertSame('verified', $ownNote->fresh()->status);
+        $this->assertSame('unverified', $foreign->fresh()->status);
+    }
+
+    public function test_bulk_verify_rejects_an_empty_ids_array(): void
+    {
+        [$manager] = $this->makeManager();
+
+        $this->actingAs($manager)->post('/console/admin/recall/bulk-verify', ['ids' => []])
+            ->assertSessionHasErrors('ids');
+    }
+
+    public function test_bulk_verify_blocks_a_non_manager_even_if_recall_entitled(): void
+    {
+        [$manager, $group, $owner] = $this->makeManager();
+        $member = $this->makeEntitledMember($group, $owner);
+        $note   = RecallNote::create([
+            'group_id' => $group->id, 'author_id' => $manager->id, 'external_id' => 'a.md',
+            'title' => 'x', 'aliases' => [], 'tickets' => [], 'tags' => [], 'sources' => [], 'body' => 'x',
+        ]);
+
+        $this->actingAs($member)->post('/console/admin/recall/bulk-verify', ['ids' => [$note->id]])
+            ->assertRedirect('/console/dashboard');
+        $this->assertSame('unverified', $note->fresh()->status);
+    }
+
+    public function test_bulk_verify_writes_no_audit_log(): void
+    {
+        // Mirrors test_verify_writes_no_audit_log — batching must not introduce
+        // auditing that the single-note action never had.
+        [$manager, $group] = $this->makeManager();
+        $note = RecallNote::create([
+            'group_id' => $group->id, 'author_id' => $manager->id, 'external_id' => 'a.md',
+            'title' => 'x', 'aliases' => [], 'tickets' => [], 'tags' => [], 'sources' => [], 'body' => 'x',
+        ]);
+
+        $this->actingAs($manager)->post('/console/admin/recall/bulk-verify', ['ids' => [$note->id]]);
+
+        $this->assertDatabaseCount('audit_logs', 0);
+    }
+
+    // ---- bulkDestroy: batches destroy() across a page-scoped selection ----
+
+    public function test_bulk_destroy_deletes_every_selected_note(): void
+    {
+        [$manager, $group] = $this->makeManager();
+        $noteA = RecallNote::create([
+            'group_id' => $group->id, 'author_id' => $manager->id, 'external_id' => 'a.md',
+            'title' => 'x', 'aliases' => [], 'tickets' => [], 'tags' => [], 'sources' => [], 'body' => 'x',
+        ]);
+        $noteB = RecallNote::create([
+            'group_id' => $group->id, 'author_id' => $manager->id, 'external_id' => 'b.md',
+            'title' => 'x', 'aliases' => [], 'tickets' => [], 'tags' => [], 'sources' => [], 'body' => 'x',
+        ]);
+
+        $this->actingAs($manager)->delete('/console/admin/recall/bulk', ['ids' => [$noteA->id, $noteB->id]])
+            ->assertRedirect();
+
+        $this->assertNull(RecallNote::find($noteA->id));
+        $this->assertNull(RecallNote::find($noteB->id));
+    }
+
+    public function test_bulk_destroy_ignores_note_ids_belonging_to_a_different_group_idor(): void
+    {
+        [$managerA, $groupA] = $this->makeManager();
+        $groupB  = Group::create(['name' => 'B', 'owner_id' => User::factory()->create()->id]);
+        $foreign = RecallNote::create([
+            'group_id' => $groupB->id, 'author_id' => User::factory()->create()->id, 'external_id' => 'b.md',
+            'title' => 'x', 'aliases' => [], 'tickets' => [], 'tags' => [], 'sources' => [], 'body' => 'x',
+        ]);
+
+        $this->actingAs($managerA)->delete('/console/admin/recall/bulk', ['ids' => [$foreign->id]])
+            ->assertRedirect();
+
+        $this->assertNotNull(RecallNote::find($foreign->id));
+    }
+
+    public function test_bulk_destroy_processes_the_valid_id_when_batch_mixes_own_and_foreign_group_ids(): void
+    {
+        [$managerA, $groupA] = $this->makeManager();
+        $groupB  = Group::create(['name' => 'B', 'owner_id' => User::factory()->create()->id]);
+        $ownNote = RecallNote::create([
+            'group_id' => $groupA->id, 'author_id' => $managerA->id, 'external_id' => 'a.md',
+            'title' => 'x', 'aliases' => [], 'tickets' => [], 'tags' => [], 'sources' => [], 'body' => 'x',
+        ]);
+        $foreign = RecallNote::create([
+            'group_id' => $groupB->id, 'author_id' => User::factory()->create()->id, 'external_id' => 'b.md',
+            'title' => 'x', 'aliases' => [], 'tickets' => [], 'tags' => [], 'sources' => [], 'body' => 'x',
+        ]);
+
+        $this->actingAs($managerA)->delete('/console/admin/recall/bulk', ['ids' => [$ownNote->id, $foreign->id]])
+            ->assertRedirect();
+
+        $this->assertNull(RecallNote::find($ownNote->id));
+        $this->assertNotNull(RecallNote::find($foreign->id));
+    }
+
+    public function test_bulk_destroy_rejects_an_empty_ids_array(): void
+    {
+        [$manager] = $this->makeManager();
+
+        $this->actingAs($manager)->delete('/console/admin/recall/bulk', ['ids' => []])
+            ->assertSessionHasErrors('ids');
+    }
+
+    public function test_bulk_destroy_blocks_a_non_manager_even_if_recall_entitled(): void
+    {
+        [$manager, $group, $owner] = $this->makeManager();
+        $member = $this->makeEntitledMember($group, $owner);
+        $note   = RecallNote::create([
+            'group_id' => $group->id, 'author_id' => $manager->id, 'external_id' => 'a.md',
+            'title' => 'x', 'aliases' => [], 'tickets' => [], 'tags' => [], 'sources' => [], 'body' => 'x',
+        ]);
+
+        $this->actingAs($member)->delete('/console/admin/recall/bulk', ['ids' => [$note->id]])
+            ->assertRedirect('/console/dashboard');
+        $this->assertNotNull(RecallNote::find($note->id));
+    }
+
+    public function test_bulk_destroy_writes_one_audit_log_per_deleted_note(): void
+    {
+        [$manager, $group] = $this->makeManager();
+        $noteA = RecallNote::create([
+            'group_id' => $group->id, 'author_id' => $manager->id, 'external_id' => 'a.md',
+            'title' => 'Note A', 'aliases' => [], 'tickets' => [], 'tags' => [], 'sources' => [], 'body' => 'x',
+        ]);
+        $noteB = RecallNote::create([
+            'group_id' => $group->id, 'author_id' => $manager->id, 'external_id' => 'b.md',
+            'title' => 'Note B', 'aliases' => [], 'tickets' => [], 'tags' => [], 'sources' => [], 'body' => 'x',
+        ]);
+
+        $this->actingAs($manager)->delete('/console/admin/recall/bulk', ['ids' => [$noteA->id, $noteB->id]]);
+
+        $this->assertDatabaseCount('audit_logs', 2);
+        $this->assertDatabaseHas('audit_logs', ['actor_id' => $manager->id, 'action' => 'recall.deleted']);
     }
 }

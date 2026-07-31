@@ -219,6 +219,11 @@ Route::prefix('console')->name('console.')->group(function () {
             Route::patch('/rules/custom/toggle', [\App\Http\Controllers\Console\Admin\RulesController::class, 'toggleCustom'])->name('rules.custom.toggle');
             Route::delete('/rules/custom',       [\App\Http\Controllers\Console\Admin\RulesController::class, 'destroyCustom'])->name('rules.custom.destroy');
 
+            // Recall bulk actions — static paths registered before /recall/{note} so
+            // "bulk" is never swallowed by that route's model-binding segment.
+            Route::post('/recall/bulk-verify', [\App\Http\Controllers\Console\Admin\RecallController::class, 'bulkVerify'])->name('recall.bulk-verify')->middleware('permission:Recall');
+            Route::delete('/recall/bulk', [\App\Http\Controllers\Console\Admin\RecallController::class, 'bulkDestroy'])->name('recall.bulk-destroy')->middleware('permission:Recall');
+
             // Recall verify — manager-only trust-promotion action, ALSO requires Recall
             // entitlement itself (team.manager alone doesn't imply it — Recall is a
             // per-user grant/tier, so a manager can legitimately lack it).

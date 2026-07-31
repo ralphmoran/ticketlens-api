@@ -33,8 +33,12 @@ class RecallController extends Controller
         $notes = $group
             ? RecallNote::where('group_id', $group->id)
                 ->when($search, fn ($query) => $query->where(function ($query) use ($search) {
+                    // tags is a JSON array column; its text representation still
+                    // contains each tag as a plain substring, so LIKE matches it
+                    // the same way on both MySQL and SQLite without a migration.
                     $query->where('title', 'like', "%{$search}%")
-                          ->orWhere('body', 'like', "%{$search}%");
+                          ->orWhere('body', 'like', "%{$search}%")
+                          ->orWhereRaw('tags LIKE ?', ["%{$search}%"]);
                 }))
                 ->with('author')
                 ->orderByDesc('updated_at')
@@ -69,6 +73,79 @@ class RecallController extends Controller
                 'bounds'     => RecallSettings::BOUNDS,
             ],
         ]);
+    }
+
+    public function bulkVerify(Request $request): RedirectResponse
+    {
+        // Same resolution as verify(): owner reads group_id, non-owner is a
+        // confirmed manager via team.manager middleware.
+        $group = $this->groupResolver->forRequest($request);
+        abort_unless($group !== null, 403);
+
+        // max:100 mirrors index()'s per-page ceiling — the largest a manager's
+        // page-scoped selection can ever legitimately be.
+        $validated = $request->validate([
+            'ids'   => ['required', 'array', 'min:1', 'max:100'],
+            'ids.*' => ['integer'],
+        ]);
+
+        // whereIn+where, not abort_unless per id: a stale selection (e.g. a note
+        // deleted by a teammate between page load and submit) should still
+        // verify the rest of the batch rather than failing the whole request.
+        // Notes outside this group are silently excluded — same authorization
+        // posture as the single-note IDOR guard, applied per-row instead of
+        // per-request.
+        $notes = RecallNote::whereIn('id', $validated['ids'])->where('group_id', $group->id)->get();
+
+        $storage = app(RecallStorage::class);
+        foreach ($notes as $note) {
+            $storage->verify($note, $request->user());
+        }
+
+        $count = $notes->count();
+
+        if ($count > 0) {
+            app(SseEventService::class)->publish($group->id, 'notification.updated', []);
+        }
+
+        return back()->with('success', $count === 1 ? '1 note verified.' : "{$count} notes verified.");
+    }
+
+    public function bulkDestroy(Request $request): RedirectResponse
+    {
+        // Same resolution + authorization shape as bulkVerify() — see its comment.
+        $group = $this->groupResolver->forRequest($request);
+        abort_unless($group !== null, 403);
+
+        $validated = $request->validate([
+            'ids'   => ['required', 'array', 'min:1', 'max:100'],
+            'ids.*' => ['integer'],
+        ]);
+
+        $notes = RecallNote::whereIn('id', $validated['ids'])->where('group_id', $group->id)->get();
+
+        $storage = app(RecallStorage::class);
+        foreach ($notes as $note) {
+            // Captured per-note before delete(), same reasoning as destroy():
+            // target is null (a RecallNote isn't a User), logged after delete()
+            // succeeds so a failed delete never leaves a misleading trail entry.
+            $oldValue = ['title' => $note->title, 'external_id' => $note->external_id, 'group_id' => $note->group_id];
+            $storage->delete($note);
+            $this->audit->logFromRequest(
+                request: $request,
+                action: 'recall.deleted',
+                oldValue: $oldValue,
+                metadata: ['note_id' => $note->id],
+            );
+        }
+
+        $count = $notes->count();
+
+        if ($count > 0) {
+            app(SseEventService::class)->publish($group->id, 'notification.updated', []);
+        }
+
+        return back()->with('success', $count === 1 ? '1 note deleted.' : "{$count} notes deleted.");
     }
 
     public function verify(Request $request, RecallNote $note): RedirectResponse

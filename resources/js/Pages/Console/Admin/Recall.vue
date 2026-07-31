@@ -238,9 +238,9 @@ async function destroyNote(note) {
                                     </th>
                                     <th class="tl-th">Note</th>
                                     <th class="tl-th tl-th--meter">Tags</th>
-                                    <th class="tl-th tl-th--meter">Tickets</th>
+                                    <th class="tl-th tl-th--meter hidden xl:table-cell">Tickets</th>
                                     <th class="tl-th tl-th--meter">Status</th>
-                                    <th class="tl-th tl-th--meter">Created</th>
+                                    <th class="tl-th tl-th--meter hidden xl:table-cell">Created</th>
                                     <th class="tl-th tl-th--meter">Author</th>
                                     <th class="tl-th tl-th--right">Actions</th>
                                 </tr>
@@ -259,12 +259,11 @@ async function destroyNote(note) {
                                     <td class="tl-td">
                                         <button
                                             type="button"
-                                            class="tl-cell-link tl-cell-primary tl-row tl-row--tight max-w-sm tl-min-w-0"
-                                            :title="note.title"
+                                            class="tl-cell-link tl-cell-primary tl-row tl-row--tight max-w-[130px] tl-min-w-0"
                                             @click="openDrawer(note)"
                                         >
                                             <TlIcon name="eye" class="tl-ic tl-ic--xs" />
-                                            <span class="tl-trunc">{{ note.title }}</span>
+                                            <span class="tl-trunc tl-abbr tl-abbr--below" :data-tooltip="note.title">{{ note.title }}</span>
                                         </button>
                                     </td>
                                     <td class="tl-td">
@@ -273,12 +272,12 @@ async function destroyNote(note) {
                                         </div>
                                         <span v-else class="tl-hint">—</span>
                                     </td>
-                                    <td class="tl-td tl-mono--xs">{{ note.tickets?.join(', ') || '—' }}</td>
+                                    <td class="tl-td tl-mono--xs hidden xl:table-cell">{{ note.tickets?.join(', ') || '—' }}</td>
                                     <td class="tl-td">
                                         <span v-if="note.status === 'verified'" class="tl-badge tl-badge--success">Verified</span>
                                         <span v-else class="tl-badge tl-badge--neutral">Unverified</span>
                                     </td>
-                                    <td class="tl-td tl-cell-muted tl-nowrap">{{ timeAgo(note.created_at) }}</td>
+                                    <td class="tl-td tl-cell-muted tl-nowrap hidden xl:table-cell">{{ timeAgo(note.created_at) }}</td>
                                     <td class="tl-td">
                                         <div class="tl-row tl-row--tight">
                                             <UserAvatar
@@ -294,20 +293,22 @@ async function destroyNote(note) {
                                             <button
                                                 v-if="canManage && note.status !== 'verified'"
                                                 type="button"
+                                                title="Verify"
+                                                aria-label="Verify"
                                                 @click="verify(note)"
                                                 class="tl-btn-ghost tl-btn-ghost--info"
                                             >
                                                 <TlIcon name="badge-check" class="tl-ic tl-ic--sm" />
-                                                Verify
                                             </button>
                                             <button
                                                 v-if="canManage"
                                                 type="button"
+                                                title="Delete"
+                                                aria-label="Delete"
                                                 @click="destroyNote(note)"
                                                 class="tl-btn-ghost tl-btn-ghost--danger"
                                             >
                                                 <TlIcon name="trash" class="tl-ic tl-ic--sm" />
-                                                Delete
                                             </button>
                                         </div>
                                     </td>

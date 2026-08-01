@@ -4,14 +4,17 @@ namespace App\Http\Controllers\Console\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Recall\UpdateSettingsRequest;
+use App\Models\Group;
 use App\Models\RecallNote;
 use App\Models\RecallSettings;
+use App\Models\User;
 use App\Services\ActiveGroupResolver;
 use App\Services\AuditService;
 use App\Services\RecallStorage;
 use App\Services\SseEventService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -24,8 +27,16 @@ class RecallController extends Controller
 
     public function index(Request $request): Response
     {
-        $group  = $this->groupResolver->forRequest($request);
-        $search = $request->string('search')->trim()->value();
+        $group = $this->groupResolver->forRequest($request);
+
+        $request->validate([
+            'status' => ['sometimes', 'nullable', Rule::in(['verified', 'unverified'])],
+        ]);
+
+        $search   = $request->string('search')->trim()->value();
+        $status   = $request->string('status')->trim()->value();
+        $authorId = $request->integer('author_id') ?: null;
+        $tag      = $request->string('tag')->trim()->value();
         // Same clamp as AuditController::index() — bounds page size the same
         // way across every admin list page in this codebase.
         $perPage = min(max(1, (int) $request->input('per_page', 10)), 100);
@@ -40,6 +51,11 @@ class RecallController extends Controller
                           ->orWhere('body', 'like', "%{$search}%")
                           ->orWhereRaw('tags LIKE ?', ["%{$search}%"]);
                 }))
+                ->when($status, fn ($query) => $query->where('status', $status))
+                ->when($authorId, fn ($query) => $query->where('author_id', $authorId))
+                // whereJsonContains, not the search filter's LIKE: an exact tag
+                // match ("test" must not match a note tagged only "testing").
+                ->when($tag, fn ($query) => $query->whereJsonContains('tags', $tag))
                 ->with('author:id,name,tier,avatar_path')
                 ->orderByDesc('updated_at')
                 ->paginate($perPage)
@@ -65,10 +81,18 @@ class RecallController extends Controller
         $override = $group ? RecallSettings::where('group_id', $group->id)->first() : null;
 
         return Inertia::render('Console/Admin/Recall', [
-            'group'     => $group ? ['id' => $group->id, 'name' => $group->name] : null,
-            'notes'     => $notes,
-            'canManage' => $user->is_owner || $user->ownedGroup?->id === $group?->id,
-            'filters'   => ['search' => $search, 'per_page' => $perPage],
+            'group'         => $group ? ['id' => $group->id, 'name' => $group->name] : null,
+            'notes'         => $notes,
+            'canManage'     => $user->is_owner || $user->ownedGroup?->id === $group?->id,
+            'authorOptions' => $group ? $this->authorOptionsFor($group) : [],
+            'tagOptions'    => $group ? $this->tagOptionsFor($group) : [],
+            'filters'       => [
+                'search'    => $search,
+                'per_page'  => $perPage,
+                'status'    => $status,
+                'author_id' => $authorId,
+                'tag'       => $tag,
+            ],
             'settings'  => [
                 'values'     => $override
                     ? $override->only(array_keys(RecallSettings::DEFAULTS))
@@ -77,6 +101,35 @@ class RecallController extends Controller
                 'bounds'     => RecallSettings::BOUNDS,
             ],
         ]);
+    }
+
+    /**
+     * @return array<int, array{id: int, name: string}>
+     */
+    private function authorOptionsFor(Group $group): array
+    {
+        $authorIds = RecallNote::where('group_id', $group->id)
+            ->whereNotNull('author_id')
+            ->distinct()
+            ->pluck('author_id');
+
+        return User::whereIn('id', $authorIds)
+            ->orderBy('name')
+            ->get(['id', 'name'])
+            ->map(fn (User $author) => ['id' => $author->id, 'name' => $author->name])
+            ->all();
+    }
+
+    private function tagOptionsFor(Group $group): array
+    {
+        return RecallNote::where('group_id', $group->id)
+            ->pluck('tags')
+            ->flatten()
+            ->filter()
+            ->unique()
+            ->sort()
+            ->values()
+            ->all();
     }
 
     public function bulkVerify(Request $request): RedirectResponse

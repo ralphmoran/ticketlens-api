@@ -13,11 +13,13 @@ import { timeAgo } from '@/composables/useDateFormat'
 defineOptions({ layout: ConsoleLayout })
 
 const props = defineProps({
-    group:     { type: Object, default: null },
-    notes:     { type: Object, default: () => ({ data: [], current_page: 1, last_page: 1, total: 0 }) },
-    canManage: { type: Boolean, default: false },
-    filters:   { type: Object, default: () => ({}) },
-    settings:  { type: Object, default: null },
+    group:         { type: Object, default: null },
+    notes:         { type: Object, default: () => ({ data: [], current_page: 1, last_page: 1, total: 0 }) },
+    canManage:     { type: Boolean, default: false },
+    authorOptions: { type: Array, default: () => [] },
+    tagOptions:    { type: Array, default: () => [] },
+    filters:       { type: Object, default: () => ({}) },
+    settings:      { type: Object, default: null },
 })
 
 const { confirm } = useConfirm()
@@ -30,8 +32,11 @@ function currentGroupId() {
 }
 
 const { filters, loading, navigate } = useTableFilters({
-    search:    props.filters?.search   ?? '',
-    per_page:  props.filters?.per_page ?? 10,
+    search:    props.filters?.search    ?? '',
+    per_page:  props.filters?.per_page  ?? 10,
+    status:    props.filters?.status    ?? '',
+    author_id: props.filters?.author_id ?? '',
+    tag:       props.filters?.tag       ?? '',
     group_id:  currentGroupId(),
 }, '/console/admin/recall')
 
@@ -200,6 +205,22 @@ async function destroyNote(note) {
                             />
                         </div>
                     </div>
+
+                    <select v-model="filters.status" class="tl-select" aria-label="Filter by status">
+                        <option value="">All statuses</option>
+                        <option value="verified">Verified</option>
+                        <option value="unverified">Unverified</option>
+                    </select>
+
+                    <select v-model="filters.author_id" class="tl-select" aria-label="Filter by author">
+                        <option value="">All authors</option>
+                        <option v-for="author in authorOptions" :key="author.id" :value="author.id">{{ author.name }}</option>
+                    </select>
+
+                    <select v-model="filters.tag" class="tl-select" aria-label="Filter by tag">
+                        <option value="">All tags</option>
+                        <option v-for="tag in tagOptions" :key="tag" :value="tag">{{ tag }}</option>
+                    </select>
 
                     <div v-if="selectedIds.length" class="tl-row tl-row--tight">
                         <span class="tl-hint">{{ selectedIds.length }} selected</span>

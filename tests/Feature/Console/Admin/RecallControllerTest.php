@@ -194,6 +194,141 @@ class RecallControllerTest extends TestCase
             ->assertInertia(fn ($page) => $page->where('notes.data.0.body', 'Needs exponential backoff.'));
     }
 
+    // ---- index: filters (status, author, tag — combinable) ----
+
+    public function test_index_filters_by_status(): void
+    {
+        [$manager, $group] = $this->makeManager();
+        $verified = RecallNote::create([
+            'group_id' => $group->id, 'author_id' => $manager->id, 'external_id' => 'a.md',
+            'title' => 'Verified note', 'aliases' => [], 'tickets' => [], 'tags' => [], 'sources' => [], 'body' => 'x',
+            'status' => 'verified',
+        ]);
+        RecallNote::create([
+            'group_id' => $group->id, 'author_id' => $manager->id, 'external_id' => 'b.md',
+            'title' => 'Unverified note', 'aliases' => [], 'tickets' => [], 'tags' => [], 'sources' => [], 'body' => 'x',
+        ]);
+
+        $this->actingAs($manager)->get('/console/admin/recall?status=verified')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page->has('notes.data', 1)->where('notes.data.0.id', $verified->id));
+    }
+
+    public function test_index_filters_by_author(): void
+    {
+        [$manager, $group, $owner] = $this->makeManager();
+        $other = $this->makeEntitledMember($group, $owner);
+        $mine  = RecallNote::create([
+            'group_id' => $group->id, 'author_id' => $manager->id, 'external_id' => 'a.md',
+            'title' => 'Mine', 'aliases' => [], 'tickets' => [], 'tags' => [], 'sources' => [], 'body' => 'x',
+        ]);
+        RecallNote::create([
+            'group_id' => $group->id, 'author_id' => $other->id, 'external_id' => 'b.md',
+            'title' => 'Theirs', 'aliases' => [], 'tickets' => [], 'tags' => [], 'sources' => [], 'body' => 'x',
+        ]);
+
+        $this->actingAs($manager)->get("/console/admin/recall?author_id={$manager->id}")
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page->has('notes.data', 1)->where('notes.data.0.id', $mine->id));
+    }
+
+    public function test_index_filters_by_tag_as_an_exact_match_not_a_substring(): void
+    {
+        // Lock: "test" must not match a note tagged only "testing" — this is
+        // whereJsonContains, a different code path from the fuzzy `search`
+        // param's LIKE-based tag matching (see test_index_search_matches_tags).
+        [$manager, $group] = $this->makeManager();
+        $exact = RecallNote::create([
+            'group_id' => $group->id, 'author_id' => $manager->id, 'external_id' => 'a.md',
+            'title' => 'x', 'aliases' => [], 'tickets' => [], 'tags' => ['test'], 'sources' => [], 'body' => 'x',
+        ]);
+        RecallNote::create([
+            'group_id' => $group->id, 'author_id' => $manager->id, 'external_id' => 'b.md',
+            'title' => 'x', 'aliases' => [], 'tickets' => [], 'tags' => ['testing'], 'sources' => [], 'body' => 'x',
+        ]);
+
+        $this->actingAs($manager)->get('/console/admin/recall?tag=test')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page->has('notes.data', 1)->where('notes.data.0.id', $exact->id));
+    }
+
+    public function test_index_combines_status_author_and_tag_filters(): void
+    {
+        [$manager, $group, $owner] = $this->makeManager();
+        $other  = $this->makeEntitledMember($group, $owner);
+        $target = RecallNote::create([
+            'group_id' => $group->id, 'author_id' => $manager->id, 'external_id' => 'a.md',
+            'title' => 'Target', 'aliases' => [], 'tickets' => [], 'tags' => ['routeone'], 'sources' => [], 'body' => 'x',
+            'status' => 'verified',
+        ]);
+        // Same author + tag, wrong status
+        RecallNote::create([
+            'group_id' => $group->id, 'author_id' => $manager->id, 'external_id' => 'b.md',
+            'title' => 'Wrong status', 'aliases' => [], 'tickets' => [], 'tags' => ['routeone'], 'sources' => [], 'body' => 'x',
+        ]);
+        // Same status + tag, wrong author
+        RecallNote::create([
+            'group_id' => $group->id, 'author_id' => $other->id, 'external_id' => 'c.md',
+            'title' => 'Wrong author', 'aliases' => [], 'tickets' => [], 'tags' => ['routeone'], 'sources' => [], 'body' => 'x',
+            'status' => 'verified',
+        ]);
+        // Same status + author, wrong tag
+        RecallNote::create([
+            'group_id' => $group->id, 'author_id' => $manager->id, 'external_id' => 'd.md',
+            'title' => 'Wrong tag', 'aliases' => [], 'tickets' => [], 'tags' => ['other'], 'sources' => [], 'body' => 'x',
+            'status' => 'verified',
+        ]);
+
+        $this->actingAs($manager)
+            ->get("/console/admin/recall?status=verified&author_id={$manager->id}&tag=routeone")
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page->has('notes.data', 1)->where('notes.data.0.id', $target->id));
+    }
+
+    public function test_index_returns_distinct_author_and_tag_options_scoped_to_the_group(): void
+    {
+        [$manager, $group, $owner] = $this->makeManager();
+        $other = $this->makeEntitledMember($group, $owner);
+        $groupB = Group::create(['name' => 'B', 'owner_id' => User::factory()->create()->id]);
+
+        RecallNote::create([
+            'group_id' => $group->id, 'author_id' => $manager->id, 'external_id' => 'a.md',
+            'title' => 'x', 'aliases' => [], 'tickets' => [], 'tags' => ['routeone', 'gotcha'], 'sources' => [], 'body' => 'x',
+        ]);
+        RecallNote::create([
+            'group_id' => $group->id, 'author_id' => $manager->id, 'external_id' => 'b.md',
+            'title' => 'x', 'aliases' => [], 'tickets' => [], 'tags' => ['gotcha'], 'sources' => [], 'body' => 'x',
+        ]);
+        RecallNote::create([
+            'group_id' => $group->id, 'author_id' => $other->id, 'external_id' => 'c.md',
+            'title' => 'x', 'aliases' => [], 'tickets' => [], 'tags' => [], 'sources' => [], 'body' => 'x',
+        ]);
+        // Different group — must never leak into these options.
+        RecallNote::create([
+            'group_id' => $groupB->id, 'author_id' => User::factory()->create()->id, 'external_id' => 'd.md',
+            'title' => 'x', 'aliases' => [], 'tickets' => [], 'tags' => ['other-groups-tag'], 'sources' => [], 'body' => 'x',
+        ]);
+
+        $this->actingAs($manager)->get('/console/admin/recall')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->has('authorOptions', 2)
+                ->where('tagOptions', ['gotcha', 'routeone']));
+    }
+
+    public function test_index_returns_empty_options_for_an_owner_with_no_active_group(): void
+    {
+        $owner = User::factory()->create(['is_owner' => true]);
+
+        $this->actingAs($owner)->get('/console/admin/recall')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('group', null)
+                ->where('notes', null)
+                ->where('authorOptions', [])
+                ->where('tagOptions', []));
+    }
+
     // ---- verify: manager-only (IDOR-safe) ----
 
     public function test_verify_blocks_a_non_manager_even_if_recall_entitled(): void

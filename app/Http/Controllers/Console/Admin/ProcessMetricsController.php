@@ -118,7 +118,7 @@ class ProcessMetricsController
         $compliance = $members->map(function ($member) use ($ticketsByMember) {
             $memberTickets = $ticketsByMember->get($member->id, collect());
             $total         = $memberTickets->count();
-            $checked       = $memberTickets->filter(fn ($t) => ($t['compliance_status'] ?? 'unknown') !== 'unknown')->count();
+            $checked       = $memberTickets->filter(fn ($t) => !in_array($t['compliance_status'] ?? 'unknown', ['unknown', 'no-criteria']))->count();
             $coverages     = $memberTickets->filter(fn ($t) => isset($t['compliance_coverage']) && $t['compliance_coverage'] !== null)->pluck('compliance_coverage');
             return [
                 'member_id'    => $member->id,

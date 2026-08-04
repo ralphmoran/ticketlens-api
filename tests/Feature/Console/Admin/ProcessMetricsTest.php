@@ -411,6 +411,25 @@ class ProcessMetricsTest extends TestCase
             );
     }
 
+    // M-3 residual gap: a noCriteria compliance check (nothing was actually verified) must not
+    // count as "checked" here, same as 'unknown' — otherwise Console coverage_pct looks inflated.
+    public function test_compliance_excludes_no_criteria_tickets_from_checked(): void
+    {
+        $manager = $this->makeManager();
+        $this->pushSnapshot($manager, [
+            $this->ticket('P-1', complianceCoverage: 80.0, complianceStatus: 'pass'),
+            $this->ticket('P-2', complianceStatus: 'no-criteria'),
+            $this->ticket('P-3', complianceStatus: 'unknown'),
+        ]);
+
+        $this->actingAs($manager)
+            ->get('/console/admin/process-metrics')
+            ->assertInertia(fn ($page) => $page
+                ->where('compliance.0.total', 3)
+                ->where('compliance.0.checked', 1)
+            );
+    }
+
     // --- Inertia render test ---
 
     public function test_page_renders_with_group_name_and_last_updated(): void

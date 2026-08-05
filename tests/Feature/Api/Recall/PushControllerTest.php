@@ -186,6 +186,70 @@ class PushControllerTest extends TestCase
             ->assertStatus(422);
     }
 
+    // ---- explicit team targeting ----
+
+    public function test_an_explicit_group_targets_that_membership_even_when_the_user_owns_a_different_group(): void
+    {
+        $owner       = User::factory()->create(['is_owner' => true]);
+        $user        = User::factory()->create(['tier' => 'pro']);
+        $ownedByUser = Group::create(['name' => 'Owned', 'owner_id' => $user->id]);
+        $joined      = Group::create(['name' => "Team Manager's Team", 'owner_id' => $owner->id]);
+        $joined->users()->attach($user->id);
+        $this->grantRecall($user, $owner);
+        $plaintext = 'tl_' . str_repeat('e', 40);
+        CliToken::create(['user_id' => $user->id, 'name' => 'CLI Token', 'token_hash' => CliToken::hashToken($plaintext)]);
+
+        $this->withToken($plaintext)
+            ->postJson('/v1/recall/push', $this->validPayload(['group' => "Team Manager's Team"]))
+            ->assertStatus(200);
+
+        $this->assertSame($joined->id, RecallNote::first()->group_id);
+        $this->assertNotSame($ownedByUser->id, RecallNote::first()->group_id);
+    }
+
+    public function test_an_empty_string_group_falls_back_to_default_resolution_not_a_422(): void
+    {
+        $owner       = User::factory()->create(['is_owner' => true]);
+        $user        = User::factory()->create(['tier' => 'pro']);
+        $ownedByUser = Group::create(['name' => 'Owned', 'owner_id' => $user->id]);
+        $joined      = Group::create(['name' => "Team Manager's Team", 'owner_id' => $owner->id]);
+        $joined->users()->attach($user->id);
+        $this->grantRecall($user, $owner);
+        $plaintext = 'tl_' . str_repeat('f', 40);
+        CliToken::create(['user_id' => $user->id, 'name' => 'CLI Token', 'token_hash' => CliToken::hashToken($plaintext)]);
+
+        $this->withToken($plaintext)
+            ->postJson('/v1/recall/push', $this->validPayload(['group' => '']))
+            ->assertStatus(200);
+
+        $this->assertSame($ownedByUser->id, RecallNote::first()->group_id);
+    }
+
+    public function test_an_empty_string_group_with_no_group_at_all_returns_403_not_422(): void
+    {
+        [$user, $token, $group] = $this->makeEntitledUserWithToken();
+        // makeEntitledUserWithToken attaches the user to $group as a member,
+        // not an owner — remove that membership so this user has NO group at all.
+        $group->users()->detach($user->id);
+
+        $this->withToken($token)
+            ->postJson('/v1/recall/push', $this->validPayload(['group' => '']))
+            ->assertStatus(403)
+            ->assertJson(['error' => 'No team found']);
+    }
+
+    public function test_an_explicit_group_the_user_is_not_a_member_of_returns_422_unknown_team_and_persists_nothing(): void
+    {
+        [, $token] = $this->makeEntitledUserWithToken();
+
+        $this->withToken($token)
+            ->postJson('/v1/recall/push', $this->validPayload(['group' => 'Some Other Team']))
+            ->assertStatus(422)
+            ->assertJson(['error' => 'Unknown team']);
+
+        $this->assertSame(0, RecallNote::count());
+    }
+
     // ---- idempotency ----
 
     public function test_pushing_the_same_external_id_twice_upserts_one_row(): void

@@ -95,6 +95,77 @@ class PullControllerTest extends TestCase
         $this->assertCount(0, $response);
     }
 
+    // ---- explicit team targeting ----
+
+    public function test_an_explicit_group_query_param_targets_that_membership_even_when_the_user_owns_a_different_group(): void
+    {
+        $owner       = User::factory()->create(['is_owner' => true]);
+        $user        = User::factory()->create(['tier' => 'pro']);
+        $ownedByUser = Group::create(['name' => 'Owned', 'owner_id' => $user->id]);
+        $joined      = Group::create(['name' => "Team Manager's Team", 'owner_id' => $owner->id]);
+        $joined->users()->attach($user->id);
+        $this->grantRecall($user, $owner);
+        $plaintext = 'tl_' . str_repeat('e', 40);
+        CliToken::create(['user_id' => $user->id, 'name' => 'CLI Token', 'token_hash' => CliToken::hashToken($plaintext)]);
+
+        RecallNote::create([
+            'group_id' => $ownedByUser->id, 'author_id' => $user->id, 'external_id' => 'owned.md',
+            'title' => 'Owned note', 'aliases' => [], 'tickets' => [], 'tags' => [], 'sources' => [], 'body' => 'x',
+        ]);
+        RecallNote::create([
+            'group_id' => $joined->id, 'author_id' => $user->id, 'external_id' => 'joined.md',
+            'title' => 'Joined note', 'aliases' => [], 'tickets' => [], 'tags' => [], 'sources' => [], 'body' => 'x',
+        ]);
+
+        $group = urlencode("Team Manager's Team");
+        $response = $this->withToken($plaintext)->getJson("/v1/recall/pull?group={$group}")->assertStatus(200)->json('notes');
+
+        $this->assertCount(1, $response);
+        $this->assertSame('Joined note', $response[0]['title']);
+    }
+
+    public function test_an_empty_string_group_query_param_falls_back_to_default_resolution_not_a_422(): void
+    {
+        $owner       = User::factory()->create(['is_owner' => true]);
+        $user        = User::factory()->create(['tier' => 'pro']);
+        $ownedByUser = Group::create(['name' => 'Owned', 'owner_id' => $user->id]);
+        $this->grantRecall($user, $owner);
+        $plaintext = 'tl_' . str_repeat('f', 40);
+        CliToken::create(['user_id' => $user->id, 'name' => 'CLI Token', 'token_hash' => CliToken::hashToken($plaintext)]);
+
+        RecallNote::create([
+            'group_id' => $ownedByUser->id, 'author_id' => $user->id, 'external_id' => 'owned.md',
+            'title' => 'Owned note', 'aliases' => [], 'tickets' => [], 'tags' => [], 'sources' => [], 'body' => 'x',
+        ]);
+
+        $response = $this->withToken($plaintext)->getJson('/v1/recall/pull?group=')->assertStatus(200)->json('notes');
+        $this->assertCount(1, $response);
+    }
+
+    public function test_an_empty_string_group_with_no_group_at_all_returns_empty_list_not_422(): void
+    {
+        $owner = User::factory()->create(['is_owner' => true]);
+        $user  = User::factory()->create(['tier' => 'pro']);
+        $this->grantRecall($user, $owner);
+        $plaintext = 'tl_' . str_repeat('g', 40);
+        CliToken::create(['user_id' => $user->id, 'name' => 'CLI Token', 'token_hash' => CliToken::hashToken($plaintext)]);
+
+        $this->withToken($plaintext)->getJson('/v1/recall/pull?group=')
+            ->assertStatus(200)->assertJson(['notes' => [], 'deleted' => []]);
+    }
+
+    public function test_an_explicit_group_query_param_the_user_is_not_a_member_of_returns_422_unknown_team(): void
+    {
+        $owner = User::factory()->create(['is_owner' => true]);
+        $group = Group::create(['name' => 'T', 'owner_id' => $owner->id]);
+        [, $token] = $this->makeEntitledMember($group, $owner, 'a');
+
+        $this->withToken($token)
+            ->getJson('/v1/recall/pull?group=' . urlencode('Some Other Team'))
+            ->assertStatus(422)
+            ->assertJson(['error' => 'Unknown team']);
+    }
+
     // ---- since-delta ----
 
     public function test_since_param_only_returns_notes_updated_after_it(): void

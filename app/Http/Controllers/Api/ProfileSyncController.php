@@ -7,12 +7,13 @@ use App\Models\Group;
 use App\Models\TrackerProfile;
 use App\Models\User;
 use App\Models\WorkflowRule;
+use App\Services\RecallTeamResolver;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class ProfileSyncController extends Controller
 {
-    public function __invoke(Request $request): JsonResponse
+    public function __invoke(Request $request, RecallTeamResolver $teamResolver): JsonResponse
     {
         $user             = $request->user();
         $teamStaleRule    = $this->resolveTeamStaleRule($user);
@@ -33,7 +34,11 @@ class ProfileSyncController extends Controller
             })
             ->values();
 
-        return response()->json(['profiles' => $profiles, 'tier' => $user->tier]);
+        $teams = $teamResolver->listForUser($user)
+            ->map(fn (Group $group): array => ['id' => $group->id, 'name' => $group->name, 'role' => $group->role])
+            ->values();
+
+        return response()->json(['profiles' => $profiles, 'tier' => $user->tier, 'teams' => $teams]);
     }
 
     private function resolveGroup(User $user): ?Group

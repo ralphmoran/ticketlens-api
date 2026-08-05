@@ -7,11 +7,12 @@ use App\Http\Requests\Recall\PushRequest;
 use App\Services\PermissionService;
 use App\Services\RecallSecretScanner;
 use App\Services\RecallStorage;
+use App\Services\RecallTeamResolver;
 use Illuminate\Http\JsonResponse;
 
 class PushController
 {
-    public function __invoke(PushRequest $request): JsonResponse
+    public function __invoke(PushRequest $request, RecallTeamResolver $teamResolver): JsonResponse
     {
         $user = $request->user();
 
@@ -19,9 +20,16 @@ class PushController
             return response()->json(['error' => 'Recall is not enabled for your account'], 403);
         }
 
-        $group = $user->ownedGroup ?? $user->groups()->first();
+        // Empty string means "no explicit target" — same as omitting the field
+        // entirely, not a name to fail to match (that would misreport a
+        // no-team account as "Unknown team" instead of "No team found").
+        $requestedGroup = $request->validated('group') ?: null;
+        $group = $teamResolver->resolveForUser($user, $requestedGroup);
+
         if ($group === null) {
-            return response()->json(['error' => 'No team found'], 403);
+            return $requestedGroup !== null
+                ? response()->json(['error' => 'Unknown team'], 422)
+                : response()->json(['error' => 'No team found'], 403);
         }
 
         $scan = app(RecallSecretScanner::class)->scan($request->validated());

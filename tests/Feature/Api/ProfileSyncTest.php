@@ -427,6 +427,44 @@ class ProfileSyncTest extends TestCase
         $this->assertEquals(['stale_days' => 14, 'statuses' => ['In Review']], $profile['stale_rule']);
     }
 
+    // ── Team list (Recall multi-team targeting) ───────────────────────────────
+
+    public function test_response_includes_teams_the_user_belongs_to_with_role(): void
+    {
+        $user   = $this->makeUser();
+        $token  = $this->makeToken($user);
+        $owned  = Group::create(['name' => 'Owned', 'owner_id' => $user->id]);
+        $joined = Group::create(['name' => 'Joined', 'owner_id' => User::factory()->create()->id]);
+        $joined->members()->attach($user->id);
+
+        $teams = $this->withToken($token)->getJson('/v1/profiles')->assertOk()->json('teams');
+
+        $this->assertCount(2, $teams);
+        $byId = collect($teams)->keyBy('id');
+        $this->assertSame('Owned', $byId[$owned->id]['name']);
+        $this->assertSame('owner', $byId[$owned->id]['role']);
+        $this->assertSame('Joined', $byId[$joined->id]['name']);
+        $this->assertSame('member', $byId[$joined->id]['role']);
+    }
+
+    public function test_teams_is_an_empty_array_when_the_user_has_no_groups(): void
+    {
+        $user  = $this->makeUser();
+        $token = $this->makeToken($user);
+
+        $this->withToken($token)->getJson('/v1/profiles')->assertOk()->assertJson(['teams' => []]);
+    }
+
+    public function test_does_not_return_other_users_teams(): void
+    {
+        $user  = $this->makeUser();
+        $token = $this->makeToken($user);
+        $other = $this->makeUser();
+        Group::create(['name' => 'Not Mine', 'owner_id' => $other->id]);
+
+        $this->withToken($token)->getJson('/v1/profiles')->assertOk()->assertJson(['teams' => []]);
+    }
+
     public function test_credential_invariant_stale_rule_contains_no_auth_keys(): void
     {
         $user  = User::factory()->create(['tier' => 'pro', 'permissions' => 2119]);

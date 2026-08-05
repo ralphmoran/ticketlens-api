@@ -10,8 +10,10 @@ use Illuminate\Support\Collection;
  * Resolves which of the AUTHENTICATED user's own group memberships a CLI
  * Recall push/pull/profile-sync request targets. Always scoped to
  * $user->groups() (or ownedGroup) — never a global Group lookup — so an
- * explicit group name can only ever select a team the token's own user
- * actually belongs to.
+ * explicit group id can only ever select a team the token's own user
+ * actually belongs to, however it entered the system (a raw client-supplied
+ * id resolves the exact same way a name would: found only if it's this
+ * user's own membership, null otherwise).
  *
  * Distinct from ActiveGroupResolver, which resolves console/admin-context
  * requests and lets a platform owner impersonate an arbitrary group by raw
@@ -20,16 +22,15 @@ use Illuminate\Support\Collection;
 class RecallTeamResolver
 {
     /**
-     * @param string|null $groupName Explicit target team name, or null to
-     *                               fall back to the user's default group
-     *                               (owned group, else first membership) —
-     *                               the same precedence every existing
-     *                               caller already relies on.
+     * @param int|null $groupId Explicit target team id, or null to fall back
+     *                          to the user's default group (owned group,
+     *                          else first membership) — the same precedence
+     *                          every existing caller already relies on.
      */
-    public function resolveForUser(User $user, ?string $groupName): ?Group
+    public function resolveForUser(User $user, ?int $groupId): ?Group
     {
-        if ($groupName !== null && $groupName !== '') {
-            return $user->groups()->where('name', $groupName)->first();
+        if ($groupId !== null) {
+            return $user->groups()->find($groupId);
         }
 
         return $user->ownedGroup ?? $user->groups()->first();

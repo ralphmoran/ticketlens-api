@@ -77,7 +77,7 @@ class PullControllerTest extends TestCase
         $this->assertSame('Group B secret note', $responseB[0]['title']);
     }
 
-    public function test_a_client_supplied_group_id_query_param_is_ignored_never_trusted(): void
+    public function test_a_group_id_for_a_group_the_user_is_not_a_member_of_never_leaks_it_returns_422_not_a_leak(): void
     {
         $owner  = User::factory()->create(['is_owner' => true]);
         $groupA = Group::create(['name' => 'A', 'owner_id' => $owner->id]);
@@ -90,14 +90,15 @@ class PullControllerTest extends TestCase
             'title' => 'Group B secret note', 'aliases' => [], 'tickets' => [], 'tags' => [], 'sources' => [], 'body' => 'x',
         ]);
 
-        // userA (group A) attempts to read group B's notes via an explicit query param — must be ignored.
-        $response = $this->withToken($tokenA)->getJson("/v1/recall/pull?group_id={$groupB->id}")->assertStatus(200)->json('notes');
-        $this->assertCount(0, $response);
+        // userA (group A) attempts to read group B's notes via an explicit group_id —
+        // rejected outright (422), never silently served or ignored-into-a-leak.
+        $this->withToken($tokenA)->getJson("/v1/recall/pull?group_id={$groupB->id}")
+            ->assertStatus(422)->assertJson(['error' => 'Unknown team']);
     }
 
     // ---- explicit team targeting ----
 
-    public function test_an_explicit_group_query_param_targets_that_membership_even_when_the_user_owns_a_different_group(): void
+    public function test_an_explicit_group_id_targets_that_membership_even_when_the_user_owns_a_different_group(): void
     {
         $owner       = User::factory()->create(['is_owner' => true]);
         $user        = User::factory()->create(['tier' => 'pro']);
@@ -117,14 +118,13 @@ class PullControllerTest extends TestCase
             'title' => 'Joined note', 'aliases' => [], 'tickets' => [], 'tags' => [], 'sources' => [], 'body' => 'x',
         ]);
 
-        $group = urlencode("Team Manager's Team");
-        $response = $this->withToken($plaintext)->getJson("/v1/recall/pull?group={$group}")->assertStatus(200)->json('notes');
+        $response = $this->withToken($plaintext)->getJson("/v1/recall/pull?group_id={$joined->id}")->assertStatus(200)->json('notes');
 
         $this->assertCount(1, $response);
         $this->assertSame('Joined note', $response[0]['title']);
     }
 
-    public function test_an_empty_string_group_query_param_falls_back_to_default_resolution_not_a_422(): void
+    public function test_a_missing_group_id_falls_back_to_default_resolution_not_a_422(): void
     {
         $owner       = User::factory()->create(['is_owner' => true]);
         $user        = User::factory()->create(['tier' => 'pro']);
@@ -138,11 +138,11 @@ class PullControllerTest extends TestCase
             'title' => 'Owned note', 'aliases' => [], 'tickets' => [], 'tags' => [], 'sources' => [], 'body' => 'x',
         ]);
 
-        $response = $this->withToken($plaintext)->getJson('/v1/recall/pull?group=')->assertStatus(200)->json('notes');
+        $response = $this->withToken($plaintext)->getJson('/v1/recall/pull')->assertStatus(200)->json('notes');
         $this->assertCount(1, $response);
     }
 
-    public function test_an_empty_string_group_with_no_group_at_all_returns_empty_list_not_422(): void
+    public function test_an_empty_string_group_id_with_no_group_at_all_returns_empty_list_not_422(): void
     {
         $owner = User::factory()->create(['is_owner' => true]);
         $user  = User::factory()->create(['tier' => 'pro']);
@@ -150,20 +150,29 @@ class PullControllerTest extends TestCase
         $plaintext = 'tl_' . str_repeat('g', 40);
         CliToken::create(['user_id' => $user->id, 'name' => 'CLI Token', 'token_hash' => CliToken::hashToken($plaintext)]);
 
-        $this->withToken($plaintext)->getJson('/v1/recall/pull?group=')
+        $this->withToken($plaintext)->getJson('/v1/recall/pull?group_id=')
             ->assertStatus(200)->assertJson(['notes' => [], 'deleted' => []]);
     }
 
-    public function test_an_explicit_group_query_param_the_user_is_not_a_member_of_returns_422_unknown_team(): void
+    public function test_a_group_id_that_does_not_exist_at_all_returns_422_unknown_team(): void
     {
         $owner = User::factory()->create(['is_owner' => true]);
         $group = Group::create(['name' => 'T', 'owner_id' => $owner->id]);
         [, $token] = $this->makeEntitledMember($group, $owner, 'a');
 
         $this->withToken($token)
-            ->getJson('/v1/recall/pull?group=' . urlencode('Some Other Team'))
+            ->getJson('/v1/recall/pull?group_id=999999')
             ->assertStatus(422)
             ->assertJson(['error' => 'Unknown team']);
+    }
+
+    public function test_a_non_integer_group_id_returns_422_validation_error(): void
+    {
+        $owner = User::factory()->create(['is_owner' => true]);
+        $group = Group::create(['name' => 'T', 'owner_id' => $owner->id]);
+        [, $token] = $this->makeEntitledMember($group, $owner, 'a');
+
+        $this->withToken($token)->getJson('/v1/recall/pull?group_id=not-a-number')->assertStatus(422);
     }
 
     // ---- since-delta ----

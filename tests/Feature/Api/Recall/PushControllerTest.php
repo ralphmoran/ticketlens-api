@@ -188,7 +188,7 @@ class PushControllerTest extends TestCase
 
     // ---- explicit team targeting ----
 
-    public function test_an_explicit_group_targets_that_membership_even_when_the_user_owns_a_different_group(): void
+    public function test_an_explicit_group_id_targets_that_membership_even_when_the_user_owns_a_different_group(): void
     {
         $owner       = User::factory()->create(['is_owner' => true]);
         $user        = User::factory()->create(['tier' => 'pro']);
@@ -200,14 +200,14 @@ class PushControllerTest extends TestCase
         CliToken::create(['user_id' => $user->id, 'name' => 'CLI Token', 'token_hash' => CliToken::hashToken($plaintext)]);
 
         $this->withToken($plaintext)
-            ->postJson('/v1/recall/push', $this->validPayload(['group' => "Team Manager's Team"]))
+            ->postJson('/v1/recall/push', $this->validPayload(['group_id' => $joined->id]))
             ->assertStatus(200);
 
         $this->assertSame($joined->id, RecallNote::first()->group_id);
         $this->assertNotSame($ownedByUser->id, RecallNote::first()->group_id);
     }
 
-    public function test_an_empty_string_group_falls_back_to_default_resolution_not_a_422(): void
+    public function test_a_null_group_id_falls_back_to_default_resolution_not_a_422(): void
     {
         $owner       = User::factory()->create(['is_owner' => true]);
         $user        = User::factory()->create(['tier' => 'pro']);
@@ -219,13 +219,13 @@ class PushControllerTest extends TestCase
         CliToken::create(['user_id' => $user->id, 'name' => 'CLI Token', 'token_hash' => CliToken::hashToken($plaintext)]);
 
         $this->withToken($plaintext)
-            ->postJson('/v1/recall/push', $this->validPayload(['group' => '']))
+            ->postJson('/v1/recall/push', $this->validPayload(['group_id' => null]))
             ->assertStatus(200);
 
         $this->assertSame($ownedByUser->id, RecallNote::first()->group_id);
     }
 
-    public function test_an_empty_string_group_with_no_group_at_all_returns_403_not_422(): void
+    public function test_a_null_group_id_with_no_group_at_all_returns_403_not_422(): void
     {
         [$user, $token, $group] = $this->makeEntitledUserWithToken();
         // makeEntitledUserWithToken attaches the user to $group as a member,
@@ -233,21 +233,41 @@ class PushControllerTest extends TestCase
         $group->users()->detach($user->id);
 
         $this->withToken($token)
-            ->postJson('/v1/recall/push', $this->validPayload(['group' => '']))
+            ->postJson('/v1/recall/push', $this->validPayload(['group_id' => null]))
             ->assertStatus(403)
             ->assertJson(['error' => 'No team found']);
     }
 
-    public function test_an_explicit_group_the_user_is_not_a_member_of_returns_422_unknown_team_and_persists_nothing(): void
+    public function test_an_explicit_group_id_the_user_is_not_a_member_of_returns_422_unknown_team_and_persists_nothing(): void
     {
         [, $token] = $this->makeEntitledUserWithToken();
+        $foreignGroup = Group::create(['name' => 'Foreign Team', 'owner_id' => User::factory()->create()->id]);
 
         $this->withToken($token)
-            ->postJson('/v1/recall/push', $this->validPayload(['group' => 'Some Other Team']))
+            ->postJson('/v1/recall/push', $this->validPayload(['group_id' => $foreignGroup->id]))
             ->assertStatus(422)
             ->assertJson(['error' => 'Unknown team']);
 
         $this->assertSame(0, RecallNote::count());
+    }
+
+    public function test_a_group_id_that_does_not_exist_at_all_returns_422_unknown_team(): void
+    {
+        [, $token] = $this->makeEntitledUserWithToken();
+
+        $this->withToken($token)
+            ->postJson('/v1/recall/push', $this->validPayload(['group_id' => 999999]))
+            ->assertStatus(422)
+            ->assertJson(['error' => 'Unknown team']);
+    }
+
+    public function test_a_non_integer_group_id_returns_422_validation_error(): void
+    {
+        [, $token] = $this->makeEntitledUserWithToken();
+
+        $this->withToken($token)
+            ->postJson('/v1/recall/push', $this->validPayload(['group_id' => 'not-a-number']))
+            ->assertStatus(422);
     }
 
     // ---- idempotency ----

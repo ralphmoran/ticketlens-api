@@ -20,14 +20,11 @@ class PushController
             return response()->json(['error' => 'Recall is not enabled for your account'], 403);
         }
 
-        // Empty string means "no explicit target" — same as omitting the field
-        // entirely, not a name to fail to match (that would misreport a
-        // no-team account as "Unknown team" instead of "No team found").
-        $requestedGroup = $request->validated('group') ?: null;
-        $group = $teamResolver->resolveForUser($user, $requestedGroup);
+        $requestedGroupId = $request->validated('group_id');
+        $group = $teamResolver->resolveForUser($user, $requestedGroupId);
 
         if ($group === null) {
-            return $requestedGroup !== null
+            return $requestedGroupId !== null
                 ? response()->json(['error' => 'Unknown team'], 422)
                 : response()->json(['error' => 'No team found'], 403);
         }

@@ -33,11 +33,11 @@ class PushRequest extends FormRequest
             'sources'     => ['sometimes', 'array', 'max:20'],
             'sources.*'   => ['string', 'max:2048'],
             // Optional explicit team target — resolved via RecallTeamResolver,
-            // always scoped to the authenticated user's own memberships.
-            // nullable: ConvertEmptyStringsToNull turns a sent "" into null
-            // before validation runs — without it, an empty string 422s here
-            // instead of being treated as "no explicit target" downstream.
-            'group'       => ['sometimes', 'nullable', 'string', 'max:200'],
+            // always scoped to the authenticated user's own memberships, so a
+            // client-supplied id can never select a team the user doesn't
+            // belong to. nullable: ConvertEmptyStringsToNull turns a sent ""
+            // into null before validation runs.
+            'group_id'    => ['sometimes', 'nullable', 'integer'],
         ];
     }
 }

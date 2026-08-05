@@ -20,20 +20,18 @@ class PullController
             return response()->json(['error' => 'Recall is not enabled for your account'], 403);
         }
 
-        // The caller's group is resolved from the authenticated user only — an
-        // arbitrary group_id query param must never be accepted here, that would
-        // be exactly the class of cross-tenant read this endpoint must never
-        // allow. `group` (a name) is accepted, but ONLY ever matched against
-        // this user's own memberships via RecallTeamResolver — never a global
-        // Group lookup — so it can select among a multi-team user's own teams
-        // without opening a cross-tenant read.
-        $request->validate(['since' => ['sometimes', 'date'], 'group' => ['sometimes', 'nullable', 'string', 'max:200']]);
-        // Empty string means "no explicit target" — same as omitting the param.
-        $requestedGroup = $request->query('group') ?: null;
-        $group = $teamResolver->resolveForUser($user, $requestedGroup);
+        // An explicit group_id IS accepted (for a multi-team account), but
+        // ONLY ever matched against this user's own memberships via
+        // RecallTeamResolver ($user->groups()->find($groupId)) — never a
+        // global Group lookup — so it can never select a team this token's
+        // user doesn't actually belong to. That's what makes accepting a
+        // client-supplied id safe here, unlike a raw, unscoped group_id would be.
+        $request->validate(['since' => ['sometimes', 'date'], 'group_id' => ['sometimes', 'nullable', 'integer']]);
+        $requestedGroupId = $request->query('group_id') !== null ? (int) $request->query('group_id') : null;
+        $group = $teamResolver->resolveForUser($user, $requestedGroupId);
 
         if ($group === null) {
-            return $requestedGroup !== null
+            return $requestedGroupId !== null
                 ? response()->json(['error' => 'Unknown team'], 422)
                 : response()->json(['notes' => [], 'deleted' => []]);
         }

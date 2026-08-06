@@ -76,6 +76,36 @@ class RecallSecretScannerTest extends TestCase
         $this->assertTrue($result['rejected']);
     }
 
+    // ---- drift fix: port the JS anchor-safe bounded rejoin (hardRejectRuns) ----
+    //
+    // The JS scanner (secret-scanner.mjs) checks HARD_REJECT_PATTERNS against
+    // three things: the raw combined text, an unbounded whitespace-stripped
+    // copy (despacedCombined), and a bounded per-token rejoin that preserves
+    // the leading \b anchor (hardRejectRuns). The PHP port only ever had the
+    // first two — despacing the WHOLE note at once glues the word directly
+    // preceding a split secret onto its first character, which kills the
+    // leading \b anchor the API-key and GitHub-token patterns depend on. Live
+    // false negative found in code review, predates this diff's other fixes.
+
+    public function test_l2_regression_a_low_entropy_api_key_shaped_secret_split_by_a_space_and_preceded_by_an_ordinary_word_is_still_rejected(): void
+    {
+        // Low-entropy on purpose (heavily repeated character) so this can
+        // only be caught by the exact-shape hard-reject pattern, never by
+        // the entropy layer. Before the fix: despacing the whole note glued
+        // "the" directly onto "sk-", killing the pattern's leading \b so it
+        // silently missed.
+        $result = $this->scanner->scan(['body' => 'the sk- AAAAAAAAAAAAAAAAAAAAAAAA1 key']);
+        $this->assertTrue($result['rejected']);
+        $this->assertStringContainsString('API key', implode(' ', $result['reasons']));
+    }
+
+    public function test_l2_regression_same_bug_shape_for_the_github_token_pattern(): void
+    {
+        $result = $this->scanner->scan(['body' => 'token ghp_ AAAAAAAAAAAAAAAAAAAAAAAA1 here']);
+        $this->assertTrue($result['rejected']);
+        $this->assertStringContainsString('GitHub token', implode(' ', $result['reasons']));
+    }
+
     // ---- entropy-based random string detection ----
 
     public function test_a_long_random_looking_string_is_rejected(): void
@@ -172,5 +202,108 @@ class RecallSecretScannerTest extends TestCase
         $result = $this->scanner->scan(['body' => 'Ping ralph@example.com about this.']);
         $this->assertFalse($result['rejected']);
         $this->assertNotEmpty($result['warnings']);
+    }
+
+    // ---- regression: colon-suffixed label word must stop a joined-chunk run ----
+
+    public function test_a_colon_labeled_sentence_opener_next_to_a_ticket_key_is_not_falsely_joined_into_a_rejection(): void
+    {
+        $result = $this->scanner->scan(['body' => 'Generalizes: PROD-123456 and any sibling ticket touching this path should check it first.']);
+        $this->assertFalse($result['rejected']);
+    }
+
+    public function test_a_colon_labeled_sentence_opener_next_to_ordinary_prose_is_not_falsely_joined_into_a_rejection(): void
+    {
+        $result = $this->scanner->scan(['body' => 'Generalizes: any future ticket that touches this path should check the same thing first.']);
+        $this->assertFalse($result['rejected']);
+    }
+
+    // ---- regression: fields are scanned independently for the entropy/random-string check ----
+
+    public function test_two_tags_that_individually_echo_phrases_repeated_in_the_body_do_not_falsely_combine_into_a_rejection(): void
+    {
+        $result = $this->scanner->scan([
+            'tags' => ['credit-application', 'add-finance-source'],
+            'body' => 'Credit Application flow now calls Add Finance Source correctly after the fix.',
+        ]);
+        $this->assertFalse($result['rejected']);
+    }
+
+    public function test_a_secret_split_across_the_body_by_whitespace_is_still_caught_per_field_joining_still_works_within_one_field(): void
+    {
+        $result = $this->scanner->scan(['tags' => ['clean'], 'body' => 'AKIA IOSFODNN7EXAMPLE']);
+        $this->assertTrue($result['rejected']);
+    }
+
+    // ---- regression: bare code-identifier filenames are not secrets ----
+
+    public function test_a_pascalcase_class_name_as_filename_with_a_recognized_source_extension_is_not_rejected_but_does_warn(): void
+    {
+        $result = $this->scanner->scan(['body' => 'RouteOneAutoEcontracting.php handles the integration.']);
+        $this->assertFalse($result['rejected']);
+        $this->assertNotEmpty($result['warnings']);
+        $this->assertStringContainsString('code-filename-shaped', implode(' ', $result['warnings']));
+    }
+
+    public function test_positive_control_digits_in_the_stem_are_not_exempted_still_a_hard_reject_not_even_a_warning(): void
+    {
+        $result = $this->scanner->scan(['body' => 'Base64EncoderForV2Payloads123456789.php handles this.']);
+        $this->assertTrue($result['rejected']);
+    }
+
+    public function test_known_accepted_gap_a_bare_camelcase_method_name_with_no_file_extension_is_still_misread_as_random(): void
+    {
+        // Same shape as a base64 secret fragment — documents the known gap,
+        // does not silently fix it. See looksRandom doc comment.
+        $result = $this->scanner->scan(['body' => 'The fix calls generateDealJacketForTekionSubmission after validation succeeds every time.']);
+        $this->assertTrue($result['rejected']);
+    }
+
+    public function test_security_regression_a_random_letters_only_secret_disguised_with_a_fake_extension_is_downgraded_to_a_warning_never_silently_exempted(): void
+    {
+        // Real secret shape (no digits, so HARD_REJECT_PATTERNS don't apply),
+        // just wearing a ".php" suffix to probe the filename carve-out.
+        // Before the fix this returned rejected:false with NO warning at
+        // all — a silent bypass caught in security review.
+        $result = $this->scanner->scan(['body' => 'XqZkTmWpLbNvRcYsHjFgAbCd.php was mentioned once.']);
+        $this->assertFalse($result['rejected']);
+        $this->assertStringContainsString('code-filename-shaped', implode(' ', $result['warnings']));
+    }
+
+    public function test_security_regression_a_random_token_with_no_internal_case_switch_plus_a_fake_extension_gets_a_full_reject_not_even_a_warning(): void
+    {
+        $result = $this->scanner->scan(['body' => 'xqzktmwplbnvrcyshjfgabcd.php was mentioned once.']);
+        $this->assertTrue($result['rejected']);
+    }
+
+    // ---- documented accepted gap: entropy join no longer spans a field boundary ----
+
+    public function test_a_secret_split_exactly_across_a_tag_and_the_body_is_not_caught_by_the_entropy_join(): void
+    {
+        // Trade-off accepted alongside the Trigger-3 field-boundary fix
+        // above: splitting a generic (non-hard-reject-shaped) high-entropy
+        // secret across two different fields no longer reassembles for the
+        // entropy check, only within one field. Pinned down here so it
+        // can't silently regress further without this test being touched.
+        $result = $this->scanner->scan(['tags' => ['XqZkTmWpLbNv'], 'body' => 'RcYsHjFgAbCdEfGh']);
+        $this->assertFalse($result['rejected']);
+    }
+
+    // ---- drift fix: port the JS apostrophe allowance (ticket-lens@0e6dd82) ----
+
+    public function test_possessive_next_to_a_hyphenated_compound_is_not_a_secret(): void
+    {
+        // The JS scanner (secret-scanner.mjs) fixed this in 0e6dd82 — the
+        // PHP port never got the matching isLabelWord apostrophe allowance
+        // and has drifted since. This closes that gap.
+        $result = $this->scanner->scan(['body' => "the relay's decision-lookup query never returned them"]);
+        $this->assertFalse($result['rejected']);
+    }
+
+    public function test_a_whitespace_split_api_key_whose_letters_only_half_looks_hyphen_compound_shaped_is_still_rejected(): void
+    {
+        // The apostrophe fix must not extend to hyphens — this must stay caught.
+        $result = $this->scanner->scan(['body' => "sk-abcdefghijklmnop\tqrstuvwxyz123456"]);
+        $this->assertTrue($result['rejected']);
     }
 }

@@ -37,10 +37,6 @@ class RecallSecretScanner
     // as one "segment" of a fake compound. See isHyphenatedWordCompound.
     private const MAX_COMPOUND_SEGMENT_LENGTH = 15;
     private const HYPHENATED_COMPOUND_RE = '/^[A-Za-z]+(-[A-Za-z]+)+$/';
-    // /u (PCRE_UTF8) makes \s Unicode-aware (U+00A0, U+2028, U+3000, etc.),
-    // matching the JS scanner's native Unicode-aware \s — see secret-scanner.mjs
-    // lines 260/281. Without it, a hard-reject secret split by a Unicode space
-    // silently passed this scanner while the CLI still caught it (backlog 1c).
     // \x{FEFF} (ZERO WIDTH NO-BREAK SPACE / BOM) is added explicitly: PCRE's
     // \s under plain /u (no (*UCP)) uses a fixed table that excludes it, while
     // JS's \s spec (ECMA-262 WhiteSpace production) includes it — the one real
@@ -48,11 +44,35 @@ class RecallSecretScanner
     // without this: an AWS-key-shaped string split by U+FEFF stayed as one
     // unsplit token, invisible to every check (contiguous match, hard-reject
     // rejoin, despace) except entropy, which only catches it by chance.
-    private const WHITESPACE_RE = '/[\s\x{FEFF}]+/u';
+    // Shared as a fragment (not just inside WHITESPACE_RE) so the PEM entry in
+    // HARD_REJECT_PATTERNS below stays in sync with it automatically — see
+    // that entry's comment for why it needs the same class.
+    private const WHITESPACE_CLASS = '[\s\x{FEFF}]';
+
+    // /u (PCRE_UTF8) makes \s Unicode-aware (U+00A0, U+2028, U+3000, etc.),
+    // matching the JS scanner's native Unicode-aware \s — see secret-scanner.mjs
+    // lines 260/281. Without it, a hard-reject secret split by a Unicode space
+    // silently passed this scanner while the CLI still caught it (backlog 1c).
+    private const WHITESPACE_RE = '/' . self::WHITESPACE_CLASS . '+/u';
 
     private const HARD_REJECT_PATTERNS = [
         ['name' => 'AWS access key', 're' => '/AKIA[0-9A-Z]{16}/'],
-        ['name' => 'private key block', 're' => '/-----BEGIN (RSA |EC |OPENSSH |DSA )?PRIVATE KEY-----/'],
+        // \s* (via WHITESPACE_CLASS*, not a literal space) between segments:
+        // this is the only entry with required internal spacing, and
+        // hardRejectRuns (no-separator rejoin) and $despacedCombined
+        // (whitespace stripped) both destroy a literal space the same way
+        // they correctly neutralize whitespace-splitting on every other
+        // pattern here — so a tab, extra spaces, a newline, or no separator
+        // at all used to bypass this entry completely (backlog 1d).
+        // WHITESPACE_CLASS* closes all of those in one change since it's
+        // tested against $combined, $hardRejectRuns, and $despacedCombined
+        // identically, and reuses the same Unicode-aware class as
+        // WHITESPACE_RE so this can't drift out of sync with it the way the
+        // /u flag itself once did (backlog 1c).
+        [
+            'name' => 'private key block',
+            're' => '/-----BEGIN' . self::WHITESPACE_CLASS . '*(RSA' . self::WHITESPACE_CLASS . '*|EC' . self::WHITESPACE_CLASS . '*|OPENSSH' . self::WHITESPACE_CLASS . '*|DSA' . self::WHITESPACE_CLASS . '*)?PRIVATE' . self::WHITESPACE_CLASS . '*KEY-----/u',
+        ],
         ['name' => 'JSON Web Token (JWT)', 're' => '/eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}/'],
         ['name' => 'API key', 're' => '/\b(sk-|gsk_)[A-Za-z0-9]{20,}\b/'],
         ['name' => 'GitHub token', 're' => '/\bgh[pousr]_[A-Za-z0-9]{20,}\b/'],

@@ -58,6 +58,50 @@ class RecallSecretScannerTest extends TestCase
         $this->assertTrue($result['rejected']);
     }
 
+    // ---- backlog 1d: PEM's literal-space pattern is bypassable by embedded whitespace ----
+
+    public function test_a_pem_header_with_a_tab_substituted_for_a_space_is_still_rejected(): void
+    {
+        $result = $this->scanner->scan(['body' => "-----BEGIN\tRSA PRIVATE KEY-----"]);
+        $this->assertTrue($result['rejected']);
+    }
+
+    public function test_a_pem_header_with_irregular_multiple_spaces_is_still_rejected(): void
+    {
+        $result = $this->scanner->scan(['body' => '-----BEGIN  RSA  PRIVATE  KEY-----']);
+        $this->assertTrue($result['rejected']);
+    }
+
+    public function test_a_pem_header_split_by_newlines_is_still_rejected(): void
+    {
+        $result = $this->scanner->scan(['body' => "-----BEGIN\nRSA\nPRIVATE\nKEY-----"]);
+        $this->assertTrue($result['rejected']);
+    }
+
+    public function test_a_pem_header_with_all_whitespace_removed_is_still_rejected(): void
+    {
+        $result = $this->scanner->scan(['body' => '-----BEGINRSAPRIVATEKEY-----']);
+        $this->assertTrue($result['rejected']);
+    }
+
+    public function test_a_pem_header_with_no_algorithm_word_and_a_tab_is_still_rejected(): void
+    {
+        $result = $this->scanner->scan(['body' => "-----BEGIN\tPRIVATE KEY-----"]);
+        $this->assertTrue($result['rejected']);
+    }
+
+    public function test_a_pem_header_split_by_a_unicode_non_breaking_space_is_still_rejected(): void
+    {
+        $result = $this->scanner->scan(['body' => "-----BEGIN\u{00A0}RSA PRIVATE KEY-----"]);
+        $this->assertTrue($result['rejected']);
+    }
+
+    public function test_a_pem_header_split_by_a_bom_is_still_rejected(): void
+    {
+        $result = $this->scanner->scan(['body' => "-----BEGIN\u{FEFF}RSA PRIVATE KEY-----"]);
+        $this->assertTrue($result['rejected']);
+    }
+
     public function test_an_openai_style_api_key_is_rejected(): void
     {
         $result = $this->scanner->scan(['body' => 'key=sk-abcdefghijklmnopqrstuvwxyz123456']);

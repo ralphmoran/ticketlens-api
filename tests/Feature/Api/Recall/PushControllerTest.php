@@ -186,6 +186,31 @@ class PushControllerTest extends TestCase
             ->assertStatus(422);
     }
 
+    // ---- backlog 1c hardening: invalid UTF-8 must 422, not crash the scanner ----
+
+    public function test_invalid_utf8_in_body_via_a_non_json_content_type_returns_422_not_500(): void
+    {
+        // json_decode() rejects invalid UTF-8 before this route is ever reached
+        // for a JSON request, so postJson() can't exercise this path — but the
+        // route accepts form-encoded bodies just as readily, and those arrive
+        // via $_POST with no UTF-8 gate at all. RecallSecretScanner's whitespace
+        // regexes run in /u mode (backlog 1c fix) and return false on invalid
+        // UTF-8, which used to reach array_filter() as an uncaught TypeError
+        // (500) instead of a validation error. Security review caught this as
+        // a regression introduced by the 1c fix itself.
+        [, $token] = $this->makeEntitledUserWithToken();
+
+        // postJson() can't send this payload at all — json_encode() itself
+        // rejects invalid UTF-8 — so this uses a form-encoded body (post(),
+        // not postJson()) with an explicit Accept header, matching how a real
+        // API client identifies itself while still using a non-JSON transport.
+        $this->withToken($token)
+            ->withHeaders(['Accept' => 'application/json'])
+            ->post('/v1/recall/push', $this->validPayload(['body' => "AKIA\xFF\xFEIOSFODNN7EXAMPLE"]))
+            ->assertStatus(422);
+        $this->assertSame(0, RecallNote::count());
+    }
+
     // ---- explicit team targeting ----
 
     public function test_an_explicit_group_id_targets_that_membership_even_when_the_user_owns_a_different_group(): void

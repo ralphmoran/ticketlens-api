@@ -76,6 +76,54 @@ class RecallSecretScannerTest extends TestCase
         $this->assertTrue($result['rejected']);
     }
 
+    // ---- backlog 1c: PHP's \s is ASCII-only without /u, unlike JS's Unicode-aware \s ----
+
+    public function test_a_secret_split_by_a_unicode_non_breaking_space_is_still_rejected(): void
+    {
+        // U+00A0 non-breaking space. Without the /u flag, PCRE's \s never
+        // matches it, so tokenizing/despacing leaves the gap intact and the
+        // AWS key pattern never sees a contiguous match — a false negative
+        // that only the CLI's Unicode-aware \s caught.
+        $result = $this->scanner->scan(['body' => "AKIA\u{00A0}IOSFODNN7EXAMPLE"]);
+        $this->assertTrue($result['rejected']);
+        $this->assertStringContainsString('AWS access key', $result['reasons'][0]);
+    }
+
+    public function test_an_api_key_split_by_a_unicode_ideographic_space_is_still_rejected(): void
+    {
+        // U+3000 ideographic space, same gap as the non-breaking-space case
+        // above but exercising the bounded hardRejectRuns rejoin path
+        // instead of despacedCombined.
+        $result = $this->scanner->scan(['body' => "the sk-\u{3000}AAAAAAAAAAAAAAAAAAAAAAAA1 key"]);
+        $this->assertTrue($result['rejected']);
+        $this->assertStringContainsString('API key', implode(' ', $result['reasons']));
+    }
+
+    public function test_a_github_token_split_by_a_unicode_line_separator_is_still_rejected(): void
+    {
+        // U+2028 line separator — the third Unicode whitespace shape named in
+        // the backlog report, distinct code point class (Zl) from U+00A0 (Zs)
+        // and U+3000 (Zs), pinned down so all three named shapes have coverage.
+        $result = $this->scanner->scan(['body' => "token ghp_\u{2028}" . str_repeat('a1B2c3', 4) . ' here']);
+        $this->assertTrue($result['rejected']);
+        $this->assertStringContainsString('GitHub token', implode(' ', $result['reasons']));
+    }
+
+    public function test_security_regression_an_aws_key_split_by_a_zero_width_no_break_space_is_still_rejected(): void
+    {
+        // U+FEFF (ZERO WIDTH NO-BREAK SPACE / BOM) is NOT in PCRE's \s table
+        // even under /u without (*UCP) — plain /u alone leaves this one gap.
+        // JS's \s (ECMA-262 WhiteSpace production) does treat it as whitespace,
+        // so without this explicit addition to WHITESPACE_RE, a secret split
+        // by U+FEFF stays as one unsplit token: invisible to the direct match,
+        // hardRejectRuns (nothing to rejoin), and despacedCombined (not
+        // stripped) alike — only entropy would catch it, and only by chance.
+        // Found by adversarial security review of the backlog 1c fix itself.
+        $result = $this->scanner->scan(['title' => 'note', 'body' => "AKIAAAAAAAAA\u{FEFF}AAAAAAAA"]);
+        $this->assertTrue($result['rejected']);
+        $this->assertStringContainsString('AWS access key', $result['reasons'][0]);
+    }
+
     // ---- drift fix: port the JS anchor-safe bounded rejoin (hardRejectRuns) ----
     //
     // The JS scanner (secret-scanner.mjs) checks HARD_REJECT_PATTERNS against

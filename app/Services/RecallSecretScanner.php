@@ -37,6 +37,18 @@ class RecallSecretScanner
     // as one "segment" of a fake compound. See isHyphenatedWordCompound.
     private const MAX_COMPOUND_SEGMENT_LENGTH = 15;
     private const HYPHENATED_COMPOUND_RE = '/^[A-Za-z]+(-[A-Za-z]+)+$/';
+    // /u (PCRE_UTF8) makes \s Unicode-aware (U+00A0, U+2028, U+3000, etc.),
+    // matching the JS scanner's native Unicode-aware \s — see secret-scanner.mjs
+    // lines 260/281. Without it, a hard-reject secret split by a Unicode space
+    // silently passed this scanner while the CLI still caught it (backlog 1c).
+    // \x{FEFF} (ZERO WIDTH NO-BREAK SPACE / BOM) is added explicitly: PCRE's
+    // \s under plain /u (no (*UCP)) uses a fixed table that excludes it, while
+    // JS's \s spec (ECMA-262 WhiteSpace production) includes it — the one real
+    // parity gap /u alone doesn't close. Security review found a live bypass
+    // without this: an AWS-key-shaped string split by U+FEFF stayed as one
+    // unsplit token, invisible to every check (contiguous match, hard-reject
+    // rejoin, despace) except entropy, which only catches it by chance.
+    private const WHITESPACE_RE = '/[\s\x{FEFF}]+/u';
 
     private const HARD_REJECT_PATTERNS = [
         ['name' => 'AWS access key', 're' => '/AKIA[0-9A-Z]{16}/'],
@@ -92,7 +104,7 @@ class RecallSecretScanner
         // entirely — see the entropy-candidates comment further below for
         // why.
         $fieldTokenGroups = array_map(
-            fn (string $field) => array_values(array_filter(preg_split('/\s+/', $field))),
+            fn (string $field) => array_values(array_filter(preg_split(self::WHITESPACE_RE, $field))),
             [$title, ...$aliases, ...$tags, $body, ...$sources],
         );
         $tokens = $this->flattenGroups($fieldTokenGroups);
@@ -118,7 +130,7 @@ class RecallSecretScanner
         //      wider than #2's bounded window can reach. Reintroduces the
         //      same anchor risk #2 was built to avoid, but only alongside
         //      #2, never instead of it.
-        $despacedCombined = preg_replace('/\s+/', '', $combined);
+        $despacedCombined = preg_replace(self::WHITESPACE_RE, '', $combined);
         $hardRejectRuns   = $this->joinedChunkRuns($tokens, stopAtLabelWords: false);
         foreach (self::HARD_REJECT_PATTERNS as ['name' => $name, 're' => $re]) {
             $matchesRun = array_any($hardRejectRuns, fn (string $run) => preg_match($re, $run) === 1);

@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Recall;
 
+use App\Rules\ValidUtf8;
 use Illuminate\Foundation\Http\FormRequest;
 
 class PushRequest extends FormRequest
@@ -20,18 +21,22 @@ class PushRequest extends FormRequest
             // user-authored text. That assumption must be enforced here, not just
             // true by CLI convention.
             'external_id' => ['required', 'string', 'max:100', 'regex:/^\d+-[0-9a-f]{6}\.md$/'],
-            'title'       => ['required', 'string', 'max:200'],
-            'body'        => ['required', 'string', 'max:50000'],
+            // title/body/aliases/tags/sources are free text RecallSecretScanner
+            // scans with /u (PCRE_UTF8) regexes — invalid UTF-8 would make those
+            // silently return false instead of matching, so it's rejected here,
+            // at the boundary, rather than left for the scanner to crash on.
+            'title'       => ['required', 'string', 'max:200', new ValidUtf8()],
+            'body'        => ['required', 'string', 'max:50000', new ValidUtf8()],
             'aliases'     => ['sometimes', 'array', 'max:10'],
-            'aliases.*'   => ['string', 'max:200'],
+            'aliases.*'   => ['string', 'max:200', new ValidUtf8()],
             'tickets'     => ['sometimes', 'array', 'max:20'],
             // Must match the CLI's TICKET_KEY_PATTERN (skills/jtb/scripts/lib/cli.mjs) —
             // a stricter letters-only prefix silently rejects real keys like CNV1-2.
             'tickets.*'   => ['string', 'regex:/^[A-Z][A-Z0-9]+-\d+$/', 'max:50'],
             'tags'        => ['sometimes', 'array', 'max:20'],
-            'tags.*'      => ['string', 'max:100'],
+            'tags.*'      => ['string', 'max:100', new ValidUtf8()],
             'sources'     => ['sometimes', 'array', 'max:20'],
-            'sources.*'   => ['string', 'max:2048'],
+            'sources.*'   => ['string', 'max:2048', new ValidUtf8()],
             // Optional explicit team target — resolved via RecallTeamResolver,
             // always scoped to the authenticated user's own memberships, so a
             // client-supplied id can never select a team the user doesn't

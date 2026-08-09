@@ -32,6 +32,11 @@ class RecallSecretScanner
     private const ENTROPY_THRESHOLD = 3.75;
     private const REFERENCE_CONTEXT_WINDOW = 20;
     private const MAX_JOINED_CHUNKS = 4;
+    // Real compound-word segments ("dual-store", "not-yet-configured") run short —
+    // capping segment length keeps a long random letters-only run from masquerading
+    // as one "segment" of a fake compound. See isHyphenatedWordCompound.
+    private const MAX_COMPOUND_SEGMENT_LENGTH = 15;
+    private const HYPHENATED_COMPOUND_RE = '/^[A-Za-z]+(-[A-Za-z]+)+$/';
 
     private const HARD_REJECT_PATTERNS = [
         ['name' => 'AWS access key', 're' => '/AKIA[0-9A-Z]{16}/'],
@@ -245,17 +250,55 @@ class RecallSecretScanner
         return array_merge(...$groups);
     }
 
+    /**
+     * True for a letters-only, hyphen-delimited token whose segments are all
+     * short enough to read as a real compound word ("dual-store",
+     * "REDIS-vs-PG", "not-yet-configured") rather than a whitespace-split
+     * secret fragment. Only consulted from isLabelWord, i.e. only affects
+     * the $stopAtLabelWords=true (generic-secret entropy) pass —
+     * joinedChunkRuns's $stopAtLabelWords=false pass, which is what
+     * HARD_REJECT_PATTERNS relies on to catch a whitespace-split
+     * sk-/gsk_/AKIA/gh*_/eyJ/PEM-prefixed secret, never calls isLabelWord at
+     * all, so this cannot weaken that protection (see the regression test
+     * for exactly that shape, still passing after this change).
+     */
+    private function isHyphenatedWordCompound(string $token): bool
+    {
+        if (preg_match(self::HYPHENATED_COMPOUND_RE, $token) !== 1) {
+            return false;
+        }
+        foreach (explode('-', $token) as $segment) {
+            if (strlen($segment) > self::MAX_COMPOUND_SEGMENT_LENGTH) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Ported from the CLI's secret-scanner.mjs (ticket-lens@0e6dd82) — keep
+     * these rules in sync with the JS version there.
+     *
+     * The apostrophe allowance matters because without it, an ordinary
+     * possessive next to an unrelated hyphenated compound (e.g. "relay's
+     * decision-lookup") never stops the run: both fail to qualify as a
+     * label word, so they
+     * concatenate into one artificial blob whose mixed punctuation trips
+     * the entropy threshold. Hyphenated compounds get the narrower
+     * isHyphenatedWordCompound allowance rather than the full apostrophe
+     * treatment: a short prefix + hyphen + one long unstructured letter-run
+     * (e.g. "sk-abcdefghijklmnop") still fails it — one segment exceeds
+     * MAX_COMPOUND_SEGMENT_LENGTH — so it stays eligible to join. This is
+     * belt-and-suspenders on top of the fact noted above that the
+     * hard-reject pass doesn't consult isLabelWord in the first place.
+     */
     private function isLabelWord(string $token): bool
     {
-        // Apostrophe allowance ported from the CLI's secret-scanner.mjs
-        // (ticket-lens@0e6dd82) — without it, an ordinary possessive next to
-        // an unrelated hyphenated compound (e.g. "relay's decision-lookup")
-        // never stops the run: both fail to qualify as a label word, so they
-        // concatenate into one artificial blob whose mixed punctuation trips
-        // the entropy threshold. Hyphenated tokens deliberately do NOT get
-        // the same allowance — see joinedChunkRuns.
         $stripped = $this->stripEdgePunctuation($token);
         if (preg_match(self::GIT_REFERENCE_WORD_RE, $stripped)) {
+            return true;
+        }
+        if ($this->isHyphenatedWordCompound($stripped)) {
             return true;
         }
         return preg_match('/^[A-Za-z]+(?:\'[A-Za-z]+)*$/', $stripped) === 1 && ! $this->hasInternalCaseSwitch($stripped);

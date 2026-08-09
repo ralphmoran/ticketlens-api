@@ -306,4 +306,29 @@ class RecallSecretScannerTest extends TestCase
         $result = $this->scanner->scan(['body' => "sk-abcdefghijklmnop\tqrstuvwxyz123456"]);
         $this->assertTrue($result['rejected']);
     }
+
+    // ---- Trigger 5: two adjacent hyphenated compounds are not a secret ----
+
+    public function test_exact_live_repro_redis_vs_pg_dual_store_false_positived_in_triage(): void
+    {
+        $result = $this->scanner->scan(['body' => 'the known REDIS-vs-PG dual-store gotcha strikes again']);
+        $this->assertFalse($result['rejected']);
+    }
+
+    public function test_two_ordinary_lowercase_compounds_adjacent_no_abbreviation_involved(): void
+    {
+        $result = $this->scanner->scan(['body' => 'we hit a well-known edge-case yesterday']);
+        $this->assertFalse($result['rejected']);
+    }
+
+    public function test_a_hyphenated_token_with_one_oversized_segment_does_not_qualify_as_a_compound_so_a_generic_secret_split_next_to_it_is_still_caught(): void
+    {
+        // Neither half is 20+ chars alone, and neither matches any
+        // HARD_REJECT_PATTERNS prefix — this isolates the entropy join
+        // specifically. "ab-cdefghijklmnopqr" has a 17-char second segment,
+        // over MAX_COMPOUND_SEGMENT_LENGTH (15), so it stays joinable
+        // instead of being misread as a compound word.
+        $result = $this->scanner->scan(['body' => 'the ab-cdefghijklmnopqr Xy9zAb value leaked']);
+        $this->assertTrue($result['rejected']);
+    }
 }

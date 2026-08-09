@@ -261,10 +261,20 @@ class RecallSecretScanner
      * sk-/gsk_/AKIA/gh*_/eyJ/PEM-prefixed secret, never calls isLabelWord at
      * all, so this cannot weaken that protection (see the regression test
      * for exactly that shape, still passing after this change).
+     *
+     * The hasInternalCaseSwitch check matters the same way it does
+     * everywhere else in this file that distinguishes base64 content from
+     * prose: without it, a base64-shaped fragment like "zqXvbNmKl-PoIuYtR"
+     * reads as a "compound word" purely because it happens to contain a
+     * hyphen — the same category of shape-based exemption that made the
+     * code-filename bypass CRITICAL.
      */
     private function isHyphenatedWordCompound(string $token): bool
     {
         if (preg_match(self::HYPHENATED_COMPOUND_RE, $token) !== 1) {
+            return false;
+        }
+        if ($this->hasInternalCaseSwitch($token)) {
             return false;
         }
         foreach (explode('-', $token) as $segment) {

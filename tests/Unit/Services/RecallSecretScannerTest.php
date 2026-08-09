@@ -331,4 +331,17 @@ class RecallSecretScannerTest extends TestCase
         $result = $this->scanner->scan(['body' => 'the ab-cdefghijklmnopqr Xy9zAb value leaked']);
         $this->assertTrue($result['rejected']);
     }
+
+    public function test_security_regression_a_base64_shaped_hyphenated_fragment_does_not_qualify_as_a_compound_word_just_because_it_contains_a_hyphen(): void
+    {
+        // Found by adversarial security review: without a case-switch guard, a
+        // mixed-case fragment like "zqXvbNmKl-PoIuYtR" would read as a
+        // "compound word" purely by shape (letters + hyphen + short segments)
+        // and stop the entropy join — the same category of shape-based
+        // exemption that made the code-filename bypass CRITICAL. No real
+        // compound word has an internal case switch, so this costs nothing
+        // legitimate.
+        $result = $this->scanner->scan(['body' => 'zqXvbNmKl-PoIuYtR eWqAsDfG-hJkLzXcV']);
+        $this->assertTrue($result['rejected']);
+    }
 }

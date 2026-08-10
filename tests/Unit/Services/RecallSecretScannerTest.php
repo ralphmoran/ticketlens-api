@@ -102,6 +102,58 @@ class RecallSecretScannerTest extends TestCase
         $this->assertTrue($result['rejected']);
     }
 
+    // ---- backlog 1e: U+200B (zero-width space) is not in WHITESPACE_CLASS ----
+    //
+    // U+200B is Unicode category Cf (format), not Zs (space separator) — the
+    // Unicode White_Space property excludes it despite the name, so plain /u
+    // never covers it (same class of gap as U+FEFF in backlog 1c/1d, but
+    // U+FEFF was at least in JS's native \s already — U+200B is in neither
+    // language's native \s). A secret split by it stays one unsplit token,
+    // invisible to $combined/$hardRejectRuns/$despacedCombined alike.
+
+    public function test_an_aws_access_key_split_by_a_zero_width_space_is_still_rejected(): void
+    {
+        $result = $this->scanner->scan(['body' => "AKIA\u{200B}IOSFODNN7EXAMPLE"]);
+        $this->assertTrue($result['rejected']);
+        $this->assertStringContainsString('AWS access key', $result['reasons'][0]);
+    }
+
+    public function test_a_pem_header_split_by_a_zero_width_space_is_still_rejected(): void
+    {
+        $result = $this->scanner->scan(['body' => "-----BEGIN\u{200B}RSA PRIVATE KEY-----"]);
+        $this->assertTrue($result['rejected']);
+        $this->assertStringContainsString('private key', implode(' ', $result['reasons']));
+    }
+
+    public function test_a_jwt_split_by_a_zero_width_space_is_still_rejected(): void
+    {
+        $jwt = 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.dozjgNryP4J3jVmNHl0w5N_XgL0n3I9PlFUP0THsR8U';
+        $split = substr($jwt, 0, 5) . "\u{200B}" . substr($jwt, 5);
+        $result = $this->scanner->scan(['body' => "token={$split}"]);
+        $this->assertTrue($result['rejected']);
+        $this->assertStringContainsString('JSON Web Token', implode(' ', $result['reasons']));
+    }
+
+    public function test_an_api_key_split_by_a_zero_width_space_is_still_rejected(): void
+    {
+        $result = $this->scanner->scan(['body' => "sk-\u{200B}abcdefghijklmnopqrstuvwxyz123456"]);
+        $this->assertTrue($result['rejected']);
+        $this->assertStringContainsString('API key', implode(' ', $result['reasons']));
+    }
+
+    public function test_a_github_token_split_by_a_zero_width_space_is_still_rejected(): void
+    {
+        $result = $this->scanner->scan(['body' => "ghp_\u{200B}" . str_repeat('a1B2c3', 4)]);
+        $this->assertTrue($result['rejected']);
+        $this->assertStringContainsString('GitHub token', implode(' ', $result['reasons']));
+    }
+
+    public function test_a_clean_note_containing_a_stray_zero_width_space_is_not_falsely_rejected(): void
+    {
+        $result = $this->scanner->scan(['body' => "international\u{200B}ization and responsibility are long but ordinary words."]);
+        $this->assertFalse($result['rejected']);
+    }
+
     public function test_an_openai_style_api_key_is_rejected(): void
     {
         $result = $this->scanner->scan(['body' => 'key=sk-abcdefghijklmnopqrstuvwxyz123456']);

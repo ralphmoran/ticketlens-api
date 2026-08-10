@@ -44,10 +44,16 @@ class RecallSecretScanner
     // without this: an AWS-key-shaped string split by U+FEFF stayed as one
     // unsplit token, invisible to every check (contiguous match, hard-reject
     // rejoin, despace) except entropy, which only catches it by chance.
+    // \x{200B} (ZERO WIDTH SPACE) is added for the same reason, but it's in
+    // neither language's native \s: despite the name, U+200B doesn't carry
+    // the Unicode White_Space property (General_Category=Cf, not Zs), so
+    // JS's \s never covered it either — this was a real parity-preserving
+    // gap in both scanners, not something /u alone or JS's Unicode-aware \s
+    // could ever have closed (backlog 1e).
     // Shared as a fragment (not just inside WHITESPACE_RE) so the PEM entry in
     // HARD_REJECT_PATTERNS below stays in sync with it automatically — see
     // that entry's comment for why it needs the same class.
-    private const WHITESPACE_CLASS = '[\s\x{FEFF}]';
+    private const WHITESPACE_CLASS = '[\s\x{FEFF}\x{200B}]';
 
     // /u (PCRE_UTF8) makes \s Unicode-aware (U+00A0, U+2028, U+3000, etc.),
     // matching the JS scanner's native Unicode-aware \s — see secret-scanner.mjs

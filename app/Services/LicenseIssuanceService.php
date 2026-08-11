@@ -126,7 +126,7 @@ class LicenseIssuanceService
             $lockedLicense->update(['status' => 'cancelled']);
 
             $user = User::lockForUpdate()->findOrFail($lockedLicense->user_id);
-            $this->syncUserTierAfterRevoke($user, $licenseId);
+            $this->syncUserTierToOwnLicenses($user, $licenseId);
 
             return $user;
         });
@@ -147,13 +147,17 @@ class LicenseIssuanceService
     }
 
     /**
-     * Sync a user's tier and permissions to their highest remaining active license.
-     * Called inside the revoke() transaction so that the license cancel and the
-     * user downgrade are atomic — a failed user save rolls back the cancellation.
+     * Sync a user's tier and permissions to the highest active license they still
+     * hold themselves, falling back to free when none remain. Two callers:
+     *
+     *  - revoke(), from inside its transaction so the cancel and the downgrade are
+     *    atomic, passing the just-cancelled row as $excludeLicenseId.
+     *  - team-seat removal, with nothing to exclude — a rank-and-file member never
+     *    held a license of their own for that seat.
      */
-    private function syncUserTierAfterRevoke(User $user, int $revokedLicenseId): void
+    public function syncUserTierToOwnLicenses(User $user, ?int $excludeLicenseId = null): void
     {
-        $tier = $this->highestActiveTierForUser($user->id, $revokedLicenseId);
+        $tier = $this->highestActiveTierForUser($user->id, $excludeLicenseId);
 
         if (in_array($tier, ['team', 'enterprise'], true)) {
             // bootstrapTeamGroup is idempotent — group already exists from issuance.
@@ -174,15 +178,16 @@ class LicenseIssuanceService
     }
 
     /**
-     * Return the highest-priority tier across a user's remaining active licenses,
-     * excluding the just-cancelled one. Returns 'free' when none remain.
+     * Return the highest-priority tier across a user's active licenses, excluding
+     * $excludeLicenseId when one is given (the license being revoked in the same
+     * transaction). Returns 'free' when none remain.
      */
-    private function highestActiveTierForUser(int $userId, int $excludeLicenseId): string
+    private function highestActiveTierForUser(int $userId, ?int $excludeLicenseId): string
     {
         $tierPriority = ['enterprise' => 3, 'team' => 2, 'pro' => 1, 'free' => 0];
 
         $tiers = License::where('user_id', $userId)
-            ->where('id', '!=', $excludeLicenseId)
+            ->when($excludeLicenseId !== null, fn ($q) => $q->where('id', '!=', $excludeLicenseId))
             ->where('status', 'active')
             ->where(fn ($q) => $q->whereNull('expires_at')->orWhere('expires_at', '>', now()))
             ->pluck('tier');

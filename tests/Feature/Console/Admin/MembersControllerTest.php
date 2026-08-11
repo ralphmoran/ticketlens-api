@@ -468,4 +468,55 @@ class MembersControllerTest extends TestCase
         $this->assertSame(0, $lead->fresh()->permissions & Permission::TeamViewHealth->value);
         $this->assertFalse($manager->ownedGroup->members()->where('users.id', $lead->id)->exists());
     }
+
+    // --- Tier/permissions downgrade on removal ---
+
+    public function test_remove_member_downgrades_tier_and_permissions_to_free(): void
+    {
+        $manager = $this->makeManager();
+        $member  = $this->makeMember($manager->ownedGroup, ['permissions' => Permission::team()]);
+
+        $this->actingAs($manager)->delete("/console/admin/members/{$member->id}")
+            ->assertRedirect();
+
+        $fresh = $member->fresh();
+        $this->assertSame('free', $fresh->tier);
+        $this->assertSame(Permission::free(), $fresh->permissions);
+    }
+
+    public function test_remove_member_keeps_their_own_separate_active_license_tier(): void
+    {
+        $manager = $this->makeManager();
+        $member  = $this->makeMember($manager->ownedGroup, ['permissions' => Permission::team()]);
+        License::create([
+            'user_id' => $member->id,
+            'lemon_key_hash' => hash('sha256', "member-{$member->id}-" . uniqid()),
+            'status' => 'active', 'tier' => 'pro', 'seats' => 1,
+        ]);
+
+        $this->actingAs($manager)->delete("/console/admin/members/{$member->id}")
+            ->assertRedirect();
+
+        $fresh = $member->fresh();
+        $this->assertSame('pro', $fresh->tier);
+        $this->assertSame(Permission::pro(), $fresh->permissions);
+    }
+
+    public function test_remove_member_keeps_their_own_separate_active_team_license(): void
+    {
+        $manager = $this->makeManager();
+        $member  = $this->makeMember($manager->ownedGroup, ['permissions' => Permission::team()]);
+        License::create([
+            'user_id' => $member->id,
+            'lemon_key_hash' => hash('sha256', "member-team-{$member->id}-" . uniqid()),
+            'status' => 'active', 'tier' => 'team', 'seats' => 5,
+        ]);
+
+        $this->actingAs($manager)->delete("/console/admin/members/{$member->id}")
+            ->assertRedirect();
+
+        $fresh = $member->fresh();
+        $this->assertSame('team', $fresh->tier);
+        $this->assertSame(Permission::team(), $fresh->permissions & Permission::team());
+    }
 }

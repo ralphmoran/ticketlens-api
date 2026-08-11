@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Models\License;
 use App\Models\User;
 use App\Services\AuditService;
+use App\Services\LicenseIssuanceService;
 use App\Services\MembersService;
 use App\Services\TeamAccessService;
 use Illuminate\Http\RedirectResponse;
@@ -27,6 +28,7 @@ class MembersController extends Controller
         private readonly AuditService $audit,
         private readonly MembersService $members,
         private readonly TeamAccessService $teamAccess,
+        private readonly LicenseIssuanceService $licenses,
     ) {}
 
     public function store(Request $request): RedirectResponse
@@ -137,9 +139,18 @@ class MembersController extends Controller
 
         \DB::transaction(function () use ($group, $user): void {
             $group->members()->detach($user->id);
+            // Locked the same way revoke() locks before mutating tier/permissions —
+            // both write the same row, so a concurrent license webhook for this user
+            // during removal must not silently lose one of the two updates.
+            $locked = User::lockForUpdate()->findOrFail($user->id);
             // Clear lead bit so a re-invited member doesn't inherit stale elevation.
-            $user->permissions &= ~Permission::TeamViewHealth->value;
-            $user->save();
+            $locked->permissions &= ~Permission::TeamViewHealth->value;
+            $locked->save();
+            // Downgrade tier/permissions to whatever the member's own licenses still
+            // justify (free, unless they separately hold a personal license) — the
+            // Team-tier preset granted at invite time (MembersService::invite) does
+            // not expire on its own just because the group membership did.
+            $this->licenses->syncUserTierToOwnLicenses($locked);
         });
 
         $this->audit->log(

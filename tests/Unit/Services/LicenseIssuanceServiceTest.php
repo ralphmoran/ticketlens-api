@@ -335,4 +335,33 @@ class LicenseIssuanceServiceTest extends TestCase
         $this->assertSame('pro', $fresh->tier);
         $this->assertSame(\App\Enums\Permission::pro(), $fresh->permissions);
     }
+
+    // --- syncUserTierToOwnLicenses with no license to exclude (team-seat removal path) ---
+
+    public function test_sync_user_tier_to_own_licenses_downgrades_to_free_with_no_licenses_of_their_own(): void
+    {
+        // A team-invited member never holds their own License row for that seat —
+        // the manager's license is what grants the group, not a personal license.
+        $member = User::factory()->create(['tier' => 'team', 'permissions' => \App\Enums\Permission::team()]);
+
+        $this->service->syncUserTierToOwnLicenses($member);
+
+        $fresh = $member->fresh();
+        $this->assertSame('free', $fresh->tier);
+        $this->assertSame(\App\Enums\Permission::free(), $fresh->permissions);
+    }
+
+    public function test_sync_user_tier_to_own_licenses_keeps_a_members_own_separate_active_license(): void
+    {
+        // The member also happens to hold their own personal pro license, independent
+        // of the team seat being removed — that license must not be excluded.
+        $member = User::factory()->create(['tier' => 'team', 'permissions' => \App\Enums\Permission::team()]);
+        $this->service->issue($this->owner, $member, 'pro', sendEmail: false);
+
+        $this->service->syncUserTierToOwnLicenses($member);
+
+        $fresh = $member->fresh();
+        $this->assertSame('pro', $fresh->tier);
+        $this->assertSame(\App\Enums\Permission::pro(), $fresh->permissions);
+    }
 }

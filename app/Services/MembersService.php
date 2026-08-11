@@ -24,7 +24,10 @@ use Illuminate\Support\Str;
  */
 class MembersService
 {
-    public function __construct(private readonly AuditService $audit) {}
+    public function __construct(
+        private readonly AuditService $audit,
+        private readonly LicenseIssuanceService $licenses,
+    ) {}
 
     public function invite(User $manager, string $email, ?string $name = null): User
     {
@@ -71,6 +74,12 @@ class MembersService
                 $user->email_verified_at = now();
                 $user->invited_at        = now();
                 $user->save();
+            } else {
+                // Re-attaching a previously-known user (e.g. a member removed from
+                // this group earlier, now being re-invited) — restore at least the
+                // manager's tier preset without downgrading a member who separately
+                // holds a higher-priority personal license.
+                $this->licenses->restoreTierOnReinvite($user, $manager->tier);
             }
 
             if (! $group->members()->where('users.id', $user->id)->exists()) {

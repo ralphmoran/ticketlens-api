@@ -23,9 +23,10 @@ use Illuminate\Support\Str;
  */
 class LicenseIssuanceService
 {
-    private const DEFAULT_SEATS = ['free' => 1, 'pro' => 1, 'team' => 5, 'enterprise' => 25];
-    private const VALID_TIERS   = ['pro', 'team', 'enterprise'];
-    private const KEY_PREFIX    = 'TL-';
+    private const DEFAULT_SEATS  = ['free' => 1, 'pro' => 1, 'team' => 5, 'enterprise' => 25];
+    private const VALID_TIERS    = ['pro', 'team', 'enterprise'];
+    private const KEY_PREFIX     = 'TL-';
+    private const TIER_PRIORITY  = ['enterprise' => 3, 'team' => 2, 'pro' => 1, 'free' => 0];
 
     public function __construct(private readonly AuditService $audit) {}
 
@@ -158,23 +159,28 @@ class LicenseIssuanceService
     public function syncUserTierToOwnLicenses(User $user, ?int $excludeLicenseId = null): void
     {
         $tier = $this->highestActiveTierForUser($user->id, $excludeLicenseId);
+        $this->applyTier($user, $tier);
+    }
 
-        if (in_array($tier, ['team', 'enterprise'], true)) {
-            // bootstrapTeamGroup is idempotent — group already exists from issuance.
-            $this->bootstrapTeamGroup($user, $tier);
-            return;
-        }
+    /**
+     * Restores at least $groupTier (the inviting manager's tier preset) on a user
+     * being re-attached to a group via re-invite, without ever downgrading a member
+     * who separately holds a higher-priority active license of their own — the same
+     * priority ranking syncUserTierToOwnLicenses trusts for the removal/downgrade
+     * direction, applied here in the opposite (grant) direction.
+     *
+     * Bootstrapping the user their own owned group (applyTier's team/enterprise
+     * branch) is only correct when THEIR OWN license is what earned the tier —
+     * never when the manager's group preset alone happens to be team/enterprise,
+     * or every re-invited rank-and-file member would incorrectly become a group
+     * owner in their own right.
+     */
+    public function restoreTierOnReinvite(User $user, string $groupTier): void
+    {
+        $ownTier = $this->highestActiveTierForUser($user->id, null);
+        $ownWins = (self::TIER_PRIORITY[$ownTier] ?? 0) > (self::TIER_PRIORITY[$groupTier] ?? 0);
 
-        $permissions = match ($tier) {
-            'pro'   => Permission::pro(),
-            default => Permission::free(),
-        };
-
-        if ($user->tier !== $tier || $user->permissions !== $permissions) {
-            $user->tier        = $tier;
-            $user->permissions = $permissions;
-            $user->save();
-        }
+        $this->applyTier($user, $ownWins ? $ownTier : $groupTier, allowBootstrap: $ownWins);
     }
 
     /**
@@ -184,8 +190,6 @@ class LicenseIssuanceService
      */
     private function highestActiveTierForUser(int $userId, ?int $excludeLicenseId): string
     {
-        $tierPriority = ['enterprise' => 3, 'team' => 2, 'pro' => 1, 'free' => 0];
-
         $tiers = License::where('user_id', $userId)
             ->when($excludeLicenseId !== null, fn ($q) => $q->where('id', '!=', $excludeLicenseId))
             ->where('status', 'active')
@@ -193,9 +197,30 @@ class LicenseIssuanceService
             ->pluck('tier');
 
         return $tiers->reduce(
-            fn (string $best, string $tier) => ($tierPriority[$tier] ?? 0) > ($tierPriority[$best] ?? 0) ? $tier : $best,
+            fn (string $best, string $tier) => (self::TIER_PRIORITY[$tier] ?? 0) > (self::TIER_PRIORITY[$best] ?? 0) ? $tier : $best,
             'free',
         );
+    }
+
+    private function applyTier(User $user, string $tier, bool $allowBootstrap = true): void
+    {
+        if ($allowBootstrap && in_array($tier, ['team', 'enterprise'], true)) {
+            // bootstrapTeamGroup is idempotent — group already exists from issuance.
+            $this->bootstrapTeamGroup($user, $tier);
+            return;
+        }
+
+        $permissions = match ($tier) {
+            'pro'                => Permission::pro(),
+            'team', 'enterprise' => Permission::team(),
+            default              => Permission::free(),
+        };
+
+        if ($user->tier !== $tier || $user->permissions !== $permissions) {
+            $user->tier        = $tier;
+            $user->permissions = $permissions;
+            $user->save();
+        }
     }
 
     private function generateRawKey(): string

@@ -519,4 +519,57 @@ class MembersControllerTest extends TestCase
         $this->assertSame('team', $fresh->tier);
         $this->assertSame(Permission::team(), $fresh->permissions & Permission::team());
     }
+
+    // --- Re-invite restores tier (backlog #11) ---
+
+    public function test_reinviting_a_previously_removed_member_restores_their_team_tier(): void
+    {
+        $manager = $this->makeManager();
+        $member  = $this->makeMember($manager->ownedGroup);
+
+        $this->actingAs($manager)->delete("/console/admin/members/{$member->id}")->assertRedirect();
+        $this->assertSame('free', $member->fresh()->tier);
+
+        $this->actingAs($manager)
+            ->post('/console/admin/members', ['email' => $member->email])
+            ->assertRedirect();
+
+        $fresh = $member->fresh();
+        $this->assertSame('team', $fresh->tier);
+        $this->assertSame(Permission::team(), $fresh->permissions & Permission::team());
+        $this->assertTrue($manager->ownedGroup->members()->where('users.id', $member->id)->exists());
+    }
+
+    public function test_reinviting_a_member_never_downgrades_their_own_higher_personal_license(): void
+    {
+        // Manager's own tier is 'pro' (a Free/Pro user granted a Team-Access addon
+        // license, per MembersService::invite()'s dual-license comment) while the
+        // member independently holds a 'team' license of their own.
+        $manager = User::factory()->create(['tier' => 'pro', 'permissions' => 511]);
+        $group   = Group::create(['name' => "Team {$manager->id}", 'owner_id' => $manager->id]);
+        $group->members()->attach($manager->id);
+        License::create([
+            'user_id' => $manager->id,
+            'lemon_key_hash' => hash('sha256', "manager-{$manager->id}-" . uniqid()),
+            'status' => 'active', 'tier' => 'team', 'seats' => 5,
+        ]);
+
+        $member = $this->makeMember($group);
+        License::create([
+            'user_id' => $member->id,
+            'lemon_key_hash' => hash('sha256', "member-{$member->id}-" . uniqid()),
+            'status' => 'active', 'tier' => 'team', 'seats' => 1,
+        ]);
+
+        $this->actingAs($manager)->delete("/console/admin/members/{$member->id}")->assertRedirect();
+        $this->assertSame('team', $member->fresh()->tier, 'removal must keep the member on their own separate license tier');
+
+        $this->actingAs($manager)
+            ->post('/console/admin/members', ['email' => $member->email])
+            ->assertRedirect();
+
+        $fresh = $member->fresh();
+        $this->assertSame('team', $fresh->tier, 're-invite with a lower-priority pro group preset must not downgrade the members own team license');
+        $this->assertSame(Permission::team(), $fresh->permissions & Permission::team());
+    }
 }

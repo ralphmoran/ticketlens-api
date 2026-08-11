@@ -364,4 +364,52 @@ class LicenseIssuanceServiceTest extends TestCase
         $this->assertSame('pro', $fresh->tier);
         $this->assertSame(\App\Enums\Permission::pro(), $fresh->permissions);
     }
+
+    // --- restoreTierOnReinvite (re-inviting a previously-known user back into a group) ---
+
+    public function test_restore_tier_on_reinvite_upgrades_a_free_member_to_the_groups_pro_preset(): void
+    {
+        // Simulates a member stripped to free by team-member removal, then re-invited
+        // by a manager whose group preset is 'pro' (no bootstrap/group side effects).
+        $member = User::factory()->create(['tier' => 'free', 'permissions' => \App\Enums\Permission::free()]);
+
+        $this->service->restoreTierOnReinvite($member, 'pro');
+
+        $fresh = $member->fresh();
+        $this->assertSame('pro', $fresh->tier);
+        $this->assertSame(\App\Enums\Permission::pro(), $fresh->permissions);
+    }
+
+    public function test_restore_tier_on_reinvite_upgrades_a_free_member_to_the_groups_team_preset_without_bootstrapping_ownership(): void
+    {
+        // A plain rank-and-file member re-inheriting the group's own team preset
+        // must never be bootstrapped into owning a group of their own — that
+        // bootstrap path is reserved for a user's OWN separately-held license
+        // (see the next test). Getting this wrong would make every re-invited
+        // team member a group owner in their own right.
+        $member = User::factory()->create(['tier' => 'free', 'permissions' => \App\Enums\Permission::free()]);
+
+        $this->service->restoreTierOnReinvite($member, 'team');
+
+        $fresh = $member->fresh();
+        $this->assertSame('team', $fresh->tier);
+        $this->assertSame(\App\Enums\Permission::team(), $fresh->permissions);
+        $this->assertNull($fresh->ownedGroup);
+    }
+
+    public function test_restore_tier_on_reinvite_does_not_downgrade_a_members_own_higher_license(): void
+    {
+        // The member independently holds their own active 'team' license, higher
+        // priority than the 'pro' group preset the re-inviting manager offers —
+        // re-invite must never take away entitlement the member separately paid for.
+        $member = User::factory()->create(['tier' => 'team', 'permissions' => \App\Enums\Permission::team()]);
+        $this->service->issue($this->owner, $member, 'team', sendEmail: false);
+
+        $this->service->restoreTierOnReinvite($member, 'pro');
+
+        $fresh = $member->fresh();
+        $this->assertSame('team', $fresh->tier);
+        $this->assertSame(\App\Enums\Permission::team(), $fresh->permissions & \App\Enums\Permission::team());
+        $this->assertNotNull($fresh->ownedGroup, 'a members own team-tier license bootstraps them a group, same as syncUserTierToOwnLicenses already grants on removal');
+    }
 }

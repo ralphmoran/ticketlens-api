@@ -7,6 +7,7 @@ use App\Models\Group;
 use App\Models\License;
 use App\Models\User;
 use App\Services\AuditService;
+use App\Services\LicenseIssuanceService;
 use App\Services\MembersService;
 use App\Services\TeamAccessService;
 use Database\Seeders\FeatureSeeder;
@@ -25,7 +26,7 @@ class MembersServiceTest extends TestCase
     {
         parent::setUp();
         Notification::fake();
-        $this->service = new MembersService(new AuditService);
+        $this->service = new MembersService(new AuditService, new LicenseIssuanceService(new AuditService));
     }
 
     private function makeManagerWithSeats(int $seats): User
@@ -80,6 +81,22 @@ class MembersServiceTest extends TestCase
 
         $this->assertSame($existing->id, $user->id);
         $this->assertTrue($manager->ownedGroup->members()->where('users.id', $existing->id)->exists());
+    }
+
+    public function test_reinviting_a_plain_existing_user_into_a_team_never_makes_them_a_group_owner(): void
+    {
+        // Regression lock for backlog #11's tier-restore fix: an ordinary existing
+        // user (no license of their own) being re-invited into a team-tier group
+        // must land as a plain member — never bootstrapped into owning a group.
+        $manager = $this->makeManagerWithSeats(5);
+        $existing = User::factory()->create(['email' => 'already@example.com']);
+
+        $this->service->invite($manager, 'already@example.com');
+
+        $fresh = $existing->fresh();
+        $this->assertSame('team', $fresh->tier);
+        $this->assertSame(\App\Enums\Permission::team(), $fresh->permissions);
+        $this->assertNull($fresh->ownedGroup);
     }
 
     public function test_invite_throws_SeatLimitReached_when_at_capacity(): void

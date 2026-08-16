@@ -13,7 +13,7 @@ class RecallNote extends Model
     protected $fillable = [
         'group_id', 'author_id', 'tracker_profile_id', 'external_id', 'title',
         'aliases', 'tickets', 'tags', 'sources', 'body', 'status',
-        'published_at', 'verified_at', 'verified_by',
+        'published_at', 'captured_at', 'verified_at', 'verified_by',
     ];
 
     protected $casts = [
@@ -22,6 +22,7 @@ class RecallNote extends Model
         'tags'         => 'array',
         'sources'      => 'array',
         'published_at' => 'datetime',
+        'captured_at'  => 'datetime',
         'verified_at'  => 'datetime',
     ];
 

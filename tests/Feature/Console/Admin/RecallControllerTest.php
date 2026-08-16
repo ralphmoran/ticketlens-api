@@ -134,6 +134,34 @@ class RecallControllerTest extends TestCase
             ->assertInertia(fn ($page) => $page->has('notes.data', 1)->where('notes.data.0.body', 'Needs exponential backoff.'));
     }
 
+    // ---- captured_at (49g: local-creation vs server-push timestamp) ----
+
+    public function test_index_shows_captured_at_as_created_at_when_present_distinct_from_the_rows_own_created_at(): void
+    {
+        [$manager, $group] = $this->makeManager();
+        $note = RecallNote::create([
+            'group_id' => $group->id, 'author_id' => $manager->id, 'external_id' => 'a.md',
+            'title' => 'x', 'aliases' => [], 'tickets' => [], 'tags' => [], 'sources' => [], 'body' => 'x',
+            'captured_at' => '2026-08-01T12:00:00Z',
+        ]);
+
+        $this->actingAs($manager)->get('/console/admin/recall')
+            ->assertInertia(fn ($page) => $page->where('notes.data.0.created_at', $note->fresh()->captured_at->toIso8601String()));
+        $this->assertNotSame($note->fresh()->created_at->toIso8601String(), $note->fresh()->captured_at->toIso8601String());
+    }
+
+    public function test_index_falls_back_to_the_rows_own_created_at_when_captured_at_is_null(): void
+    {
+        [$manager, $group] = $this->makeManager();
+        $note = RecallNote::create([
+            'group_id' => $group->id, 'author_id' => $manager->id, 'external_id' => 'a.md',
+            'title' => 'x', 'aliases' => [], 'tickets' => [], 'tags' => [], 'sources' => [], 'body' => 'x',
+        ]);
+
+        $this->actingAs($manager)->get('/console/admin/recall')
+            ->assertInertia(fn ($page) => $page->where('notes.data.0.created_at', $note->fresh()->created_at->toIso8601String()));
+    }
+
     public function test_index_search_matches_tags(): void
     {
         [$manager, $group] = $this->makeManager();

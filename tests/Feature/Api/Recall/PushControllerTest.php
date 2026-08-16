@@ -295,6 +295,48 @@ class PushControllerTest extends TestCase
             ->assertStatus(422);
     }
 
+    // ---- captured_at (49g: local-creation vs server-push timestamp) ----
+
+    public function test_captured_at_is_persisted_when_provided(): void
+    {
+        [, $token] = $this->makeEntitledUserWithToken();
+
+        $this->withToken($token)
+            ->postJson('/v1/recall/push', $this->validPayload(['captured_at' => '2026-08-01T12:00:00Z']))
+            ->assertStatus(200);
+
+        $this->assertSame('2026-08-01 12:00:00', RecallNote::first()->captured_at->format('Y-m-d H:i:s'));
+    }
+
+    public function test_missing_captured_at_is_accepted_not_a_422_older_cli_versions_never_send_it(): void
+    {
+        [, $token] = $this->makeEntitledUserWithToken();
+
+        $this->withToken($token)->postJson('/v1/recall/push', $this->validPayload())->assertStatus(200);
+
+        $this->assertNull(RecallNote::first()->captured_at);
+    }
+
+    public function test_an_unparseable_captured_at_value_returns_422_and_nothing_is_persisted(): void
+    {
+        [, $token] = $this->makeEntitledUserWithToken();
+
+        $this->withToken($token)
+            ->postJson('/v1/recall/push', $this->validPayload(['captured_at' => 'not-a-date']))
+            ->assertStatus(422);
+        $this->assertSame(0, RecallNote::count());
+    }
+
+    public function test_captured_at_updates_on_repush_same_as_other_fields(): void
+    {
+        [, $token] = $this->makeEntitledUserWithToken();
+
+        $this->withToken($token)->postJson('/v1/recall/push', $this->validPayload(['captured_at' => '2026-08-01T12:00:00Z']))->assertStatus(200);
+        $this->withToken($token)->postJson('/v1/recall/push', $this->validPayload(['captured_at' => '2026-08-02T09:00:00Z']))->assertStatus(200);
+
+        $this->assertSame('2026-08-02 09:00:00', RecallNote::first()->captured_at->format('Y-m-d H:i:s'));
+    }
+
     // ---- idempotency ----
 
     public function test_pushing_the_same_external_id_twice_upserts_one_row(): void

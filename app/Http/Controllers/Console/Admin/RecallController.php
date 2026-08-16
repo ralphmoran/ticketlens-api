@@ -72,7 +72,11 @@ class RecallController extends Controller
                         'avatar_url' => $note->author->avatarUrl(),
                     ] : null,
                     'status'     => $note->status,
-                    'created_at' => $note->created_at->toIso8601String(),
+                    // Prefer the client's local-capture instant (49g) over this
+                    // row's own created_at, which only ever reflects when the
+                    // server first received the push — falls back for notes
+                    // pushed before this column existed (captured_at is null).
+                    'created_at' => ($note->captured_at ?? $note->created_at)->toIso8601String(),
                 ])
             : null;
 

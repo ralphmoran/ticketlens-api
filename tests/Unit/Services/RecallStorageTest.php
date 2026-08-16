@@ -102,6 +102,32 @@ class RecallStorageTest extends TestCase
         $this->assertDatabaseCount('recall_notes', 2);
     }
 
+    // ---- captured_at (49g: local-creation vs server-push timestamp) ----
+
+    public function test_push_persists_captured_at_when_provided(): void
+    {
+        $group  = $this->makeGroupWithOwner();
+        $author = User::factory()->create();
+
+        $note = $this->storage->push($group, $author, [
+            'external_id' => 'x.md', 'title' => 't', 'body' => 'x',
+            'captured_at' => '2026-08-01T12:00:00Z',
+        ]);
+
+        $this->assertSame('2026-08-01 12:00:00', $note->captured_at->format('Y-m-d H:i:s'));
+    }
+
+    public function test_push_leaves_captured_at_null_when_not_provided(): void
+    {
+        // Older CLI versions never send this field — must not error or fabricate a value.
+        $group  = $this->makeGroupWithOwner();
+        $author = User::factory()->create();
+
+        $note = $this->storage->push($group, $author, ['external_id' => 'x.md', 'title' => 't', 'body' => 'x']);
+
+        $this->assertNull($note->captured_at);
+    }
+
     // ---- pull ----
 
     public function test_pull_returns_only_notes_belonging_to_the_given_group(): void

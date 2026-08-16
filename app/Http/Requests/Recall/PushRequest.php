@@ -37,6 +37,11 @@ class PushRequest extends FormRequest
             'tags.*'      => ['string', 'max:100', new ValidUtf8()],
             'sources'     => ['sometimes', 'array', 'max:20'],
             'sources.*'   => ['string', 'max:2048', new ValidUtf8()],
+            // Local-creation instant from the CLI vault's `created` frontmatter
+            // (recall-vault.mjs) — optional because a CLI version predating this
+            // field never sends it, and a bad client-supplied value can only ever
+            // corrupt a display timestamp, never authorization or storage safety.
+            'captured_at' => ['sometimes', 'nullable', 'date'],
             // Optional explicit team target — resolved via RecallTeamResolver,
             // always scoped to the authenticated user's own memberships, so a
             // client-supplied id can never select a team the user doesn't

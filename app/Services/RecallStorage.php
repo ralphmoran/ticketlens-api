@@ -60,6 +60,7 @@ class RecallStorage
             'sources'            => $data['sources'] ?? [],
             'body'               => $data['body'],
             'published_at'       => now(),
+            'captured_at'        => $data['captured_at'] ?? null,
         ]);
 
         if ($isNew || $wasTrashed) {

@@ -488,4 +488,69 @@ class RecallSecretScannerTest extends TestCase
         $result = $this->scanner->scan(['body' => 'zqXvbNmKl-PoIuYtR eWqAsDfG-hJkLzXcV']);
         $this->assertTrue($result['rejected']);
     }
+
+    // ---- backlog #13: bare hyphenated-stem filenames are not secrets (standalone) ----
+    // Ported from the CLI's secret-scanner.test.mjs (ticket-lens@3c4b1d9).
+
+    public function test_exact_live_repro_a_bare_kebab_case_mjs_filename_mentioned_standalone_is_not_rejected_but_does_warn(): void
+    {
+        $result = $this->scanner->scan(['body' => 'recall-nudge-stop.mjs is a hook.']);
+        $this->assertFalse($result['rejected']);
+        $this->assertStringContainsString('code-filename-shaped', implode(' ', $result['warnings']));
+    }
+
+    public function test_a_hyphenated_stem_with_an_oversized_segment_does_not_qualify_as_a_compound_so_it_is_still_a_full_hard_reject(): void
+    {
+        $result = $this->scanner->scan(['body' => 'abcdefghijklmnopqrstuv-scanner.mjs is a hook.']);
+        $this->assertTrue($result['rejected']);
+    }
+
+    public function test_security_regression_a_random_no_case_switch_hyphenated_token_with_a_fake_extension_is_downgraded_to_a_warning_never_silently_exempted(): void
+    {
+        $result = $this->scanner->scan(['body' => 'zqxvbnmkl-poiuytrewq.mjs was mentioned once.']);
+        $this->assertFalse($result['rejected']);
+        $this->assertStringContainsString('code-filename-shaped', implode(' ', $result['warnings']));
+    }
+
+    public function test_digits_in_a_hyphenated_stem_are_still_not_exempted(): void
+    {
+        $result = $this->scanner->scan(['body' => 'recall-nudge-stop2.mjs is a hook.']);
+        $this->assertTrue($result['rejected']);
+    }
+
+    // ---- backlog #13: filename+identifier joins are not a secret ----
+
+    public function test_exact_live_repro_filename_possessive_next_to_an_identifier_false_positived(): void
+    {
+        $result = $this->scanner->scan(['body' => "note-command.mjs's runNoteAdd needs a look."]);
+        $this->assertFalse($result['rejected']);
+    }
+
+    public function test_the_same_filename_without_the_possessive_next_to_an_identifier_was_always_fine_control_case(): void
+    {
+        $result = $this->scanner->scan(['body' => 'note-command.mjs handles this.']);
+        $this->assertFalse($result['rejected']);
+    }
+
+    public function test_a_non_hyphenated_filename_possessive_next_to_a_camelcase_identifier_is_not_a_secret(): void
+    {
+        $result = $this->scanner->scan(['body' => "index.js's getUserById needs review."]);
+        $this->assertFalse($result['rejected']);
+    }
+
+    public function test_known_accepted_gap_a_genuine_fragmented_secret_with_a_fake_filename_possessive_inserted_as_bait_is_not_caught(): void
+    {
+        $secret  = 'k3f9x7q2z8p1m6w4y0j5h2n9v3t8s1r7d4c6b0a2e5f9x1q7z3';
+        $unsplit = $this->scanner->scan(['body' => $secret]);
+        $this->assertTrue($unsplit['rejected']);
+
+        $evaded = $this->scanner->scan(['body' => substr($secret, 0, 18) . " bait.mjs's " . substr($secret, 18, 18) . " bait.mjs's " . substr($secret, 36)]);
+        $this->assertFalse($evaded['rejected']);
+    }
+
+    public function test_digits_in_a_filename_shaped_run_stop_candidate_are_still_not_exempted(): void
+    {
+        $result = $this->scanner->scan(['body' => "Base64EncoderForV2Payloads123456789.php's caller changed."]);
+        $this->assertTrue($result['rejected']);
+    }
 }

@@ -86,6 +86,10 @@ class RecallSecretScanner
 
     private const EMAIL_RE = '/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/';
 
+    // Shared between CODE_FILENAME_RE and FILENAME_REFERENCE_RE below, mirrors
+    // the CLI's secret-scanner.mjs — one definition so the two can't drift.
+    private const CODE_EXTENSION_ALTERNATION = 'php|m?js|tsx?|jsx|py|rb|java|go|rs|vue|s?css|md|json|ya?ml|sh';
+
     // A letters-only token ending in a recognized source-file extension reads
     // as high-entropy the same way a real secret does — a class name doubling
     // as its filename is the common case, but a deliberately-renamed or
@@ -100,8 +104,21 @@ class RecallSecretScanner
     // shortcut inside looksRandom itself. A bare identifier with no extension
     // (a method name, not a filename) isn't covered by this at all — that
     // shape is indistinguishable from a base64 secret fragment either way.
-    // Kept in sync with CODE_FILENAME_RE in the CLI's secret-scanner.mjs.
-    private const CODE_FILENAME_RE = '/^[A-Za-z]+\.(php|m?js|tsx?|jsx|py|rb|java|go|rs|vue|s?css|md|json|ya?ml|sh)$/i';
+    // Stem allows hyphens (this project's own file-naming convention) as
+    // capture group 1, so looksLikeCodeFilename can judge a kebab-case stem
+    // via isHyphenatedWordCompound. Kept in sync with CODE_FILENAME_RE in
+    // the CLI's secret-scanner.mjs (backlog #13).
+    private const CODE_FILENAME_RE = '/^([A-Za-z][A-Za-z-]*)\.(' . self::CODE_EXTENSION_ALTERNATION . ')$/i';
+
+    // A hyphenated-stem filename optionally followed by a directly-attached
+    // possessive ("note-command.mjs's") stops a joinedChunkRuns run the same
+    // way any other label word does (see isLabelWord below). Deliberately
+    // separate from CODE_FILENAME_RE: this only ever stops a *run* in
+    // isLabelWord, it never exempts a token from the standalone entropy
+    // check, so it can't itself bypass detection the way a change to
+    // CODE_FILENAME_RE could. Ported from FILENAME_REFERENCE_RE in the CLI's
+    // secret-scanner.mjs (backlog #13, ticket-lens@3c4b1d9).
+    private const FILENAME_REFERENCE_RE = '/^[A-Za-z][A-Za-z-]*\.(' . self::CODE_EXTENSION_ALTERNATION . ')(\'s)?$/i';
 
     /**
      * @param array{title?: string, aliases?: string[], tags?: string[], body?: string, sources?: string[], external_id?: string} $fields
@@ -271,12 +288,18 @@ class RecallSecretScanner
         if (preg_match(self::CODE_FILENAME_RE, $stripped, $match) !== 1) {
             return false;
         }
-        // Requiring an internal case switch in the stem (the same signal used
-        // to detect base64 content elsewhere in this file) means a genuinely
-        // random single-case letter run plus a fake extension gets no special
-        // treatment at all — only tokens that already look like a real
-        // PascalCase/camelCase identifier reach the softer warning path.
-        return $this->hasInternalCaseSwitch($match[0]);
+        // Two independent "structured, not random" signals: an internal case
+        // switch (PascalCase/camelCase, the same signal used to detect
+        // base64 content elsewhere in this file) or a hyphenated-compound
+        // stem (this project's own kebab-case .mjs naming convention). A
+        // genuinely random single-case, non-hyphenated letter run plus a
+        // fake extension satisfies neither and gets no special treatment.
+        return $this->hasInternalCaseSwitch($match[0]) || $this->isHyphenatedWordCompound($match[1]);
+    }
+
+    private function looksLikeFilenameReference(string $strippedToken): bool
+    {
+        return preg_match(self::FILENAME_REFERENCE_RE, $strippedToken) === 1;
     }
 
     /**
@@ -347,6 +370,9 @@ class RecallSecretScanner
             return true;
         }
         if ($this->isHyphenatedWordCompound($stripped)) {
+            return true;
+        }
+        if ($this->looksLikeFilenameReference($stripped)) {
             return true;
         }
         return preg_match('/^[A-Za-z]+(?:\'[A-Za-z]+)*$/', $stripped) === 1 && ! $this->hasInternalCaseSwitch($stripped);

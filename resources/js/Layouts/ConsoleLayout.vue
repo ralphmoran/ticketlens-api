@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, reactive, watch, nextTick, onMounted, onUnmounted } from 'vue'
-import { usePage, router } from '@inertiajs/vue3'
+import { usePage, router, Link } from '@inertiajs/vue3'
 import axios from 'axios'
 import { usePermissions } from '../composables/usePermissions'
 import { useServerEvents } from '../composables/useServerEvents'
@@ -426,10 +426,7 @@ function closeSidebar() {
     sidebarOpen.value = false
 }
 
-function handleNavClick(event, href) {
-    if (page.url.startsWith(href)) {
-        event.preventDefault()
-    }
+function handleNavStart() {
     closeSidebar()
     ownerSubOpen.value = false
 }
@@ -580,32 +577,32 @@ onUnmounted(() => {
 
                             <p v-if="pending.count === 0" class="tl-notif-empty">You're all caught up.</p>
 
-                            <a
+                            <Link
                                 v-if="pending.categories?.recall?.available"
                                 href="/console/admin/recall"
                                 class="tl-dropdown-item"
                             >
                                 <TlIcon name="search" class="tl-ic" />
                                 {{ pending.categories.recall.count }} Recall note{{ pending.categories.recall.count === 1 ? '' : 's' }} to review
-                            </a>
+                            </Link>
 
-                            <a
+                            <Link
                                 v-if="pending.categories?.license?.triggered"
                                 href="/console/account"
                                 class="tl-dropdown-item"
                             >
                                 <TlIcon name="warning-triangle" class="tl-ic" />
                                 License needs attention ({{ pending.categories.license.status }})
-                            </a>
+                            </Link>
 
-                            <a
+                            <Link
                                 v-if="pending.categories?.invites?.available && pending.categories.invites.count > 0"
                                 href="/console/admin/members"
                                 class="tl-dropdown-item"
                             >
                                 <TlIcon name="user-group" class="tl-ic" />
                                 {{ pending.categories.invites.count }} Pending team invite{{ pending.categories.invites.count === 1 ? '' : 's' }}
-                            </a>
+                            </Link>
 
                             <div class="tl-dropdown-item tl-dropdown-item--disabled" title="Coming soon">
                                 <TlIcon name="git-branch" class="tl-ic" />
@@ -617,9 +614,9 @@ onUnmounted(() => {
                 </div>
 
                 <!-- Settings gear -->
-                <a href="/console/account" title="Settings" class="tl-icon-btn">
+                <Link href="/console/account" title="Settings" class="tl-icon-btn">
                     <TlIcon name="settings" class="tl-ic" />
-                </a>
+                </Link>
 
                 <!-- Avatar with dropdown -->
                 <div class="tl-avatar-wrap" data-avatar-dropdown>
@@ -642,14 +639,14 @@ onUnmounted(() => {
                             </div>
                             <div v-if="user?.tier === 'free'" class="tl-promo-card tl-promo-card--compact">
                                 <p>Unlock Pro features &mdash; Schedules, Digests, Summarize and more</p>
-                                <a
+                                <Link
                                     href="/console/upgrade"
-                                    @click="avatarDropdownOpen = false"
+                                    @start="avatarDropdownOpen = false"
                                     class="tl-btn tl-btn--inverse"
                                 >
                                     Upgrade
                                     <TlIcon name="arrow-right" class="tl-ic tl-ic--sm" />
-                                </a>
+                                </Link>
                             </div>
                         </div>
                     </Transition>
@@ -722,32 +719,32 @@ onUnmounted(() => {
 
                             <p v-if="pending.count === 0" class="tl-notif-empty">You're all caught up.</p>
 
-                            <a
+                            <Link
                                 v-if="pending.categories?.recall?.available"
                                 href="/console/admin/recall"
                                 class="tl-dropdown-item"
                             >
                                 <TlIcon name="search" class="tl-ic" />
                                 {{ pending.categories.recall.count }} Recall note{{ pending.categories.recall.count === 1 ? '' : 's' }} to review
-                            </a>
+                            </Link>
 
-                            <a
+                            <Link
                                 v-if="pending.categories?.license?.triggered"
                                 href="/console/account"
                                 class="tl-dropdown-item"
                             >
                                 <TlIcon name="warning-triangle" class="tl-ic" />
                                 License needs attention ({{ pending.categories.license.status }})
-                            </a>
+                            </Link>
 
-                            <a
+                            <Link
                                 v-if="pending.categories?.invites?.available && pending.categories.invites.count > 0"
                                 href="/console/admin/members"
                                 class="tl-dropdown-item"
                             >
                                 <TlIcon name="user-group" class="tl-ic" />
                                 {{ pending.categories.invites.count }} Pending team invite{{ pending.categories.invites.count === 1 ? '' : 's' }}
-                            </a>
+                            </Link>
 
                             <div class="tl-dropdown-item tl-dropdown-item--disabled" title="Coming soon">
                                 <TlIcon name="git-branch" class="tl-ic" />
@@ -759,13 +756,13 @@ onUnmounted(() => {
                 </div>
 
                 <!-- Settings gear -->
-                <a
+                <Link
                     href="/console/account"
                     title="Settings"
                     class="tl-icon-btn"
                 >
                     <TlIcon name="settings" class="tl-ic" />
-                </a>
+                </Link>
 
                 <!-- Avatar with dropdown -->
                 <div class="tl-avatar-wrap" data-avatar-dropdown>
@@ -791,14 +788,14 @@ onUnmounted(() => {
                             </div>
                             <div v-if="user?.tier === 'free'" class="tl-promo-card tl-promo-card--compact">
                                 <p>Unlock Pro features &mdash; Schedules, Digests, Summarize and more</p>
-                                <a
+                                <Link
                                     href="/console/upgrade"
-                                    @click="avatarDropdownOpen = false"
+                                    @start="avatarDropdownOpen = false"
                                     class="tl-btn tl-btn--inverse"
                                 >
                                     Upgrade
                                     <TlIcon name="arrow-right" class="tl-ic tl-ic--sm" />
-                                </a>
+                                </Link>
                             </div>
                         </div>
                     </Transition>
@@ -868,17 +865,17 @@ onUnmounted(() => {
                     >
                         <ul class="tl-nav-list">
                             <li>
-                                <a
+                                <Link
                                     :href="group.items[0].href"
                                     :title="group.label"
-                                    @click="handleNavClick($event, group.items[0].href)"
+                                    @start="handleNavStart"
                                     class="tl-nav-link tl-nav-link--full"
                                     :class="group.items.some(i => page.url.startsWith(i.href))
                                         ? 'tl-nav-link--active'
                                         : 'tl-nav-link--inactive'"
                                 >
                                     <TlIcon :name="group.collapseIcon" class="tl-ic" />
-                                </a>
+                                </Link>
                             </li>
                         </ul>
                     </div>
@@ -909,15 +906,15 @@ onUnmounted(() => {
                             <div v-if="groupOpen[group.label]" class="tl-nav-tree">
                                 <ul class="tl-nav-list">
                                     <li v-for="item in group.items" :key="item.href">
-                                        <a
+                                        <Link
                                             :href="item.href"
-                                            @click="handleNavClick($event, item.href)"
+                                            @start="handleNavStart"
                                             class="tl-nav-link"
                                             :class="page.url.startsWith(item.href) ? 'tl-nav-link--active' : 'tl-nav-link--inactive'"
                                         >
                                             <TlIcon :name="item.icon" class="tl-ic tl-ic--sm" />
                                             <span class="tl-nav-sub-label">{{ item.label }}</span>
-                                        </a>
+                                        </Link>
                                     </li>
                                 </ul>
                             </div>
@@ -937,16 +934,16 @@ onUnmounted(() => {
                     >
                         <ul class="tl-nav-list tl-nav-list--gap">
                             <li>
-                                <a
+                                <Link
                                     :href="ownerPanelItems[0].href"
                                     ref="ownerIconRef"
                                     title="Owner Panel"
-                                    @click="handleNavClick($event, ownerPanelItems[0].href)"
+                                    @start="handleNavStart"
                                     class="tl-nav-link tl-nav-link--full"
                                     :class="(ownerSubOpen || subSidebarPersistent) ? 'tl-nav-link--owner-active' : 'tl-nav-link--owner-inactive'"
                                 >
                                     <TlIcon name="building" class="tl-ic" />
-                                </a>
+                                </Link>
                             </li>
                         </ul>
                     </div>
@@ -977,15 +974,15 @@ onUnmounted(() => {
                             <div v-if="ownerPanelOpen" class="tl-nav-tree tl-nav-tree--amber">
                                 <ul class="tl-nav-list">
                                     <li v-for="item in ownerPanelItems" :key="item.href">
-                                        <a
+                                        <Link
                                             :href="item.href"
-                                            @click="handleNavClick($event, item.href)"
+                                            @start="handleNavStart"
                                             class="tl-nav-link"
                                             :class="page.url.startsWith(item.href) ? 'tl-nav-link--owner-active' : 'tl-nav-link--owner-inactive'"
                                         >
                                             <TlIcon :name="item.icon" class="tl-ic tl-ic--sm" />
                                             <span class="tl-nav-sub-label">{{ item.label }}</span>
-                                        </a>
+                                        </Link>
                                     </li>
                                 </ul>
                             </div>
@@ -1018,15 +1015,15 @@ onUnmounted(() => {
                             <div v-if="ownerPanelOpen" class="tl-nav-tree tl-nav-tree--amber">
                                 <ul class="tl-nav-list">
                                     <li v-for="item in ownerPanelItems" :key="item.href">
-                                        <a
+                                        <Link
                                             :href="item.href"
-                                            @click="handleNavClick($event, item.href)"
+                                            @start="handleNavStart"
                                             class="tl-nav-link"
                                             :class="page.url.startsWith(item.href) ? 'tl-nav-link--owner-active' : 'tl-nav-link--owner-inactive'"
                                         >
                                             <TlIcon :name="item.icon" class="tl-ic tl-ic--sm" />
                                             <span class="tl-nav-sub-label">{{ item.label }}</span>
-                                        </a>
+                                        </Link>
                                     </li>
                                 </ul>
                             </div>
@@ -1075,15 +1072,15 @@ onUnmounted(() => {
                 </p>
                 <ul class="tl-float-list">
                     <li v-for="item in activeGroup.items" :key="item.href">
-                        <a
+                        <Link
                             :href="item.href"
-                            @click="handleNavClick($event, item.href)"
+                            @start="handleNavStart"
                             class="tl-float-item"
                             :class="page.url.startsWith(item.href) ? 'tl-float-item--active' : ''"
                         >
                             <TlIcon :name="item.icon" class="tl-ic" />
                             <span>{{ item.label }}</span>
-                        </a>
+                        </Link>
                     </li>
                 </ul>
             </div>
@@ -1102,15 +1099,15 @@ onUnmounted(() => {
                 <p class="tl-float-panel-title">Owner Panel</p>
                 <ul class="tl-float-list">
                     <li v-for="item in ownerPanelItems" :key="item.href">
-                        <a
+                        <Link
                             :href="item.href"
-                            @click="handleNavClick($event, item.href)"
+                            @start="handleNavStart"
                             class="tl-float-item"
                             :class="page.url.startsWith(item.href) ? 'tl-float-item--owner-active' : ''"
                         >
                             <TlIcon :name="item.icon" class="tl-ic" />
                             <span>{{ item.label }}</span>
-                        </a>
+                        </Link>
                     </li>
                 </ul>
             </div>

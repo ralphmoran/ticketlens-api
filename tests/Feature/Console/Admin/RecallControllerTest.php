@@ -7,8 +7,10 @@ use App\Models\Group;
 use App\Models\RecallNote;
 use App\Models\User;
 use App\Models\UserFeatureGrant;
+use App\Services\RecallAttachmentStorage;
 use App\Services\SseEventService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class RecallControllerTest extends TestCase
@@ -757,6 +759,120 @@ class RecallControllerTest extends TestCase
         $this->actingAs($member)->delete('/console/admin/recall/bulk', ['ids' => [$note->id]])
             ->assertRedirect('/console/dashboard');
         $this->assertNotNull(RecallNote::find($note->id));
+    }
+
+    // ---- attachments ----
+
+    private function attachNote(RecallNote $note, string $filename = 'notes.txt', string $content = 'hello'): void
+    {
+        (new RecallAttachmentStorage())->store($note, [
+            ['filename' => $filename, 'bytes' => $content, 'mime' => 'text/plain', 'isText' => true],
+        ]);
+    }
+
+    public function test_index_includes_attachment_metadata_for_a_note(): void
+    {
+        Storage::fake('local');
+        [$manager, $group] = $this->makeManager();
+        $note = RecallNote::create([
+            'group_id' => $group->id, 'author_id' => $manager->id, 'external_id' => 'a.md',
+            'title' => 'x', 'aliases' => [], 'tickets' => [], 'tags' => [], 'sources' => [], 'body' => 'x',
+        ]);
+        $this->attachNote($note, 'notes.txt', 'hello');
+
+        $this->actingAs($manager)->get('/console/admin/recall')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->has('notes.data.0.attachments', 1)
+                ->where('notes.data.0.attachments.0.filename', 'notes.txt'));
+    }
+
+    public function test_download_attachment_streams_the_file_for_an_entitled_member(): void
+    {
+        Storage::fake('local');
+        [$manager, $group, $owner] = $this->makeManager();
+        $member = $this->makeEntitledMember($group, $owner);
+        $note = RecallNote::create([
+            'group_id' => $group->id, 'author_id' => $manager->id, 'external_id' => 'a.md',
+            'title' => 'x', 'aliases' => [], 'tickets' => [], 'tags' => [], 'sources' => [], 'body' => 'x',
+        ]);
+        $this->attachNote($note, 'notes.txt', 'hello world');
+        $attachment = $note->fresh()->attachments->first();
+
+        $this->actingAs($member)
+            ->get("/console/admin/recall/{$note->id}/attachments/{$attachment->id}")
+            ->assertOk();
+    }
+
+    public function test_download_attachment_requires_auth(): void
+    {
+        Storage::fake('local');
+        [$manager, $group] = $this->makeManager();
+        $note = RecallNote::create([
+            'group_id' => $group->id, 'author_id' => $manager->id, 'external_id' => 'a.md',
+            'title' => 'x', 'aliases' => [], 'tickets' => [], 'tags' => [], 'sources' => [], 'body' => 'x',
+        ]);
+        $this->attachNote($note);
+        $attachment = $note->fresh()->attachments->first();
+
+        $this->get("/console/admin/recall/{$note->id}/attachments/{$attachment->id}")
+            ->assertRedirect('/console/login');
+    }
+
+    public function test_download_attachment_blocked_for_a_note_in_a_different_group_idor(): void
+    {
+        Storage::fake('local');
+        [$managerA, $groupA] = $this->makeManager();
+        $groupB = Group::create(['name' => 'B', 'owner_id' => User::factory()->create()->id]);
+        $note = RecallNote::create([
+            'group_id' => $groupB->id, 'author_id' => User::factory()->create()->id, 'external_id' => 'b.md',
+            'title' => 'Group B note', 'aliases' => [], 'tickets' => [], 'tags' => [], 'sources' => [], 'body' => 'x',
+        ]);
+        $this->attachNote($note);
+        $attachment = $note->fresh()->attachments->first();
+
+        $this->actingAs($managerA)
+            ->get("/console/admin/recall/{$note->id}/attachments/{$attachment->id}")
+            ->assertStatus(403);
+    }
+
+    public function test_download_attachment_blocked_when_attachment_belongs_to_a_different_note_idor(): void
+    {
+        Storage::fake('local');
+        [$manager, $group] = $this->makeManager();
+        $noteA = RecallNote::create([
+            'group_id' => $group->id, 'author_id' => $manager->id, 'external_id' => 'a.md',
+            'title' => 'A', 'aliases' => [], 'tickets' => [], 'tags' => [], 'sources' => [], 'body' => 'x',
+        ]);
+        $noteB = RecallNote::create([
+            'group_id' => $group->id, 'author_id' => $manager->id, 'external_id' => 'b.md',
+            'title' => 'B', 'aliases' => [], 'tickets' => [], 'tags' => [], 'sources' => [], 'body' => 'x',
+        ]);
+        $this->attachNote($noteB);
+        $attachmentOfB = $noteB->fresh()->attachments->first();
+
+        // attachmentOfB's id paired with noteA's id in the URL — same group,
+        // but the two route-bound ids don't actually belong together.
+        $this->actingAs($manager)
+            ->get("/console/admin/recall/{$noteA->id}/attachments/{$attachmentOfB->id}")
+            ->assertStatus(403);
+    }
+
+    public function test_download_attachment_404s_when_the_stored_file_is_missing(): void
+    {
+        Storage::fake('local');
+        [$manager, $group] = $this->makeManager();
+        $note = RecallNote::create([
+            'group_id' => $group->id, 'author_id' => $manager->id, 'external_id' => 'a.md',
+            'title' => 'x', 'aliases' => [], 'tickets' => [], 'tags' => [], 'sources' => [], 'body' => 'x',
+        ]);
+        $this->attachNote($note);
+        $attachment = $note->fresh()->attachments->first();
+        Storage::disk('local')->delete($attachment->disk_path);
+
+        $this->actingAs($manager)
+            ->get("/console/admin/recall/{$note->id}/attachments/{$attachment->id}")
+            ->assertStatus(404);
     }
 
     public function test_bulk_destroy_writes_one_audit_log_per_deleted_note(): void

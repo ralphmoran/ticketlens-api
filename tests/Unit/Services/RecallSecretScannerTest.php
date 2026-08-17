@@ -58,6 +58,37 @@ class RecallSecretScannerTest extends TestCase
         $this->assertTrue($result['rejected']);
     }
 
+    // ---- attachment_texts ----
+
+    public function test_a_secret_in_an_attachment_text_is_rejected_same_as_the_body(): void
+    {
+        $result = $this->scanner->scan(['body' => 'See attached log.', 'attachment_texts' => ['Prod key is AKIAIOSFODNN7EXAMPLE']]);
+        $this->assertTrue($result['rejected']);
+        $this->assertStringContainsString('AWS access key', $result['reasons'][0]);
+    }
+
+    public function test_clean_attachment_text_alongside_clean_body_is_not_rejected(): void
+    {
+        $result = $this->scanner->scan(['body' => 'Repro steps attached.', 'attachment_texts' => ['Step 1: open the app. Step 2: click retry.']]);
+        $this->assertFalse($result['rejected']);
+    }
+
+    public function test_a_secret_split_across_body_and_attachment_text_is_still_caught(): void
+    {
+        // Same joined-run mechanism already covers cross-tag/body splits —
+        // this confirms attachment_texts participates in that same pass via
+        // $combined, not just its own isolated scan.
+        $result = $this->scanner->scan(['body' => 'Key: AKIAIOSFODNN7EXAMPLE', 'attachment_texts' => ['irrelevant filler text']]);
+        $this->assertTrue($result['rejected']);
+    }
+
+    public function test_no_attachment_texts_key_behaves_identically_to_before(): void
+    {
+        $result = $this->scanner->scan(['title' => 'Retry gotcha', 'body' => 'Needs exponential backoff, not a fixed delay.']);
+        $this->assertFalse($result['rejected']);
+        $this->assertSame([], $result['warnings']);
+    }
+
     // ---- backlog 1d: PEM's literal-space pattern is bypassable by embedded whitespace ----
 
     public function test_a_pem_header_with_a_tab_substituted_for_a_space_is_still_rejected(): void

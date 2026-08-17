@@ -45,6 +45,16 @@ function withGroupId(path) {
     return groupId ? `${path}?group_id=${groupId}` : path
 }
 
+function attachmentUrl(note, attachment) {
+    return withGroupId(`/console/admin/recall/${note.id}/attachments/${attachment.id}`)
+}
+
+function formatBytes(bytes) {
+    if (bytes < 1024) return `${bytes} B`
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+}
+
 // ── Detail drawer ────────────────────────────────────────────────────────
 // Stores only the id, not the note object — drawerNote is derived fresh from
 // props.notes on every render, so it stays in sync after a verify/delete
@@ -285,6 +295,7 @@ async function destroyNote(note) {
                                         >
                                             <TlIcon name="eye" class="tl-ic tl-ic--xs" />
                                             <span class="tl-trunc tl-abbr tl-abbr--below" :data-tooltip="note.title">{{ note.title }}</span>
+                                            <TlIcon v-if="note.attachments?.length" name="download" class="tl-ic tl-ic--xs tl-hint" :aria-label="`${note.attachments.length} attachment(s)`" />
                                         </button>
                                     </td>
                                     <td class="tl-td">
@@ -533,6 +544,23 @@ async function destroyNote(note) {
                     <div class="tl-field tl-drawer-section">
                         <span class="tl-field-label">Body</span>
                         <p class="tl-body--muted tl-mono--xs tl-pre-wrap">{{ drawerNote.body }}</p>
+                    </div>
+
+                    <!-- Attachments -->
+                    <div v-if="drawerNote.attachments?.length" class="tl-field tl-drawer-section">
+                        <span class="tl-field-label">Attachments</span>
+                        <div class="tl-stack tl-stack--sm">
+                            <a
+                                v-for="attachment in drawerNote.attachments"
+                                :key="attachment.id"
+                                :href="attachmentUrl(drawerNote, attachment)"
+                                class="tl-row tl-row--tight tl-link"
+                            >
+                                <TlIcon name="download" class="tl-ic tl-ic--sm" />
+                                <span class="tl-trunc">{{ attachment.filename }}</span>
+                                <span class="tl-hint">{{ formatBytes(attachment.size_bytes) }}</span>
+                            </a>
+                        </div>
                     </div>
 
                     <!-- Actions -->

@@ -171,19 +171,26 @@ class RecallSecretScanner
     private const STATIC_REFERENCE_RE = '/^\\\\?([A-Za-z]+(?:_[A-Za-z]+)*)::([A-Za-z_][A-Za-z0-9_]*)$/';
 
     /**
-     * @param array{title?: string, aliases?: string[], tags?: string[], body?: string, sources?: string[], external_id?: string} $fields
+     * @param array{title?: string, aliases?: string[], tags?: string[], body?: string, sources?: string[], external_id?: string, attachment_texts?: string[]} $fields
      * @return array{rejected: bool, reasons: string[], warnings: string[]}
      */
     public function scan(array $fields): array
     {
-        $title      = $fields['title'] ?? '';
-        $aliases    = $fields['aliases'] ?? [];
-        $tags       = $fields['tags'] ?? [];
-        $body       = $fields['body'] ?? '';
-        $sources    = $fields['sources'] ?? [];
-        $externalId = $fields['external_id'] ?? '';
+        $title            = $fields['title'] ?? '';
+        $aliases          = $fields['aliases'] ?? [];
+        $tags             = $fields['tags'] ?? [];
+        $body             = $fields['body'] ?? '';
+        $sources          = $fields['sources'] ?? [];
+        $externalId       = $fields['external_id'] ?? '';
+        // Text-like attachment content (.txt/.log/.md/...) — decoded by
+        // RecallAttachmentStorage before this scan runs, so a pasted token in
+        // an attached log file is caught the same as one typed into the body.
+        // Binary/image attachments never reach this array; regex scanning
+        // arbitrary binary bytes has no meaningful signal and risks false
+        // positives on compressed/encoded data.
+        $attachmentTexts  = $fields['attachment_texts'] ?? [];
 
-        $combined = implode("\n", [$title, ...$aliases, ...$tags, $body, ...$sources, $externalId]);
+        $combined = implode("\n", [$title, ...$aliases, ...$tags, $body, ...$sources, $externalId, ...$attachmentTexts]);
         $reasons  = [];
         $warnings = [];
 
@@ -198,7 +205,7 @@ class RecallSecretScanner
         // why.
         $fieldTokenGroups = array_map(
             fn (string $field) => array_values(array_filter(preg_split(self::WHITESPACE_RE, $field))),
-            [$title, ...$aliases, ...$tags, $body, ...$sources],
+            [$title, ...$aliases, ...$tags, $body, ...$sources, ...$attachmentTexts],
         );
         $tokens = $this->flattenGroups($fieldTokenGroups);
 

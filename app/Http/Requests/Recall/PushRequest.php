@@ -48,6 +48,14 @@ class PushRequest extends FormRequest
             // belong to. nullable: ConvertEmptyStringsToNull turns a sent ""
             // into null before validation runs.
             'group_id'    => ['sometimes', 'nullable', 'integer'],
+            // Shape-only here — exact byte-size/count caps (10MB/file, 50MB
+            // total, 20 files) are enforced by RecallAttachmentStorage after
+            // base64 decoding, since a validated string length doesn't map
+            // 1:1 to decoded byte size. max:20 here still bounds the array
+            // itself cheaply, before any decoding work happens.
+            'attachments'            => ['sometimes', 'array', 'max:20'],
+            'attachments.*.filename' => ['required_with:attachments', 'string', 'max:255'],
+            'attachments.*.content'  => ['required_with:attachments', 'string'],
         ];
     }
 }

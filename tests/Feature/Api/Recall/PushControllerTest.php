@@ -349,4 +349,109 @@ class PushControllerTest extends TestCase
         $this->assertSame(1, RecallNote::count());
         $this->assertSame('v2', RecallNote::first()->title);
     }
+
+    // ---- attachments ----
+
+    private function attachmentPayload(string $filename, string $content): array
+    {
+        return ['filename' => $filename, 'content' => base64_encode($content)];
+    }
+
+    public function test_pushing_with_a_valid_attachment_stores_it_and_reports_the_count(): void
+    {
+        [, $token] = $this->makeEntitledUserWithToken();
+
+        $response = $this->withToken($token)->postJson('/v1/recall/push', $this->validPayload([
+            'attachments' => [$this->attachmentPayload('notes.txt', 'repro steps here')],
+        ]));
+
+        $response->assertStatus(200)->assertJson(['attachments' => 1]);
+        $this->assertSame(1, RecallNote::first()->attachments()->count());
+        $this->assertSame('notes.txt', RecallNote::first()->attachments()->first()->filename);
+    }
+
+    public function test_a_secret_inside_a_text_attachment_is_rejected_and_nothing_is_persisted(): void
+    {
+        [, $token] = $this->makeEntitledUserWithToken();
+
+        $response = $this->withToken($token)->postJson('/v1/recall/push', $this->validPayload([
+            'attachments' => [$this->attachmentPayload('log.txt', 'Prod key is AKIAIOSFODNN7EXAMPLE')],
+        ]));
+
+        $response->assertStatus(422);
+        $this->assertSame(0, RecallNote::count());
+    }
+
+    public function test_invalid_base64_in_an_attachment_returns_422_and_nothing_is_persisted(): void
+    {
+        [, $token] = $this->makeEntitledUserWithToken();
+
+        $response = $this->withToken($token)->postJson('/v1/recall/push', $this->validPayload([
+            'attachments' => [['filename' => 'a.txt', 'content' => '***not-base64***']],
+        ]));
+
+        $response->assertStatus(422);
+        $this->assertSame(0, RecallNote::count());
+    }
+
+    public function test_an_oversized_attachment_returns_422_and_nothing_is_persisted(): void
+    {
+        [, $token] = $this->makeEntitledUserWithToken();
+        $previous = ini_set('memory_limit', '512M');
+
+        try {
+            $response = $this->withToken($token)->postJson('/v1/recall/push', $this->validPayload([
+                'attachments' => [$this->attachmentPayload('big.bin', str_repeat('a', 11 * 1024 * 1024))],
+            ]));
+        } finally {
+            ini_set('memory_limit', $previous);
+        }
+
+        $response->assertStatus(422);
+        $this->assertSame(0, RecallNote::count());
+    }
+
+    public function test_a_repush_replaces_the_prior_attachment_set(): void
+    {
+        [, $token] = $this->makeEntitledUserWithToken();
+
+        $this->withToken($token)->postJson('/v1/recall/push', $this->validPayload([
+            'attachments' => [$this->attachmentPayload('first.txt', 'v1')],
+        ]))->assertStatus(200);
+
+        $this->withToken($token)->postJson('/v1/recall/push', $this->validPayload([
+            'attachments' => [$this->attachmentPayload('second.txt', 'v2')],
+        ]))->assertStatus(200);
+
+        $attachments = RecallNote::first()->attachments;
+        $this->assertCount(1, $attachments);
+        $this->assertSame('second.txt', $attachments->first()->filename);
+    }
+
+    public function test_a_disk_write_failure_during_attachment_storage_is_a_typed_500_not_an_uncaught_exception(): void
+    {
+        [, $token] = $this->makeEntitledUserWithToken();
+        \Illuminate\Support\Facades\Storage::shouldReceive('disk')->with('local')->andReturnSelf();
+        \Illuminate\Support\Facades\Storage::shouldReceive('put')->andReturn(false);
+        \Illuminate\Support\Facades\Storage::shouldReceive('delete')->andReturn(true);
+
+        $response = $this->withToken($token)->postJson('/v1/recall/push', $this->validPayload([
+            'attachments' => [$this->attachmentPayload('a.txt', 'hello')],
+        ]));
+
+        $response->assertStatus(500)->assertJson(['pushed' => true]);
+        // The note itself was saved despite the attachment storage failure —
+        // pushed:true above is accurate, not a lie.
+        $this->assertSame(1, RecallNote::count());
+    }
+
+    public function test_pushing_without_attachments_still_works_unchanged(): void
+    {
+        [, $token] = $this->makeEntitledUserWithToken();
+
+        $response = $this->withToken($token)->postJson('/v1/recall/push', $this->validPayload());
+
+        $response->assertStatus(200)->assertJson(['attachments' => 0]);
+        $this->assertSame(0, RecallNote::first()->attachments()->count());
+    }
 }

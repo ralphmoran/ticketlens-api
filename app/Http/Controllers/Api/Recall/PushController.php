@@ -3,8 +3,10 @@
 namespace App\Http\Controllers\Api\Recall;
 
 use App\Enums\Permission;
+use App\Exceptions\RecallAttachmentException;
 use App\Http\Requests\Recall\PushRequest;
 use App\Services\PermissionService;
+use App\Services\RecallAttachmentStorage;
 use App\Services\RecallSecretScanner;
 use App\Services\RecallStorage;
 use App\Services\RecallTeamResolver;
@@ -12,7 +14,7 @@ use Illuminate\Http\JsonResponse;
 
 class PushController
 {
-    public function __invoke(PushRequest $request, RecallTeamResolver $teamResolver): JsonResponse
+    public function __invoke(PushRequest $request, RecallTeamResolver $teamResolver, RecallAttachmentStorage $attachmentStorage): JsonResponse
     {
         $user = $request->user();
 
@@ -29,13 +31,35 @@ class PushController
                 : response()->json(['error' => 'No team found'], 403);
         }
 
-        $scan = app(RecallSecretScanner::class)->scan($request->validated());
+        try {
+            $decodedAttachments = $attachmentStorage->decode($request->validated('attachments') ?? []);
+        } catch (RecallAttachmentException $e) {
+            return response()->json(['error' => 'Invalid attachment', 'reason' => $e->getMessage()], 422);
+        }
+
+        $scanFields = $request->validated();
+        $scanFields['attachment_texts'] = $attachmentStorage->textForScan($decodedAttachments);
+        $scan = app(RecallSecretScanner::class)->scan($scanFields);
         if ($scan['rejected']) {
             return response()->json(['error' => 'Note rejected', 'reasons' => $scan['reasons']], 422);
         }
 
         $note = app(RecallStorage::class)->push($group, $user, $request->validated());
 
-        return response()->json(['pushed' => true, 'id' => $note->id, 'status' => $note->status]);
+        try {
+            $attachmentStorage->store($note, $decodedAttachments);
+        } catch (RecallAttachmentException $e) {
+            // The note itself is already saved at this point (title/body/tags) —
+            // same precedent as AvatarService/AvatarProcessingException: a disk
+            // write failure becomes a typed, catchable error here rather than an
+            // uncaught 500. pushed:true is accurate (the note did save); the
+            // client can tell attachments specifically failed and retry the same
+            // push, which is safe — RecallStorage::push()'s upsert-by-external_id
+            // and RecallAttachmentStorage::store()'s replace-wholesale semantics
+            // make a retry idempotent.
+            return response()->json(['pushed' => true, 'id' => $note->id, 'status' => $note->status, 'error' => 'Note saved, but attachment storage failed', 'reason' => $e->getMessage()], 500);
+        }
+
+        return response()->json(['pushed' => true, 'id' => $note->id, 'status' => $note->status, 'attachments' => count($decodedAttachments)]);
     }
 }

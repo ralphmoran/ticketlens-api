@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Recall\UpdateSettingsRequest;
 use App\Models\Group;
 use App\Models\RecallNote;
+use App\Models\RecallNoteAttachment;
 use App\Models\RecallSettings;
 use App\Models\User;
 use App\Services\ActiveGroupResolver;
@@ -14,9 +15,11 @@ use App\Services\RecallStorage;
 use App\Services\SseEventService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class RecallController extends Controller
 {
@@ -56,7 +59,7 @@ class RecallController extends Controller
                 // whereJsonContains, not the search filter's LIKE: an exact tag
                 // match ("test" must not match a note tagged only "testing").
                 ->when($tag, fn ($query) => $query->whereJsonContains('tags', $tag))
-                ->with('author:id,name,tier,avatar_path')
+                ->with(['author:id,name,tier,avatar_path', 'attachments'])
                 ->orderByDesc('updated_at')
                 ->paginate($perPage)
                 ->withQueryString()
@@ -77,6 +80,12 @@ class RecallController extends Controller
                     // server first received the push — falls back for notes
                     // pushed before this column existed (captured_at is null).
                     'created_at' => ($note->captured_at ?? $note->created_at)->toIso8601String(),
+                    'attachments' => $note->attachments->map(fn ($attachment) => [
+                        'id'         => $attachment->id,
+                        'filename'   => $attachment->filename,
+                        'size_bytes' => $attachment->size_bytes,
+                        'mime_type'  => $attachment->mime_type,
+                    ])->all(),
                 ])
             : null;
 
@@ -207,6 +216,21 @@ class RecallController extends Controller
         }
 
         return back()->with('success', $count === 1 ? '1 note deleted.' : "{$count} notes deleted.");
+    }
+
+    public function downloadAttachment(Request $request, RecallNote $note, RecallNoteAttachment $attachment): StreamedResponse
+    {
+        // Same group-scoping as verify()/destroy(), plus an explicit check
+        // that the attachment actually belongs to the note in the URL — two
+        // separate route-model-bound ids that must agree, not just each be
+        // independently valid, or one team's attachment id could be paired
+        // with another team's note id to bypass the group check entirely.
+        $group = $this->groupResolver->forRequest($request);
+        abort_unless($group !== null && $note->group_id === $group->id && $attachment->recall_note_id === $note->id, 403);
+
+        abort_unless(Storage::disk('local')->exists($attachment->disk_path), 404);
+
+        return Storage::disk('local')->download($attachment->disk_path, $attachment->filename);
     }
 
     public function verify(Request $request, RecallNote $note): RedirectResponse

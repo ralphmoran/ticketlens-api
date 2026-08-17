@@ -160,6 +160,16 @@ class RecallSecretScanner
     // secret-scanner.mjs's SLASH_PATH_RE (backlog #17).
     private const SLASH_PATH_RE = '/^[A-Za-z0-9]+(\/[A-Za-z0-9]+)+\/?$/';
 
+    // PHP static method/property/const access (Class_Name::method,
+    // Class_Name::CONST), optionally prefixed by a leading backslash (PHP's
+    // fully-qualified global-namespace form). Found live post-ship: backlog
+    // #17's ORIGINAL repro included this exact class+member shape
+    // (Advent_Http_ClientFactory::clientForJson, Zend_Http_Client::GET), but
+    // the first fix only covered the bare class name in isolation — the
+    // embedded "::member" broke UNDERSCORE_COMPOUND_RE's match. Ported from
+    // secret-scanner.mjs's STATIC_REFERENCE_RE (backlog #17).
+    private const STATIC_REFERENCE_RE = '/^\\\\?([A-Za-z]+(?:_[A-Za-z]+)*)::([A-Za-z_][A-Za-z0-9_]*)$/';
+
     /**
      * @param array{title?: string, aliases?: string[], tags?: string[], body?: string, sources?: string[], external_id?: string} $fields
      * @return array{rejected: bool, reasons: string[], warnings: string[]}
@@ -374,19 +384,21 @@ class RecallSecretScanner
      * Downgrade-only, same never-exempt treatment as looksLikeCodeFilename()
      * and looksLikeCodeSyntax(): true for a candidate shaped like a
      * multi-segment code identifier (underscore-delimited PHP/Zend-1-style
-     * class name) or a namespace/filesystem path (slash-delimited), each
-     * segment capped at MAX_COMPOUND_SEGMENT_LENGTH so a long random run
-     * can't pose as one "segment". Backlog #17: isLabelWord()'s
-     * ordinary-word branch only matches letters-only tokens with no
-     * separator at all, so a standalone identifier or path like these two
-     * shapes had no exemption path whatsoever. Ported from
-     * secret-scanner.mjs's looksLikeCodeIdentifierOrPath().
+     * class name), a namespace/filesystem path (slash-delimited), or a PHP
+     * static method/const reference (Class_Name::member, see
+     * STATIC_REFERENCE_RE), each segment capped at
+     * MAX_COMPOUND_SEGMENT_LENGTH so a long random run can't pose as one
+     * "segment". Backlog #17: isLabelWord()'s ordinary-word branch only
+     * matches letters-only tokens with no separator at all, so a standalone
+     * identifier, path, or static reference like these three shapes had no
+     * exemption path whatsoever. Ported from secret-scanner.mjs's
+     * looksLikeCodeIdentifierOrPath().
      *
      * Known accepted gap (security review, backlog #17): no whole-token
      * case-switch guard on the underscore shape — a uniform-case secret
-     * needs only one inserted underscore/slash to downgrade to a warning,
-     * no camouflage required. Still never a silent pass. Same accepted-
-     * trade-off class as CODE_SYNTAX_RE's even less-constrained
+     * needs only one inserted underscore, slash, or "::" to downgrade to a
+     * warning, no camouflage required. Still never a silent pass. Same
+     * accepted-trade-off class as CODE_SYNTAX_RE's even less-constrained
      * bracket/paren downgrade above.
      */
     private function looksLikeCodeIdentifierOrPath(string $rawToken): bool
@@ -407,6 +419,14 @@ class RecallSecretScanner
                 }
             }
             return true;
+        }
+        if (preg_match(self::STATIC_REFERENCE_RE, $stripped, $staticRefMatch) === 1) {
+            foreach (explode('_', $staticRefMatch[1]) as $segment) {
+                if (strlen($segment) > self::MAX_COMPOUND_SEGMENT_LENGTH) {
+                    return false;
+                }
+            }
+            return strlen($staticRefMatch[2]) <= self::MAX_COMPOUND_SEGMENT_LENGTH;
         }
         return false;
     }

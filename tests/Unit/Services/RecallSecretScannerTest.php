@@ -686,4 +686,38 @@ class RecallSecretScannerTest extends TestCase
         $this->assertFalse($upper['rejected']);
         $this->assertStringContainsString('code-identifier-or-path-shaped', implode(' ', $upper['warnings']));
     }
+
+    public function test_live_gap_found_post_ship_a_php_static_method_const_reference_is_not_rejected_but_does_warn(): void
+    {
+        $result = $this->scanner->scan(['body' => 'Zend_Http_Client::GET is used here.']);
+        $this->assertFalse($result['rejected']);
+        $this->assertStringContainsString('code-identifier-or-path-shaped', implode(' ', $result['warnings']));
+    }
+
+    public function test_static_reference_with_a_leading_backslash_is_not_rejected_but_does_warn(): void
+    {
+        $result = $this->scanner->scan(['body' => '\Acme_Http_ClientFactory::clientForJson is the method.']);
+        $this->assertFalse($result['rejected']);
+        $this->assertStringContainsString('code-identifier-or-path-shaped', implode(' ', $result['warnings']));
+    }
+
+    public function test_a_bare_non_underscore_delimited_class_name_with_a_static_member_reference_is_not_rejected_either(): void
+    {
+        $result = $this->scanner->scan(['body' => 'PaymentGateway::processCharge runs first.']);
+        $this->assertFalse($result['rejected']);
+        $this->assertStringContainsString('code-identifier-or-path-shaped', implode(' ', $result['warnings']));
+    }
+
+    public function test_security_regression_an_oversized_member_name_after_double_colon_does_not_qualify_so_it_is_still_a_full_hard_reject(): void
+    {
+        $result = $this->scanner->scan(['body' => 'Zend_Http_Client::abcdefghijklmnopqrstuvwxyz is used here.']);
+        $this->assertTrue($result['rejected']);
+    }
+
+    public function test_security_regression_a_random_secret_disguised_as_a_static_reference_is_downgraded_to_a_warning_never_silently_exempted(): void
+    {
+        $result = $this->scanner->scan(['body' => 'XqZkTmWpLbNvRc::YsHjFgAbCdEf was mentioned once.']);
+        $this->assertFalse($result['rejected']);
+        $this->assertStringContainsString('code-identifier-or-path-shaped', implode(' ', $result['warnings']));
+    }
 }

@@ -49,6 +49,10 @@ function attachmentUrl(note, attachment) {
     return withGroupId(`/console/admin/recall/${note.id}/attachments/${attachment.id}`)
 }
 
+function isImage(attachment) {
+    return attachment.mime_type?.startsWith('image/') ?? false
+}
+
 function formatBytes(bytes) {
     if (bytes < 1024) return `${bytes} B`
     if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
@@ -549,16 +553,24 @@ async function destroyNote(note) {
                     <!-- Attachments -->
                     <div v-if="drawerNote.attachments?.length" class="tl-field tl-drawer-section">
                         <span class="tl-field-label">Attachments</span>
-                        <div class="tl-stack tl-stack--sm">
+                        <div class="flex flex-wrap gap-3">
                             <a
                                 v-for="attachment in drawerNote.attachments"
                                 :key="attachment.id"
                                 :href="attachmentUrl(drawerNote, attachment)"
-                                class="tl-row tl-row--tight tl-link"
+                                :title="`${attachment.filename} — ${formatBytes(attachment.size_bytes)}`"
                             >
-                                <TlIcon name="download" class="tl-ic tl-ic--sm" />
-                                <span class="tl-trunc">{{ attachment.filename }}</span>
-                                <span class="tl-hint">{{ formatBytes(attachment.size_bytes) }}</span>
+                                <img
+                                    v-if="isImage(attachment)"
+                                    :src="attachmentUrl(drawerNote, attachment)"
+                                    :alt="attachment.filename"
+                                    class="w-24 h-24 object-cover rounded-lg border border-[var(--tl-border)] hover:border-[var(--tl-border-strong)]"
+                                />
+                                <span v-else class="tl-row tl-row--tight tl-link">
+                                    <TlIcon name="download" class="tl-ic tl-ic--sm" />
+                                    <span class="tl-trunc">{{ attachment.filename }}</span>
+                                    <span class="tl-hint">{{ formatBytes(attachment.size_bytes) }}</span>
+                                </span>
                             </a>
                         </div>
                     </div>

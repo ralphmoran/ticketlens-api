@@ -160,6 +160,7 @@ Route::prefix('console')->name('console.')->group(function () {
         Route::prefix('admin')->name('admin.')->middleware('permission:Recall')->group(function () {
             Route::get('/recall', [\App\Http\Controllers\Console\Admin\RecallController::class, 'index'])->name('recall');
             Route::get('/recall/{note}/attachments/{attachment}', [\App\Http\Controllers\Console\Admin\RecallController::class, 'downloadAttachment'])->name('recall.attachments.download');
+            Route::get('/recall/{note}/attachments/{attachment}/preview', [\App\Http\Controllers\Console\Admin\RecallController::class, 'previewText'])->name('recall.attachments.preview');
         });
 
         // AI providers — any user with Summarize permission (Pro tier, owner grant, or owner god-mode)

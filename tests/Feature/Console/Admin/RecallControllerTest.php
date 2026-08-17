@@ -763,10 +763,10 @@ class RecallControllerTest extends TestCase
 
     // ---- attachments ----
 
-    private function attachNote(RecallNote $note, string $filename = 'notes.txt', string $content = 'hello'): void
+    private function attachNote(RecallNote $note, string $filename = 'notes.txt', string $content = 'hello', string $mime = 'text/plain'): void
     {
         (new RecallAttachmentStorage())->store($note, [
-            ['filename' => $filename, 'bytes' => $content, 'mime' => 'text/plain', 'isText' => true],
+            ['filename' => $filename, 'bytes' => $content, 'mime' => $mime, 'isText' => true],
         ]);
     }
 
@@ -873,6 +873,128 @@ class RecallControllerTest extends TestCase
         $this->actingAs($manager)
             ->get("/console/admin/recall/{$note->id}/attachments/{$attachment->id}")
             ->assertStatus(404);
+    }
+
+    public function test_download_attachment_serves_a_pdf_inline_not_as_attachment(): void
+    {
+        Storage::fake('local');
+        [$manager, $group] = $this->makeManager();
+        $note = RecallNote::create([
+            'group_id' => $group->id, 'author_id' => $manager->id, 'external_id' => 'a.md',
+            'title' => 'x', 'aliases' => [], 'tickets' => [], 'tags' => [], 'sources' => [], 'body' => 'x',
+        ]);
+        $this->attachNote($note, 'notes.pdf', '%PDF-1.4 fake', 'application/pdf');
+        $attachment = $note->fresh()->attachments->first();
+
+        $response = $this->actingAs($manager)->get("/console/admin/recall/{$note->id}/attachments/{$attachment->id}");
+
+        $response->assertOk();
+        $this->assertStringContainsString('inline', $response->headers->get('content-disposition'));
+        // The global default is DENY (SecurityHeaders middleware) — a PDF
+        // preview needs SAMEORIGIN specifically so the Console's own
+        // <iframe> can embed it; anything else must stay blocked.
+        $response->assertHeader('X-Frame-Options', 'SAMEORIGIN');
+    }
+
+    public function test_download_attachment_serves_a_txt_as_a_forced_download_not_inline(): void
+    {
+        Storage::fake('local');
+        [$manager, $group] = $this->makeManager();
+        $note = RecallNote::create([
+            'group_id' => $group->id, 'author_id' => $manager->id, 'external_id' => 'a.md',
+            'title' => 'x', 'aliases' => [], 'tickets' => [], 'tags' => [], 'sources' => [], 'body' => 'x',
+        ]);
+        $this->attachNote($note);
+        $attachment = $note->fresh()->attachments->first();
+
+        $response = $this->actingAs($manager)->get("/console/admin/recall/{$note->id}/attachments/{$attachment->id}");
+
+        $response->assertOk();
+        $this->assertStringContainsString('attachment', $response->headers->get('content-disposition'));
+        $response->assertHeader('X-Frame-Options', 'DENY');
+    }
+
+    // ---- attachment text preview ----
+
+    public function test_preview_text_returns_the_full_content_of_a_short_text_attachment(): void
+    {
+        Storage::fake('local');
+        [$manager, $group] = $this->makeManager();
+        $note = RecallNote::create([
+            'group_id' => $group->id, 'author_id' => $manager->id, 'external_id' => 'a.md',
+            'title' => 'x', 'aliases' => [], 'tickets' => [], 'tags' => [], 'sources' => [], 'body' => 'x',
+        ]);
+        $this->attachNote($note, 'notes.txt', 'repro steps here');
+        $attachment = $note->fresh()->attachments->first();
+
+        $response = $this->actingAs($manager)->getJson("/console/admin/recall/{$note->id}/attachments/{$attachment->id}/preview");
+
+        $response->assertOk()->assertJson(['text' => 'repro steps here', 'truncated' => false]);
+    }
+
+    public function test_preview_text_truncates_a_long_attachment_and_reports_it(): void
+    {
+        Storage::fake('local');
+        [$manager, $group] = $this->makeManager();
+        $note = RecallNote::create([
+            'group_id' => $group->id, 'author_id' => $manager->id, 'external_id' => 'a.md',
+            'title' => 'x', 'aliases' => [], 'tickets' => [], 'tags' => [], 'sources' => [], 'body' => 'x',
+        ]);
+        $this->attachNote($note, 'big.txt', str_repeat('a', 3000));
+        $attachment = $note->fresh()->attachments->first();
+
+        $response = $this->actingAs($manager)->getJson("/console/admin/recall/{$note->id}/attachments/{$attachment->id}/preview");
+
+        $response->assertOk()->assertJson(['truncated' => true]);
+        $this->assertSame(2000, strlen($response->json('text')));
+    }
+
+    public function test_preview_text_rejects_a_binary_attachment(): void
+    {
+        Storage::fake('local');
+        [$manager, $group] = $this->makeManager();
+        $note = RecallNote::create([
+            'group_id' => $group->id, 'author_id' => $manager->id, 'external_id' => 'a.md',
+            'title' => 'x', 'aliases' => [], 'tickets' => [], 'tags' => [], 'sources' => [], 'body' => 'x',
+        ]);
+        $this->attachNote($note, 'shot.png', "\x89PNG\r\n\x1a\n", 'image/png');
+        $attachment = $note->fresh()->attachments->first();
+
+        $this->actingAs($manager)
+            ->getJson("/console/admin/recall/{$note->id}/attachments/{$attachment->id}/preview")
+            ->assertStatus(422);
+    }
+
+    public function test_preview_text_requires_auth(): void
+    {
+        Storage::fake('local');
+        [$manager, $group] = $this->makeManager();
+        $note = RecallNote::create([
+            'group_id' => $group->id, 'author_id' => $manager->id, 'external_id' => 'a.md',
+            'title' => 'x', 'aliases' => [], 'tickets' => [], 'tags' => [], 'sources' => [], 'body' => 'x',
+        ]);
+        $this->attachNote($note);
+        $attachment = $note->fresh()->attachments->first();
+
+        $this->get("/console/admin/recall/{$note->id}/attachments/{$attachment->id}/preview")
+            ->assertRedirect('/console/login');
+    }
+
+    public function test_preview_text_blocked_for_a_note_in_a_different_group_idor(): void
+    {
+        Storage::fake('local');
+        [$managerA, $groupA] = $this->makeManager();
+        $groupB = Group::create(['name' => 'B', 'owner_id' => User::factory()->create()->id]);
+        $note = RecallNote::create([
+            'group_id' => $groupB->id, 'author_id' => User::factory()->create()->id, 'external_id' => 'b.md',
+            'title' => 'Group B note', 'aliases' => [], 'tickets' => [], 'tags' => [], 'sources' => [], 'body' => 'x',
+        ]);
+        $this->attachNote($note);
+        $attachment = $note->fresh()->attachments->first();
+
+        $this->actingAs($managerA)
+            ->getJson("/console/admin/recall/{$note->id}/attachments/{$attachment->id}/preview")
+            ->assertStatus(403);
     }
 
     public function test_bulk_destroy_writes_one_audit_log_per_deleted_note(): void

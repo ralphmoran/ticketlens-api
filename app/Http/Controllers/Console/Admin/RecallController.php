@@ -218,6 +218,17 @@ class RecallController extends Controller
         return back()->with('success', $count === 1 ? '1 note deleted.' : "{$count} notes deleted.");
     }
 
+    // Only PDFs get an inline disposition (so the Console can preview them in
+    // an <iframe> — Chrome's built-in PDF.js viewer sandboxes embedded PDF
+    // JS the same way it does for any other origin's PDF, unlike HTML/SVG
+    // served inline, which would execute directly in this origin's context).
+    // The decision reads $attachment->mime_type, set server-side by finfo at
+    // upload time (RecallAttachmentStorage::detectMime) — never a request
+    // parameter — so a client can't ask for inline disposition on anything
+    // else. Every other type keeps the forced-attachment download that
+    // blocks the SVG/HTML script-injection vectors this was built to stop.
+    private const INLINE_PREVIEW_MIME_TYPES = ['application/pdf'];
+
     public function downloadAttachment(Request $request, RecallNote $note, RecallNoteAttachment $attachment): StreamedResponse
     {
         // Same group-scoping as verify()/destroy(), plus an explicit check
@@ -230,7 +241,48 @@ class RecallController extends Controller
 
         abort_unless(Storage::disk('local')->exists($attachment->disk_path), 404);
 
+        if (in_array($attachment->mime_type, self::INLINE_PREVIEW_MIME_TYPES, true)) {
+            // The global SecurityHeaders middleware defaults every response
+            // to X-Frame-Options: DENY, which would otherwise block the
+            // Console's own <iframe> preview just as effectively as it
+            // blocks a third-party site framing this page. SAMEORIGIN opts
+            // this one response into being embeddable, but only by pages on
+            // this same origin — a third-party site still can't frame it.
+            $response = Storage::disk('local')->response($attachment->disk_path, $attachment->filename);
+            $response->headers->set('X-Frame-Options', 'SAMEORIGIN');
+
+            return $response;
+        }
+
         return Storage::disk('local')->download($attachment->disk_path, $attachment->filename);
+    }
+
+    public function previewText(Request $request, RecallNote $note, RecallNoteAttachment $attachment): \Illuminate\Http\JsonResponse
+    {
+        $group = $this->groupResolver->forRequest($request);
+        abort_unless($group !== null && $note->group_id === $group->id && $attachment->recall_note_id === $note->id, 403);
+
+        // Only ever reads text/* — never used to preview a binary format,
+        // same server-decided (not client-decided) gate as the inline PDF
+        // disposition above.
+        abort_unless(str_starts_with($attachment->mime_type, 'text/'), 422);
+        abort_unless(Storage::disk('local')->exists($attachment->disk_path), 404);
+
+        // Reads a bounded prefix rather than the whole file — a preview
+        // snippet has no reason to ever buffer a full 10MB text attachment
+        // into a JSON response.
+        $maxBytes = 2000;
+        $handle = Storage::disk('local')->readStream($attachment->disk_path);
+        $chunk = fread($handle, $maxBytes + 1);
+        fclose($handle);
+
+        $truncated = strlen($chunk) > $maxBytes;
+        // mb_strcut, not substr — a plain byte-offset cut risks splitting a
+        // multi-byte UTF-8 character in half, which would either corrupt the
+        // JSON response or make json_encode() fail outright on invalid UTF-8.
+        $snippet = $truncated ? mb_strcut($chunk, 0, $maxBytes, 'UTF-8') : $chunk;
+
+        return response()->json(['text' => $snippet, 'truncated' => $truncated]);
     }
 
     public function verify(Request $request, RecallNote $note): RedirectResponse

@@ -49,8 +49,40 @@ function attachmentUrl(note, attachment) {
     return withGroupId(`/console/admin/recall/${note.id}/attachments/${attachment.id}`)
 }
 
+function attachmentPreviewUrl(note, attachment) {
+    return withGroupId(`/console/admin/recall/${note.id}/attachments/${attachment.id}/preview`)
+}
+
 function isImage(attachment) {
     return attachment.mime_type?.startsWith('image/') ?? false
+}
+
+function isPdf(attachment) {
+    return attachment.mime_type === 'application/pdf'
+}
+
+function isPreviewableText(attachment) {
+    return attachment.mime_type?.startsWith('text/') ?? false
+}
+
+// Keyed by attachment id — { loading, text, truncated, error }. Fetched
+// lazily per note (not on every render) since a note can carry several text
+// attachments and the drawer is the only place previews are shown.
+const textPreviews = ref({})
+
+async function loadTextPreviews(note) {
+    for (const attachment of note.attachments ?? []) {
+        if (!isPreviewableText(attachment) || textPreviews.value[attachment.id]) continue
+        textPreviews.value[attachment.id] = { loading: true }
+        try {
+            const res = await fetch(attachmentPreviewUrl(note, attachment), { headers: { Accept: 'application/json' } })
+            if (!res.ok) throw new Error(`status ${res.status}`)
+            const { text, truncated } = await res.json()
+            textPreviews.value[attachment.id] = { loading: false, text, truncated }
+        } catch {
+            textPreviews.value[attachment.id] = { loading: false, error: true }
+        }
+    }
 }
 
 function formatBytes(bytes) {
@@ -69,6 +101,8 @@ const drawerIndex  = computed(() => props.notes.data.findIndex(note => note.id =
 const drawerNote   = computed(() => props.notes.data[drawerIndex.value] ?? null)
 const hasPrevNote  = computed(() => drawerIndex.value > 0)
 const hasNextNote  = computed(() => drawerIndex.value >= 0 && drawerIndex.value < props.notes.data.length - 1)
+
+watch(drawerNote, (note) => { if (note) loadTextPreviews(note) }, { immediate: true })
 
 function openDrawer(note) { drawerNoteId.value = note.id }
 function closeDrawer() { drawerNoteId.value = null }
@@ -553,24 +587,63 @@ async function destroyNote(note) {
                     <!-- Attachments -->
                     <div v-if="drawerNote.attachments?.length" class="tl-field tl-drawer-section">
                         <span class="tl-field-label">Attachments</span>
-                        <div class="flex flex-wrap gap-3">
+
+                        <!-- Images — compact thumbnail gallery -->
+                        <div v-if="drawerNote.attachments.some(isImage)" class="flex flex-wrap gap-3 mb-3">
                             <a
-                                v-for="attachment in drawerNote.attachments"
+                                v-for="attachment in drawerNote.attachments.filter(isImage)"
                                 :key="attachment.id"
                                 :href="attachmentUrl(drawerNote, attachment)"
                                 :title="`${attachment.filename} — ${formatBytes(attachment.size_bytes)}`"
                             >
                                 <img
-                                    v-if="isImage(attachment)"
                                     :src="attachmentUrl(drawerNote, attachment)"
                                     :alt="attachment.filename"
                                     class="w-24 h-24 object-cover rounded-lg border border-[var(--tl-border)] hover:border-[var(--tl-border-strong)]"
                                 />
-                                <span v-else class="tl-row tl-row--tight tl-link">
-                                    <TlIcon name="download" class="tl-ic tl-ic--sm" />
-                                    <span class="tl-trunc">{{ attachment.filename }}</span>
-                                    <span class="tl-hint">{{ formatBytes(attachment.size_bytes) }}</span>
-                                </span>
+                            </a>
+                        </div>
+
+                        <!-- PDFs and previewable text — full-width preview blocks -->
+                        <div
+                            v-for="attachment in drawerNote.attachments.filter(a => isPdf(a) || isPreviewableText(a))"
+                            :key="attachment.id"
+                            class="mb-3"
+                        >
+                            <a
+                                :href="attachmentUrl(drawerNote, attachment)"
+                                class="tl-row tl-row--tight tl-link mb-1"
+                            >
+                                <TlIcon name="download" class="tl-ic tl-ic--sm" />
+                                <span class="tl-trunc">{{ attachment.filename }}</span>
+                                <span class="tl-hint">{{ formatBytes(attachment.size_bytes) }}</span>
+                            </a>
+
+                            <iframe
+                                v-if="isPdf(attachment)"
+                                :src="attachmentUrl(drawerNote, attachment)"
+                                class="w-full h-64 rounded-lg border border-[var(--tl-border)]"
+                            />
+
+                            <div v-else-if="textPreviews[attachment.id]?.loading" class="tl-hint">Loading preview…</div>
+                            <div v-else-if="textPreviews[attachment.id]?.error" class="tl-hint">Preview unavailable.</div>
+                            <template v-else-if="textPreviews[attachment.id]">
+                                <pre class="tl-body--muted tl-mono--xs tl-pre-wrap rounded-lg border border-[var(--tl-border)] p-3 max-h-64 overflow-y-auto">{{ textPreviews[attachment.id].text }}</pre>
+                                <span v-if="textPreviews[attachment.id].truncated" class="tl-hint">Truncated — download the file for the full content.</span>
+                            </template>
+                        </div>
+
+                        <!-- Everything else — plain download row -->
+                        <div class="flex flex-col gap-2">
+                            <a
+                                v-for="attachment in drawerNote.attachments.filter(a => !isImage(a) && !isPdf(a) && !isPreviewableText(a))"
+                                :key="attachment.id"
+                                :href="attachmentUrl(drawerNote, attachment)"
+                                class="tl-row tl-row--tight tl-link"
+                            >
+                                <TlIcon name="download" class="tl-ic tl-ic--sm" />
+                                <span class="tl-trunc">{{ attachment.filename }}</span>
+                                <span class="tl-hint">{{ formatBytes(attachment.size_bytes) }}</span>
                             </a>
                         </div>
                     </div>

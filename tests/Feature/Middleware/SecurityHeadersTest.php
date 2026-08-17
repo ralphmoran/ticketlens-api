@@ -45,6 +45,29 @@ class SecurityHeadersTest extends TestCase
         $response->assertHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), usb=()');
     }
 
+    public function test_x_frame_options_defaults_to_deny(): void
+    {
+        $response = $this->get('/console/login');
+
+        $response->assertHeader('X-Frame-Options', 'DENY');
+    }
+
+    public function test_x_frame_options_set_by_a_controller_is_not_clobbered_back_to_deny(): void
+    {
+        // Regression lock for the Recall PDF-preview <iframe> fix: this
+        // middleware used to unconditionally overwrite X-Frame-Options,
+        // which silently defeated any controller's more specific choice.
+        // SecurityHeaders is already global (bootstrap/app.php), so this
+        // route needs no explicit middleware attachment.
+        \Illuminate\Support\Facades\Route::get('/__test/sameorigin-probe', function () {
+            return response('ok')->header('X-Frame-Options', 'SAMEORIGIN');
+        });
+
+        $response = $this->get('/__test/sameorigin-probe');
+
+        $response->assertHeader('X-Frame-Options', 'SAMEORIGIN');
+    }
+
     private function scriptSrcDirective(string $csp): string
     {
         foreach (explode(';', $csp) as $directive) {

@@ -15,7 +15,15 @@ class SecurityHeaders
             $response->headers->set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
         }
         $response->headers->set('X-Content-Type-Options', 'nosniff');
-        $response->headers->set('X-Frame-Options', 'DENY');
+        // DENY is the secure default for every response — but a controller
+        // that already set its own value (e.g. the Recall PDF preview,
+        // SAMEORIGIN so the Console can embed its own attachment in an
+        // <iframe>) made a deliberate, narrower choice that this global
+        // default must not clobber. set() would otherwise unconditionally
+        // overwrite it, since this middleware runs after the controller.
+        if (! $response->headers->has('X-Frame-Options')) {
+            $response->headers->set('X-Frame-Options', 'DENY');
+        }
         $response->headers->set('Referrer-Policy', 'no-referrer');
         $response->headers->set('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), usb=()');
         // No CSP in local: the permissive local policy (unsafe-inline, unsafe-eval) provides

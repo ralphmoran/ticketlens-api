@@ -142,6 +142,24 @@ class RecallSecretScanner
     // secret-scanner.mjs (backlog #13, ticket-lens@3c4b1d9).
     private const FILENAME_REFERENCE_RE = '/^[A-Za-z][A-Za-z-]*\.(' . self::CODE_EXTENSION_ALTERNATION . ')(\'s)?$/i';
 
+    // Underscore-delimited segments (Zend-1-style PHP class names, e.g.
+    // "Acme_Http_ClientFactory") are letters-only per segment, no digit
+    // support. Deliberately does NOT require isHyphenatedWordCompound's "no
+    // internal case switch" guard: PascalCase segments ARE the expected
+    // positive signal for a class name ("ClientFactory") — requiring their
+    // absence would reject the exact legitimate shape this exists to
+    // recognize. See looksLikeCodeIdentifierOrPath() for how this stays
+    // downgrade-only despite that asymmetry. Ported from
+    // secret-scanner.mjs's UNDERSCORE_COMPOUND_RE (backlog #17).
+    private const UNDERSCORE_COMPOUND_RE = '/^[A-Za-z]+(_[A-Za-z]+)+$/';
+
+    // Slash-delimited path segments (a namespace-shaped filesystem/class
+    // path, optionally trailing-slash-terminated). Allows digits per
+    // segment (real directory/namespace segments routinely do — "v2",
+    // "api2"), unlike the underscore shape above. Ported from
+    // secret-scanner.mjs's SLASH_PATH_RE (backlog #17).
+    private const SLASH_PATH_RE = '/^[A-Za-z0-9]+(\/[A-Za-z0-9]+)+\/?$/';
+
     /**
      * @param array{title?: string, aliases?: string[], tags?: string[], body?: string, sources?: string[], external_id?: string} $fields
      * @return array{rejected: bool, reasons: string[], warnings: string[]}
@@ -229,7 +247,7 @@ class RecallSecretScanner
             $candidates,
             fn (string $token) => $token !== '' && ! preg_match(self::EMAIL_RE, $token) && $this->looksRandom($token, $combined),
         ));
-        if (array_any($randomCandidates, fn (string $token) => ! $this->looksLikeCodeFilename($token) && ! $this->looksLikeCodeSyntax($token))) {
+        if (array_any($randomCandidates, fn (string $token) => ! $this->looksLikeCodeFilename($token) && ! $this->looksLikeCodeSyntax($token) && ! $this->looksLikeCodeIdentifierOrPath($token))) {
             $reasons[] = 'Contains a long, random-looking string that could be a secret.';
         }
         if (array_any($randomCandidates, fn (string $token) => $this->looksLikeCodeFilename($token))) {
@@ -237,6 +255,9 @@ class RecallSecretScanner
         }
         if (array_any($randomCandidates, fn (string $token) => $this->looksLikeCodeSyntax($token))) {
             $warnings[] = 'Contains a code-syntax-shaped token (brackets or parentheses) that also reads as high-entropy — double-check it is not a credential.';
+        }
+        if (array_any($randomCandidates, fn (string $token) => $this->looksLikeCodeIdentifierOrPath($token))) {
+            $warnings[] = 'Contains a code-identifier-or-path-shaped token that also reads as high-entropy — double-check it is not a credential.';
         }
 
         if (preg_match(self::EMAIL_RE, $combined)) {
@@ -347,6 +368,47 @@ class RecallSecretScanner
     private function looksLikeCodeSyntax(string $rawToken): bool
     {
         return preg_match(self::CODE_SYNTAX_RE, $this->stripEdgePunctuation($rawToken)) === 1;
+    }
+
+    /**
+     * Downgrade-only, same never-exempt treatment as looksLikeCodeFilename()
+     * and looksLikeCodeSyntax(): true for a candidate shaped like a
+     * multi-segment code identifier (underscore-delimited PHP/Zend-1-style
+     * class name) or a namespace/filesystem path (slash-delimited), each
+     * segment capped at MAX_COMPOUND_SEGMENT_LENGTH so a long random run
+     * can't pose as one "segment". Backlog #17: isLabelWord()'s
+     * ordinary-word branch only matches letters-only tokens with no
+     * separator at all, so a standalone identifier or path like these two
+     * shapes had no exemption path whatsoever. Ported from
+     * secret-scanner.mjs's looksLikeCodeIdentifierOrPath().
+     *
+     * Known accepted gap (security review, backlog #17): no whole-token
+     * case-switch guard on the underscore shape — a uniform-case secret
+     * needs only one inserted underscore/slash to downgrade to a warning,
+     * no camouflage required. Still never a silent pass. Same accepted-
+     * trade-off class as CODE_SYNTAX_RE's even less-constrained
+     * bracket/paren downgrade above.
+     */
+    private function looksLikeCodeIdentifierOrPath(string $rawToken): bool
+    {
+        $stripped = $this->stripEdgePunctuation($rawToken);
+        if (preg_match(self::UNDERSCORE_COMPOUND_RE, $stripped) === 1) {
+            foreach (explode('_', $stripped) as $segment) {
+                if (strlen($segment) > self::MAX_COMPOUND_SEGMENT_LENGTH) {
+                    return false;
+                }
+            }
+            return true;
+        }
+        if (preg_match(self::SLASH_PATH_RE, $stripped) === 1) {
+            foreach (array_filter(explode('/', $stripped), fn (string $s) => $s !== '') as $segment) {
+                if (strlen($segment) > self::MAX_COMPOUND_SEGMENT_LENGTH) {
+                    return false;
+                }
+            }
+            return true;
+        }
+        return false;
     }
 
     /**

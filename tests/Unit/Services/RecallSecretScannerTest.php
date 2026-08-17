@@ -621,4 +621,69 @@ class RecallSecretScannerTest extends TestCase
         $result = $this->scanner->scan(['body' => "Base64EncoderForV2Payloads123456789.php's caller changed."]);
         $this->assertTrue($result['rejected']);
     }
+
+    // ---- backlog #17: underscore- and slash-delimited code identifiers/paths are not secrets ----
+
+    public function test_exact_live_repro_a_standalone_zend_1_style_underscore_delimited_class_name_is_not_rejected_but_does_warn(): void
+    {
+        $result = $this->scanner->scan(['body' => 'Acme_Http_ClientFactory is the class.']);
+        $this->assertFalse($result['rejected']);
+        $this->assertStringContainsString('code-identifier-or-path-shaped', implode(' ', $result['warnings']));
+    }
+
+    public function test_exact_live_repro_a_standalone_slash_delimited_namespace_path_including_its_trailing_slash_is_not_rejected_but_does_warn(): void
+    {
+        $result = $this->scanner->scan(['body' => 'Found it in acme/library/Billing/Client/Http/Adapter/Fetch/ today.']);
+        $this->assertFalse($result['rejected']);
+        $this->assertStringContainsString('code-identifier-or-path-shaped', implode(' ', $result['warnings']));
+    }
+
+    public function test_an_underscore_delimited_token_with_an_oversized_segment_does_not_qualify_as_a_compound_so_it_is_still_a_full_hard_reject(): void
+    {
+        $result = $this->scanner->scan(['body' => 'Acme_AbcdefghijklmnopqrstuvwxyzExtraLong is the class.']);
+        $this->assertTrue($result['rejected']);
+    }
+
+    public function test_a_slash_delimited_path_with_an_oversized_segment_does_not_qualify_so_it_is_still_a_full_hard_reject(): void
+    {
+        $result = $this->scanner->scan(['body' => 'Found it in acme/AbcdefghijklmnopqrstuvwxyzExtraLong/Fetch today.']);
+        $this->assertTrue($result['rejected']);
+    }
+
+    public function test_digits_in_an_underscore_delimited_segment_are_still_not_exempted(): void
+    {
+        $result = $this->scanner->scan(['body' => 'Acme2_Http_ClientFactory is the class.']);
+        $this->assertTrue($result['rejected']);
+    }
+
+    public function test_control_a_single_pascalcase_word_with_no_underscore_or_slash_at_all_is_unaffected(): void
+    {
+        $result = $this->scanner->scan(['body' => 'ClientFactoryForTekionSubmissionHandler was mentioned once.']);
+        $this->assertTrue($result['rejected']);
+    }
+
+    public function test_security_regression_a_random_letters_only_secret_disguised_as_underscore_delimited_segments_is_downgraded_to_a_warning_never_silently_exempted(): void
+    {
+        $result = $this->scanner->scan(['body' => 'XqZkTmWpLbNvRc_YsHjFgAbCdEfGh was mentioned once.']);
+        $this->assertFalse($result['rejected']);
+        $this->assertStringContainsString('code-identifier-or-path-shaped', implode(' ', $result['warnings']));
+    }
+
+    public function test_security_regression_a_random_letters_only_secret_disguised_as_a_slash_delimited_path_is_downgraded_to_a_warning_never_silently_exempted(): void
+    {
+        $result = $this->scanner->scan(['body' => 'Found it in XqZkTmWpLbNvRc/YsHjFgAbCdEfGh today.']);
+        $this->assertFalse($result['rejected']);
+        $this->assertStringContainsString('code-identifier-or-path-shaped', implode(' ', $result['warnings']));
+    }
+
+    public function test_known_accepted_gap_security_review_a_uniform_case_secret_needs_only_one_inserted_underscore_to_downgrade_still_never_silent(): void
+    {
+        $lower = $this->scanner->scan(['body' => 'abcdefghijklmno_pqrstuvwxyzabc was mentioned once.']);
+        $this->assertFalse($lower['rejected']);
+        $this->assertStringContainsString('code-identifier-or-path-shaped', implode(' ', $lower['warnings']));
+
+        $upper = $this->scanner->scan(['body' => 'ABCDEFGHIJKLMNO_PQRSTUVWXYZABC was mentioned once.']);
+        $this->assertFalse($upper['rejected']);
+        $this->assertStringContainsString('code-identifier-or-path-shaped', implode(' ', $upper['warnings']));
+    }
 }

@@ -420,6 +420,74 @@ class RecallSecretScannerTest extends TestCase
         $this->assertTrue($result['rejected']);
     }
 
+    // ---- regression: bracket/paren code-syntax tokens are not a secret (backlog #14 residual) ----
+
+    public function test_exact_live_repro_a_4_element_bracket_quoted_array_literal_false_positived_via_the_entropy_join(): void
+    {
+        $result = $this->scanner->scan(['body' => "['compliance', '--help', '-h', 'debug']"]);
+        $this->assertFalse($result['rejected']);
+    }
+
+    public function test_a_bracket_literal_wrapped_in_a_function_call_false_positived_the_same_way(): void
+    {
+        $result = $this->scanner->scan(['body' => "matches(['compliance', '--help'])"]);
+        $this->assertFalse($result['rejected']);
+    }
+
+    public function test_a_dotted_method_call_joined_with_an_arrow_token_false_positived_the_same_way(): void
+    {
+        $result = $this->scanner->scan(['body' => 'process.argv.slice(2) => done']);
+        $this->assertFalse($result['rejected']);
+    }
+
+    public function test_control_case_the_same_array_literal_content_without_brackets_quotes_is_unaffected(): void
+    {
+        $result = $this->scanner->scan(['body' => 'compliance --help -h debug']);
+        $this->assertFalse($result['rejected']);
+    }
+
+    public function test_security_regression_a_real_hard_reject_secret_adjacent_to_a_bracket_literal_is_still_caught(): void
+    {
+        // Bracket stop-word only affects the generic entropy join, not
+        // HARD_REJECT_PATTERNS.
+        $result = $this->scanner->scan(['body' => "args are ['compliance', '--help'] and the key is AKIAIOSFODNN7EXAMPLE"]);
+        $this->assertTrue($result['rejected']);
+        $this->assertStringContainsStringIgnoringCase('AWS access key', implode(' ', $result['reasons']));
+    }
+
+    public function test_security_regression_a_random_secret_disguised_by_wrapping_it_in_a_fake_function_call_is_downgraded_to_a_warning_never_silently_exempted(): void
+    {
+        // Same bypass class the looksLikeCodeFilename security review already
+        // closed for ".php"-suffixed secrets: fully exempting a bracket/paren-
+        // wrapped high-entropy token would let an attacker dodge rejection by
+        // wrapping any 20+ char secret in "f(" / "[". Must still surface a
+        // warning — never rejected:false with zero trace.
+        $result = $this->scanner->scan(['body' => 'wrap(XqZkTmWpLbNvRcYsHjFgAbCd)']);
+        $this->assertFalse($result['rejected']);
+        $this->assertStringContainsString('code-syntax-shaped', implode(' ', $result['warnings']));
+    }
+
+    public function test_critical_regression_caught_in_code_review_a_genuine_secret_split_around_a_bracket_bait_token_still_reassembles_and_warns(): void
+    {
+        // The first version of this fix made CODE_SYNTAX_RE an isLabelWord
+        // hard stop, which ended a joinedChunkRuns run at ANY bracket-bearing
+        // token — including a trivial 3-char bait like "a(b" that isn't
+        // itself code, just happens to contain a paren. That fully and
+        // SILENTLY defeated reassembly of a real secret split around it
+        // (rejected:false, warnings:[] — confirmed live via git stash
+        // before/after, identical port bug in this file). Fixed by never
+        // wiring CODE_SYNTAX_RE into isLabelWord() at all. Pinned here so it
+        // can't silently regress back to the hard-wall version.
+        $secret = 'k3f9x7q2z8p1m6w4y0j5h2n9v3t8s1r7d4Q9'; // 36 chars, two 18-char halves
+        $half1  = substr($secret, 0, 18);
+        $half2  = substr($secret, 18, 18);
+        $unsplit = $this->scanner->scan(['body' => $secret]);
+        $this->assertTrue($unsplit['rejected'], 'sanity check: the unsplit secret is caught');
+        $split = $this->scanner->scan(['body' => "{$half1} a(b {$half2}"]);
+        $this->assertFalse($split['rejected']);
+        $this->assertStringContainsString('code-syntax-shaped', implode(' ', $split['warnings']));
+    }
+
     // ---- documented accepted gap: entropy join no longer spans a field boundary ----
 
     public function test_a_secret_split_exactly_across_a_tag_and_the_body_is_not_caught_by_the_entropy_join(): void

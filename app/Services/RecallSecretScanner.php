@@ -37,6 +37,28 @@ class RecallSecretScanner
     // as one "segment" of a fake compound. See isHyphenatedWordCompound.
     private const MAX_COMPOUND_SEGMENT_LENGTH = 15;
     private const HYPHENATED_COMPOUND_RE = '/^[A-Za-z]+(-[A-Za-z]+)+$/';
+    // A candidate containing an unstripped '(', ')', '[', or ']' reads as
+    // code syntax (an array/list literal element, or a function-call
+    // argument) rather than a secret fragment. Consulted ONLY from
+    // looksLikeCodeSyntax(), which downgrades a matching high-entropy
+    // candidate to a warning — deliberately NOT wired into isLabelWord().
+    // Code review of the first version of this fix caught a live CRITICAL:
+    // making a bracket-bearing token an isLabelWord hard stop ends a
+    // joinedChunkRuns run there unconditionally, but a bracket is trivial
+    // for an attacker to insert anywhere ("a(b"), so it fully and SILENTLY
+    // stopped a genuine fragmented secret split around it from ever being
+    // reassembled for the entropy check (confirmed live: a real 36-char
+    // secret split into two 18-char halves around a bare "a(b" separator
+    // went from rejected:true to a fully silent rejected:false/warnings:[]
+    // once isLabelWord treated brackets as a stop). The downgrade-only
+    // design here avoids that: a bracket-bearing token is ordinary, never a
+    // label word, so the join still happens — any joined candidate spanning
+    // real secret content still trips the entropy check, and since that
+    // joined candidate necessarily still contains the bracket character too,
+    // looksLikeCodeSyntax() downgrades it to a WARNING rather than silently
+    // exempting it. Ported from CLI's secret-scanner.mjs (backlog #14
+    // residual: exact live repro was "['compliance', '--help']").
+    private const CODE_SYNTAX_RE = '/[()\[\]]/';
     // \x{FEFF} (ZERO WIDTH NO-BREAK SPACE / BOM) is added explicitly: PCRE's
     // \s under plain /u (no (*UCP)) uses a fixed table that excludes it, while
     // JS's \s spec (ECMA-262 WhiteSpace production) includes it — the one real
@@ -207,11 +229,14 @@ class RecallSecretScanner
             $candidates,
             fn (string $token) => $token !== '' && ! preg_match(self::EMAIL_RE, $token) && $this->looksRandom($token, $combined),
         ));
-        if (array_any($randomCandidates, fn (string $token) => ! $this->looksLikeCodeFilename($token))) {
+        if (array_any($randomCandidates, fn (string $token) => ! $this->looksLikeCodeFilename($token) && ! $this->looksLikeCodeSyntax($token))) {
             $reasons[] = 'Contains a long, random-looking string that could be a secret.';
         }
         if (array_any($randomCandidates, fn (string $token) => $this->looksLikeCodeFilename($token))) {
             $warnings[] = 'Contains a code-filename-shaped token that also reads as high-entropy — double-check it is not a credential.';
+        }
+        if (array_any($randomCandidates, fn (string $token) => $this->looksLikeCodeSyntax($token))) {
+            $warnings[] = 'Contains a code-syntax-shaped token (brackets or parentheses) that also reads as high-entropy — double-check it is not a credential.';
         }
 
         if (preg_match(self::EMAIL_RE, $combined)) {
@@ -300,6 +325,28 @@ class RecallSecretScanner
     private function looksLikeFilenameReference(string $strippedToken): bool
     {
         return preg_match(self::FILENAME_REFERENCE_RE, $strippedToken) === 1;
+    }
+
+    /**
+     * True for a candidate — a raw token OR a joinedChunkRuns result — that
+     * itself contains an unstripped '(', ')', '[', or ']': code syntax
+     * rather than a secret fragment. Deliberately NOT wired into
+     * isLabelWord()/joinedChunkRuns() — see CODE_SYNTAX_RE's own comment for
+     * why that hard-wall approach reopened a silent reassembly bypass —
+     * instead this only downgrades a candidate that ALREADY tripped
+     * looksRandom, same never-exempt treatment as looksLikeCodeFilename.
+     * Covers both backlog #14 residual shapes: a token already 20+ chars on
+     * its own with no join needed (e.g. "matches(['compliance',"), and a
+     * joined run that only crosses the entropy threshold once several
+     * bracket-literal tokens glue together (e.g.
+     * "['compliance','--help','-h','debug']") — the bracket character
+     * survives into the joined string either way, so this still catches it.
+     * Fully exempting this shape would let a 20+ char secret dodge rejection
+     * just by wrapping it in a fake "f(" / "[".
+     */
+    private function looksLikeCodeSyntax(string $rawToken): bool
+    {
+        return preg_match(self::CODE_SYNTAX_RE, $this->stripEdgePunctuation($rawToken)) === 1;
     }
 
     /**

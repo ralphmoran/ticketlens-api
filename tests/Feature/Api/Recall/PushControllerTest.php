@@ -461,6 +461,23 @@ class PushControllerTest extends TestCase
         $this->assertSame(1, RecallNote::count());
     }
 
+    public function test_a_simple_uncompressed_pdf_attachment_no_longer_false_positives(): void
+    {
+        // Live bug found 2026-08-17: a minimal/uncompressed PDF is almost
+        // entirely ASCII, so it validates as UTF-8 and its own object
+        // syntax used to trip the generic entropy heuristic with no
+        // downgrade available (no ()[] present, only <<>>).
+        [, $token] = $this->makeEntitledUserWithToken();
+        $pdf = "%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj\n3 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 200 100]/Resources<</Font<</F1 4 0 R>>>>/Contents 5 0 R>>endobj\n4 0 obj<</Type/Font/Subtype/Type1/BaseFont/Helvetica>>endobj\n%%EOF";
+
+        $response = $this->withToken($token)->postJson('/v1/recall/push', $this->validPayload([
+            'attachments' => [$this->attachmentPayload('repro-notes.pdf', $pdf)],
+        ]));
+
+        $response->assertStatus(200)->assertJson(['attachments' => 1]);
+        $this->assertSame(1, RecallNote::first()->attachments()->count());
+    }
+
     public function test_pushing_without_attachments_still_works_unchanged(): void
     {
         [, $token] = $this->makeEntitledUserWithToken();

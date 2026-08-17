@@ -89,6 +89,40 @@ class RecallSecretScannerTest extends TestCase
         $this->assertSame([], $result['warnings']);
     }
 
+    // ---- angle-bracket code/document syntax (backlog #19 follow-up) ----
+
+    public function test_SECURITY_a_simple_pdfs_own_object_syntax_is_not_rejected_but_does_warn(): void
+    {
+        // Live false-positive found 2026-08-17: a simple/uncompressed PDF is
+        // almost entirely ASCII, so its own object dictionary syntax
+        // ("obj<</Type/Font/...>>endobj") is now a realistic scan candidate
+        // via attachment content-based classification. No ()[] present, so
+        // the existing code-syntax downgrade missed it before this fix.
+        $result = $this->scanner->scan(['attachment_texts' => ['1 0 obj<</Type/Font/Subtype/Type1/BaseFont/Helvetica>>endobj']]);
+        $this->assertFalse($result['rejected']);
+        $this->assertNotEmpty($result['warnings']);
+    }
+
+    public function test_a_real_secret_wrapped_in_angle_brackets_is_still_hard_rejected(): void
+    {
+        // Downgrade-only guarantee: HARD_REJECT_PATTERNS never consults
+        // CODE_SYNTAX_RE, so wrapping a real secret signature in <<>> must
+        // never be a way to dodge it.
+        $result = $this->scanner->scan(['body' => 'Key: <AKIAIOSFODNN7EXAMPLE>']);
+        $this->assertTrue($result['rejected']);
+        $this->assertStringContainsString('AWS access key', $result['reasons'][0]);
+    }
+
+    public function test_a_generic_random_secret_wrapped_in_angle_brackets_is_downgraded_not_silently_exempted(): void
+    {
+        // Same never-exempt treatment as the existing ()[] cases: a
+        // generic (non-hard-reject-pattern) random string wrapped in <>
+        // still produces a warning, it never disappears entirely.
+        $result = $this->scanner->scan(['body' => '<zqXvbNmKlPoIuYtRfghjklqwertyuiop>']);
+        $this->assertFalse($result['rejected']);
+        $this->assertNotEmpty($result['warnings']);
+    }
+
     // ---- backlog 1d: PEM's literal-space pattern is bypassable by embedded whitespace ----
 
     public function test_a_pem_header_with_a_tab_substituted_for_a_space_is_still_rejected(): void

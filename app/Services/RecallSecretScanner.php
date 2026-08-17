@@ -37,11 +37,13 @@ class RecallSecretScanner
     // as one "segment" of a fake compound. See isHyphenatedWordCompound.
     private const MAX_COMPOUND_SEGMENT_LENGTH = 15;
     private const HYPHENATED_COMPOUND_RE = '/^[A-Za-z]+(-[A-Za-z]+)+$/';
-    // A candidate containing an unstripped '(', ')', '[', or ']' reads as
-    // code syntax (an array/list literal element, or a function-call
-    // argument) rather than a secret fragment. Consulted ONLY from
-    // looksLikeCodeSyntax(), which downgrades a matching high-entropy
-    // candidate to a warning — deliberately NOT wired into isLabelWord().
+    // A candidate containing an unstripped '(', ')', '[', ']', '<', or '>'
+    // reads as code/document syntax (an array/list literal element, a
+    // function-call argument, or a markup/dictionary delimiter — HTML/XML
+    // tags, PDF object dictionaries like "<</Type/Font>>") rather than a
+    // secret fragment. Consulted ONLY from looksLikeCodeSyntax(), which
+    // downgrades a matching high-entropy candidate to a warning —
+    // deliberately NOT wired into isLabelWord().
     // Code review of the first version of this fix caught a live CRITICAL:
     // making a bracket-bearing token an isLabelWord hard stop ends a
     // joinedChunkRuns run there unconditionally, but a bracket is trivial
@@ -58,7 +60,16 @@ class RecallSecretScanner
     // looksLikeCodeSyntax() downgrades it to a WARNING rather than silently
     // exempting it. Ported from CLI's secret-scanner.mjs (backlog #14
     // residual: exact live repro was "['compliance', '--help']").
-    private const CODE_SYNTAX_RE = '/[()\[\]]/';
+    // Angle brackets added 2026-08-17 (backlog #19 follow-up): the new
+    // content-based attachment classification (RecallAttachmentStorage)
+    // means a simple/uncompressed PDF's own object syntax
+    // ("obj<</Type/Font/Subtype/Type1/BaseFont/Helvetica>>endobj") is now a
+    // realistic scan candidate for the first time — it has no ()[] but is
+    // exactly the same "structured, not random" shape those already cover.
+    // Same downgrade-only guarantee applies: a real secret signature
+    // (AKIA/JWT/sk-/gh_) wrapped in <<>> is still caught by
+    // HARD_REJECT_PATTERNS, which never consults this constant at all.
+    private const CODE_SYNTAX_RE = '/[()\[\]<>]/';
     // \x{FEFF} (ZERO WIDTH NO-BREAK SPACE / BOM) is added explicitly: PCRE's
     // \s under plain /u (no (*UCP)) uses a fixed table that excludes it, while
     // JS's \s spec (ECMA-262 WhiteSpace production) includes it — the one real

@@ -382,6 +382,22 @@ class PushControllerTest extends TestCase
         $this->assertSame(0, RecallNote::count());
     }
 
+    public function test_SECURITY_a_secret_disguised_with_a_png_extension_is_still_rejected(): void
+    {
+        // Live-exploited 2026-08-17 red-team pass, confirmed reachable via
+        // raw API, the real CLI --attach, and the recall_add MCP tool alike —
+        // renaming a plain-text secret to .png used to skip the scan
+        // entirely (extension-gated classification). Now content-based.
+        [, $token] = $this->makeEntitledUserWithToken();
+
+        $response = $this->withToken($token)->postJson('/v1/recall/push', $this->validPayload([
+            'attachments' => [$this->attachmentPayload('totally-a-real.png', 'Prod key is AKIAIOSFODNN7EXAMPLE')],
+        ]));
+
+        $response->assertStatus(422);
+        $this->assertSame(0, RecallNote::count());
+    }
+
     public function test_invalid_base64_in_an_attachment_returns_422_and_nothing_is_persisted(): void
     {
         [, $token] = $this->makeEntitledUserWithToken();

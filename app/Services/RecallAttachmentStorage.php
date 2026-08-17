@@ -30,11 +30,6 @@ class RecallAttachmentStorage
     public const MAX_TOTAL_BYTES = 12 * 1024 * 1024;
     public const MAX_FILES = 20;
 
-    // Extensions eligible for secret-scanning as text. A spoofed extension on
-    // binary content is still caught by the UTF-8 validity check in
-    // looksLikeText() — the extension alone is never trusted.
-    private const TEXT_EXTENSIONS = ['txt', 'log', 'md', 'json', 'yml', 'yaml', 'csv'];
-
     /**
      * @param array<int, array{filename: string, content: string}> $rawAttachments content is base64
      * @return array<int, array{filename: string, bytes: string, mime: string, isText: bool}>
@@ -71,7 +66,7 @@ class RecallAttachmentStorage
                 'filename' => $filename,
                 'bytes'    => $bytes,
                 'mime'     => $this->detectMime($bytes),
-                'isText'   => $this->looksLikeText($filename, $bytes),
+                'isText'   => $this->looksLikeText($bytes),
             ];
         }
 
@@ -150,11 +145,17 @@ class RecallAttachmentStorage
         return (new \finfo(FILEINFO_MIME_TYPE))->buffer($bytes) ?: 'application/octet-stream';
     }
 
-    // A spoofed extension on binary content never passes this: mb_check_encoding
-    // rejects invalid UTF-8 regardless of what the filename claims to be.
-    private function looksLikeText(string $filename, string $bytes): bool
+    // Content-based, not extension-based — a security-reviewed fix (2026-08-17
+    // red-team exercise) for a real, confirmed-exploitable bypass: gating this
+    // on the filename's extension (e.g. only .txt/.log/.md/...) meant renaming
+    // a secret-bearing text file to .png skipped the scan entirely, even
+    // though its actual bytes were plain UTF-8 text. Real binary formats
+    // (images, PDFs, executables) essentially never validate as UTF-8 across
+    // more than a few bytes, so this check is both stricter (can't be
+    // bypassed by a filename lie) and has near-zero false-positive risk on
+    // genuine binaries.
+    private function looksLikeText(string $bytes): bool
     {
-        $ext = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
-        return in_array($ext, self::TEXT_EXTENSIONS, true) && mb_check_encoding($bytes, 'UTF-8');
+        return mb_check_encoding($bytes, 'UTF-8');
     }
 }

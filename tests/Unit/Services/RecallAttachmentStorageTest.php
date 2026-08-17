@@ -122,9 +122,27 @@ class RecallAttachmentStorageTest extends TestCase
 
     public function test_a_txt_file_with_invalid_utf8_bytes_is_not_treated_as_text(): void
     {
-        // Extension claims text, but the bytes are not valid UTF-8 — the
-        // extension alone must never be trusted.
         $decoded = $this->storage->decode([$this->raw('fake.txt', "\xFF\xFE\x00\x01")]);
+        $this->assertFalse($decoded[0]['isText']);
+    }
+
+    public function test_SECURITY_a_secret_disguised_with_a_png_extension_is_still_treated_as_text(): void
+    {
+        // Confirmed-exploitable bypass, found in a live red-team pass
+        // 2026-08-17: the old extension allowlist meant renaming a plain-text
+        // secret to .png skipped the scan entirely. Classification is now
+        // content-based (valid UTF-8), not extension-based — the filename
+        // lie no longer matters.
+        $decoded = $this->storage->decode([$this->raw('totally-a-real.png', 'AKIAIOSFODNN7EXAMPLE plain UTF-8 text, not actually a PNG')]);
+        $this->assertTrue($decoded[0]['isText']);
+    }
+
+    public function test_a_real_jpeg_stays_classified_as_binary(): void
+    {
+        // JFIF magic bytes (0xFF 0xD8 0xFF) — not valid UTF-8 regardless of
+        // the content-based reclassification above; genuine binary formats
+        // must not start getting scanned as a side effect of the fix.
+        $decoded = $this->storage->decode([$this->raw('real.jpg', "\xFF\xD8\xFF\xE0\x00\x10JFIF")]);
         $this->assertFalse($decoded[0]['isText']);
     }
 

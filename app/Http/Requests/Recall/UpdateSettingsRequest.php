@@ -4,6 +4,7 @@ namespace App\Http\Requests\Recall;
 
 use App\Models\RecallSettings;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class UpdateSettingsRequest extends FormRequest
 {
@@ -16,6 +17,7 @@ class UpdateSettingsRequest extends FormRequest
             'timeout_ms'        => ['required', 'integer', $this->between('timeout_ms')],
             'max_queue_size'    => ['required', 'integer', $this->between('max_queue_size')],
             'max_entry_age_ms'  => ['required', 'integer', $this->between('max_entry_age_ms')],
+            'recall_strictness' => ['required', 'string', Rule::in(RecallSettings::ALLOWED_STRICTNESS)],
         ];
     }
 

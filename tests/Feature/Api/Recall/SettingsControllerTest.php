@@ -112,6 +112,54 @@ class SettingsControllerTest extends TestCase
             ]);
     }
 
+    // ── Backlog #20: recall_strictness flows through the same override row ──
+
+    public function test_returns_the_groups_recall_strictness_override_when_set(): void
+    {
+        $user  = $this->makeUser('pro');
+        $token = $this->makeToken($user);
+        $group = $this->makeGroupFor($user);
+
+        RecallSettings::create([
+            'group_id'          => $group->id,
+            'flush_cooldown_ms' => 300_000,
+            'timeout_ms'        => 8_000,
+            'max_queue_size'    => 50,
+            'max_entry_age_ms'  => 604_800_000,
+            'recall_strictness' => 'loose',
+        ]);
+
+        $this->withToken($token)
+            ->getJson('/v1/recall/settings')
+            ->assertOk()
+            ->assertJson(['recall_strictness' => 'loose', 'is_override' => true]);
+    }
+
+    public function test_an_override_row_predating_this_column_returns_null_not_balanced(): void
+    {
+        // A row created before this column existed (or that only ever set the
+        // queue-settings fields) has no recall_strictness of its own — the
+        // controller must not silently substitute 'balanced' here. The CLI's
+        // own clamp() is what falls back to the platform default; the API
+        // reports what is actually stored, same as it does for `is_override`.
+        $user  = $this->makeUser('pro');
+        $token = $this->makeToken($user);
+        $group = $this->makeGroupFor($user);
+
+        RecallSettings::create([
+            'group_id'          => $group->id,
+            'flush_cooldown_ms' => 300_000,
+            'timeout_ms'        => 8_000,
+            'max_queue_size'    => 50,
+            'max_entry_age_ms'  => 604_800_000,
+        ]);
+
+        $this->withToken($token)
+            ->getJson('/v1/recall/settings')
+            ->assertOk()
+            ->assertJson(['recall_strictness' => null, 'is_override' => true]);
+    }
+
     public function test_another_groups_override_is_never_returned_idor(): void
     {
         $userA  = $this->makeUser('pro');
@@ -122,13 +170,27 @@ class SettingsControllerTest extends TestCase
         $groupB = $this->makeGroupFor($userB);
         RecallSettings::create([
             'group_id' => $groupB->id, 'flush_cooldown_ms' => 60_000, 'timeout_ms' => 1_000,
-            'max_queue_size' => 10, 'max_entry_age_ms' => 3_600_000,
+            'max_queue_size' => 10, 'max_entry_age_ms' => 3_600_000, 'recall_strictness' => 'strict',
         ]);
 
         $this->withToken($tokenA)
             ->getJson('/v1/recall/settings')
             ->assertOk()
             ->assertJson(['is_override' => false, ...RecallSettings::DEFAULTS]);
+    }
+
+    // ── Red-team pass (Scenario B: API read path) ───────────────────────────
+
+    public function test_attack_rate_limit_actually_fires_not_just_configured(): void
+    {
+        $user  = $this->makeUser('pro');
+        $token = $this->makeToken($user);
+
+        // RateLimiter::for('recall-settings', ...) allows 30/min by bearer token.
+        for ($i = 0; $i < 30; $i++) {
+            $this->withToken($token)->getJson('/v1/recall/settings')->assertOk();
+        }
+        $this->withToken($token)->getJson('/v1/recall/settings')->assertStatus(429);
     }
 
     // ── Owner bypass ──────────────────────────────────────────────────────────
@@ -141,6 +203,6 @@ class SettingsControllerTest extends TestCase
         $this->withToken($token)
             ->getJson('/v1/recall/settings')
             ->assertOk()
-            ->assertJsonStructure(['flush_cooldown_ms', 'timeout_ms', 'max_queue_size', 'max_entry_age_ms', 'is_override']);
+            ->assertJsonStructure(['flush_cooldown_ms', 'timeout_ms', 'max_queue_size', 'max_entry_age_ms', 'recall_strictness', 'is_override']);
     }
 }

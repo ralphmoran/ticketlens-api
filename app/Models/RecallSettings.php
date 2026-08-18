@@ -18,6 +18,7 @@ class RecallSettings extends Model
         'timeout_ms'        => 4_000,         // 4 seconds
         'max_queue_size'    => 200,
         'max_entry_age_ms'  => 2_592_000_000, // 30 days
+        'recall_strictness' => 'balanced',
     ];
 
     /** Inclusive [min, max] bounds enforced both server-side (validation) and CLI-side (clamp). */
@@ -28,12 +29,19 @@ class RecallSettings extends Model
         'max_entry_age_ms'  => [3_600_000, 7_776_000_000], // 1h .. 90d
     ];
 
+    /**
+     * recall_strictness is an enum, not a numeric range — must match the CLI's
+     * RECALL_STRICTNESS_LEVELS (skills/jtb/scripts/lib/recall-strictness.mjs).
+     */
+    public const ALLOWED_STRICTNESS = ['loose', 'balanced', 'strict'];
+
     protected $fillable = [
         'group_id',
         'flush_cooldown_ms',
         'timeout_ms',
         'max_queue_size',
         'max_entry_age_ms',
+        'recall_strictness',
     ];
 
     protected $casts = [

@@ -155,6 +155,7 @@ const settingsForm = useForm({
     timeout_ms:         sv.timeout_ms ?? 4_000,
     max_queue_size:     sv.max_queue_size ?? 200,
     max_entry_age_ms:   sv.max_entry_age_ms ?? 2_592_000_000,
+    recall_strictness:  sv.recall_strictness ?? 'balanced',
 })
 
 function unitProxy(field, unitMs) {
@@ -496,6 +497,22 @@ async function destroyNote(note) {
                                 <p v-if="settingsForm.errors.max_entry_age_ms" class="tl-error">{{ settingsForm.errors.max_entry_age_ms }}</p>
                                 <span v-else class="tl-hint">A perpetually-failing note is dropped after this long ({{ daysBounds.min }}–{{ daysBounds.max }} days).</span>
                             </div>
+
+                            <div class="tl-field">
+                                <label class="tl-field-label" for="rs-strictness">Recall capture strictness</label>
+                                <select
+                                    id="rs-strictness"
+                                    v-model="settingsForm.recall_strictness"
+                                    class="tl-select tl-input--full"
+                                    :class="{ 'tl-input--error': settingsForm.errors.recall_strictness }"
+                                >
+                                    <option value="loose">Loose</option>
+                                    <option value="balanced">Balanced</option>
+                                    <option value="strict">Strict</option>
+                                </select>
+                                <p v-if="settingsForm.errors.recall_strictness" class="tl-error">{{ settingsForm.errors.recall_strictness }}</p>
+                                <span v-else class="tl-hint">Default nudge sensitivity for the team's session-end Recall reminder. A member who has run <span class="tl-mono--xs">ticketlens config set recallStrictness</span> locally keeps their own choice — this only sets the default for everyone else.</span>
+                            </div>
                         </div>
 
                         <div class="tl-row">
@@ -525,6 +542,10 @@ async function destroyNote(note) {
                         <div class="tl-field">
                             <span class="tl-field-label">Queued note expiry</span>
                             <span class="tl-value">{{ settingsDays }} days</span>
+                        </div>
+                        <div class="tl-field">
+                            <span class="tl-field-label">Recall capture strictness</span>
+                            <span class="tl-value">{{ settingsForm.recall_strictness }}</span>
                         </div>
                     </div>
                 </div>

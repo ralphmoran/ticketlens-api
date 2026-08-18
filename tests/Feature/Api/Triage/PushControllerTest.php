@@ -47,7 +47,13 @@ class PushControllerTest extends TestCase
     {
         return array_merge([
             'profile'     => 'production',
-            'captured_at' => '2026-05-11T10:00:00Z',
+            // Relative to now(), not a fixed calendar date — a hardcoded
+            // absolute date drifts past PushController's 90-day prune
+            // window as real time passes, which silently broke this whole
+            // suite in CI multiple times (rows got pruned mid-test instead
+            // of being read back). See the day-offset tests below for the
+            // same reasoning applied to two-different-days assertions.
+            'captured_at' => now()->toIso8601ZuluString(),
             'tickets'     => [
                 [
                     'key'                 => 'PROJ-123',
@@ -288,10 +294,10 @@ class PushControllerTest extends TestCase
         [, $token] = $this->makeUserWithToken();
 
         $this->withToken($token)->postJson('/v1/triage/push', $this->validPayload([
-            'captured_at' => '2026-05-10T10:00:00Z',
+            'captured_at' => now()->subDays(2)->toIso8601ZuluString(),
         ]));
         $this->withToken($token)->postJson('/v1/triage/push', $this->validPayload([
-            'captured_at' => '2026-05-11T10:00:00Z',
+            'captured_at' => now()->subDay()->toIso8601ZuluString(),
         ]));
 
         $this->assertSame(2, TriageSnapshot::count());
@@ -302,10 +308,10 @@ class PushControllerTest extends TestCase
         [, $token] = $this->makeUserWithToken();
 
         $this->withToken($token)->postJson('/v1/triage/push', $this->validPayload([
-            'captured_at' => '2026-05-11T08:00:00Z',
+            'captured_at' => now()->startOfDay()->addHours(8)->toIso8601ZuluString(),
         ]));
         $this->withToken($token)->postJson('/v1/triage/push', $this->validPayload([
-            'captured_at' => '2026-05-11T18:00:00Z',
+            'captured_at' => now()->startOfDay()->addHours(18)->toIso8601ZuluString(),
             'tickets'     => [
                 ['key' => 'PROJ-999', 'summary' => 'Later push', 'status' => 'Done',
                  'assignee' => 'Eve', 'attention_score' => 1.0, 'flags' => [],

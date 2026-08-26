@@ -39,7 +39,10 @@ return [
     'groq' => [
         'key' => env('GROQ_API_KEY'),
         'url' => 'https://api.groq.com/openai/v1/chat/completions',
-        'model' => 'llama-3.3-70b-versatile',
+        // llama-3.3-70b-versatile was decommissioned by Groq 2026-08-16 (HTTP 404
+        // on every call since) — openai/gpt-oss-120b is Groq's own recommended
+        // replacement. See console.groq.com/docs/deprecations.
+        'model' => 'openai/gpt-oss-120b',
         'max_tokens' => 256,
     ],
 

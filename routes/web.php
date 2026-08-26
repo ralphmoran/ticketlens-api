@@ -171,6 +171,17 @@ Route::prefix('console')->name('console.')->group(function () {
             Route::put('/ai-providers/{id}',       [\App\Http\Controllers\Api\AiProviderController::class, 'update'])->name('ai-providers.update');
             Route::delete('/ai-providers/{id}',    [\App\Http\Controllers\Api\AiProviderController::class, 'destroy'])->name('ai-providers.destroy');
             Route::post('/ai-providers/{id}/test', [\App\Http\Controllers\Api\AiProviderController::class, 'test'])->name('ai-providers.test')->middleware('throttle:ai-test');
+
+            // Personal role -> provider assignment (dynamic registry). Read of the
+            // shared pool is included via this page's Inertia props (AiProviderRoleController@index),
+            // not a separate JSON endpoint — write access to the pool itself is manager-only, below.
+            Route::get('/ai-roles',                            [\App\Http\Controllers\Console\Admin\AiProviderRoleController::class, 'index'])->name('ai-roles');
+            Route::get('/ai-provider-roles',                   [\App\Http\Controllers\Api\AiProviderRoleController::class, 'index'])->name('ai-provider-roles.index');
+            Route::post('/ai-provider-roles',                  [\App\Http\Controllers\Api\AiProviderRoleController::class, 'store'])->name('ai-provider-roles.store');
+            Route::put('/ai-provider-roles/{id}',              [\App\Http\Controllers\Api\AiProviderRoleController::class, 'update'])->name('ai-provider-roles.update');
+            Route::delete('/ai-provider-roles/{id}',           [\App\Http\Controllers\Api\AiProviderRoleController::class, 'destroy'])->name('ai-provider-roles.destroy');
+            Route::put('/ai-provider-roles/{id}/providers',    [\App\Http\Controllers\Api\AiProviderRoleController::class, 'syncProviders'])->name('ai-provider-roles.sync');
+            Route::post('/ai-provider-roles/{id}/generate-prompt', [\App\Http\Controllers\Api\AiProviderRoleController::class, 'generatePrompt'])->name('ai-provider-roles.generate-prompt')->middleware('throttle:ai-test');
         });
 
         // Admin — manager-only routes
@@ -187,6 +198,15 @@ Route::prefix('console')->name('console.')->group(function () {
             Route::get('/integrations/channels',    [\App\Http\Controllers\Console\Admin\IntegrationsController::class, 'channels'])->name('integrations.channels');
             Route::post('/integrations/channel',    [\App\Http\Controllers\Console\Admin\IntegrationsController::class, 'saveChannel'])->name('integrations.channel');
             Route::post('/integrations/test',       [\App\Http\Controllers\Console\Admin\IntegrationsController::class, 'sendTest'])->name('integrations.test');
+
+            // Group-shared AI provider registry — write access is manager-only;
+            // any team member can read/select from it via the ai-roles page above.
+            Route::get('/ai-pool',                       [\App\Http\Controllers\Console\Admin\AiProviderPoolController::class, 'index'])->name('ai-pool');
+            Route::get('/ai-provider-pools',              [\App\Http\Controllers\Api\AiProviderPoolController::class, 'index'])->name('ai-provider-pools.index');
+            Route::post('/ai-provider-pools',             [\App\Http\Controllers\Api\AiProviderPoolController::class, 'store'])->name('ai-provider-pools.store');
+            Route::put('/ai-provider-pools/{id}',         [\App\Http\Controllers\Api\AiProviderPoolController::class, 'update'])->name('ai-provider-pools.update');
+            Route::delete('/ai-provider-pools/{id}',      [\App\Http\Controllers\Api\AiProviderPoolController::class, 'destroy'])->name('ai-provider-pools.destroy');
+            Route::post('/ai-provider-pools/{id}/test',   [\App\Http\Controllers\Api\AiProviderPoolController::class, 'test'])->name('ai-provider-pools.test')->middleware('throttle:ai-test');
             Route::delete('/integrations',          [\App\Http\Controllers\Console\Admin\IntegrationsController::class, 'disconnect'])->name('integrations.disconnect');
             Route::get('/alerts',                         [\App\Http\Controllers\Console\Admin\AlertsController::class, 'index'])->name('alerts');
             Route::patch('/alerts/needs-response',        [\App\Http\Controllers\Console\Admin\AlertsController::class, 'saveNeedsResponse'])->name('alerts.needs-response');

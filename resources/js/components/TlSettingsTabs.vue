@@ -50,6 +50,10 @@ const groups = computed(() => {
     }
     if (auth.can?.Summarize) {
         teamConfig.push({ key: 'ai', label: 'AI Settings', href: '/console/admin/ai', icon: 'sparkles' })
+        teamConfig.push({ key: 'ai-roles', label: 'AI Roles', href: '/console/admin/ai-roles', icon: 'sparkles' })
+    }
+    if (auth.is_team_manager) {
+        teamConfig.push({ key: 'ai-pool', label: 'AI Provider Pool', href: '/console/admin/ai-pool', icon: 'sparkles' })
     }
 
     const result = [{ label: 'My Account', tabs: myAccount }]

@@ -1,7 +1,10 @@
 <?php
 
 use App\Http\Controllers\Api\AiProviderController;
+use App\Http\Controllers\Api\AiProviderPoolController;
+use App\Http\Controllers\Api\AiProviderRoleController;
 use App\Http\Controllers\Api\ComplianceController;
+use App\Http\Controllers\Api\ConsensusController;
 use App\Http\Controllers\Api\DigestController;
 use App\Http\Controllers\Api\Recall\PullController as RecallPullController;
 use App\Http\Controllers\Api\Recall\PushController as RecallPushController;
@@ -98,4 +101,14 @@ Route::middleware(['throttle:api-global', 'auth.cli'])->group(function () {
     Route::put('/v1/ai-providers/{id}',         [AiProviderController::class, 'update']);
     Route::delete('/v1/ai-providers/{id}',      [AiProviderController::class, 'destroy']);
     Route::post('/v1/ai-providers/{id}/test',   [AiProviderController::class, 'test'])->middleware('throttle:ai-test');
+});
+
+// Dynamic AI provider registry (group-shared pool) + per-user role assignment sync,
+// and the server-side consensus run itself — Pro+, same auth shape as the block above.
+Route::middleware(['throttle:api-global', 'auth.cli', 'license.tier:pro'])->group(function () {
+    Route::get('/v1/ai-provider-pool',  [AiProviderPoolController::class, 'index'])->name('api.ai-provider-pool');
+    Route::get('/v1/ai-provider-roles', [AiProviderRoleController::class, 'index'])->name('api.ai-provider-roles');
+    Route::post('/v1/consensus', [ConsensusController::class, 'run'])
+        ->middleware('throttle:compliance')
+        ->name('api.consensus');
 });

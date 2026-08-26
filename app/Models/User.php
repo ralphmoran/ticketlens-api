@@ -124,6 +124,11 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasMany(UserAiProvider::class)->orderBy('priority');
     }
 
+    public function aiProviderRoles(): HasMany
+    {
+        return $this->hasMany(AiProviderRole::class);
+    }
+
     public function trackerProfiles(): HasMany
     {
         return $this->hasMany(TrackerProfile::class);

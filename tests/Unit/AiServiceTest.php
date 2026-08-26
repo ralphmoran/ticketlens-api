@@ -133,6 +133,79 @@ class AiServiceTest extends TestCase
         });
     }
 
+    public function test_generate_text_sends_the_caller_supplied_prompt_verbatim(): void
+    {
+        Http::fake(['api.groq.com/*' => Http::response([
+            'choices' => [['message' => ['content' => 'generated']]],
+        ], 200)]);
+
+        $user = $this->makeUser();
+        UserAiProvider::factory()->for($user)->create(['provider' => 'groq', 'enabled' => true]);
+
+        $result = $this->service->generateText($user, 'Custom meta-prompt, not a ticket summary request.');
+
+        $this->assertSame('generated', $result);
+        Http::assertSent(function ($req) {
+            $body = json_decode($req->body(), true);
+            return $body['messages'][0]['content'] === 'Custom meta-prompt, not a ticket summary request.';
+        });
+    }
+
+    public function test_generate_text_defaults_to_256_max_tokens(): void
+    {
+        Http::fake(['api.groq.com/*' => Http::response([
+            'choices' => [['message' => ['content' => 'ok']]],
+        ], 200)]);
+
+        $user = $this->makeUser();
+        UserAiProvider::factory()->for($user)->create(['provider' => 'groq', 'enabled' => true]);
+
+        $this->service->generateText($user, 'plain prompt');
+
+        Http::assertSent(function ($req) {
+            $body = json_decode($req->body(), true);
+            return $body['max_tokens'] === 256;
+        });
+    }
+
+    public function test_generate_text_honors_a_caller_supplied_max_tokens(): void
+    {
+        // Reasoning models (e.g. Groq's openai/gpt-oss-120b) spend tokens on hidden
+        // reasoning before the visible answer — a small budget can leave content
+        // empty even on a 200 response. Callers doing real generative work (not a
+        // short summary) need to be able to ask for a bigger budget.
+        Http::fake(['api.groq.com/*' => Http::response([
+            'choices' => [['message' => ['content' => 'a longer generated prompt']]],
+        ], 200)]);
+
+        $user = $this->makeUser();
+        UserAiProvider::factory()->for($user)->create(['provider' => 'groq', 'enabled' => true]);
+
+        $this->service->generateText($user, 'plain prompt', maxTokens: 1024);
+
+        Http::assertSent(function ($req) {
+            $body = json_decode($req->body(), true);
+            return $body['max_tokens'] === 1024;
+        });
+    }
+
+    public function test_generate_text_does_not_prepend_the_summarize_prompt(): void
+    {
+        Http::fake(['api.groq.com/*' => Http::response([
+            'choices' => [['message' => ['content' => 'ok']]],
+        ], 200)]);
+
+        $user = $this->makeUser();
+        UserAiProvider::factory()->for($user)->create(['provider' => 'groq', 'enabled' => true]);
+
+        $this->service->generateText($user, 'plain prompt');
+
+        Http::assertSent(function ($req) {
+            $body = json_decode($req->body(), true);
+            return ! str_contains($body['messages'][0]['content'], 'Summarize this Jira ticket');
+        });
+    }
+
     /** Helper — creates a persisted User with RefreshDatabase trait active. */
     private function makeUser(): User
     {

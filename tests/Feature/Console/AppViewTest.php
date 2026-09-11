@@ -52,4 +52,24 @@ class AppViewTest extends TestCase
             rename($backup, $path);
         }
     }
+
+    public function test_body_has_no_hardcoded_dark_background_class(): void
+    {
+        $html = $this->get('/console/login')->getContent();
+
+        preg_match('/<body[^>]*>/', $html, $matches);
+
+        $this->assertStringNotContainsString('bg-', $matches[0] ?? '');
+    }
+
+    public function test_body_background_uses_theme_token(): void
+    {
+        $css = file_get_contents(resource_path('css/app.css'));
+
+        $this->assertMatchesRegularExpression(
+            '/body\s*\{[^}]*background-color:\s*var\(--tl-bg\)/',
+            $css,
+            'app.css must set body background from the --tl-bg token so it tracks data-theme before Vue mounts'
+        );
+    }
 }

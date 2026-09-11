@@ -2,6 +2,7 @@
 import ConsoleLayout from '@/Layouts/ConsoleLayout.vue'
 import TlIcon from '@/components/TlIcon.vue'
 import { computed, ref } from 'vue'
+import { Link } from '@inertiajs/vue3'
 import { timeAgo } from '@/composables/useDateFormat'
 
 defineOptions({ layout: ConsoleLayout })
@@ -137,10 +138,10 @@ function setPage(groupId, page) {
                                 {{ member.last_push ? timeAgo(member.last_push) : 'Never' }}
                             </td>
                             <td v-if="is_owner" class="tl-td tl-td--right">
-                                <a :href="`/console/owner/clients/${member.id}`"
+                                <Link :href="`/console/owner/clients/${member.id}`"
                                    class="tl-btn tl-btn--secondary tl-btn--sm">
                                     View
-                                </a>
+                                </Link>
                             </td>
                         </tr>
                     </tbody>

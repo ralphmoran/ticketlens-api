@@ -5,7 +5,7 @@ import TlChart from '@/components/TlChart.vue'
 import TlPagination from '@/Components/TlPagination.vue'
 import UserAvatar from '@/Components/UserAvatar.vue'
 import { useClientPaginator } from '@/composables/useClientPaginator'
-import { router } from '@inertiajs/vue3'
+import { router, Link } from '@inertiajs/vue3'
 import { computed, ref, watch } from 'vue'
 import { timeAgo } from '@/composables/useDateFormat'
 
@@ -150,7 +150,7 @@ const weeklyOptions = { scales: { y: { max: 100, ticks: { callback: v => v + '%'
                 <span class="tl-hint tl-mono--xs">{{ selected_manager.email }}</span>
             </span>
             <div class="tl-row">
-                <a :href="`/console/owner/clients/${selected_manager.id}`" class="tl-btn tl-btn--secondary tl-btn--sm">Manage</a>
+                <Link :href="`/console/owner/clients/${selected_manager.id}`" class="tl-btn tl-btn--secondary tl-btn--sm">Manage</Link>
                 <button type="button" class="tl-btn tl-btn--secondary tl-btn--sm"
                         @click="router.get('/console/admin/compliance-analytics')">← Back</button>
             </div>

@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
-import { useForm, router } from '@inertiajs/vue3'
+import { useForm, router, Link } from '@inertiajs/vue3'
 import ConsoleLayout from '@/Layouts/ConsoleLayout.vue'
 import TlIcon from '@/components/TlIcon.vue'
 import TlPagination from '@/Components/TlPagination.vue'
@@ -316,7 +316,7 @@ async function destroyCustom() {
                 <span class="tl-hint tl-mono--xs">{{ selected_manager.email }}</span>
             </span>
             <div class="tl-row">
-                <a :href="`/console/owner/clients/${selected_manager.id}`" class="tl-btn tl-btn--secondary tl-btn--sm">Manage</a>
+                <Link :href="`/console/owner/clients/${selected_manager.id}`" class="tl-btn tl-btn--secondary tl-btn--sm">Manage</Link>
                 <button type="button" class="tl-btn tl-btn--secondary tl-btn--sm"
                         @click="router.get('/console/admin/rules')">
                     ← Back
@@ -347,13 +347,13 @@ async function destroyCustom() {
                 <strong class="tl-value">Expected result:</strong>
                 Tickets staying in a watched status beyond the threshold are flagged as stale in triage output.
                 Enable <strong class="tl-value">Stale alerts</strong> on the
-                <a href="/console/admin/alerts" class="tl-link tl-link--md">Alerts page</a>
+                <Link href="/console/admin/alerts" class="tl-link tl-link--md">Alerts page</Link>
                 to get a Slack notification when stale tickets are detected.
             </p>
             <p class="tl-body--muted">
                 <strong class="tl-value">Looking for the status filter?</strong>
                 Which Jira statuses count as triage-worthy for your whole team is managed on the
-                <a href="/console/admin/jira" class="tl-link tl-link--md">Jira Connection page</a>.
+                <Link href="/console/admin/jira" class="tl-link tl-link--md">Jira Connection page</Link>.
             </p>
         </div>
 
@@ -538,7 +538,7 @@ async function destroyCustom() {
 
                 <p v-if="!slack_connected" class="tl-hint">
                     Notify / Add to digest are disabled — connect Slack on the
-                    <a href="/console/admin/integrations" class="tl-link tl-link--md">Integrations page</a>
+                    <Link href="/console/admin/integrations" class="tl-link tl-link--md">Integrations page</Link>
                     to enable them.
                 </p>
 
@@ -546,7 +546,7 @@ async function destroyCustom() {
                     <TlIcon name="warning-triangle" class="tl-ic tl-banner-icon" />
                     <span class="tl-banner-title">
                         Force urgent / Ignore won't apply to {{ unconnectedMembersSummary }} — they haven't connected a tracker profile on the
-                        <a href="/console/connections" class="tl-link tl-link--md">Connections page</a>.
+                        <Link href="/console/connections" class="tl-link tl-link--md">Connections page</Link>.
                     </span>
                 </div>
 

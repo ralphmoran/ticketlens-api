@@ -16,6 +16,7 @@
 @import './components/auth.css';
 
 @layer base {
+    body { background-color: var(--tl-bg); color: var(--tl-text-primary); }
     button { cursor: pointer; }
     button:disabled { cursor: not-allowed; }
 }

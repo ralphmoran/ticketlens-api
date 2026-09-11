@@ -1,6 +1,6 @@
 <script setup>
 import { ref, reactive, computed } from 'vue'
-import { router } from '@inertiajs/vue3'
+import { router, Link } from '@inertiajs/vue3'
 import axios from 'axios'
 import ConsoleLayout from '@/Layouts/ConsoleLayout.vue'
 import TlSettingsTabs from '@/components/TlSettingsTabs.vue'
@@ -151,7 +151,7 @@ function remove() {
         <p class="tl-body--muted">
             <strong class="tl-value">Looking for staleness, custom alert rules, or notify cooldowns?</strong>
             Those are managed on the
-            <a href="/console/admin/rules" class="tl-link tl-link--md">Workflow Rules page</a>.
+            <Link href="/console/admin/rules" class="tl-link tl-link--md">Workflow Rules page</Link>.
         </p>
 
         <!-- ── Connection Test ───────────────────────────────────── -->

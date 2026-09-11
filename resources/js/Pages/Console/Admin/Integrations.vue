@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed } from 'vue'
-import { router } from '@inertiajs/vue3'
+import { router, Link } from '@inertiajs/vue3'
 import ConsoleLayout from '@/Layouts/ConsoleLayout.vue'
 import TlSettingsTabs from '@/components/TlSettingsTabs.vue'
 import TlIcon from '@/components/TlIcon.vue'
@@ -147,7 +147,7 @@ async function disconnect() {
             <TlIcon name="layers" class="tl-empty-icon" />
             <p class="tl-body--muted">
                 Select a client team from the
-                <a href="/console/owner/clients" class="tl-link tl-link--md">Clients</a>
+                <Link href="/console/owner/clients" class="tl-link tl-link--md">Clients</Link>
                 page to manage their integrations.
             </p>
         </div>

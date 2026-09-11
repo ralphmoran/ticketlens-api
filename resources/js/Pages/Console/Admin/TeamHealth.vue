@@ -4,7 +4,7 @@ import TlIcon from '@/components/TlIcon.vue'
 import TlPagination from '@/Components/TlPagination.vue'
 import UserAvatar from '@/Components/UserAvatar.vue'
 import { useClientPaginator } from '@/composables/useClientPaginator'
-import { router } from '@inertiajs/vue3'
+import { router, Link } from '@inertiajs/vue3'
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { timeAgo } from '@/composables/useDateFormat'
 
@@ -163,7 +163,7 @@ onUnmounted(() => { clearInterval(timer); clearInterval(ticker) })
                 <span class="tl-hint tl-mono--xs">{{ selected_manager.email }}</span>
             </span>
             <div class="tl-row">
-                <a :href="`/console/owner/clients/${selected_manager.id}`" class="tl-btn tl-btn--secondary tl-btn--sm">Manage</a>
+                <Link :href="`/console/owner/clients/${selected_manager.id}`" class="tl-btn tl-btn--secondary tl-btn--sm">Manage</Link>
                 <button type="button" class="tl-btn tl-btn--secondary tl-btn--sm"
                         @click="router.post(`/console/owner/impersonate/${selected_manager.id}`)">
                     Impersonate

@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
-import { router, useForm } from '@inertiajs/vue3'
+import { router, useForm, Link } from '@inertiajs/vue3'
 import ConsoleLayout from '@/Layouts/ConsoleLayout.vue'
 import TlIcon from '@/components/TlIcon.vue'
 import TlPagination from '@/Components/TlPagination.vue'
@@ -213,7 +213,7 @@ async function destroyNote(note) {
             <TlIcon name="inbox" class="tl-empty-icon" />
             <p class="tl-body--muted">
                 Select a client team from the
-                <a href="/console/owner/clients" class="tl-link tl-link--md">Clients</a>
+                <Link href="/console/owner/clients" class="tl-link tl-link--md">Clients</Link>
                 page to view their team notes.
             </p>
         </div>

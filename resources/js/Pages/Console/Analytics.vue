@@ -3,6 +3,7 @@ import ConsoleLayout from '@/Layouts/ConsoleLayout.vue'
 import TlIcon from '@/components/TlIcon.vue'
 import TlChart from '@/components/TlChart.vue'
 import { computed } from 'vue'
+import { Link } from '@inertiajs/vue3'
 
 defineOptions({ layout: ConsoleLayout })
 
@@ -131,10 +132,10 @@ const actionOptions = { indexAxis: 'y', scales: { x: { beginAtZero: true }, y: {
                     <p class="tl-title">Unlock full analytics</p>
                     <p class="tl-body--muted">Track every token saved, every dollar kept, and every action logged — in real time.</p>
                 </div>
-                <a href="/console/account" class="tl-btn tl-btn--primary">
+                <Link href="/console/account" class="tl-btn tl-btn--primary">
                     Upgrade to Pro
                     <TlIcon name="arrow-right" class="tl-ic" />
-                </a>
+                </Link>
             </div>
 
         </template>

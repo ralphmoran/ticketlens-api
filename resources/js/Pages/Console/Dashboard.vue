@@ -3,7 +3,7 @@ import ConsoleLayout from '@/Layouts/ConsoleLayout.vue'
 import TlIcon from '@/components/TlIcon.vue'
 import TlChart from '@/components/TlChart.vue'
 import { usePermissions } from '@/composables/usePermissions'
-import { usePage, router } from '@inertiajs/vue3'
+import { usePage, router, Link } from '@inertiajs/vue3'
 import { computed, ref } from 'vue'
 import { Permission } from '@/permissions'
 import { timeAgo } from '@/composables/useDateFormat'
@@ -384,7 +384,7 @@ function memberHeatmapClass(memberId, day) {
                         {{ insights.tokens_saved !== null ? insights.tokens_saved.toLocaleString() : '99,999' }}
                     </p>
                     <p v-if="insights.tokens_saved === null" class="tl-hint">
-                        <a href="/console/billing" class="tl-link">Upgrade to Pro</a> to unlock
+                        <Link href="/console/account" class="tl-link">Upgrade to Pro</Link> to unlock
                     </p>
                     <p v-else class="tl-hint">
                         {{ insights.tokens_saved > 0

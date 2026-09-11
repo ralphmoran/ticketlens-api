@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed } from 'vue'
-import { router } from '@inertiajs/vue3'
+import { router, Link } from '@inertiajs/vue3'
 import { useConfirm } from '@/composables/useConfirm'
 import ConsoleLayout from '@/Layouts/ConsoleLayout.vue'
 import TlIcon from '@/components/TlIcon.vue'
@@ -249,7 +249,7 @@ function goSchedulesPage(page) {
             <TlIcon name="inbox" class="tl-empty-icon" />
             <p class="tl-body--muted">
                 Select a client team from the
-                <a href="/console/owner/clients" class="tl-link tl-link--md">Clients</a>
+                <Link href="/console/owner/clients" class="tl-link tl-link--md">Clients</Link>
                 page to manage their digest schedules.
             </p>
         </div>

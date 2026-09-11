@@ -2,6 +2,7 @@
 import ConsoleLayout from '@/Layouts/ConsoleLayout.vue'
 import TlIcon from '@/components/TlIcon.vue'
 import { computed } from 'vue'
+import { Link } from '@inertiajs/vue3'
 
 defineOptions({ layout: ConsoleLayout })
 
@@ -65,10 +66,10 @@ function formatDate(iso) {
                 <span class="tl-toggle-row-title" :class="atLimit ? 'tl-num--warn' : ''">
                     {{ monthlyCount }} of {{ monthlyLimit }} checks used this month
                 </span>
-                <a v-if="atLimit" href="/console/account" class="tl-btn-ghost tl-btn-ghost--warn">
+                <Link v-if="atLimit" href="/console/account" class="tl-btn-ghost tl-btn-ghost--warn">
                     Upgrade for unlimited checks
                     <TlIcon name="arrow-right" class="tl-ic tl-ic--sm" />
-                </a>
+                </Link>
             </div>
             <div class="tl-meter tl-meter--thin">
                 <div

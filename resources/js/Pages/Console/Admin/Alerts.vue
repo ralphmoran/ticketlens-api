@@ -749,7 +749,7 @@ function goRulesPage(page) {
             </div>
 
             <!-- ── Digest schedules link ─────────────────────────────────── -->
-            <a
+            <Link
                 :href="alertUrl('/digests')"
                 class="tl-card tl-card--btn tl-row"
             >
@@ -761,7 +761,7 @@ function goRulesPage(page) {
                     <p class="tl-hint">Manage weekly summaries posted to channels or DM'd to team members</p>
                 </div>
                 <TlIcon name="chevron-right" class="tl-ic tl-cell-muted" />
-            </a>
+            </Link>
 
         </template>
     </div>

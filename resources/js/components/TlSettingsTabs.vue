@@ -2,8 +2,8 @@
 /**
  * TlSettingsTabs — left-column nav shared by every Settings page (Account,
  * Connections, Jira Config, AI Settings, Integrations, Seats). Purely presentational:
- * real <a href> links between separate Inertia page visits, not client-side
- * tab switching — each page keeps its own route/controller/props untouched.
+ * Inertia <Link> visits between separate pages, not client-side tab switching
+ * — each page keeps its own route/controller/props untouched.
  *
  * "Team Configuration" tabs mirror the exact same gates their own routes
  * already enforce (team.manager, permission:Summarize) — this component
@@ -11,7 +11,7 @@
  * the viewer could already reach directly.
  */
 import { computed, onMounted, ref } from 'vue'
-import { usePage } from '@inertiajs/vue3'
+import { usePage, Link } from '@inertiajs/vue3'
 import TlIcon from '@/components/TlIcon.vue'
 
 const props = defineProps({
@@ -69,7 +69,7 @@ const groups = computed(() => {
         <nav ref="navRef" class="tl-settings-nav" aria-label="Settings">
             <template v-for="group in groups" :key="group.label">
                 <p class="tl-settings-nav-group-label">{{ group.label }}</p>
-                <a
+                <Link
                     v-for="tab in group.tabs"
                     :key="tab.key"
                     :href="tab.href"
@@ -78,7 +78,7 @@ const groups = computed(() => {
                 >
                     <TlIcon :name="tab.icon" class="tl-ic tl-ic--sm" />
                     {{ tab.label }}
-                </a>
+                </Link>
             </template>
         </nav>
     </div>

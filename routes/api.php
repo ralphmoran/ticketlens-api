@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\DigestController;
 use App\Http\Controllers\Api\Recall\PullController as RecallPullController;
 use App\Http\Controllers\Api\Recall\PushController as RecallPushController;
 use App\Http\Controllers\Api\Recall\SettingsController as RecallSettingsController;
+use App\Http\Controllers\Api\RecallAutoCaptureController;
 use App\Http\Controllers\Api\ScheduleController;
 use App\Http\Controllers\Api\SummarizeController;
 use App\Http\Controllers\Api\TeamJiraConfigController;
@@ -80,6 +81,7 @@ Route::middleware(['throttle:api-global', 'auth.license', 'license.tier:pro'])->
 // CLI features: CLI token auth — user tier checked directly (same user who manages their BYOK keys)
 Route::middleware(['throttle:api-global', 'auth.cli'])->group(function () {
     Route::post('/v1/summarize',  [SummarizeController::class, 'handle'])->middleware(['throttle:summarize', 'license.tier:pro']);
+    Route::post('/v1/recall/auto-capture', [RecallAutoCaptureController::class, 'handle'])->middleware(['throttle:summarize', 'license.tier:pro']);
     Route::post('/v1/compliance', [ComplianceController::class, 'handle'])->middleware(['throttle:compliance', 'license.tier:team']);
 });
 

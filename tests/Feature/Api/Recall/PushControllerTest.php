@@ -165,6 +165,30 @@ class PushControllerTest extends TestCase
         $this->assertSame(1, RecallNote::count());
     }
 
+    public function test_a_lowercase_ticket_key_in_tickets_is_normalized_instead_of_rejected(): void
+    {
+        [, $token] = $this->makeEntitledUserWithToken();
+
+        $this->withToken($token)
+            ->postJson('/v1/recall/push', $this->validPayload(['tickets' => ['prod-1']]))
+            ->assertStatus(200);
+        $this->assertSame(['PROD-1'], RecallNote::first()->tickets);
+    }
+
+    public function test_lock_an_oversized_tickets_array_is_still_rejected_by_max_20_regardless_of_casing(): void
+    {
+        [, $token] = $this->makeEntitledUserWithToken();
+
+        $tickets = array_map(fn ($i) => "prod-{$i}", range(1, 21));
+
+        $response = $this->withToken($token)
+            ->postJson('/v1/recall/push', $this->validPayload(['tickets' => $tickets]));
+
+        $response->assertStatus(422);
+        $response->assertJsonValidationErrors(['tickets']);
+        $this->assertSame(0, RecallNote::count());
+    }
+
     // ---- secret scanning (server-side, defense in depth) ----
 
     public function test_a_secret_in_the_body_is_rejected_with_422_and_nothing_is_persisted(): void

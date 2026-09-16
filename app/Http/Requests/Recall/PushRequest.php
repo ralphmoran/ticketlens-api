@@ -58,4 +58,23 @@ class PushRequest extends FormRequest
             'attachments.*.content'  => ['required_with:attachments', 'string'],
         ];
     }
+
+    protected function prepareForValidation(): void
+    {
+        // Jira/Linear project and team keys are always created uppercase, so a
+        // lowercase entry is always a typo, never a distinct real key — mirrors
+        // the CLI's own normalizeTicketKey (skills/jtb/scripts/lib/cli.mjs).
+        // Bounded to the 'tickets' max:20 rule below — an oversized array is
+        // rejected by that rule regardless of casing, so skip the transform
+        // rather than doing unbounded work on it before validation runs.
+        $tickets = $this->input('tickets');
+        if (is_array($tickets) && count($tickets) <= 20) {
+            $this->merge([
+                'tickets' => array_map(
+                    fn ($t) => is_string($t) ? strtoupper($t) : $t,
+                    $tickets
+                ),
+            ]);
+        }
+    }
 }

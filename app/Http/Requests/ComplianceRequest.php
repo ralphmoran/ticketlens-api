@@ -21,5 +21,11 @@ class ComplianceRequest extends FormRequest
         if ($this->has('brief')) {
             $this->merge(['brief' => str_replace("\x00", '', $this->input('brief'))]);
         }
+        // Jira/Linear project and team keys are always created uppercase, so a
+        // lowercase ticketKey is always a typo, never a distinct real key —
+        // mirrors the CLI's own normalizeTicketKey (skills/jtb/scripts/lib/cli.mjs).
+        if ($this->has('ticketKey') && is_string($this->input('ticketKey'))) {
+            $this->merge(['ticketKey' => strtoupper($this->input('ticketKey'))]);
+        }
     }
 }

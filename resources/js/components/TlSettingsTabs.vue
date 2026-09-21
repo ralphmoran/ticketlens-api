@@ -13,12 +13,14 @@
 import { computed, onMounted, ref } from 'vue'
 import { usePage, Link } from '@inertiajs/vue3'
 import TlIcon from '@/components/TlIcon.vue'
+import { useSkipSameUrl } from '@/composables/useSkipSameUrl'
 
 const props = defineProps({
     activeKey: { type: String, required: true },
 })
 
 const page = usePage()
+const skipSameUrl = useSkipSameUrl()
 const navRef = ref(null)
 
 onMounted(() => {
@@ -73,6 +75,7 @@ const groups = computed(() => {
                     v-for="tab in group.tabs"
                     :key="tab.key"
                     :href="tab.href"
+                    :on-before="skipSameUrl"
                     class="tl-settings-nav-item"
                     :class="tab.key === activeKey ? 'tl-settings-nav-item--active' : ''"
                 >

@@ -4,6 +4,7 @@ import { usePage, router, Link } from '@inertiajs/vue3'
 import axios from 'axios'
 import { usePermissions } from '../composables/usePermissions'
 import { useServerEvents } from '../composables/useServerEvents'
+import { useSkipSameUrl } from '../composables/useSkipSameUrl'
 import { useEventsStore } from '../stores/events'
 import { Permission } from '../permissions'
 import TlIcon from '../components/TlIcon.vue'
@@ -431,6 +432,8 @@ function handleNavStart() {
     ownerSubOpen.value = false
 }
 
+const skipSameUrl = useSkipSameUrl(handleNavStart)
+
 function handleKeydown(e) {
     if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault()
@@ -614,7 +617,7 @@ onUnmounted(() => {
                 </div>
 
                 <!-- Settings gear -->
-                <Link href="/console/account" title="Settings" class="tl-icon-btn">
+                <Link href="/console/account" title="Settings" :on-before="skipSameUrl" class="tl-icon-btn">
                     <TlIcon name="settings" class="tl-ic" />
                 </Link>
 
@@ -759,6 +762,7 @@ onUnmounted(() => {
                 <Link
                     href="/console/account"
                     title="Settings"
+                    :on-before="skipSameUrl"
                     class="tl-icon-btn"
                 >
                     <TlIcon name="settings" class="tl-ic" />
@@ -869,6 +873,7 @@ onUnmounted(() => {
                                     :href="group.items[0].href"
                                     :title="group.label"
                                     @start="handleNavStart"
+                                    :on-before="skipSameUrl"
                                     class="tl-nav-link tl-nav-link--full"
                                     :class="group.items.some(i => page.url.startsWith(i.href))
                                         ? 'tl-nav-link--active'
@@ -909,6 +914,7 @@ onUnmounted(() => {
                                         <Link
                                             :href="item.href"
                                             @start="handleNavStart"
+                                            :on-before="skipSameUrl"
                                             class="tl-nav-link"
                                             :class="page.url.startsWith(item.href) ? 'tl-nav-link--active' : 'tl-nav-link--inactive'"
                                         >
@@ -939,6 +945,7 @@ onUnmounted(() => {
                                     ref="ownerIconRef"
                                     title="Owner Panel"
                                     @start="handleNavStart"
+                                    :on-before="skipSameUrl"
                                     class="tl-nav-link tl-nav-link--full"
                                     :class="(ownerSubOpen || subSidebarPersistent) ? 'tl-nav-link--owner-active' : 'tl-nav-link--owner-inactive'"
                                 >
@@ -977,6 +984,7 @@ onUnmounted(() => {
                                         <Link
                                             :href="item.href"
                                             @start="handleNavStart"
+                                            :on-before="skipSameUrl"
                                             class="tl-nav-link"
                                             :class="page.url.startsWith(item.href) ? 'tl-nav-link--owner-active' : 'tl-nav-link--owner-inactive'"
                                         >
@@ -1018,6 +1026,7 @@ onUnmounted(() => {
                                         <Link
                                             :href="item.href"
                                             @start="handleNavStart"
+                                            :on-before="skipSameUrl"
                                             class="tl-nav-link"
                                             :class="page.url.startsWith(item.href) ? 'tl-nav-link--owner-active' : 'tl-nav-link--owner-inactive'"
                                         >
@@ -1075,6 +1084,7 @@ onUnmounted(() => {
                         <Link
                             :href="item.href"
                             @start="handleNavStart"
+                            :on-before="skipSameUrl"
                             class="tl-float-item"
                             :class="page.url.startsWith(item.href) ? 'tl-float-item--active' : ''"
                         >
@@ -1102,6 +1112,7 @@ onUnmounted(() => {
                         <Link
                             :href="item.href"
                             @start="handleNavStart"
+                            :on-before="skipSameUrl"
                             class="tl-float-item"
                             :class="page.url.startsWith(item.href) ? 'tl-float-item--owner-active' : ''"
                         >

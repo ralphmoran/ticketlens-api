@@ -56,10 +56,13 @@ All passwords: `password`. Login at `/console/login`.
 
 ```bash
 ./vendor/bin/sail artisan test
-# 153 tests, 475 assertions
 ```
 
 Tests use an in-memory SQLite database — no running Sail containers required.
+
+The suite has 1,794 tests (2026-09-21). On a host with PHP's default 128M `memory_limit`, run `php -d memory_limit=512M ./vendor/bin/pest`; the default can exhaust memory.
+
+Console JS helpers have Node unit tests in `tests/js/`, using Node's built-in runner and no dependency: `node --test tests/js/*.test.mjs`. `ConsoleNavLinksSkipSameUrlTest` runs `sameUrl.test.mjs` inside the Pest suite, so CI covers it. In CI it fails if `node` is missing.
 
 ---
 
@@ -113,6 +116,8 @@ All console routes require session authentication. The owner panel requires `is_
 The console uses a fixed sidebar with collapsible desktop mode. When expanded it shows labelled nav groups (Overview, Workflow, Team, Admin, Owner Panel). When collapsed it shows icon-only navigation; the Owner Panel items appear as a floating popover on hover.
 
 The desktop top header shows a `Group › Page` breadcrumb aligned to the content area, a ⌘K command palette for quick section navigation, a settings shortcut, and an avatar dropdown.
+
+Clicking a sidebar link, the header settings gear or a Settings tab for the page you are already on does not request it again. An Inertia `onBefore` guard (`resources/js/composables/sameUrl.js`, wired by `useSkipSameUrl`) cancels a GET to the current path and query; the hash is ignored. A same-page click during a slow nav visit cancels that visit, so the last click wins, but it never cancels a form submit. The ⌘K palette, notification items and the Upgrade link still request. Reload the page to refresh; live updates are tracked as backlog #37. New nav `<Link>`s must carry `:on-before="skipSameUrl"`, and `ConsoleNavLinksSkipSameUrlTest` fails without it.
 
 ### API (`/v1/*`)
 

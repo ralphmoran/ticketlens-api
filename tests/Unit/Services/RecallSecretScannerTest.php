@@ -785,4 +785,48 @@ class RecallSecretScannerTest extends TestCase
         $this->assertFalse($result['rejected']);
         $this->assertStringContainsString('code-identifier-or-path-shaped', implode(' ', $result['warnings']));
     }
+
+    // ---- containsKnownSecretPattern — narrow, no-entropy check (49e, 2026-09-23) ----
+    // Same root cause as the CLI's error-reporter.mjs (skills/jtb): scan()'s
+    // full entropy pass false-positived on nearly every line of a real stack
+    // trace, so ErrorReportController's stack_trace field used this narrower
+    // method instead. Ported here alongside the JS fix.
+
+    public function test_a_real_multi_frame_stack_trace_with_no_secret_is_not_flagged(): void
+    {
+        try {
+            throw new \RuntimeException('boom');
+        } catch (\RuntimeException $e) {
+            $trace = $e->getMessage() . "\n" . $e->getTraceAsString();
+        }
+        $this->assertFalse($this->scanner->containsKnownSecretPattern($trace));
+    }
+
+    public function test_an_aws_key_embedded_in_a_stack_trace_is_still_caught(): void
+    {
+        $trace = "#0 /var/www/html/app/Http/Controllers/FooController.php(42): App\\Services\\Foo->bar()\n" .
+                 "#1 Error: token AKIAIOSFODNN7EXAMPLE rejected";
+        $this->assertTrue($this->scanner->containsKnownSecretPattern($trace));
+    }
+
+    public function test_a_jwt_is_still_caught(): void
+    {
+        $jwt = 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.dozjgNryP4J3jVmNHl0w5N_XgL0n3I9PlFUP0THsR8U';
+        $this->assertTrue($this->scanner->containsKnownSecretPattern("Error: auth failed for {$jwt}"));
+    }
+
+    public function test_does_not_reject_on_entropy_alone_unlike_scan(): void
+    {
+        $random = 'zqXvbNmKlPoIuYtRfghjklqwertyuiopASDFGHJKL';
+        $this->assertTrue($this->scanner->scan(['body' => $random])['rejected']);
+        $this->assertFalse($this->scanner->containsKnownSecretPattern($random));
+    }
+
+    public function test_a_secret_split_by_whitespace_fragmentation_is_still_caught(): void
+    {
+        // Security review finding (2026-09-23), same gap fixed on the JS side —
+        // the despaced fallback must be exercised with the raw fragmented
+        // string, not one pre-joined before the call.
+        $this->assertTrue($this->scanner->containsKnownSecretPattern('AKIAI OSFOD NN7EX AMPLE'));
+    }
 }

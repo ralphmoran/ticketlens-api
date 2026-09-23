@@ -182,6 +182,32 @@ class RecallSecretScanner
     private const STATIC_REFERENCE_RE = '/^\\\\?([A-Za-z]+(?:_[A-Za-z]+)*)::([A-Za-z_][A-Za-z0-9_]*)$/';
 
     /**
+     * HARD_REJECT_PATTERNS only — no tokenization, no entropy heuristic.
+     * Ported from the CLI's secret-scanner.mjs containsKnownSecretPattern
+     * (added 2026-09-23, same root cause and fix on both sides): scan()'s
+     * full entropy pass false-positives on nearly every line of a real V8
+     * stack trace ("at fn (path:line:col)" frames read as random to it even
+     * though none of it is a secret), which made ErrorReportController's
+     * stack_trace field reject almost every real report. A literal secret
+     * embedded in such text (AKIA/eyJ/sk-/-----BEGIN/etc.) is still caught —
+     * only the generic "long random-looking string" class is skipped, and
+     * only for this one call site.
+     */
+    public function containsKnownSecretPattern(string $text): bool
+    {
+        $tokens    = array_values(array_filter(preg_split(self::WHITESPACE_RE, $text)));
+        $despaced  = preg_replace(self::WHITESPACE_RE, '', $text);
+        $runs      = $this->joinedChunkRuns($tokens, stopAtLabelWords: false);
+        foreach (self::HARD_REJECT_PATTERNS as ['re' => $re]) {
+            $matchesRun = array_any($runs, fn (string $run) => preg_match($re, $run) === 1);
+            if (preg_match($re, $text) || $matchesRun || preg_match($re, $despaced)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
      * @param array{title?: string, aliases?: string[], tags?: string[], body?: string, sources?: string[], external_id?: string, attachment_texts?: string[]} $fields
      * @return array{rejected: bool, reasons: string[], warnings: string[]}
      */

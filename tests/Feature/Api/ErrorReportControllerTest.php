@@ -98,6 +98,23 @@ class ErrorReportControllerTest extends TestCase
         $this->assertSame(0, ErrorReport::count());
     }
 
+    // Regression (2026-09-23): a real multi-frame stack trace used to be
+    // rejected almost every time by the full entropy scan — the payload's
+    // own '$this->validPayload()' stack_trace fixture was too short/synthetic
+    // to catch this. containsKnownSecretPattern (narrow, no-entropy) fixed it.
+    public function test_a_real_multi_frame_stack_trace_with_no_secret_is_accepted(): void
+    {
+        try {
+            throw new \RuntimeException('a real crash');
+        } catch (\RuntimeException $e) {
+            $trace = $e->getMessage() . "\n" . $e->getTraceAsString();
+        }
+
+        $this->postJson('/v1/reports', $this->validPayload(['stack_trace' => $trace]))
+            ->assertStatus(201);
+        $this->assertSame(1, ErrorReport::count());
+    }
+
     // ---- bounds ----
 
     public function test_an_oversized_message_is_rejected(): void

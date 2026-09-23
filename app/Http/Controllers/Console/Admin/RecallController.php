@@ -13,6 +13,7 @@ use App\Services\ActiveGroupResolver;
 use App\Services\AuditService;
 use App\Services\RecallStorage;
 use App\Services\SseEventService;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -45,20 +46,7 @@ class RecallController extends Controller
         $perPage = min(max(1, (int) $request->input('per_page', 10)), 100);
 
         $notes = $group
-            ? RecallNote::where('group_id', $group->id)
-                ->when($search, fn ($query) => $query->where(function ($query) use ($search) {
-                    // tags is a JSON array column; its text representation still
-                    // contains each tag as a plain substring, so LIKE matches it
-                    // the same way on both MySQL and SQLite without a migration.
-                    $query->where('title', 'like', "%{$search}%")
-                          ->orWhere('body', 'like', "%{$search}%")
-                          ->orWhereRaw('tags LIKE ?', ["%{$search}%"]);
-                }))
-                ->when($status, fn ($query) => $query->where('status', $status))
-                ->when($authorId, fn ($query) => $query->where('author_id', $authorId))
-                // whereJsonContains, not the search filter's LIKE: an exact tag
-                // match ("test" must not match a note tagged only "testing").
-                ->when($tag, fn ($query) => $query->whereJsonContains('tags', $tag))
+            ? $this->filteredNotesQuery($group, $search, $status, $authorId, $tag)
                 ->with(['author:id,name,tier,avatar_path', 'attachments'])
                 ->orderByDesc('updated_at')
                 ->paginate($perPage)
@@ -114,6 +102,28 @@ class RecallController extends Controller
                 'bounds'     => RecallSettings::BOUNDS,
             ],
         ]);
+    }
+
+    /**
+     * Shared by index() and bulkDestroyMatching() — the delete must match
+     * exactly what the list page counted, so both walk the identical chain.
+     */
+    private function filteredNotesQuery(Group $group, string $search, string $status, ?int $authorId, string $tag): Builder
+    {
+        return RecallNote::where('group_id', $group->id)
+            ->when($search, fn ($query) => $query->where(function ($query) use ($search) {
+                // tags is a JSON array column; its text representation still
+                // contains each tag as a plain substring, so LIKE matches it
+                // the same way on both MySQL and SQLite without a migration.
+                $query->where('title', 'like', "%{$search}%")
+                      ->orWhere('body', 'like', "%{$search}%")
+                      ->orWhereRaw('tags LIKE ?', ["%{$search}%"]);
+            }))
+            ->when($status, fn ($query) => $query->where('status', $status))
+            ->when($authorId, fn ($query) => $query->where('author_id', $authorId))
+            // whereJsonContains, not the search filter's LIKE: an exact tag
+            // match ("test" must not match a note tagged only "testing").
+            ->when($tag, fn ($query) => $query->whereJsonContains('tags', $tag));
     }
 
     /**
@@ -210,6 +220,75 @@ class RecallController extends Controller
         }
 
         $count = $notes->count();
+
+        if ($count > 0) {
+            app(SseEventService::class)->publish($group->id, 'notification.updated', []);
+        }
+
+        return back()->with('success', $count === 1 ? '1 note deleted.' : "{$count} notes deleted.");
+    }
+
+    /**
+     * Gmail-style "select all N matching" — deletes every note the current
+     * filter matches, not just the current page's selected ids (49j).
+     * confirmed_count guards against acting on a stale count: if another
+     * change (a new note, a teammate's delete) shifted the match set between
+     * when the banner was shown and this request, the request is refused
+     * rather than silently deleting more or fewer notes than the user saw.
+     */
+    public function bulkDestroyMatching(Request $request): RedirectResponse
+    {
+        // Same resolution + authorization shape as bulkDestroy() — see its comment.
+        $group = $this->groupResolver->forRequest($request);
+        abort_unless($group !== null, 403);
+
+        $validated = $request->validate([
+            'search'          => ['sometimes', 'nullable', 'string', 'max:255'],
+            'status'          => ['sometimes', 'nullable', Rule::in(['verified', 'unverified'])],
+            'author_id'       => ['sometimes', 'nullable', 'integer'],
+            'tag'             => ['sometimes', 'nullable', 'string', 'max:255'],
+            'confirmed_count' => ['required', 'integer', 'min:0'],
+        ]);
+
+        // IDs are snapshotted here, once, rather than re-deriving the match
+        // set mid-delete (e.g. via chunkById re-running this same filter
+        // query per page): the confirmed_count check below and the actual
+        // delete must act on the exact same set, or a note added between
+        // the two would be silently swept in beyond what the user confirmed.
+        $ids = $this->filteredNotesQuery(
+            $group,
+            $validated['search'] ?? '',
+            $validated['status'] ?? '',
+            $validated['author_id'] ?? null,
+            $validated['tag'] ?? '',
+        )->pluck('id');
+
+        if ($ids->count() !== $validated['confirmed_count']) {
+            return back()->withErrors(['confirmed_count' => 'The matching notes changed — refresh and try again.']);
+        }
+
+        $storage = app(RecallStorage::class);
+        $count   = 0;
+
+        // Deleted in id-batches against the snapshot above, not get() on the
+        // live filter: a filter-wide match can span far more rows than a
+        // page-scoped id list ever could, so this must not load every
+        // matching note into memory at once, and must not re-match the
+        // filter (see snapshot comment above).
+        foreach ($ids->chunk(100) as $chunk) {
+            $notes = RecallNote::whereIn('id', $chunk)->where('group_id', $group->id)->get();
+            foreach ($notes as $note) {
+                $oldValue = ['title' => $note->title, 'external_id' => $note->external_id, 'group_id' => $note->group_id];
+                $storage->delete($note);
+                $this->audit->logFromRequest(
+                    request: $request,
+                    action: 'recall.deleted',
+                    oldValue: $oldValue,
+                    metadata: ['note_id' => $note->id],
+                );
+                $count++;
+            }
+        }
 
         if ($count > 0) {
             app(SseEventService::class)->publish($group->id, 'notification.updated', []);

@@ -245,6 +245,7 @@ Route::prefix('console')->name('console.')->group(function () {
             // "bulk" is never swallowed by that route's model-binding segment.
             Route::post('/recall/bulk-verify', [\App\Http\Controllers\Console\Admin\RecallController::class, 'bulkVerify'])->name('recall.bulk-verify')->middleware('permission:Recall');
             Route::delete('/recall/bulk', [\App\Http\Controllers\Console\Admin\RecallController::class, 'bulkDestroy'])->name('recall.bulk-destroy')->middleware('permission:Recall');
+            Route::delete('/recall/bulk-matching', [\App\Http\Controllers\Console\Admin\RecallController::class, 'bulkDestroyMatching'])->name('recall.bulk-destroy-matching')->middleware('permission:Recall');
 
             // Recall verify — manager-only trust-promotion action, ALSO requires Recall
             // entitlement itself (team.manager alone doesn't imply it — Recall is a

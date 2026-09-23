@@ -111,20 +111,34 @@ function goNextNote() { if (hasNextNote.value) drawerNoteId.value = props.notes.
 
 // ── Bulk selection — page-scoped only; cleared whenever the list changes ──
 const selectedIds = ref([])
+// Gmail-style "select all N matching" — true once the user confirms the
+// banner, false again the instant the list changes underneath them so a
+// stale confirmation can never carry over to a different result set.
+const allMatchingSelected = ref(false)
 
-watch(() => props.notes, () => { selectedIds.value = [] })
+watch(() => props.notes, () => { selectedIds.value = []; allMatchingSelected.value = false })
 
 function isSelected(id) { return selectedIds.value.includes(id) }
 function toggleSelect(id) {
     selectedIds.value = isSelected(id)
         ? selectedIds.value.filter(selectedId => selectedId !== id)
         : [...selectedIds.value, id]
+    allMatchingSelected.value = false
 }
 const allOnPageSelected = computed(() =>
     props.notes.data.length > 0 && props.notes.data.every(note => isSelected(note.id))
 )
+// Only offer "select all matching" once every on-page row is checked AND
+// more rows exist beyond this page — matches Gmail's exact trigger.
+const showSelectAllMatchingBanner = computed(() =>
+    allOnPageSelected.value && !allMatchingSelected.value && props.notes.total > props.notes.data.length
+)
 function toggleSelectAll() {
     selectedIds.value = allOnPageSelected.value ? [] : props.notes.data.map(note => note.id)
+    allMatchingSelected.value = false
+}
+function selectAllMatching() {
+    allMatchingSelected.value = true
 }
 
 function bulkVerifySelected() {
@@ -133,6 +147,27 @@ function bulkVerifySelected() {
 }
 
 async function bulkDeleteSelected() {
+    if (allMatchingSelected.value) {
+        const count = props.notes.total
+        const ok = await confirm({
+            title:        `Delete all ${count} matching note${count === 1 ? '' : 's'}?`,
+            message:      `Every note matching the current search and filters will be removed from the team's Recall vault — not just this page.`,
+            confirmLabel: 'Delete all',
+        })
+        if (!ok) return
+        router.delete(withGroupId('/console/admin/recall/bulk-matching'), {
+            data: {
+                search:          props.filters?.search || undefined,
+                status:          props.filters?.status || undefined,
+                author_id:       props.filters?.author_id || undefined,
+                tag:             props.filters?.tag || undefined,
+                confirmed_count: count,
+            },
+            preserveScroll: true,
+        })
+        return
+    }
+
     if (!selectedIds.value.length) return
     const count = selectedIds.value.length
     const ok = await confirm({
@@ -272,19 +307,30 @@ async function destroyNote(note) {
                     </select>
 
                     <div v-if="selectedIds.length" class="tl-row tl-row--tight">
-                        <span class="tl-hint">{{ selectedIds.length }} selected</span>
-                        <button type="button" class="tl-btn-ghost tl-btn-ghost--info" @click="bulkVerifySelected">
+                        <span class="tl-hint">
+                            {{ allMatchingSelected ? `All ${notes.total} selected` : `${selectedIds.length} selected` }}
+                        </span>
+                        <button v-if="!allMatchingSelected" type="button" class="tl-btn-ghost tl-btn-ghost--info" @click="bulkVerifySelected">
                             <TlIcon name="badge-check" class="tl-ic tl-ic--sm" />
                             Verify selected
                         </button>
                         <button type="button" class="tl-btn-ghost tl-btn-ghost--danger" @click="bulkDeleteSelected">
                             <TlIcon name="trash" class="tl-ic tl-ic--sm" />
-                            Delete selected
+                            {{ allMatchingSelected ? `Delete all ${notes.total}` : 'Delete selected' }}
                         </button>
-                        <button type="button" class="tl-btn-ghost tl-btn-ghost--neutral" @click="selectedIds = []">
+                        <button type="button" class="tl-btn-ghost tl-btn-ghost--neutral" @click="selectedIds = []; allMatchingSelected = false">
                             Clear
                         </button>
                     </div>
+                </div>
+
+                <div v-if="showSelectAllMatchingBanner" class="tl-row tl-row--tight tl-banner tl-banner--info">
+                    <span class="tl-hint">
+                        All {{ notes.data.length }} notes on this page are selected.
+                    </span>
+                    <button type="button" class="tl-link tl-link--md" @click="selectAllMatching">
+                        Select all {{ notes.total }} notes that match this search
+                    </button>
                 </div>
 
                 <div class="relative">

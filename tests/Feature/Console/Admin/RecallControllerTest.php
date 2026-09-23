@@ -761,6 +761,101 @@ class RecallControllerTest extends TestCase
         $this->assertNotNull(RecallNote::find($note->id));
     }
 
+    // ---- bulkDestroyMatching: Gmail-style "select all N matching" (49j) ----
+
+    public function test_bulk_destroy_matching_deletes_every_note_matching_the_filter(): void
+    {
+        [$manager, $group] = $this->makeManager();
+        $verified = RecallNote::create([
+            'group_id' => $group->id, 'author_id' => $manager->id, 'external_id' => 'a.md', 'status' => 'verified',
+            'title' => 'x', 'aliases' => [], 'tickets' => [], 'tags' => [], 'sources' => [], 'body' => 'x',
+        ]);
+        $unverified = RecallNote::create([
+            'group_id' => $group->id, 'author_id' => $manager->id, 'external_id' => 'b.md', 'status' => 'unverified',
+            'title' => 'x', 'aliases' => [], 'tickets' => [], 'tags' => [], 'sources' => [], 'body' => 'x',
+        ]);
+
+        $this->actingAs($manager)
+            ->delete('/console/admin/recall/bulk-matching', ['status' => 'verified', 'confirmed_count' => 1])
+            ->assertRedirect();
+
+        $this->assertNull(RecallNote::find($verified->id));
+        $this->assertNotNull(RecallNote::find($unverified->id));
+    }
+
+    public function test_bulk_destroy_matching_only_matches_the_managers_own_group_idor(): void
+    {
+        [$managerA, $groupA] = $this->makeManager();
+        $groupB  = Group::create(['name' => 'B', 'owner_id' => User::factory()->create()->id]);
+        $foreign = RecallNote::create([
+            'group_id' => $groupB->id, 'author_id' => User::factory()->create()->id, 'external_id' => 'b.md',
+            'title' => 'x', 'aliases' => [], 'tickets' => [], 'tags' => [], 'sources' => [], 'body' => 'x',
+        ]);
+
+        // groupA has zero notes, so a filterless "select all" must match 0 —
+        // never groupB's note, however loosely the filter is stated.
+        $this->actingAs($managerA)
+            ->delete('/console/admin/recall/bulk-matching', ['confirmed_count' => 0])
+            ->assertRedirect();
+
+        $this->assertNotNull(RecallNote::find($foreign->id));
+    }
+
+    public function test_bulk_destroy_matching_rejects_a_stale_confirmed_count(): void
+    {
+        [$manager, $group] = $this->makeManager();
+        RecallNote::create([
+            'group_id' => $group->id, 'author_id' => $manager->id, 'external_id' => 'a.md',
+            'title' => 'x', 'aliases' => [], 'tickets' => [], 'tags' => [], 'sources' => [], 'body' => 'x',
+        ]);
+        RecallNote::create([
+            'group_id' => $group->id, 'author_id' => $manager->id, 'external_id' => 'b.md',
+            'title' => 'x', 'aliases' => [], 'tickets' => [], 'tags' => [], 'sources' => [], 'body' => 'x',
+        ]);
+
+        // Banner showed 1 (stale) but 2 now match — must refuse rather than
+        // silently deleting more than what the user confirmed.
+        $this->actingAs($manager)
+            ->delete('/console/admin/recall/bulk-matching', ['confirmed_count' => 1])
+            ->assertSessionHasErrors('confirmed_count');
+
+        $this->assertSame(2, RecallNote::where('group_id', $group->id)->count());
+    }
+
+    public function test_bulk_destroy_matching_blocks_a_non_manager_even_if_recall_entitled(): void
+    {
+        [$manager, $group, $owner] = $this->makeManager();
+        $member = $this->makeEntitledMember($group, $owner);
+        $note   = RecallNote::create([
+            'group_id' => $group->id, 'author_id' => $manager->id, 'external_id' => 'a.md',
+            'title' => 'x', 'aliases' => [], 'tickets' => [], 'tags' => [], 'sources' => [], 'body' => 'x',
+        ]);
+
+        $this->actingAs($member)
+            ->delete('/console/admin/recall/bulk-matching', ['confirmed_count' => 1])
+            ->assertRedirect('/console/dashboard');
+        $this->assertNotNull(RecallNote::find($note->id));
+    }
+
+    public function test_bulk_destroy_matching_writes_one_audit_log_per_deleted_note(): void
+    {
+        [$manager, $group] = $this->makeManager();
+        RecallNote::create([
+            'group_id' => $group->id, 'author_id' => $manager->id, 'external_id' => 'a.md',
+            'title' => 'x', 'aliases' => [], 'tickets' => [], 'tags' => [], 'sources' => [], 'body' => 'x',
+        ]);
+        RecallNote::create([
+            'group_id' => $group->id, 'author_id' => $manager->id, 'external_id' => 'b.md',
+            'title' => 'x', 'aliases' => [], 'tickets' => [], 'tags' => [], 'sources' => [], 'body' => 'x',
+        ]);
+
+        $this->actingAs($manager)
+            ->delete('/console/admin/recall/bulk-matching', ['confirmed_count' => 2]);
+
+        $this->assertDatabaseCount('audit_logs', 2);
+        $this->assertDatabaseHas('audit_logs', ['actor_id' => $manager->id, 'action' => 'recall.deleted']);
+    }
+
     // ---- attachments ----
 
     private function attachNote(RecallNote $note, string $filename = 'notes.txt', string $content = 'hello', string $mime = 'text/plain'): void

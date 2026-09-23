@@ -46,6 +46,15 @@ Route::middleware(['throttle:api-global', 'throttle:license-act'])->group(functi
     Route::post('/v1/licenses/validate', [\App\Http\Controllers\Api\LicenseActivationController::class, 'validate']);
 });
 
+// Public opt-in error/diagnostic reports (49e) — no auth.cli, deliberately:
+// an auth failure is one of the errors worth reporting, so this can't
+// require the thing that might be broken. Rate-limited by IP like the
+// other unauth routes above.
+RateLimiter::for('error-reports', fn(Request $r) => Limit::perMinute(10)->by($r->ip()));
+Route::middleware(['throttle:api-global', 'throttle:error-reports'])->group(function () {
+    Route::post('/v1/reports', \App\Http\Controllers\Api\ErrorReportController::class);
+});
+
 // CLI token — auth via CLI token (profiles, triage push/share/collisions, schedule)
 RateLimiter::for('profiles', fn(Request $r) => Limit::perMinute(30)->by($r->bearerToken() ?: $r->ip()));
 Route::middleware(['throttle:api-global', 'auth.cli'])->group(function () {

@@ -297,6 +297,7 @@ const ownerPanelItems = [
     { label: 'Tiers & Features', href: '/console/owner/tiers',     icon: 'layers' },
     { label: 'Revenue',          href: '/console/owner/revenue',   icon: 'currency-dollar' },
     { label: 'Audit Log',        href: '/console/owner/audit',     icon: 'history' },
+    { label: 'Error Reports',    href: '/console/owner/error-reports', icon: 'warning-triangle' },
     { label: 'Client Activity',  href: '/console/owner/activity',  icon: 'activity' },
 ]
 

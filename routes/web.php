@@ -308,6 +308,9 @@ Route::prefix('console')->name('console.')->group(function () {
             // Audit log
             Route::get('/audit', [\App\Http\Controllers\Owner\AuditController::class, 'index'])->name('audit.index');
 
+            // Opt-in error/diagnostic reports (49e) — anonymous, no group scope
+            Route::get('/error-reports', [\App\Http\Controllers\Owner\ErrorReportController::class, 'index'])->name('error-reports.index');
+
             // Client activity — recent CLI usage across all clients from usage_logs
             Route::get('/activity', [\App\Http\Controllers\Owner\ActivityController::class, 'index'])->name('activity');
 

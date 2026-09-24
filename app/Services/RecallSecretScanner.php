@@ -117,7 +117,13 @@ class RecallSecretScanner
         ['name' => 'GitHub token', 're' => '/\bgh[pousr]_[A-Za-z0-9]{20,}\b/'],
     ];
 
-    private const EMAIL_RE = '/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/';
+    // Bounded quantifiers (RFC 5321-realistic: 64-char local part, 253-char
+    // domain, 24-char TLD) are load-bearing, not cosmetic — an unbounded `+`
+    // is a textbook O(n^2) ReDoS on any long token with no '@'. Same bug,
+    // same fix, as secret-scanner.mjs's EMAIL_RE (see its comment) — found
+    // 2026-09-23 via adversarial testing of 49e, PHP port carried the
+    // identical unbounded pattern.
+    private const EMAIL_RE = '/[a-zA-Z0-9._%+-]{1,64}@[a-zA-Z0-9.-]{1,253}\.[a-zA-Z]{2,24}/';
 
     // Shared between CODE_FILENAME_RE and FILENAME_REFERENCE_RE below, mirrors
     // the CLI's secret-scanner.mjs — one definition so the two can't drift.

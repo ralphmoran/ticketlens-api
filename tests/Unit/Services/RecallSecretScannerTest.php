@@ -829,4 +829,26 @@ class RecallSecretScannerTest extends TestCase
         // string, not one pre-joined before the call.
         $this->assertTrue($this->scanner->containsKnownSecretPattern('AKIAI OSFOD NN7EX AMPLE'));
     }
+
+    // ---- EMAIL_RE performance regression (2026-09-23) ----
+    // Same bug, same fix, as secret-scanner.mjs's EMAIL_RE: an unbounded `+`
+    // before '@' is a textbook O(n^2) ReDoS on any long token with no '@'.
+    // Found via adversarial testing of 49e — a 500KB error message with no
+    // '@' hung the CLI for minutes; the PHP port carried the identical bug.
+
+    public function test_a_long_token_with_no_at_sign_completes_quickly_not_minutes(): void
+    {
+        $start = microtime(true);
+        $result = $this->scanner->scan(['body' => str_repeat('A', 500_000)]);
+        $elapsed = (microtime(true) - $start) * 1000;
+        $this->assertLessThan(2000, $elapsed, "expected < 2000ms, took {$elapsed}ms");
+        $this->assertFalse($result['rejected']);
+    }
+
+    public function test_a_long_realistic_email_still_triggers_the_warning_after_the_length_bound(): void
+    {
+        $result = $this->scanner->scan(['body' => 'Contact jane.roe+ticketlens-support@mail.acme.co.uk please.']);
+        $this->assertFalse($result['rejected']);
+        $this->assertStringContainsString('email', implode(' ', $result['warnings']));
+    }
 }

@@ -85,13 +85,40 @@ class AiProviderRoleControllerTest extends TestCase
         $role = AiProviderRole::factory()->for($user)->create(['label' => 'QA agent']);
 
         $this->mock(AiService::class, function ($mock) {
-            $mock->shouldReceive('generateText')->once()->andReturn('You are a meticulous QA reviewer.');
+            $mock->shouldReceive('generateTextWithUsage')->once()->andReturn([
+                'text' => 'You are a meticulous QA reviewer.', 'tokens' => 210, 'provider' => 'groq',
+            ]);
         });
 
         $response = $this->actingAs($user)->postJson("/console/admin/ai-provider-roles/{$role->id}/generate-prompt");
 
         $response->assertOk()->assertJson(['generated_prompt' => 'You are a meticulous QA reviewer.']);
         $this->assertNotNull($role->fresh()->prompt_generated_at);
+    }
+
+    // ── UsageLog recording — real token counts, ticket_key always null ────────
+
+    public function test_records_usage_log_with_real_token_count_and_no_ticket_key(): void
+    {
+        [$user] = $this->makeMember();
+        \App\Models\UserAiProvider::factory()->for($user)->create(['provider' => 'groq', 'enabled' => true]);
+        $role = AiProviderRole::factory()->for($user)->create(['label' => 'QA agent']);
+
+        $this->mock(AiService::class, function ($mock) {
+            $mock->shouldReceive('generateTextWithUsage')->once()->andReturn([
+                'text' => 'A real prompt.', 'tokens' => 210, 'provider' => 'groq',
+            ]);
+        });
+
+        $this->actingAs($user)->postJson("/console/admin/ai-provider-roles/{$role->id}/generate-prompt");
+
+        $this->assertDatabaseHas('usage_logs', [
+            'user_id'     => $user->id,
+            'action'      => 'ai_provider_role_generate',
+            'ticket_key'  => null,
+            'tokens_used' => 210,
+            'metadata'    => null,
+        ]);
     }
 
     public function test_generate_prompt_returns_422_and_saves_nothing_when_the_model_returns_an_empty_response(): void
@@ -104,7 +131,7 @@ class AiProviderRoleControllerTest extends TestCase
         $role = AiProviderRole::factory()->for($user)->create(['label' => 'QA agent']);
 
         $this->mock(AiService::class, function ($mock) {
-            $mock->shouldReceive('generateText')->once()->andReturn('   ');
+            $mock->shouldReceive('generateTextWithUsage')->once()->andReturn(['text' => '   ', 'tokens' => 60, 'provider' => 'groq']);
         });
 
         $response = $this->actingAs($user)->postJson("/console/admin/ai-provider-roles/{$role->id}/generate-prompt");
@@ -112,6 +139,9 @@ class AiProviderRoleControllerTest extends TestCase
         $response->assertStatus(422);
         $this->assertNull($role->fresh()->generated_prompt);
         $this->assertNull($role->fresh()->prompt_generated_at);
+        // The provider call succeeded and spent real tokens even though the
+        // reasoning budget was exhausted before a visible answer — still logged.
+        $this->assertDatabaseHas('usage_logs', ['action' => 'ai_provider_role_generate', 'tokens_used' => 60]);
     }
 
     public function test_generate_prompt_requests_a_larger_token_budget_than_the_summarize_default(): void
@@ -121,10 +151,10 @@ class AiProviderRoleControllerTest extends TestCase
         $role = AiProviderRole::factory()->for($user)->create(['label' => 'QA agent']);
 
         $this->mock(AiService::class, function ($mock) {
-            $mock->shouldReceive('generateText')
+            $mock->shouldReceive('generateTextWithUsage')
                 ->once()
                 ->withArgs(fn($user, $prompt, $maxTokens) => $maxTokens === 1024)
-                ->andReturn('A real prompt.');
+                ->andReturn(['text' => 'A real prompt.', 'tokens' => 210, 'provider' => 'groq']);
         });
 
         $this->actingAs($user)->postJson("/console/admin/ai-provider-roles/{$role->id}/generate-prompt")
@@ -138,6 +168,7 @@ class AiProviderRoleControllerTest extends TestCase
 
         $this->actingAs($user)->postJson("/console/admin/ai-provider-roles/{$role->id}/generate-prompt")
             ->assertStatus(422);
+        $this->assertDatabaseCount('usage_logs', 0);
     }
 
     public function test_index_requires_auth(): void

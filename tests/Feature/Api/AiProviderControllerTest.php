@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Models\UserAiProvider;
 use App\Services\AiService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 class AiProviderControllerTest extends TestCase
@@ -183,5 +184,23 @@ class AiProviderControllerTest extends TestCase
         $this->withToken($token)->postJson("/v1/ai-providers/{$provider->id}/test")
             ->assertStatus(422)
             ->assertJson(['error' => 'Provider is disabled.']);
+    }
+
+    // ── LOCK: the "Test connection" button never counts as AI-action usage ────
+
+    public function test_test_endpoint_writes_no_usage_log_row(): void
+    {
+        [$user, $token] = $this->makeUserWithToken();
+        $provider = UserAiProvider::factory()->for($user)->create(['provider' => 'groq', 'enabled' => true]);
+
+        Http::fake(['api.groq.com/*' => Http::response([
+            'choices' => [['message' => ['content' => 'OK']]],
+            'usage'   => ['total_tokens' => 3],
+        ], 200)]);
+
+        $this->withToken($token)->postJson("/v1/ai-providers/{$provider->id}/test")
+            ->assertStatus(200);
+
+        $this->assertDatabaseCount('usage_logs', 0);
     }
 }

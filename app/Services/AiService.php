@@ -14,9 +14,15 @@ class AiService
 
     public function summarize(User $user, string $brief): string
     {
+        return $this->summarizeWithUsage($user, $brief)['text'];
+    }
+
+    /** Same as summarize(), but also reports real consumed tokens for usage tracking. */
+    public function summarizeWithUsage(User $user, string $brief): array
+    {
         $sanitized = mb_substr(str_replace("\x00", '', $brief), 0, 50_000);
 
-        return $this->generateText($user, $this->buildPrompt($sanitized));
+        return $this->generateTextWithUsage($user, $this->buildPrompt($sanitized));
     }
 
     /**
@@ -36,6 +42,19 @@ class AiService
      */
     public function generateText(User $user, string $prompt, int $maxTokens = self::DEFAULT_MAX_TOKENS): string
     {
+        return $this->generateTextWithUsage($user, $prompt, $maxTokens)['text'];
+    }
+
+    /**
+     * Same fallback-chain behavior as generateText(), but also reports which
+     * provider actually succeeded and how many tokens it really consumed —
+     * used by callers that write a UsageLog row (never the failed attempts,
+     * only the provider that returned the result).
+     *
+     * @return array{text: string, tokens: int, provider: string}
+     */
+    public function generateTextWithUsage(User $user, string $prompt, int $maxTokens = self::DEFAULT_MAX_TOKENS): array
+    {
         $providers = $user->aiProviders()->where('enabled', true)->get();
 
         if ($providers->isEmpty()) {
@@ -45,7 +64,7 @@ class AiService
         $errors = [];
         foreach ($providers as $provider) {
             try {
-                return $this->callProvider($provider, $prompt, $maxTokens);
+                return $this->callProviderWithUsage($provider, $prompt, $maxTokens);
             } catch (\Throwable $e) {
                 $errors[] = "{$provider->provider} ({$e->getMessage()})";
             }
@@ -56,6 +75,12 @@ class AiService
 
     private function callProvider(UserAiProvider $provider, string $prompt, int $maxTokens): string
     {
+        return $this->callProviderWithUsage($provider, $prompt, $maxTokens)['text'];
+    }
+
+    /** @return array{text: string, tokens: int, provider: string} */
+    private function callProviderWithUsage(UserAiProvider $provider, string $prompt, int $maxTokens): array
+    {
         return match ($provider->provider) {
             'anthropic' => $this->callAnthropic($provider, $prompt),
             'groq'      => $this->callOpenAiCompat($provider, $prompt, config('services.groq.url'), config('services.groq.model'), $maxTokens),
@@ -64,7 +89,8 @@ class AiService
         };
     }
 
-    private function callAnthropic(UserAiProvider $provider, string $prompt): string
+    /** @return array{text: string, tokens: int, provider: string} */
+    private function callAnthropic(UserAiProvider $provider, string $prompt): array
     {
         $response = Http::timeout($provider->timeout_seconds)
             ->withHeaders([
@@ -77,10 +103,18 @@ class AiService
                 'messages'   => [['role' => 'user', 'content' => $prompt]],
             ]);
 
-        return $this->successful($response)->json('content.0.text');
+        $json  = $this->successful($response);
+        $usage = $json->json('usage') ?? [];
+
+        return [
+            'text'     => $json->json('content.0.text'),
+            'tokens'   => (int) ($usage['input_tokens'] ?? 0) + (int) ($usage['output_tokens'] ?? 0),
+            'provider' => 'anthropic',
+        ];
     }
 
-    private function callOpenAiCompat(UserAiProvider $provider, string $prompt, string $url, string $model, int $maxTokens): string
+    /** @return array{text: string, tokens: int, provider: string} */
+    private function callOpenAiCompat(UserAiProvider $provider, string $prompt, string $url, string $model, int $maxTokens): array
     {
         $response = Http::timeout($provider->timeout_seconds)
             ->withToken($provider->api_key)
@@ -90,7 +124,13 @@ class AiService
                 'messages'   => [['role' => 'user', 'content' => $prompt]],
             ]);
 
-        return $this->successful($response)->json('choices.0.message.content');
+        $json = $this->successful($response);
+
+        return [
+            'text'     => $json->json('choices.0.message.content'),
+            'tokens'   => (int) ($json->json('usage.total_tokens') ?? 0),
+            'provider' => $provider->provider,
+        ];
     }
 
     /** Returns the response if it succeeded, otherwise throws with the HTTP status. */

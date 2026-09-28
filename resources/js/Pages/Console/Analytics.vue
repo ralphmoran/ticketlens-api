@@ -39,14 +39,14 @@ function formatNumber(n) {
 }
 
 function formatAction(action) {
-    return action.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+    return action.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()).replace(/^Ai\b/, 'AI')
 }
 
 // ── Charts (Pro+ only) ─────────────────────────────────────────────────────
 
 const activityLabels   = computed(() => props.daily.map(d => d.date.slice(5))) // MM-DD
 const activityDatasets = computed(() => [
-    { label: 'Tokens Saved', data: props.daily.map(d => Number(d.tokens)),     color: 'brand', fill: true,  yAxisID: 'yTokens' },
+    { label: 'Tokens Consumed', data: props.daily.map(d => Number(d.tokens)), color: 'brand', fill: true,  yAxisID: 'yTokens' },
     { label: 'API Calls',    data: props.daily.map(d => Number(d.calls ?? 0)), color: 'success',            yAxisID: 'yCalls' },
 ])
 // Dual-axis: TlChart applies dataset extras (yAxisID) verbatim; axes themed here.
@@ -72,7 +72,7 @@ const actionOptions = { indexAxis: 'y', scales: { x: { beginAtZero: true }, y: {
         <div class="tl-page-header">
             <div>
                 <h1 class="tl-heading">{{ is_owner_view ? 'Platform Analytics — All Clients' : 'Analytics' }}</h1>
-                <p class="tl-subtext">{{ is_owner_view ? 'Aggregated consumed tokens across all client accounts.' : 'Token savings and usage breakdown.' }}</p>
+                <p class="tl-subtext">{{ is_owner_view ? 'Aggregated consumed tokens across all client accounts.' : 'AI provider token consumption and cost breakdown.' }}</p>
             </div>
             <span class="tl-badge tl-cap" :class="tierBadgeClass">{{ tier }}</span>
         </div>
@@ -82,7 +82,7 @@ const actionOptions = { indexAxis: 'y', scales: { x: { beginAtZero: true }, y: {
 
             <!-- Tagline -->
             <p class="tl-lede">
-                See what your CLI is saving you &mdash; every token, every dollar.
+                See what your AI usage is costing you &mdash; every token, every dollar.
             </p>
 
             <!-- Blurred stat cards -->
@@ -90,7 +90,7 @@ const actionOptions = { indexAxis: 'y', scales: { x: { beginAtZero: true }, y: {
 
                 <div class="tl-stat-card tl-stat-card--locked">
                     <div class="tl-blurred">
-                        <p class="tl-stat-label">Tokens Saved</p>
+                        <p class="tl-stat-label">Tokens Consumed</p>
                         <p class="tl-stat-value">12,847</p>
                         <p class="tl-hint">last 30 days</p>
                     </div>
@@ -102,9 +102,9 @@ const actionOptions = { indexAxis: 'y', scales: { x: { beginAtZero: true }, y: {
 
                 <div class="tl-stat-card tl-stat-card--locked">
                     <div class="tl-blurred">
-                        <p class="tl-stat-label">Estimated Savings</p>
-                        <p class="tl-stat-value">$38.54</p>
-                        <p class="tl-hint">vs. raw API cost</p>
+                        <p class="tl-stat-label">Estimated Cost</p>
+                        <p class="tl-stat-value">$0.19</p>
+                        <p class="tl-hint">at $0.015 / 1K tokens</p>
                     </div>
                     <div class="tl-lock-overlay">
                         <TlIcon name="lock-closed" class="tl-ic tl-ic--lg" />
@@ -130,7 +130,7 @@ const actionOptions = { indexAxis: 'y', scales: { x: { beginAtZero: true }, y: {
             <div class="tl-cta-card">
                 <div>
                     <p class="tl-title">Unlock full analytics</p>
-                    <p class="tl-body--muted">Track every token saved, every dollar kept, and every action logged — in real time.</p>
+                    <p class="tl-body--muted">Track every token consumed, every dollar spent, and every action logged — in real time.</p>
                 </div>
                 <Link href="/console/account" class="tl-btn tl-btn--primary">
                     Upgrade to Pro
@@ -149,10 +149,10 @@ const actionOptions = { indexAxis: 'y', scales: { x: { beginAtZero: true }, y: {
                 <div>
                     <p class="tl-banner-title">No AI-provider usage yet</p>
                     <p class="tl-banner-text" v-if="is_owner_view">
-                        Analytics tracks AI provider usage across your clients (summarize, consensus, compliance) — not general CLI activity like <code class="tl-mono">fetch</code> or <code class="tl-mono">triage --push</code>.
+                        Analytics tracks AI provider usage across your clients (Recall auto-capture, <code class="tl-mono">--summarize --cloud</code>, AI-provider-role generation) — not general CLI activity like <code class="tl-mono">fetch</code> or <code class="tl-mono">triage --push</code>.
                     </p>
                     <p class="tl-banner-text" v-else>
-                        Analytics tracks AI provider usage only — not general CLI activity like <code class="tl-mono">fetch</code> or <code class="tl-mono">triage --push</code>. Run <code class="tl-mono">--summarize</code> or <code class="tl-mono">--consensus</code> to see data here.
+                        Analytics tracks AI provider usage only — not general CLI activity like <code class="tl-mono">fetch</code> or <code class="tl-mono">triage --push</code>. Usage accrues automatically from Recall auto-capture, or by running <code class="tl-mono">--summarize --cloud</code>.
                     </p>
                 </div>
             </div>
@@ -162,16 +162,16 @@ const actionOptions = { indexAxis: 'y', scales: { x: { beginAtZero: true }, y: {
 
                 <div class="tl-stat-card">
                     <div class="tl-row tl-row--between">
-                        <p class="tl-stat-label">Total Tokens Saved</p>
+                        <p class="tl-stat-label">Total Tokens Consumed</p>
                         <span class="tl-stat-icon"><TlIcon name="trending-up" class="tl-ic" /></span>
                     </div>
                     <p class="tl-stat-value">{{ formatNumber(stats.totalTokens) }}</p>
-                    <p class="tl-hint">tokens compressed</p>
+                    <p class="tl-hint">AI provider tokens</p>
                 </div>
 
                 <div class="tl-stat-card">
                     <div class="tl-row tl-row--between">
-                        <p class="tl-stat-label">Estimated Savings</p>
+                        <p class="tl-stat-label">Estimated Cost</p>
                         <span class="tl-stat-icon tl-stat-icon--success"><TlIcon name="currency-dollar" class="tl-ic" /></span>
                     </div>
                     <p class="tl-stat-value">{{ estimatedSavings }}</p>
@@ -202,7 +202,7 @@ const actionOptions = { indexAxis: 'y', scales: { x: { beginAtZero: true }, y: {
                 </div>
 
                 <p v-if="daily.length > 0" class="tl-card-footnote">
-                    Tokens compressed per day (left axis) vs. API calls made (right axis). A spike in tokens with flat calls means larger briefs were served from cache. A flat token line with rising calls indicates repeated fresh fetches — consider warming the cache more frequently.
+                    Tokens consumed per day (left axis) vs. AI calls made (right axis). Recall auto-capture judgments run automatically each session; <code class="tl-mono">--summarize --cloud</code> and role-generation calls are user-triggered.
                 </p>
             </div>
 
@@ -219,7 +219,7 @@ const actionOptions = { indexAxis: 'y', scales: { x: { beginAtZero: true }, y: {
                 </div>
 
                 <p v-if="sortedActions.length > 0" class="tl-card-footnote">
-                    Cumulative tokens compressed per CLI action. Actions at the top consume the most — if a single action dominates, consider whether it fetches more Jira data than your AI actually needs. Each token saved here is a token your AI never has to process.
+                    Cumulative tokens consumed per AI action. <code class="tl-mono">recall_auto_capture</code> fires automatically each session; <code class="tl-mono">summarize</code> and <code class="tl-mono">ai_provider_role_generate</code> are user-triggered.
                 </p>
             </div>
 

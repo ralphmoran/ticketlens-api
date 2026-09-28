@@ -26,11 +26,13 @@ class RecallAutoCaptureControllerTest extends TestCase
 
     public function test_returns_capture_decision_on_valid_ai_response(): void
     {
-        [, $token] = $this->makeProUserWithToken();
+        [$user, $token] = $this->makeProUserWithToken();
         $this->mock(AiService::class, function ($mock) {
-            $mock->shouldReceive('generateText')->once()->andReturn(
-                '{"decision":"capture","title":"Short title","body":"Short body.","tags":["retry-backoff"]}'
-            );
+            $mock->shouldReceive('generateTextWithUsage')->once()->andReturn([
+                'text'     => '{"decision":"capture","title":"Short title","body":"Short body.","tags":["retry-backoff"]}',
+                'tokens'   => 90,
+                'provider' => 'groq',
+            ]);
         });
 
         $response = $this->withToken($token)->postJson('/v1/recall/auto-capture', [
@@ -47,11 +49,59 @@ class RecallAutoCaptureControllerTest extends TestCase
         ]);
     }
 
+    // ── UsageLog recording — real token counts, regardless of capture/skip ────
+
+    public function test_records_usage_log_with_real_token_count_on_capture_decision(): void
+    {
+        [$user, $token] = $this->makeProUserWithToken();
+        $this->mock(AiService::class, function ($mock) {
+            $mock->shouldReceive('generateTextWithUsage')->once()->andReturn([
+                'text'     => '{"decision":"capture","title":"t","body":"b","tags":[]}',
+                'tokens'   => 90,
+                'provider' => 'groq',
+            ]);
+        });
+
+        $this->withToken($token)->postJson('/v1/recall/auto-capture', [
+            'transcript_excerpt' => 'session content',
+            'ticket_key'         => 'PROJ-123',
+        ]);
+
+        $this->assertDatabaseHas('usage_logs', [
+            'user_id'     => $user->id,
+            'action'      => 'recall_auto_capture',
+            'ticket_key'  => 'PROJ-123',
+            'tokens_used' => 90,
+            'metadata'    => null,
+        ]);
+    }
+
+    public function test_records_usage_log_even_when_decision_is_skip(): void
+    {
+        // Tokens are spent judging the transcript whether or not it results in a capture.
+        [$user, $token] = $this->makeProUserWithToken();
+        $this->mock(AiService::class, function ($mock) {
+            $mock->shouldReceive('generateTextWithUsage')->once()->andReturn([
+                'text' => '{"decision":"skip"}', 'tokens' => 35, 'provider' => 'groq',
+            ]);
+        });
+
+        $this->withToken($token)->postJson('/v1/recall/auto-capture', [
+            'transcript_excerpt' => 'nothing interesting happened',
+        ]);
+
+        $this->assertDatabaseHas('usage_logs', [
+            'user_id'     => $user->id,
+            'action'      => 'recall_auto_capture',
+            'tokens_used' => 35,
+        ]);
+    }
+
     public function test_returns_skip_decision_on_valid_ai_response(): void
     {
         [, $token] = $this->makeProUserWithToken();
         $this->mock(AiService::class, function ($mock) {
-            $mock->shouldReceive('generateText')->once()->andReturn('{"decision":"skip"}');
+            $mock->shouldReceive('generateTextWithUsage')->once()->andReturn(['text' => '{"decision":"skip"}', 'tokens' => 20, 'provider' => 'groq']);
         });
 
         $response = $this->withToken($token)->postJson('/v1/recall/auto-capture', [
@@ -67,7 +117,7 @@ class RecallAutoCaptureControllerTest extends TestCase
     {
         [, $token] = $this->makeProUserWithToken();
         $this->mock(AiService::class, function ($mock) {
-            $mock->shouldReceive('generateText')->once()->andReturn('not json at all, sorry!');
+            $mock->shouldReceive('generateTextWithUsage')->once()->andReturn(['text' => 'not json at all, sorry!', 'tokens' => 15, 'provider' => 'groq']);
         });
 
         $response = $this->withToken($token)->postJson('/v1/recall/auto-capture', [
@@ -83,9 +133,9 @@ class RecallAutoCaptureControllerTest extends TestCase
         [, $token] = $this->makeProUserWithToken();
         $this->mock(AiService::class, function ($mock) {
             // decision=capture but missing title
-            $mock->shouldReceive('generateText')->once()->andReturn(
-                '{"decision":"capture","body":"Short body.","tags":["x"]}'
-            );
+            $mock->shouldReceive('generateTextWithUsage')->once()->andReturn([
+                'text' => '{"decision":"capture","body":"Short body.","tags":["x"]}', 'tokens' => 25, 'provider' => 'groq',
+            ]);
         });
 
         $response = $this->withToken($token)->postJson('/v1/recall/auto-capture', [
@@ -100,7 +150,7 @@ class RecallAutoCaptureControllerTest extends TestCase
     {
         [, $token] = $this->makeProUserWithToken();
         $this->mock(AiService::class, function ($mock) {
-            $mock->shouldReceive('generateText')->once()->andReturn('{"decision":"maybe"}');
+            $mock->shouldReceive('generateTextWithUsage')->once()->andReturn(['text' => '{"decision":"maybe"}', 'tokens' => 18, 'provider' => 'groq']);
         });
 
         $response = $this->withToken($token)->postJson('/v1/recall/auto-capture', [
@@ -158,7 +208,7 @@ class RecallAutoCaptureControllerTest extends TestCase
     {
         [, $token] = $this->makeProUserWithToken();
         $this->mock(AiService::class, function ($mock) {
-            $mock->shouldReceive('generateText')->once()->andReturn('{"decision":"skip"}');
+            $mock->shouldReceive('generateTextWithUsage')->once()->andReturn(['text' => '{"decision":"skip"}', 'tokens' => 22, 'provider' => 'groq']);
         });
 
         $response = $this->withToken($token)->postJson('/v1/recall/auto-capture', [
@@ -172,9 +222,11 @@ class RecallAutoCaptureControllerTest extends TestCase
         [, $token] = $this->makeProUserWithToken();
         $overlong = str_repeat('a', 1000);
         $this->mock(AiService::class, function ($mock) use ($overlong) {
-            $mock->shouldReceive('generateText')->once()->andReturn(
-                json_encode(['decision' => 'capture', 'title' => $overlong, 'body' => $overlong, 'tags' => []])
-            );
+            $mock->shouldReceive('generateTextWithUsage')->once()->andReturn([
+                'text'     => json_encode(['decision' => 'capture', 'title' => $overlong, 'body' => $overlong, 'tags' => []]),
+                'tokens'   => 300,
+                'provider' => 'groq',
+            ]);
         });
 
         $response = $this->withToken($token)->postJson('/v1/recall/auto-capture', [
@@ -201,7 +253,7 @@ class RecallAutoCaptureControllerTest extends TestCase
     {
         [, $token] = $this->makeProUserWithToken();
         $this->mock(AiService::class, function ($mock) {
-            $mock->shouldReceive('generateText')->andThrow(new \App\Exceptions\NoAiProviderException());
+            $mock->shouldReceive('generateTextWithUsage')->andThrow(new \App\Exceptions\NoAiProviderException());
         });
 
         $response = $this->withToken($token)->postJson('/v1/recall/auto-capture', [
@@ -210,5 +262,6 @@ class RecallAutoCaptureControllerTest extends TestCase
 
         $response->assertStatus(503);
         $this->assertStringContainsString('No AI provider', $response->json('error'));
+        $this->assertDatabaseCount('usage_logs', 0);
     }
 }

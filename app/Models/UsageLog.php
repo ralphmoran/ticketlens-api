@@ -29,4 +29,21 @@ class UsageLog extends Model
     {
         return $query->where('has_metadata', 1);
     }
+
+    /**
+     * Single writer for every BYOK AI-action row (metadata always null here) —
+     * keeps the dual-semantics invariant in one place instead of each caller
+     * building its own array. $tokens is the real consumed count from the
+     * provider's own response, never an estimate.
+     */
+    public static function recordAiAction(User $user, string $action, ?string $ticketKey, int $tokens): self
+    {
+        return static::create([
+            'user_id'     => $user->id,
+            'action'      => $action,
+            'ticket_key'  => $ticketKey,
+            'tokens_used' => $tokens,
+            'metadata'    => null,
+        ]);
+    }
 }

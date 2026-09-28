@@ -167,6 +167,28 @@ class ClientHealthTest extends TestCase
             ->assertInertia(fn ($page) => $page->where('never_pushed', 0));
     }
 
+    // ── LOCK: a BYOK-only user (AI usage, no CLI push) still counts as never-pushed ──
+
+    public function test_never_pushed_still_counts_a_user_with_only_byok_ai_rows(): void
+    {
+        $owner   = $this->makeOwner();
+        $byokOnly = $this->makeClient();
+
+        // metadata-null row (real AI-action usage, e.g. --summarize --cloud) —
+        // must NOT be mistaken for a CLI push by has_metadata-based scoping.
+        DB::table('usage_logs')->insert([
+            'user_id'     => $byokOnly->id,
+            'action'      => 'summarize',
+            'ticket_key'  => null,
+            'tokens_used' => 200,
+            'metadata'    => null,
+            'created_at'  => now()->toDateTimeString(),
+        ]);
+
+        $this->actingAs($owner)->get('/console/owner/health')
+            ->assertInertia(fn ($page) => $page->where('never_pushed', 1));
+    }
+
     // ── ARPU ─────────────────────────────────────────────────────────────────
 
     public function test_arpu_is_zero_when_no_paid_users(): void

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Exceptions\NoAiProviderException;
 use App\Http\Requests\RecallAutoCaptureRequest;
+use App\Models\UsageLog;
 use App\Services\AiService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Log;
@@ -28,7 +29,7 @@ class RecallAutoCaptureController
     public function handle(RecallAutoCaptureRequest $request): JsonResponse
     {
         try {
-            $raw = $this->ai->generateText(
+            $result = $this->ai->generateTextWithUsage(
                 $request->user(),
                 $this->buildPrompt($request->validated('transcript_excerpt'), $request->validated('ticket_key')),
                 self::JUDGE_MAX_TOKENS,
@@ -37,7 +38,11 @@ class RecallAutoCaptureController
             return response()->json(['error' => $e->getMessage()], 503);
         }
 
-        return response()->json($this->parseDecision($raw));
+        // Tokens are spent judging the transcript regardless of the capture/skip
+        // outcome below — record before parsing, not conditionally on the decision.
+        UsageLog::recordAiAction($request->user(), 'recall_auto_capture', $request->validated('ticket_key'), $result['tokens']);
+
+        return response()->json($this->parseDecision($result['text']));
     }
 
     /**

@@ -206,6 +206,109 @@ class AiServiceTest extends TestCase
         });
     }
 
+    // ── generateTextWithUsage() / summarizeWithUsage() — real token capture ───
+
+    public function test_generate_text_with_usage_returns_anthropic_token_count(): void
+    {
+        Http::fake(['api.anthropic.com/*' => Http::response([
+            'content' => [['text' => 'Summary text.']],
+            'usage'   => ['input_tokens' => 120, 'output_tokens' => 40],
+        ], 200)]);
+
+        $user = $this->makeUser();
+        UserAiProvider::factory()->for($user)->create(['provider' => 'anthropic', 'enabled' => true]);
+
+        $result = $this->service->generateTextWithUsage($user, 'prompt');
+
+        $this->assertSame('Summary text.', $result['text']);
+        $this->assertSame(160, $result['tokens']);
+        $this->assertSame('anthropic', $result['provider']);
+    }
+
+    public function test_generate_text_with_usage_returns_openai_compat_total_tokens(): void
+    {
+        Http::fake(['api.groq.com/*' => Http::response([
+            'choices' => [['message' => ['content' => 'Groq summary.']]],
+            'usage'   => ['total_tokens' => 77],
+        ], 200)]);
+
+        $user = $this->makeUser();
+        UserAiProvider::factory()->for($user)->create(['provider' => 'groq', 'enabled' => true]);
+
+        $result = $this->service->generateTextWithUsage($user, 'prompt');
+
+        $this->assertSame('Groq summary.', $result['text']);
+        $this->assertSame(77, $result['tokens']);
+        $this->assertSame('groq', $result['provider']);
+    }
+
+    public function test_generate_text_with_usage_defaults_to_zero_tokens_when_usage_missing(): void
+    {
+        // Matches every other test in this file: their fixtures never include a
+        // 'usage' key at all — a missing field must never fail the caller's request.
+        Http::fake(['api.groq.com/*' => Http::response([
+            'choices' => [['message' => ['content' => 'ok']]],
+        ], 200)]);
+
+        $user = $this->makeUser();
+        UserAiProvider::factory()->for($user)->create(['provider' => 'groq', 'enabled' => true]);
+
+        $result = $this->service->generateTextWithUsage($user, 'prompt');
+
+        $this->assertSame(0, $result['tokens']);
+    }
+
+    public function test_generate_text_with_usage_reports_only_the_provider_that_succeeded(): void
+    {
+        Http::fake([
+            'api.anthropic.com/*' => Http::response([], 401),
+            'api.groq.com/*'      => Http::response([
+                'choices' => [['message' => ['content' => 'Groq fallback.']]],
+                'usage'   => ['total_tokens' => 55],
+            ], 200),
+        ]);
+
+        $user = $this->makeUser();
+        UserAiProvider::factory()->for($user)->create(['provider' => 'anthropic', 'enabled' => true, 'priority' => 1]);
+        UserAiProvider::factory()->for($user)->create(['provider' => 'groq', 'enabled' => true, 'priority' => 2]);
+
+        $result = $this->service->generateTextWithUsage($user, 'prompt');
+
+        $this->assertSame('groq', $result['provider']);
+        $this->assertSame(55, $result['tokens']);
+    }
+
+    public function test_summarize_with_usage_applies_same_sanitization_as_summarize(): void
+    {
+        Http::fake(['api.groq.com/*' => Http::response([
+            'choices' => [['message' => ['content' => 'ok']]],
+            'usage'   => ['total_tokens' => 10],
+        ], 200)]);
+
+        $user = $this->makeUser();
+        UserAiProvider::factory()->for($user)->create(['provider' => 'groq', 'enabled' => true]);
+
+        $result = $this->service->summarizeWithUsage($user, "brief\x00with\x00nulls");
+
+        $this->assertSame(10, $result['tokens']);
+        Http::assertSent(fn($req) => ! str_contains($req->body(), "\x00"));
+    }
+
+    public function test_test_provider_still_returns_plain_string_unaffected_by_usage_refactor(): void
+    {
+        Http::fake(['api.groq.com/*' => Http::response([
+            'choices' => [['message' => ['content' => 'OK']]],
+            'usage'   => ['total_tokens' => 5],
+        ], 200)]);
+
+        $user = $this->makeUser();
+        $provider = UserAiProvider::factory()->for($user)->create(['provider' => 'groq', 'enabled' => true]);
+
+        $result = $this->service->testProvider($provider);
+
+        $this->assertSame('OK', $result);
+    }
+
     /** Helper — creates a persisted User with RefreshDatabase trait active. */
     private function makeUser(): User
     {

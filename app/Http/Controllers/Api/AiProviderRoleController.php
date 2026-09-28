@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Models\AiProviderRole;
+use App\Models\UsageLog;
 use App\Services\ActiveGroupResolver;
 use App\Services\AiService;
 use Illuminate\Http\JsonResponse;
@@ -114,10 +115,16 @@ class AiProviderRoleController
             // 1024, not the 256 default — reasoning models (e.g. Groq's
             // openai/gpt-oss-120b) can burn the whole budget on hidden reasoning
             // before any visible answer, leaving content empty on a 200 response.
-            $generated = trim($this->legacyAi->generateText($request->user(), $metaPrompt, maxTokens: 1024));
+            $result = $this->legacyAi->generateTextWithUsage($request->user(), $metaPrompt, maxTokens: 1024);
         } catch (\Throwable $e) {
             return response()->json(['error' => 'Could not generate a prompt: ' . $e->getMessage()], 422);
         }
+
+        // The provider call succeeded and spent real tokens even if the visible
+        // answer ends up empty (checked below) — record before that check.
+        UsageLog::recordAiAction($request->user(), 'ai_provider_role_generate', null, $result['tokens']);
+
+        $generated = trim($result['text']);
 
         // A 200 response with empty content is a real (if now rarer) outcome for
         // reasoning models that exhaust their budget on hidden reasoning — must

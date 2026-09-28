@@ -543,6 +543,28 @@ class DashboardTest extends TestCase
             );
     }
 
+    // ── LOCK: a coexisting BYOK AI row must not inflate CLI tokens_saved ───────
+
+    public function test_pro_user_insights_tokens_saved_excludes_byok_ai_rows(): void
+    {
+        $user = User::factory()->create(['tier' => 'pro', 'permissions' => 71]);
+        $this->insertCliLog($user->id, 'fetch', 2000, 10);
+
+        // metadata-null row (real AI-action usage, e.g. --summarize --cloud) —
+        // whereNotNull('metadata') scoping must exclude this from tokens_saved.
+        DB::table('usage_logs')->insert([
+            'user_id'     => $user->id,
+            'action'      => 'summarize',
+            'ticket_key'  => null,
+            'tokens_used' => 99999,
+            'metadata'    => null,
+            'created_at'  => now(),
+        ]);
+
+        $this->actingAs($user)->get('/console/dashboard')
+            ->assertInertia(fn ($page) => $page->where('insights.tokens_saved', 2000));
+    }
+
     public function test_free_insights_scoped_to_30_days(): void
     {
         $user = User::factory()->create(['tier' => 'free', 'permissions' => 64]);

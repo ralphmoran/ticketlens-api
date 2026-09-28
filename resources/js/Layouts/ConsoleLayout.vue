@@ -256,7 +256,6 @@ const navGroups = computed(() => [
             { label: 'Schedules',      href: '/console/schedules',      permission: Permission.Schedules,  icon: 'calendar' },
             { label: 'Digest History', href: '/console/digest-history', permission: Permission.Digests,    icon: 'inbox' },
             { label: 'Summarize',      href: '/console/summarize',      permission: Permission.Summarize,  icon: 'document-text' },
-            { label: 'Compliance',     href: '/console/compliance',     permission: Permission.Compliance, icon: 'shield-check' },
             { label: 'Export',         href: '/console/export',         permission: Permission.Export,     icon: 'download' },
             { label: 'Workflow Rules', href: '/console/admin/rules',    permission: Permission.WorkflowRules, icon: 'git-branch', managerOnly: true, ownerExcluded: false },
         ]

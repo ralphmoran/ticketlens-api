@@ -3,7 +3,6 @@
 use App\Http\Controllers\Api\AiProviderController;
 use App\Http\Controllers\Api\AiProviderPoolController;
 use App\Http\Controllers\Api\AiProviderRoleController;
-use App\Http\Controllers\Api\ComplianceController;
 use App\Http\Controllers\Api\ConsensusController;
 use App\Http\Controllers\Api\DigestController;
 use App\Http\Controllers\Api\Recall\PullController as RecallPullController;
@@ -91,7 +90,6 @@ Route::middleware(['throttle:api-global', 'auth.license', 'license.tier:pro'])->
 Route::middleware(['throttle:api-global', 'auth.cli'])->group(function () {
     Route::post('/v1/summarize',  [SummarizeController::class, 'handle'])->middleware(['throttle:summarize', 'license.tier:pro']);
     Route::post('/v1/recall/auto-capture', [RecallAutoCaptureController::class, 'handle'])->middleware(['throttle:summarize', 'license.tier:pro']);
-    Route::post('/v1/compliance', [ComplianceController::class, 'handle'])->middleware(['throttle:compliance', 'license.tier:team']);
 });
 
 // Team Jira config: Pro+ CLI users — non-secret Jira config shared across the team

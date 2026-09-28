@@ -84,7 +84,6 @@ All console routes require session authentication. The owner panel requires `is_
 /console/schedules                  Digest scheduling (Pro+)
 /console/digests                    Digest history (Pro+)
 /console/summarize                  AI summarization (Pro+)
-/console/compliance                 Compliance checker (Pro+)
 /console/export                     Data export (Pro+)
 
 # Team

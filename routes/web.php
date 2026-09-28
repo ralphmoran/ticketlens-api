@@ -133,8 +133,6 @@ Route::prefix('console')->name('console.')->group(function () {
             ->middleware('permission:Digests')->name('digest-history');
         Route::get('/summarize', [\App\Http\Controllers\Console\SummarizeController::class, 'index'])
             ->middleware('permission:Summarize')->name('summarize');
-        Route::get('/compliance', [\App\Http\Controllers\Console\ComplianceController::class, 'index'])
-            ->middleware('permission:Compliance')->name('compliance');
         Route::get('/export', [\App\Http\Controllers\Console\ExportController::class, 'index'])
             ->middleware('permission:Export')->name('export');
 

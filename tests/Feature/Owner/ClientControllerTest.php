@@ -153,6 +153,30 @@ class ClientControllerTest extends TestCase
         );
     }
 
+    /** Backlog #47: /console/compliance and /v1/compliance were removed as dead code — the
+     *  "compliance" Feature row must not be offered as a grantable toggle any more. */
+    public function test_show_excludes_compliance_feature_from_grant_dropdown(): void
+    {
+        $owner  = $this->makeOwner();
+        $client = $this->makeClient();
+        \App\Models\Feature::create(['name' => 'schedules',  'bit_value' => 1, 'label' => 'Schedules',   'sort_order' => 10]);
+        \App\Models\Feature::create(['name' => 'compliance', 'bit_value' => 8, 'label' => 'Compliance',  'sort_order' => 40]);
+
+        $response = $this->actingAs($owner)->get("/console/owner/clients/{$client->id}");
+
+        $schedulesFeature  = \App\Models\Feature::where('name', 'schedules')->firstOrFail();
+        $complianceFeature = \App\Models\Feature::where('name', 'compliance')->firstOrFail();
+
+        $response->assertInertia(fn ($page) => $page
+            ->component('Console/Owner/Clients/Show')
+            ->where('features', function ($features) use ($schedulesFeature, $complianceFeature) {
+                $ids = collect($features)->pluck('id');
+                return $ids->contains($schedulesFeature->id)
+                    && ! $ids->contains($complianceFeature->id);
+            })
+        );
+    }
+
     // --- Update (tier / permissions) ---
 
     public function test_owner_can_update_client_tier(): void

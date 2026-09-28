@@ -91,7 +91,7 @@ class ClientController extends Controller
         return Inertia::render('Console/Owner/Clients/Show', [
             'client'   => $user,
             'features' => Feature::orderBy('sort_order')
-                ->whereNotIn('name', ['team_manage_members', 'team_manage_seats'])
+                ->whereNotIn('name', ['team_manage_members', 'team_manage_seats', 'compliance'])
                 ->get(['id', 'label', 'bit_value', 'description']),
             'grants'   => UserFeatureGrant::where('user_id', $user->id)
                 ->active()

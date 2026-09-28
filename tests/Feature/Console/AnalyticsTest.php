@@ -51,6 +51,29 @@ class AnalyticsTest extends TestCase
         );
     }
 
+    // ── LOCK: active-CLI-only user has zero AI stats (drives the scope banner) ─
+
+    public function test_pro_tier_user_with_only_cli_rows_has_zero_stats(): void
+    {
+        $user = User::factory()->create(['tier' => 'pro', 'permissions' => 71]);
+        \Illuminate\Support\Facades\DB::table('usage_logs')->insert([
+            'user_id'     => $user->id,
+            'action'      => 'fetch',
+            'ticket_key'  => null,
+            'tokens_used' => 9999,
+            'metadata'    => json_encode(['count' => 1, 'flags' => []]),
+            'created_at'  => now(),
+        ]);
+
+        $response = $this->actingAs($user)->get('/console/analytics');
+
+        $response->assertInertia(fn ($page) => $page
+            ->where('stats.totalTokens', 0)
+            ->where('stats.totalCalls', 0)
+            ->where('daily', [])
+        );
+    }
+
     // ── LOCK: BYOK rows (metadata null) still counted in totalTokens ──────────
 
     public function test_lock_byok_rows_counted_in_total_tokens(): void

@@ -143,6 +143,20 @@ const actionOptions = { indexAxis: 'y', scales: { x: { beginAtZero: true }, y: {
         <!-- PRO+ TIER: real data -->
         <template v-else>
 
+            <!-- Scope notice: shown only when zero AI-provider usage exists at all -->
+            <div v-if="stats.totalCalls === 0" class="tl-banner tl-banner--info tl-section-gap">
+                <TlIcon name="info" class="tl-ic tl-banner-icon" />
+                <div>
+                    <p class="tl-banner-title">No AI-provider usage yet</p>
+                    <p class="tl-banner-text" v-if="is_owner_view">
+                        Analytics tracks AI provider usage across your clients (summarize, consensus, compliance) — not general CLI activity like <code class="tl-mono">fetch</code> or <code class="tl-mono">triage --push</code>.
+                    </p>
+                    <p class="tl-banner-text" v-else>
+                        Analytics tracks AI provider usage only — not general CLI activity like <code class="tl-mono">fetch</code> or <code class="tl-mono">triage --push</code>. Run <code class="tl-mono">--summarize</code> or <code class="tl-mono">--consensus</code> to see data here.
+                    </p>
+                </div>
+            </div>
+
             <!-- Stat cards -->
             <div class="tl-grid-3 tl-section-gap">
 

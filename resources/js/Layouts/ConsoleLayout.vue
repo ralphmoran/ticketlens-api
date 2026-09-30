@@ -240,7 +240,6 @@ const navGroups = computed(() => [
     {
         label: 'Overview',
         collapseIcon: 'dashboard',
-        requiresTeamManager: false,
         items: [
             { label: 'Dashboard',       href: '/console/dashboard',             permission: null, icon: 'dashboard' },
             { label: 'Analytics',       href: '/console/analytics',             permission: null, icon: 'chart-bar' },
@@ -251,7 +250,6 @@ const navGroups = computed(() => [
     {
         label: 'Workflow',
         collapseIcon: 'calendar',
-        requiresTeamManager: false,
         items: [
             { label: 'Schedules',      href: '/console/schedules',      permission: Permission.Schedules,  icon: 'calendar' },
             { label: 'Digest History', href: '/console/digest-history', permission: Permission.Digests,    icon: 'inbox' },
@@ -263,7 +261,6 @@ const navGroups = computed(() => [
     {
         label: 'Team',
         collapseIcon: 'users',
-        requiresTeamManager: false,
         items: [
             { label: 'Queue', href: '/console/queue', permission: Permission.AttentionQueue, icon: 'layers' },
             { label: 'Team',  href: '/console/team',  permission: Permission.MultiAccount,  icon: 'users' },
@@ -272,12 +269,10 @@ const navGroups = computed(() => [
     {
         label: 'Admin',
         collapseIcon: 'sliders',
-        requiresTeamManager: false,
-        requiresTeamOrLead: true,
         items: [
-            { label: 'Team Health',          href: '/console/admin/team-health',          icon: 'heart-pulse',      managerOnly: false, ownerExcluded: false, permission: null },
+            { label: 'Team Health',          href: '/console/admin/team-health',          icon: 'heart-pulse',      managerOnly: false, ownerExcluded: false, permission: null, requiresTeamOrLead: true },
             { label: 'Recall',               href: '/console/admin/recall',               icon: 'search',           managerOnly: false, ownerExcluded: true,  permission: Permission.Recall },
-            { label: 'Compliance Analytics', href: '/console/admin/compliance-analytics', icon: 'clipboard-check',  managerOnly: false, ownerExcluded: false, permission: null },
+            { label: 'Compliance Analytics', href: '/console/admin/compliance-analytics', icon: 'clipboard-check',  managerOnly: false, ownerExcluded: false, permission: null, requiresTeamOrLead: true },
             { label: 'Members',              href: '/console/admin/members',              icon: 'user-group',       managerOnly: true,  ownerExcluded: true,  permission: Permission.TeamManageMembers },
             { label: 'Alerts',               href: '/console/admin/alerts',               icon: 'bell',             managerOnly: true,  ownerExcluded: false, permission: null },
             { label: 'Digests',              href: '/console/admin/digests',              icon: 'send',             managerOnly: true,  ownerExcluded: false, permission: null },
@@ -318,11 +313,6 @@ const subSidebarPersistent = computed(() =>
 
 const visibleGroups = computed(() =>
     navGroups.value
-        .filter(g => {
-            if (g.requiresTeamManager) return isTeamManager.value
-            if (g.requiresTeamOrLead)  return isOwner.value || isTeamManager.value || isTeamLead.value
-            return true
-        })
         .map(g => ({
             ...g,
             items: g.items.filter(item => {
@@ -330,6 +320,7 @@ const visibleGroups = computed(() =>
                 if (item.managerOnly && !isOwner.value && !isTeamManager.value) return false
                 if (item.paidOnly && !isOwner.value && !isTeamManager.value && !['pro', 'team', 'enterprise'].includes(user.value?.tier)) return false
                 if (item.requiresTeamContext && !isOwner.value && !isTeamManager.value && !isTeamLead.value) return false
+                if (item.requiresTeamOrLead && !isOwner.value && !isTeamManager.value && !isTeamLead.value) return false
                 return item.permission === null || isOwner.value || can(item.permission)
             })
         }))

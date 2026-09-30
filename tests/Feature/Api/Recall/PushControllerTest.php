@@ -23,11 +23,11 @@ class PushControllerTest extends TestCase
         UserFeatureGrant::create(['user_id' => $user->id, 'feature_id' => $feature->id, 'granted_by' => $grantedBy->id]);
     }
 
-    private function makeEntitledUserWithToken(): array
+    private function makeEntitledUserWithToken(string $tier = 'pro'): array
     {
         $owner = User::factory()->create(['is_owner' => true]);
         $group = Group::create(['name' => 'T', 'owner_id' => $owner->id]);
-        $user  = User::factory()->create(['tier' => 'pro']);
+        $user  = User::factory()->create(['tier' => $tier]);
         $group->users()->attach($user->id);
         $this->grantRecall($user, $owner);
 
@@ -431,6 +431,39 @@ class PushControllerTest extends TestCase
         ]));
 
         $response->assertStatus(422);
+        $this->assertSame(0, RecallNote::count());
+    }
+
+    public function test_a_paid_user_can_push_more_than_20_attachments(): void
+    {
+        [, $token] = $this->makeEntitledUserWithToken('team');
+
+        $response = $this->withToken($token)->postJson('/v1/recall/push', $this->validPayload([
+            'attachments' => array_fill(0, 25, $this->attachmentPayload('a.txt', 'x')),
+        ]));
+
+        $response->assertStatus(200)->assertJson(['attachments' => 25]);
+    }
+
+    public function test_a_free_user_pushing_11_attachments_gets_422_and_nothing_is_persisted(): void
+    {
+        [, $token] = $this->makeEntitledUserWithToken('free');
+
+        $response = $this->withToken($token)->postJson('/v1/recall/push', $this->validPayload([
+            'attachments' => array_fill(0, 11, $this->attachmentPayload('a.txt', 'x')),
+        ]));
+
+        $response->assertStatus(422)->assertJsonPath('reason', 'Too many attachments (max 10).');
+        $this->assertSame(0, RecallNote::count());
+    }
+
+    public function test_more_than_50_attachments_is_rejected_by_request_validation_for_any_tier(): void
+    {
+        [, $token] = $this->makeEntitledUserWithToken('enterprise');
+
+        $this->withToken($token)->postJson('/v1/recall/push', $this->validPayload([
+            'attachments' => array_fill(0, 51, $this->attachmentPayload('a.txt', 'x')),
+        ]))->assertStatus(422);
         $this->assertSame(0, RecallNote::count());
     }
 

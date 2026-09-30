@@ -29,6 +29,57 @@ class RecallAttachmentStorageTest extends TestCase
         return ['filename' => $filename, 'content' => base64_encode($content)];
     }
 
+    // ---- tier caps ----
+
+    public function test_max_files_is_10_for_a_free_user(): void
+    {
+        $this->assertSame(10, $this->storage->maxFilesFor(User::factory()->make(['tier' => 'free'])));
+    }
+
+    public function test_max_files_is_50_for_every_paid_tier(): void
+    {
+        foreach (['pro', 'team', 'enterprise'] as $tier) {
+            $this->assertSame(50, $this->storage->maxFilesFor(User::factory()->make(['tier' => $tier])), $tier);
+        }
+    }
+
+    public function test_max_files_falls_back_to_the_free_cap_without_a_user(): void
+    {
+        $this->assertSame(10, $this->storage->maxFilesFor(null));
+    }
+
+    public function test_rejects_an_11th_file_for_a_free_user(): void
+    {
+        $files = array_fill(0, 11, $this->raw('a.txt', 'x'));
+
+        $this->expectException(RecallAttachmentException::class);
+        $this->expectExceptionMessage('max 10');
+        $this->storage->decode($files, User::factory()->make(['tier' => 'free']));
+    }
+
+    public function test_accepts_exactly_10_files_for_a_free_user(): void
+    {
+        $files = array_fill(0, 10, $this->raw('a.txt', 'x'));
+
+        $this->assertCount(10, $this->storage->decode($files, User::factory()->make(['tier' => 'free'])));
+    }
+
+    public function test_accepts_50_files_for_a_paid_user(): void
+    {
+        $files = array_fill(0, 50, $this->raw('a.txt', 'x'));
+
+        $this->assertCount(50, $this->storage->decode($files, User::factory()->make(['tier' => 'pro'])));
+    }
+
+    public function test_rejects_a_51st_file_for_a_paid_user(): void
+    {
+        $files = array_fill(0, 51, $this->raw('a.txt', 'x'));
+
+        $this->expectException(RecallAttachmentException::class);
+        $this->expectExceptionMessage('max 50');
+        $this->storage->decode($files, User::factory()->make(['tier' => 'enterprise']));
+    }
+
     // ---- decode() ----
 
     public function test_decodes_a_valid_attachment(): void

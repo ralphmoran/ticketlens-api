@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Exceptions\RecallAttachmentException;
 use App\Models\RecallNote;
 use App\Models\RecallNoteAttachment;
+use App\Models\User;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
@@ -28,17 +29,26 @@ class RecallAttachmentStorage
     // can still save locally up to the CLI's full 50MB/call cap — only
     // syncing it to Console is capped here.
     public const MAX_TOTAL_BYTES = 12 * 1024 * 1024;
-    public const MAX_FILES = 20;
+    // Per-call file-count caps by tier — mirrors the CLI's attachment-caps.mjs.
+    public const FREE_MAX_FILES = 10;
+    public const PAID_MAX_FILES = 50;
+    private const PAID_TIERS    = ['pro', 'team', 'enterprise'];
+
+    public function maxFilesFor(?User $user): int
+    {
+        return in_array($user?->tier, self::PAID_TIERS, true) ? self::PAID_MAX_FILES : self::FREE_MAX_FILES;
+    }
 
     /**
      * @param array<int, array{filename: string, content: string}> $rawAttachments content is base64
      * @return array<int, array{filename: string, bytes: string, mime: string, isText: bool}>
      * @throws RecallAttachmentException
      */
-    public function decode(array $rawAttachments): array
+    public function decode(array $rawAttachments, ?User $user = null): array
     {
-        if (count($rawAttachments) > self::MAX_FILES) {
-            throw new RecallAttachmentException('Too many attachments (max ' . self::MAX_FILES . ').');
+        $maxFiles = $this->maxFilesFor($user);
+        if (count($rawAttachments) > $maxFiles) {
+            throw new RecallAttachmentException("Too many attachments (max {$maxFiles}).");
         }
 
         $decoded    = [];

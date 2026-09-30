@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Recall;
 
 use App\Rules\ValidUtf8;
+use App\Services\RecallAttachmentStorage;
 use Illuminate\Foundation\Http\FormRequest;
 
 class PushRequest extends FormRequest
@@ -49,11 +50,12 @@ class PushRequest extends FormRequest
             // into null before validation runs.
             'group_id'    => ['sometimes', 'nullable', 'integer'],
             // Shape-only here — exact byte-size/count caps (10MB/file, 50MB
-            // total, 20 files) are enforced by RecallAttachmentStorage after
-            // base64 decoding, since a validated string length doesn't map
-            // 1:1 to decoded byte size. max:20 here still bounds the array
-            // itself cheaply, before any decoding work happens.
-            'attachments'            => ['sometimes', 'array', 'max:20'],
+            // total, tier file cap: Free 10 / Pro+ 50) are enforced by
+            // RecallAttachmentStorage after base64 decoding, since a validated
+            // string length doesn't map 1:1 to decoded byte size. max:50 here is
+            // the highest tier cap — it still bounds the array itself cheaply,
+            // before any decoding work happens.
+            'attachments'            => ['sometimes', 'array', 'max:' . RecallAttachmentStorage::PAID_MAX_FILES],
             'attachments.*.filename' => ['required_with:attachments', 'string', 'max:255'],
             'attachments.*.content'  => ['required_with:attachments', 'string'],
         ];

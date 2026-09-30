@@ -32,7 +32,7 @@ class PushController
         }
 
         try {
-            $decodedAttachments = $attachmentStorage->decode($request->validated('attachments') ?? []);
+            $decodedAttachments = $attachmentStorage->decode($request->validated('attachments') ?? [], $user);
         } catch (RecallAttachmentException $e) {
             return response()->json(['error' => 'Invalid attachment', 'reason' => $e->getMessage()], 422);
         }

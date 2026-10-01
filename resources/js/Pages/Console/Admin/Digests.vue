@@ -3,9 +3,12 @@ import { ref, computed } from 'vue'
 import { router, Link } from '@inertiajs/vue3'
 import { useConfirm } from '@/composables/useConfirm'
 import ConsoleLayout from '@/Layouts/ConsoleLayout.vue'
+import { useLiveReload } from '@/composables/useLiveReload'
 import TlIcon from '@/components/TlIcon.vue'
 
 defineOptions({ layout: ConsoleLayout })
+
+useLiveReload(['digest.changed'])
 
 const props = defineProps({
     group:           { type: Object, default: null },

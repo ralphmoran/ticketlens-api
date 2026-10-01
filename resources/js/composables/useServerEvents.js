@@ -2,6 +2,16 @@ import { onMounted, onUnmounted, watch } from 'vue'
 import { usePage } from '@inertiajs/vue3'
 import { useEventsStore } from '@/stores/events'
 
+// Must mirror SseEventService::EVENT_MAP — LiveStoreWiringTest fails when they drift.
+const EVENT_TYPES = [
+    'rule.changed',
+    'triage.pushed',
+    'notification.updated',
+    'members.changed',
+    'digest.changed',
+    'usage.recorded',
+]
+
 export function useServerEvents() {
     const page        = usePage()
     const store       = useEventsStore()
@@ -22,9 +32,9 @@ export function useServerEvents() {
 
         channelName = `group.${groupId}`
         channel     = window.Echo.private(channelName)
-            .listen('.rule.changed',         (e) => store.dispatch({ type: 'rule.changed',         data: e }))
-            .listen('.triage.pushed',        (e) => store.dispatch({ type: 'triage.pushed',        data: e }))
-            .listen('.notification.updated', (e) => store.dispatch({ type: 'notification.updated', data: e }))
+        for (const type of EVENT_TYPES) {
+            channel.listen(`.${type}`, (e) => store.dispatch({ type, data: e }))
+        }
     }
 
     function unsubscribe() {

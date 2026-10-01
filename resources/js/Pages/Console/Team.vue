@@ -1,11 +1,14 @@
 <script setup>
 import ConsoleLayout from '@/Layouts/ConsoleLayout.vue'
+import { useLiveReload } from '@/composables/useLiveReload'
 import TlIcon from '@/components/TlIcon.vue'
 import { computed, ref } from 'vue'
 import { Link } from '@inertiajs/vue3'
 import { timeAgo } from '@/composables/useDateFormat'
 
 defineOptions({ layout: ConsoleLayout })
+
+useLiveReload(['triage.pushed', 'members.changed'])
 
 const props = defineProps({
     groups:   { type: Array,   default: () => [] },

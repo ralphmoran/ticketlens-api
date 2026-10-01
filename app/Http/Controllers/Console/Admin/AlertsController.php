@@ -9,6 +9,7 @@ use App\Models\Group;
 use App\Models\SlackDigestSchedule;
 use App\Models\SlackIntegration;
 use App\Services\SlackService;
+use App\Services\SseEventService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -345,6 +346,8 @@ class AlertsController extends Controller
             ]);
         }
 
+        app(SseEventService::class)->publish($group->id, 'digest.changed', []);
+
         return $this->redirectToAlerts($request);
     }
 
@@ -353,6 +356,7 @@ class AlertsController extends Controller
         $this->authorizeDigestSchedule($request, $digestSchedule);
         $validated = $request->validate(['active' => ['required', 'boolean']]);
         $digestSchedule->update(['active' => $validated['active']]);
+        app(SseEventService::class)->publish($digestSchedule->group_id, 'digest.changed', []);
         return $this->redirectToAlerts($request);
     }
 
@@ -360,6 +364,7 @@ class AlertsController extends Controller
     {
         $this->authorizeDigestSchedule($request, $digestSchedule);
         $digestSchedule->delete();
+        app(SseEventService::class)->publish($digestSchedule->group_id, 'digest.changed', []);
         return $this->redirectToAlerts($request);
     }
 

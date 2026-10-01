@@ -1,11 +1,14 @@
 <script setup>
 import ConsoleLayout from '@/Layouts/ConsoleLayout.vue'
+import { useLiveReload } from '@/composables/useLiveReload'
 import TlIcon from '@/components/TlIcon.vue'
 import TlChart from '@/components/TlChart.vue'
 import { computed } from 'vue'
 import { Link } from '@inertiajs/vue3'
 
 defineOptions({ layout: ConsoleLayout })
+
+useLiveReload(['triage.pushed', 'usage.recorded'])
 
 const props = defineProps({
     tier:          { type: String,  required: true },

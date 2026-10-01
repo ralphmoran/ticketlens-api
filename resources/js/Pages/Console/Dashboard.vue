@@ -1,5 +1,6 @@
 <script setup>
 import ConsoleLayout from '@/Layouts/ConsoleLayout.vue'
+import { useLiveReload } from '@/composables/useLiveReload'
 import TlIcon from '@/components/TlIcon.vue'
 import TlChart from '@/components/TlChart.vue'
 import { usePermissions } from '@/composables/usePermissions'
@@ -9,6 +10,8 @@ import { Permission } from '@/permissions'
 import { timeAgo } from '@/composables/useDateFormat'
 
 defineOptions({ layout: ConsoleLayout })
+
+useLiveReload(['triage.pushed', 'members.changed'])
 
 const props = defineProps({
     stats:                  { type: Object, default: () => ({}) },

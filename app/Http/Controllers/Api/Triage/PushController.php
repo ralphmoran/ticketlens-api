@@ -69,11 +69,6 @@ class PushController
         EvaluateAlertsJob::dispatch($user->id, $snapshot->id);
         EvaluateCustomNotifyRulesJob::dispatch($user->id, $snapshot->id);
 
-        $group = $user->ownedGroup ?? $user->groups()->first();
-        if ($group !== null) {
-            app(\App\Services\SseEventService::class)->publish($group->id, 'triage.pushed', ['ticket_count' => $ticketCount]);
-        }
-
         $commands = $request->input('cli_activity.commands', []);
         if (!empty($commands)) {
             $now  = now();
@@ -98,6 +93,12 @@ class PushController
                 ];
             }
             DB::table('usage_logs')->insert($rows);
+        }
+
+        // After the usage_logs insert: a page reloading on this event must see every row it announces.
+        $group = $user->ownedGroup ?? $user->groups()->first();
+        if ($group !== null) {
+            app(\App\Services\SseEventService::class)->publish($group->id, 'triage.pushed', ['ticket_count' => $ticketCount]);
         }
 
         return response()->json(['pushed' => true, 'ticket_count' => $ticketCount]);

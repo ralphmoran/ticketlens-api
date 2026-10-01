@@ -5,11 +5,13 @@ namespace App\Http\Controllers\Console\Admin;
 use App\Enums\Permission;
 use App\Exceptions\SeatLimitReached;
 use App\Http\Controllers\Controller;
+use App\Models\Group;
 use App\Models\License;
 use App\Models\User;
 use App\Services\AuditService;
 use App\Services\LicenseIssuanceService;
 use App\Services\MembersService;
+use App\Services\SseEventService;
 use App\Services\TeamAccessService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -43,6 +45,8 @@ class MembersController extends Controller
         } catch (SeatLimitReached $e) {
             return back()->withErrors(['email' => $e->getMessage()]);
         }
+
+        $this->announceMembersChanged($request->user()->ownedGroup);
 
         return back();
     }
@@ -116,6 +120,8 @@ class MembersController extends Controller
             metadata: ['group_id' => $group->id, 'role' => $validated['role']],
         );
 
+        $this->announceMembersChanged($group);
+
         return back();
     }
 
@@ -159,6 +165,8 @@ class MembersController extends Controller
             target: $user,
             metadata: ['group_id' => $group->id],
         );
+
+        $this->announceMembersChanged($group);
 
         return back();
     }
@@ -228,6 +236,14 @@ class MembersController extends Controller
             metadata: ['group_id' => $group->id, 'from_user_id' => $manager->id],
         );
 
+        $this->announceMembersChanged($group);
+
         return redirect()->route('console.dashboard');
+    }
+
+    // Always after the write has committed, so a page reloading on the event sees the new roster.
+    private function announceMembersChanged(Group $group): void
+    {
+        app(SseEventService::class)->publish($group->id, 'members.changed', []);
     }
 }

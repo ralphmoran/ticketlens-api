@@ -1,11 +1,14 @@
 <script setup>
 import ConsoleLayout from '@/Layouts/ConsoleLayout.vue'
+import { useLiveReload } from '@/composables/useLiveReload'
 import TlIcon from '@/components/TlIcon.vue'
 import { router, useForm, usePage } from '@inertiajs/vue3'
 import { formatDate } from '@/composables/useDateFormat'
 import { useConfirm } from '@/composables/useConfirm'
 
 defineOptions({ layout: ConsoleLayout })
+
+useLiveReload(['members.changed'])
 
 const props = defineProps({
     group:       Object,

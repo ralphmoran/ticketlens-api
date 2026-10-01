@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Console;
 
 use App\Models\TriageSnapshot;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -32,10 +33,16 @@ class TeamController
                     'id'           => $u->id,
                     'name'         => $u->name,
                     'email'        => $u->email,
-                    'last_push'    => $lastPushByUser->get($u->id)?->last_push,
+                    'last_push'    => $this->toInstant($lastPushByUser->get($u->id)?->last_push),
                     'ticket_count' => $lastPushByUser->get($u->id)?->ticket_count ?? 0,
                 ]),
             ]),
         ]);
+    }
+
+    // MAX() returns a bare "Y-m-d H:i:s"; JS reads that as browser-local time. Send an unambiguous instant.
+    private function toInstant(?string $raw): ?string
+    {
+        return $raw === null ? null : Carbon::parse($raw)->toIso8601String();
     }
 }

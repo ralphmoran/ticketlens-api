@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\SseEventService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -38,12 +39,16 @@ class UsageLog extends Model
      */
     public static function recordAiAction(User $user, string $action, ?string $ticketKey, int $tokens): self
     {
-        return static::create([
+        $row = static::create([
             'user_id'     => $user->id,
             'action'      => $action,
             'ticket_key'  => $ticketKey,
             'tokens_used' => $tokens,
             'metadata'    => null,
         ]);
+
+        app(SseEventService::class)->publishToUserGroups($user, 'usage.recorded');
+
+        return $row;
     }
 }

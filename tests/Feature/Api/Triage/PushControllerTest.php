@@ -722,4 +722,30 @@ class PushControllerTest extends TestCase
 
         $this->assertSame(1, $complianceLog->command_count);
     }
+    // ── LIVE STORE: triage.pushed must not announce rows that are not written yet ──
+
+    public function test_triage_pushed_is_published_after_the_cli_usage_rows_exist(): void
+    {
+        [$user, $token] = $this->makeUserWithToken();
+        $group = Group::create(['name' => "Team {$user->id}", 'owner_id' => $user->id]);
+        $group->members()->attach($user->id);
+
+        // The default test driver (pusher) throws before listeners run; 'null' lets the dispatch reach them.
+        config(['broadcasting.default' => 'null']);
+        app(\Illuminate\Broadcasting\BroadcastManager::class)->purge();
+
+        $rowsWhenAnnounced = null;
+        \Illuminate\Support\Facades\Event::listen(
+            \App\Events\TriagePushed::class,
+            function () use (&$rowsWhenAnnounced) {
+                $rowsWhenAnnounced = \Illuminate\Support\Facades\DB::table('usage_logs')->count();
+            },
+        );
+
+        $this->withToken($token)->postJson('/v1/triage/push', $this->validPayload([
+            'cli_activity' => ['commands' => ['fetch' => ['count' => 2, 'tokens_saved' => 10]]],
+        ]))->assertStatus(200);
+
+        $this->assertSame(1, $rowsWhenAnnounced, 'a reload triggered by the event must already see the usage row');
+    }
 }

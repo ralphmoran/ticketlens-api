@@ -40,4 +40,63 @@ class TeamTest extends TestCase
             ->has('groups')
         );
     }
+
+    // --- last_push must be an unambiguous instant: a bare "Y-m-d H:i:s" is parsed as browser-local
+    //     time by JS, which showed "-25199s ago" (UTC data read as PDT, 7h in the future) ---
+
+    private function teamWithOnePush(\Illuminate\Support\Carbon $capturedAt): array
+    {
+        $user  = User::factory()->create(['tier' => 'team', 'permissions' => 127]);
+        $group = \App\Models\Group::create(['name' => "Team {$user->id}", 'owner_id' => $user->id]);
+        $group->members()->attach($user->id);
+        \App\Models\TriageSnapshot::create([
+            'user_id' => $user->id, 'profile' => 'production', 'tickets' => [],
+            'ticket_count' => 4, 'captured_at' => $capturedAt,
+        ]);
+
+        return [$user, $capturedAt];
+    }
+
+    public function test_last_push_is_an_iso8601_instant_with_an_explicit_offset(): void
+    {
+        [$user] = $this->teamWithOnePush(now()->subMinutes(5));
+
+        $this->actingAs($user)->get('/console/team')->assertInertia(fn ($page) => $page
+            ->where('groups.0.members.0.last_push', fn ($v) => preg_match('/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})$/', $v) === 1)
+        );
+    }
+
+    public function test_last_push_is_the_same_instant_that_was_stored(): void
+    {
+        [$user, $capturedAt] = $this->teamWithOnePush(now()->subHours(3)->startOfSecond());
+
+        $this->actingAs($user)->get('/console/team')->assertInertia(fn ($page) => $page
+            ->where('groups.0.members.0.last_push', fn ($v) => \Illuminate\Support\Carbon::parse($v)->equalTo($capturedAt))
+        );
+    }
+
+    public function test_last_push_is_null_for_a_member_who_never_pushed(): void
+    {
+        $user  = User::factory()->create(['tier' => 'team', 'permissions' => 127]);
+        $group = \App\Models\Group::create(['name' => "Team {$user->id}", 'owner_id' => $user->id]);
+        $group->members()->attach($user->id);
+
+        $this->actingAs($user)->get('/console/team')->assertInertia(fn ($page) => $page
+            ->where('groups.0.members.0.last_push', null)
+            ->where('groups.0.members.0.ticket_count', 0)
+        );
+    }
+
+    public function test_last_push_reports_the_newest_snapshot(): void
+    {
+        [$user] = $this->teamWithOnePush(now()->subDays(2)->startOfSecond());
+        $newest = now()->subMinutes(1)->startOfSecond();
+        \App\Models\TriageSnapshot::create([
+            'user_id' => $user->id, 'profile' => 'staging', 'tickets' => [], 'ticket_count' => 1, 'captured_at' => $newest,
+        ]);
+
+        $this->actingAs($user)->get('/console/team')->assertInertia(fn ($page) => $page
+            ->where('groups.0.members.0.last_push', fn ($v) => \Illuminate\Support\Carbon::parse($v)->equalTo($newest))
+        );
+    }
 }

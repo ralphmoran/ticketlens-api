@@ -52,6 +52,11 @@ Route::prefix('console')->name('console.')->group(function () {
         ->name('logout')
         ->middleware('auth');
 
+    // Idle-warning modal pings this to slide the session lifetime; the request itself is the refresh.
+    Route::post('/session/keepalive', fn () => response()->noContent())
+        ->name('session.keepalive')
+        ->middleware(['auth', 'throttle:30,1']);
+
     // Suspended account page (public — user is logged out before redirect)
     Route::get('/suspended', fn () => inertia('Console/Suspended'))->name('suspended');
 

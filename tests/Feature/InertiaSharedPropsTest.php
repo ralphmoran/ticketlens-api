@@ -27,6 +27,7 @@ class InertiaSharedPropsTest extends TestCase
         'impersonating',
         'group_id',
         'can',
+        'session_lifetime',
     ];
 
     public function test_auth_shared_props_expose_the_locked_key_set(): void

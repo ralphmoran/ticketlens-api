@@ -107,6 +107,7 @@ class HandleInertiaRequests extends Middleware
                 'impersonating'        => $impersonating,
                 'group_id'             => $groupId,
                 'can'                  => $can,
+                'session_lifetime'     => $user ? (int) config('session.lifetime') * 60 : null,
             ],
         ]);
     }

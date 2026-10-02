@@ -5,14 +5,17 @@ import axios from 'axios'
 import { usePermissions } from '../composables/usePermissions'
 import { useServerEvents } from '../composables/useServerEvents'
 import { useSkipSameUrl } from '../composables/useSkipSameUrl'
+import { useSessionGuard } from '../composables/useSessionGuard'
 import { useEventsStore } from '../stores/events'
 import { Permission } from '../permissions'
 import TlIcon from '../components/TlIcon.vue'
 import TlConfirmModal from '../components/TlConfirmModal.vue'
 import TlToastStack from '../components/TlToastStack.vue'
+import TlSessionModal from '../components/TlSessionModal.vue'
 import TlRuleBanner from '../components/TlRuleBanner.vue'
 
 useServerEvents()
+const session = useSessionGuard()
 const eventsStore = useEventsStore()
 
 const page = usePage()
@@ -1172,4 +1175,11 @@ onUnmounted(() => {
     </div>
 
     <TlConfirmModal />
+    <TlSessionModal
+        :visible="session.visible.value"
+        :message="session.message.value"
+        :seconds-left="session.secondsLeft"
+        @stay="session.stay"
+        @logout="session.logout"
+    />
 </template>

@@ -15,12 +15,17 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\Storage;
 
-#[Fillable(['name', 'email', 'phone', 'password', 'suspended_at', 'anthropic_key', 'openai_key', 'avatar_path', 'triage_sort_preference'])]
+#[Fillable(['name', 'email', 'phone', 'password', 'suspended_at', 'anthropic_key', 'openai_key', 'avatar_path', 'triage_sort_preference', 'idle_warning_minutes', 'session_message_style'])]
 #[Hidden(['password', 'remember_token', 'anthropic_key', 'openai_key'])]
 class User extends Authenticatable implements MustVerifyEmail
 {
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable, SoftDeletes;
+
+    /** Minutes of inactivity before the Console idle-warning modal appears. */
+    public const IDLE_WARNING_CHOICES = [5, 10, 60];
+
+    public const SESSION_MESSAGE_STYLES = ['playful', 'plain'];
 
     protected static function booted(): void
     {
@@ -65,6 +70,7 @@ class User extends Authenticatable implements MustVerifyEmail
     protected function casts(): array
     {
         return [
+            'idle_warning_minutes' => 'integer',
             'email_verified_at' => 'datetime',
             'password'          => 'hashed',
             'permissions'       => 'integer',

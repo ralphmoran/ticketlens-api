@@ -12,9 +12,17 @@ export const SESSION_MESSAGES = [
     "Lunch break? We'll keep your seat warm. Briefly.",
 ]
 
-export function pickSessionMessage(random = Math.random) {
-    const index = Math.floor(random() * SESSION_MESSAGES.length)
-    if (!Number.isFinite(index)) return SESSION_MESSAGES[0]
+// Neutral tone, for users who set the modal style to "plain".
+export const PLAIN_SESSION_MESSAGES = [
+    'You have been inactive. Your session is about to expire.',
+    'Your session will expire soon due to inactivity.',
+    'Still working? Stay signed in to keep your session.',
+]
 
-    return SESSION_MESSAGES[Math.min(Math.max(index, 0), SESSION_MESSAGES.length - 1)]
+export function pickSessionMessage(random = Math.random, style = 'playful') {
+    const pool  = style === 'plain' ? PLAIN_SESSION_MESSAGES : SESSION_MESSAGES
+    const index = Math.floor(random() * pool.length)
+    if (!Number.isFinite(index)) return pool[0]
+
+    return pool[Math.min(Math.max(index, 0), pool.length - 1)]
 }

@@ -112,6 +112,10 @@ Route::prefix('console')->name('console.')->group(function () {
         Route::post('/account/avatar', [\App\Http\Controllers\Console\AccountController::class, 'updateAvatar'])->name('account.avatar.update')->middleware('throttle:10,1');
         Route::delete('/account/avatar', [\App\Http\Controllers\Console\AccountController::class, 'destroyAvatar'])->name('account.avatar.destroy')->middleware('throttle:10,1');
 
+        // Behavior — per-user Console preferences (idle-warning timing, modal tone), all tiers
+        Route::get('/behavior', [\App\Http\Controllers\Console\BehaviorController::class, 'index'])->name('behavior');
+        Route::patch('/behavior', [\App\Http\Controllers\Console\BehaviorController::class, 'update'])->name('behavior.update')->middleware('throttle:10,1');
+
         // Connections — tracker profile management, all tiers
         $connCtrl = \App\Http\Controllers\Console\ConnectionsController::class;
         Route::get('/connections',                     [$connCtrl, 'index'])->name('connections');

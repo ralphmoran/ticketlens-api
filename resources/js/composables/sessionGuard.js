@@ -3,6 +3,21 @@ export const TOUCH_THROTTLE_MS = 5 * 60_000
 
 const noop = () => {}
 
+// Guard timing for one user. Without a (usable) idle-warning setting the guard follows the
+// server session. With one, the warning appears after that many idle minutes and expiry is
+// the client's call (`clientIdle`), since the server session is still alive by then. A
+// setting that would outlive the server session is ignored: the server deadline wins.
+export function resolveSessionTiming({ serverLifetimeSec, idleWarningMinutes } = {}) {
+    if (!Number.isFinite(serverLifetimeSec) || serverLifetimeSec <= 0) return null
+
+    const server = { lifetimeMs: serverLifetimeSec * 1000, clientIdle: false }
+    if (!Number.isInteger(idleWarningMinutes) || idleWarningMinutes <= 0) return server
+
+    const lifetimeMs = idleWarningMinutes * 60_000 + WARN_LEAD_MS
+
+    return lifetimeMs < server.lifetimeMs ? { lifetimeMs, clientIdle: true } : server
+}
+
 // Pure idle-session state machine, driven by an injectable clock. The server session
 // slides: every request restarts `lifetimeMs`, so the deadline is the last server touch
 // plus the lifetime. Activity pings the server (throttled) to keep that deadline ahead of

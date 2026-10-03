@@ -1,10 +1,11 @@
-import { onMounted, onUnmounted, ref } from 'vue'
+import { onMounted, onUnmounted, ref, watch } from 'vue'
 import { usePage, router } from '@inertiajs/vue3'
 import axios from 'axios'
-import { createSessionGuard } from './sessionGuard'
+import { createSessionGuard, resolveSessionTiming } from './sessionGuard'
 import { pickSessionMessage } from './sessionMessages'
 
 const TOUCH_KEY       = 'tl:session-touch'
+const SETTING_KEY     = 'tl:idle-setting'
 const LOGIN_URL       = '/console/login'
 const LOGOUT_URL      = '/console/logout'
 const KEEPALIVE_URL   = '/console/session/keepalive'
@@ -15,6 +16,11 @@ const ACTIVITY_EVENTS = ['pointerdown', 'pointermove', 'keydown', 'wheel', 'touc
 // localStorage can throw (private mode, blocked site data); the cross-tab sync is a bonus.
 function broadcastTouch() {
     try { localStorage.setItem(TOUCH_KEY, String(Date.now())) } catch { /* sync is best-effort */ }
+}
+
+// '' (setting cleared) reads back as 0, which resolveSessionTiming treats as "server timing".
+function broadcastSetting(minutes) {
+    try { localStorage.setItem(SETTING_KEY, String(minutes ?? '')) } catch { /* sync is best-effort */ }
 }
 
 // Hard navigation, not an Inertia visit: drops every piece of authenticated client state.
@@ -33,6 +39,7 @@ export function useSessionGuard() {
     let guard    = null
     let timer    = null
     let stopNav  = null
+    let stopSetting = null
 
     function ping() {
         return axios.post(KEEPALIVE_URL, null, { timeout: REQUEST_TIMEOUT_MS }).then(broadcastTouch).catch((error) => {
@@ -56,28 +63,55 @@ export function useSessionGuard() {
     // The countdown only matters while the modal is open; writing it every second would
     // re-render everything that reads it.
     function tick() {
+        if (!guard) return
+
         guard.tick()
         if (visible.value) secondsLeft.value = guard.secondsLeft()
     }
 
-    const onActivity = () => guard.activity()
+    const currentMinutes = () => page.props?.auth?.user?.idle_warning_minutes
+
+    const onActivity = () => guard?.activity()
     const onVisible  = () => { if (!document.hidden) tick() }
-    const onStorage  = (event) => { if (event.key === TOUCH_KEY) guard.serverTouched(Number(event.newValue)) }
+    const onStorage  = (event) => {
+        if (event.key === TOUCH_KEY) guard?.serverTouched(Number(event.newValue))
+        // Another tab saved a new idle setting; this tab's props are stale until its next visit.
+        if (event.key === SETTING_KEY) startGuard(Number(event.newValue))
+    }
 
-    onMounted(() => {
-        const lifetime = page.props?.auth?.session_lifetime
-        if (!Number.isFinite(lifetime) || lifetime <= 0) return
+    // Builds the guard from the server lifetime and the user's idle-warning setting. Returns
+    // false (guard stays null) when the server shared no lifetime. The layout persists across
+    // Inertia visits, so this also re-runs when the setting changes.
+    function startGuard(idleWarningMinutes = currentMinutes()) {
+        const timing = resolveSessionTiming({
+            serverLifetimeSec: page.props?.auth?.session_lifetime,
+            idleWarningMinutes,
+        })
 
-        guard = createSessionGuard({
-            lifetimeMs: lifetime * 1000,
+        visible.value = false
+        guard = timing && createSessionGuard({
+            lifetimeMs: timing.lifetimeMs,
             onTouch:    ping,
             onWarn:     (left) => {
-                message.value     = pickSessionMessage()
+                message.value     = pickSessionMessage(Math.random, page.props?.auth?.user?.session_message_style)
                 secondsLeft.value = Math.ceil(left / 1000)
                 visible.value     = true
             },
             onClear:    () => { visible.value = false },
-            onExpire:   confirmExpiry,
+            // A user-chosen idle limit is shorter than the server session, which is still
+            // alive when it fires: asking the server would just reload. Sign out instead.
+            onExpire:   timing.clientIdle ? logout : confirmExpiry,
+        })
+
+        return guard !== null
+    }
+
+    onMounted(() => {
+        if (!startGuard()) return
+
+        stopSetting = watch(currentMinutes, (minutes) => {
+            broadcastSetting(minutes)
+            startGuard(minutes)
         })
 
         ACTIVITY_EVENTS.forEach((name) => window.addEventListener(name, onActivity, { passive: true }))
@@ -91,6 +125,7 @@ export function useSessionGuard() {
     onUnmounted(() => {
         clearInterval(timer)
         stopNav?.()
+        stopSetting?.()
         ACTIVITY_EVENTS.forEach((name) => window.removeEventListener(name, onActivity))
         document.removeEventListener('visibilitychange', onVisible)
         window.removeEventListener('storage', onStorage)

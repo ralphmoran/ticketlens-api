@@ -13,6 +13,7 @@ import TlConfirmModal from '../components/TlConfirmModal.vue'
 import TlToastStack from '../components/TlToastStack.vue'
 import TlSessionModal from '../components/TlSessionModal.vue'
 import TlRuleBanner from '../components/TlRuleBanner.vue'
+import { iconMidpoint } from '../composables/floatPanel.js'
 
 useServerEvents()
 const session = useSessionGuard()
@@ -49,7 +50,6 @@ const onMqlChange = (e) => { isDesktop.value = e.matches }
 
 const ownerSubOpen  = ref(false)
 let   ownerSubTimer = null
-const ownerIconRef  = ref(null)
 const ownerIconMid  = ref(0)
 
 // ── Nav group accordion (expanded sidebar) ───────────────────────────────────
@@ -142,8 +142,7 @@ function showGroupSub(label, event) {
     // Close the owner panel immediately — prevents overlap
     clearTimeout(ownerSubTimer)
     ownerSubOpen.value = false
-    const rect = event.currentTarget.getBoundingClientRect()
-    const mid  = rect.top + rect.height / 2
+    const mid = iconMidpoint(event)
     groupIconMids.value = { ...groupIconMids.value, [label]: mid }
     // Use the live element if panel is already open (fast icon switching — @enter won't re-fire)
     groupFloatStyle.value = buildFloatStyle(mid, document.getElementById('tl-group-float-panel'))
@@ -196,16 +195,13 @@ function toggleNotificationsDropdown() {
     notificationsDropdownOpen.value = !notificationsDropdownOpen.value
 }
 
-function showOwnerSub() {
+function showOwnerSub(event) {
     clearTimeout(ownerSubTimer)
     // Close any open group panel immediately — prevents overlap
     clearTimeout(groupSubTimer)
     activeGroupKey.value = null
-    if (ownerIconRef.value) {
-        const rect = ownerIconRef.value.getBoundingClientRect()
-        ownerIconMid.value = rect.top + rect.height / 2
-        ownerFloatStyle.value = buildFloatStyle(ownerIconMid.value, null)  // initial estimate; @enter refines
-    }
+    ownerIconMid.value = iconMidpoint(event)
+    ownerFloatStyle.value = buildFloatStyle(ownerIconMid.value, null)  // initial estimate; @enter refines
     ownerSubOpen.value = true
 }
 
@@ -423,7 +419,6 @@ function closeSidebar() {
 
 function handleNavStart() {
     closeSidebar()
-    ownerSubOpen.value = false
 }
 
 const skipSameUrl = useSkipSameUrl(handleNavStart)
@@ -936,7 +931,6 @@ onUnmounted(() => {
                             <li>
                                 <Link
                                     :href="ownerPanelItems[0].href"
-                                    ref="ownerIconRef"
                                     title="Owner Panel"
                                     @start="handleNavStart"
                                     :on-before="skipSameUrl"

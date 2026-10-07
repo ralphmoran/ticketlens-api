@@ -4,7 +4,7 @@
 
 Backend API and web console for [TicketLens](https://github.com/ralphmoran/ticket-lens) — the privacy-first Jira context tool for AI coding workflows.
 
-**Stack:** Laravel 11 · MySQL 8 · Redis · Inertia.js · Vue 3 · Tailwind · Laravel Sail (Docker)
+**Stack:** Laravel 13 (PHP 8.4+) · MySQL 8.4 · Redis · Inertia.js · Vue 3 · Tailwind · Laravel Reverb · Laravel Sail (Docker)
 
 ---
 
@@ -12,7 +12,7 @@ Backend API and web console for [TicketLens](https://github.com/ralphmoran/ticke
 
 | Layer | Purpose |
 |-------|---------|
-| `/v1/*` API | License validation, digest scheduling, email delivery, AI summarization |
+| `/v1/*` API | License activation/validation, CLI profile sync, triage push/share, Recall sync, digest scheduling, AI summarization and consensus |
 | `/console/*` web app | Owner control panel + per-user settings dashboard (Inertia + Vue 3) |
 
 ---
@@ -27,10 +27,11 @@ cp .env.example .env
 php artisan key:generate
 ./vendor/bin/sail up -d
 ./vendor/bin/sail artisan migrate --seed
-./vendor/bin/sail exec laravel.test npm run build
+./vendor/bin/sail artisan db:seed --class=DevSeeder   # test accounts below
+npm install && npm run build                              # on the host, see "Building frontend assets"
 ```
 
-App runs at **http://localhost**. Mailpit (email preview) at **http://localhost:8025**.
+App runs at **http://localhost**. Mailpit (email preview) at **http://localhost:8025**. Live updates need the `reverb` service (WebSocket on port 8080); it comes from `docker-compose.override.yml`, see [`docker/README.md`](docker/README.md).
 
 > Full environment reference and production deployment steps: [`docs/setup-and-deployment.md`](docs/setup-and-deployment.md)
 
@@ -42,9 +43,9 @@ All passwords: `password`. Login at `/console/login`.
 
 | Email | Tier | `is_owner` | Owns group? | Sidebar shows |
 |-------|------|:----------:|:-----------:|---------------|
-| `free@test.local` | free | false | no | Overview |
-| `pro@test.local` | pro | false | no | Overview + Workflow |
-| `team-member@test.local` | team | false | no (seat under manager) | Overview + Workflow + Team |
+| `free@test.local` | free | false | no | Overview (Analytics teaser) |
+| `pro@test.local` | pro | false | no | Overview + Workflow (no Export) + Admin > Brief Templates |
+| `team-member@test.local` | team | false | no (seat under manager) | Overview + Workflow + Team + Admin > Recall, Brief Templates |
 | `team-manager@test.local` | team | false | yes | Overview + Workflow + Team + Admin |
 | `owner@test.local` | team | true | yes | Everything + Owner |
 
@@ -60,7 +61,7 @@ All passwords: `password`. Login at `/console/login`.
 
 Tests use an in-memory SQLite database — no running Sail containers required.
 
-The suite has 1,794 tests (2026-09-21). On a host with PHP's default 128M `memory_limit`, run `php -d memory_limit=512M ./vendor/bin/pest`; the default can exhaust memory.
+The suite has roughly 2,000 test cases across 134 files (counted 2026-10-06). On a host with PHP's default 128M `memory_limit`, run `php -d memory_limit=512M ./vendor/bin/pest`; the default can exhaust memory.
 
 Console JS helpers have Node unit tests in `tests/js/`, using Node's built-in runner and no dependency: `node --test tests/js/*.test.mjs`. `ConsoleNavLinksSkipSameUrlTest` runs `sameUrl.test.mjs` inside the Pest suite, so CI covers it. In CI it fails if `node` is missing.
 
@@ -73,42 +74,69 @@ Console JS helpers have Node unit tests in `tests/js/`, using Node's built-in ru
 All console routes require session authentication. The owner panel requires `is_owner=true`.
 
 ```
-/console/login                      Auth
+/console/login                      Auth (register, forgot/reset password, email verify)
+/console/auth/cli                   CLI login authorization
 
 # Overview
 /console/dashboard                  Dashboard with trial grant notices
-/console/analytics                  Usage analytics (Pro+)
-/console/account                    API keys, settings, profile (all tiers)
+/console/analytics                  AI token usage + savings (all tiers; Free sees a teaser)
+/console/admin/stats                Response stats (team context)
+/console/account                    API keys, CLI token, profile, avatar (all tiers)
+/console/behavior                   Per-user Console behavior: idle-warning timeout (5m/10m/1h) and tone (all tiers)
+/console/connections                Tracker profile management (all tiers)
+/console/notifications              Notification bell feed (all tiers)
+/console/upgrade                    Upgrade page, shown on permission denial
 
 # Workflow
-/console/schedules                  Digest scheduling (Pro+)
-/console/digests                    Digest history (Pro+)
-/console/summarize                  AI summarization (Pro+)
-/console/export                     Data export (Pro+)
+/console/schedules                  Digest scheduling (Schedules permission, Pro+)
+/console/digest-history             Digest history (Digests permission, Pro+)
+/console/summarize                  AI summarization (Summarize permission, Pro+)
+/console/export                     Data export (Export permission, Team+ only; not in the Pro preset)
+/console/admin/rules                Workflow rules: stale + custom (WorkflowRules permission, manager-only in the nav)
 
 # Team
 /console/queue                      Attention queue (Team+)
 /console/team                       Multi-account team view (Team+)
 
-# Admin (team manager / owner)
-/console/admin/team-health          Team health metrics
+# Admin
+/console/admin/team-health          Team health (team lead / manager)
+/console/admin/compliance-analytics Compliance analytics (team lead / manager)
+/console/admin/recall               Recall notes, attachments, settings (Recall permission; verify/bulk/settings are manager actions)
+/console/admin/templates            Brief templates (read: any signed-in user, nav shows it to paid tiers; edit: team manager)
 /console/admin/members              Member management (team manager)
 /console/admin/process-metrics      Process metrics (team manager)
 /console/admin/seats                Seat management (team manager)
-/console/admin/integrations         Slack integration — connect workspace, select channel, test (team manager / owner)
-/console/admin/alerts               Alert rules — needs-response + aging thresholds, custom Slack DM rules (team manager / owner)
+/console/admin/integrations         Slack integration: connect workspace, select channel, test (team manager / owner)
+/console/admin/alerts               Alert rules, digest schedules (team manager / owner)
+/console/admin/digests              Team digests (team manager)
+/console/admin/jira                 Team Jira config (team manager)
+/console/admin/ai-providers         AI providers, pools, roles, prompts: /ai, /ai-pool, /ai-roles, /ai-provider-pools, /ai-provider-roles (Summarize permission; pools managers)
 
-# Owner panel
+# Owner panel (is_owner)
 /console/owner/dashboard            Owner overview
+/console/owner/insights             Platform usage analytics
+/console/owner/health               Client health
+/console/owner/activity             Client activity
 /console/owner/clients              All user accounts
-/console/owner/clients/{id}         User detail — tier, grants, audit history
+/console/owner/clients/{user}       User detail: tier, grants, audit history
+/console/owner/clients/{user}/grants  POST create / DELETE .../{grant} revoke a feature grant
+/console/owner/teams                Team groups and membership
 /console/owner/licenses             License key management
-/console/owner/tiers                Tier → feature matrix
+/console/owner/tiers                Tier -> feature matrix
 /console/owner/revenue              Revenue overview
 /console/owner/audit                Global append-only audit trail
-/console/owner/grants               Active feature grants
-/console/owner/impersonate/{id}     Impersonate a user (owner only)
+/console/owner/error-reports        Opt-in CLI error reports
+/console/owner/{ai,alerts,digests,integrations}  Owner-scoped views of the admin pages
+POST /console/owner/impersonate/{user}   Start impersonating a user (owner only)
+DELETE /console/impersonate              Stop impersonating
 ```
+
+Other non-`/console` web routes: `GET /s/{token}` (shared triage page), `POST /webhooks/lemonsqueezy` (HMAC-signed, CSRF-exempt), Reverb auth at `/broadcasting/auth`.
+
+#### Live updates and session handling
+
+- **Live store (Reverb):** the server publishes events through `SseEventService` (`rule.changed`, `triage.pushed`, `notification.updated`, `members.changed`, `digest.changed`, `usage.recorded`) onto the private channel `group.{groupId}` (`routes/channels.php`; owner, or team/pro members of the group). The browser subscribes through Laravel Echo (`resources/js/composables/useServerEvents.js`, `useLiveReload.js`), which triggers Inertia partial reloads. Needs the `reverb` service and `REVERB_*` / `VITE_REVERB_*` env vars (see `.env.example`).
+- **Session-expiry warning:** an idle-warning modal (`sessionGuard.js`, `TlSessionModal.vue`) keeps the session alive via `POST /console/session/keepalive`. Timeout (5m/10m/1h) and tone are per-user settings stored through `/console/behavior`.
 
 #### Console navigation
 
@@ -116,19 +144,24 @@ The console uses a fixed sidebar with collapsible desktop mode. When expanded it
 
 The desktop top header shows a `Group › Page` breadcrumb aligned to the content area, a ⌘K command palette for quick section navigation, a settings shortcut, and an avatar dropdown.
 
-Clicking a sidebar link, the header settings gear or a Settings tab for the page you are already on does not request it again. An Inertia `onBefore` guard (`resources/js/composables/sameUrl.js`, wired by `useSkipSameUrl`) cancels a GET to the current path and query; the hash is ignored. A same-page click during a slow nav visit cancels that visit, so the last click wins, but it never cancels a form submit. The ⌘K palette, notification items and the Upgrade link still request. Reload the page to refresh; live updates are tracked as backlog #37. New nav `<Link>`s must carry `:on-before="skipSameUrl"`, and `ConsoleNavLinksSkipSameUrlTest` fails without it.
+Clicking a sidebar link, the header settings gear or a Settings tab for the page you are already on does not request it again. An Inertia `onBefore` guard (`resources/js/composables/sameUrl.js`, wired by `useSkipSameUrl`) cancels a GET to the current path and query; the hash is ignored. A same-page click during a slow nav visit cancels that visit, so the last click wins, but it never cancels a form submit. The ⌘K palette, notification items and the Upgrade link still request. Pages refresh through the Reverb live store (see above). New nav `<Link>`s must carry `:on-before="skipSameUrl"`, and `ConsoleNavLinksSkipSameUrlTest` fails without it.
 
 ### API (`/v1/*`)
 
-Every request requires `Authorization: Bearer <license-key>`. The raw key is never stored — only `sha256(key)`.
+Auth is per route group (`routes/api.php`). All use `Authorization: Bearer <token>`; the raw secret is never stored (only a hash). Wrong credentials 5 times from one IP lock that IP out for 15 minutes.
 
-```
-POST   /v1/schedule           Create or update digest schedule
-GET    /v1/schedule           Get current schedule
-DELETE /v1/schedule           Remove schedule
-POST   /v1/digest/deliver     Trigger immediate digest email
-POST   /v1/summarize          AI summary via cloud (BYOK)
-```
+| Auth | Routes |
+|------|--------|
+| None (IP-throttled) | `GET /v1/health`, `POST /v1/licenses/activate`, `POST /v1/licenses/validate`, `POST /v1/reports` |
+| CLI token (`auth.cli`) | `GET /v1/profiles`, `/v1/statuses`, `/v1/templates`; `POST /v1/triage/push`, `/v1/triage/share`, `GET /v1/triage/collisions`; `POST /v1/recall/push`, `GET /v1/recall/pull`; `POST/GET/DELETE /v1/schedule` (also needs the Schedules permission); `/v1/ai-providers` CRUD + `POST /v1/ai-providers/{id}/test` |
+| CLI token + Pro tier | `POST /v1/summarize`, `POST /v1/recall/auto-capture`, `GET /v1/team/config`, `GET /v1/recall/settings`, `GET /v1/ai-provider-pool`, `GET /v1/ai-provider-roles`, `POST /v1/consensus` |
+| License key + Pro tier (`auth.license`) | `POST /v1/digest/deliver` |
+
+`/v1/summarize` runs the caller's own enabled AI providers (configured in Console, keys stored per user) and returns 503 if none is set up. Summarize, auto-capture and role-prompt calls write a `usage_logs` row with the real tokens consumed.
+
+Attachment limits on Recall sync (`RecallAttachmentStorage`): Free 10 files per call, Pro/Team/Enterprise 50, and 12 MB total per sync request.
+
+Throttles: global 120/min per IP; per route (per bearer token, else IP) summarize and auto-capture 10, schedule 5, digest 20, consensus 10, ai-test 5, triage 30, recall 30, profiles/statuses/templates 30, team-config 30, recall-settings 30; per IP: licenses 10, reports 10, health 60.
 
 ---
 
@@ -139,7 +172,10 @@ POST   /v1/summarize          AI summary via cloud (BYOK)
 | `TierService` | Maps tier → permission bitmask, syncs `users.permissions` |
 | `PermissionService` | Computes effective permissions: tier bits OR active grant bits |
 | `AuditService` | Append-only audit log for all admin writes |
-| `AnthropicService` | Summarization via Claude API |
+| `AiService` | Summarization and text generation through the user's enabled providers (Anthropic, Groq, OpenAI-compatible), with fallback chain |
+| `AiConsensusService` / `AiProviderPoolService` | Server-side consensus runs and group-shared provider pool |
+| `SseEventService` | Publishes live-update events over Reverb |
+| `LicenseValidationService` | LemonSqueezy license validation |
 
 ### Permission model
 
@@ -162,6 +198,8 @@ Accessible to the single `is_owner=true` account at `/console/owner/*`.
 | Client detail | `/console/owner/clients/{id}` | Edit tier, grant/revoke features, view audit history |
 | Licenses | `/console/owner/licenses` | License key management |
 | Teams | `/console/owner/teams` | Team groups and membership |
+| Insights / Health / Activity | `/console/owner/{insights,health,activity}` | Platform usage and client health |
+| Error reports | `/console/owner/error-reports` | Opt-in CLI error reports |
 | Tiers & Features | `/console/owner/tiers` | Manage tier → feature matrix |
 | Revenue | `/console/owner/revenue` | Revenue overview |
 | Audit Log | `/console/owner/audit` | Global append-only audit trail |
@@ -207,6 +245,8 @@ Team managers (and the owner on behalf of any team) can connect a Slack workspac
 
 Configured at `/console/admin/alerts`:
 
+- **Compliance-gap alert** — off by default; configurable cooldown (default 24 h) (`/console/admin/alerts/compliance-gap`)
+- **Digest schedules** — recurring Slack digests (`/console/admin/alerts/digest-schedules`, run by `SendSlackDigestJob`)
 - **Needs-response alert** — fires when a triage snapshot has unacknowledged tickets; configurable cooldown (default 4 h)
 - **Aging ticket alert** — fires when tickets pass the aging threshold; configurable cooldown (default 24 h)
 - **Custom rules** — per-rule DMs to individual Slack workspace members; scoped cooldown per rule
@@ -249,8 +289,13 @@ SLACK_REDIRECT_URI=https://your-ngrok-url.ngrok-free.app/console/slack/callback
 
 | Job | Schedule | Purpose |
 |-----|----------|---------|
-| `SendDigestEmail` | On demand (queued) | Delivers triage digest emails |
-| `RevokeExpiredGrantsJob` | Hourly | Marks expired feature grants as revoked, resyncs permissions |
+| `SendDigestEmail` | On demand (queued, from `POST /v1/digest/deliver`) | Delivers triage digest emails |
+| `EvaluateAlertsJob`, `EvaluateCustomNotifyRulesJob` | On demand (queued on each `POST /v1/triage/push`) | Slack alert evaluation |
+| `RevokeExpiredGrantsJob` | Hourly (`routes/console.php`) | Marks expired feature grants as revoked, resyncs permissions |
+| `WarmNpmDownloadsCacheJob` | Hourly | Warms the owner client-health cache |
+| `SendSlackDigestJob` | Every minute | Self-selects due Slack digest schedules by timezone |
+
+Scheduled jobs need `php artisan schedule:run` every minute (cron) or `schedule:work`. Sail does not start one by default, and `docker-compose.prod.yml` has no scheduler service yet.
 
 The queue worker runs as its own `sail up -d` service (`compose.yaml`'s `worker`) and restarts automatically if it crashes — no manual terminal needed. Check it's up with `docker ps --filter name=ticketlens-api-worker`.
 
@@ -258,10 +303,11 @@ The queue worker runs as its own `sail up -d` service (`compose.yaml`'s `worker`
 
 ## Building frontend assets
 
-The Vue/Inertia frontend is compiled with Vite. Always build inside the Sail container — building on the host may fail due to native module differences:
+The Vue/Inertia frontend is compiled with Vite (rolldown). Build on the host: `node_modules` ships the macOS native binding (`@rolldown/binding-darwin-arm64`), while the Sail container is Linux and has no matching binding, so `sail exec laravel.test npm run build` fails.
 
 ```bash
-./vendor/bin/sail exec laravel.test npm run build
+npm install
+npm run build        # or: npm run dev (behind the docker/ proxy, see docker/README.md)
 ```
 
 The production build outputs to `public/build/` (gitignored). After pulling changes that include new or modified Vue components, always rebuild.

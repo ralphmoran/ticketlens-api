@@ -52,7 +52,7 @@ class RevenueControllerTest extends TestCase
 
         $response->assertInertia(fn ($page) => $page
             ->component('Console/Owner/Revenue')
-            ->where('mrr', 23)   // pro(8) + team(15) + free(0)
+            ->where('mrr', 28)   // pro(9) + team(19) + free(0)
             ->where('total_active', 3)
         );
     }
@@ -71,7 +71,7 @@ class RevenueControllerTest extends TestCase
 
         $response->assertInertia(fn ($page) => $page
             ->component('Console/Owner/Revenue')
-            ->where('mrr', 8)
+            ->where('mrr', 9)
             ->where('total_active', 1)
         );
     }

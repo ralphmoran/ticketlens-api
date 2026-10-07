@@ -8,6 +8,7 @@ import { usePage, router, Link } from '@inertiajs/vue3'
 import { computed, ref } from 'vue'
 import { Permission } from '@/permissions'
 import { timeAgo } from '@/composables/useDateFormat'
+import { isPaidTier } from '@/composables/paidTier'
 
 defineOptions({ layout: ConsoleLayout })
 
@@ -31,7 +32,7 @@ const page = usePage()
 const user         = computed(() => page.props.auth?.user)
 const tier         = computed(() => user.value?.tier ?? 'free')
 const activeGrants = computed(() => page.props.auth?.activeGrants ?? [])
-const isPro        = computed(() => ['pro', 'team', 'owner'].includes(tier.value))
+const isPro        = computed(() => isPaidTier(tier.value))
 
 // Period selector
 const period = ref(new URLSearchParams(window.location.search).get('period') ?? '30')

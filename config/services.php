@@ -49,6 +49,7 @@ return [
     'lemonsqueezy' => [
         'api_key' => env('LEMONSQUEEZY_API_KEY'),
         'validate_url' => env('LEMONSQUEEZY_VALIDATE_URL', 'https://api.lemonsqueezy.com/v1/licenses/validate'),
+        'signing_secret' => env('LEMON_SQUEEZY_WEBHOOK_SECRET'),
     ],
 
     'slack' => [

@@ -26,7 +26,7 @@ description: "Production-ready walkthrough covering CLI installation, backend se
 | Tool           | Min Version | Where used              |
 |----------------|-------------|-------------------------|
 | Node.js        | 18          | CLI only (20+ for CI)   |
-| PHP            | 8.2         | Backend only            |
+| PHP            | 8.4         | Backend only (CI runs 8.4; Sail image is 8.5) |
 | Composer       | 2.x         | Backend only            |
 | Docker Desktop | Latest      | Required for Sail       |
 
@@ -85,12 +85,13 @@ ticketlens profiles      # list all configured profiles
 
 ## Backend Setup — Local (Laravel Sail)
 
-The backend is a separate Laravel 11 API at `ticketlens-api/`. It handles:
+The backend is a separate Laravel 13 API at `ticketlens-api/`. It handles:
 
 - Digest schedule management
 - Email delivery via queued jobs
 - AI summarization (BYOK and cloud routing)
 - License validation (LemonSqueezy)
+- Live Console updates (Laravel Reverb WebSockets)
 
 ### 1. Clone and install
 
@@ -134,8 +135,9 @@ MAIL_FROM_NAME="TicketLens"
 
 TICKETLENS_SKIP_LICENSE=true
 
-ANTHROPIC_API_KEY=sk-ant-xxxx
 ```
+
+> AI summarization uses per-user provider keys added in the Console (Admin > AI). No `ANTHROPIC_API_KEY` / `GROQ_API_KEY` is read from `.env`.
 
 > `DB_HOST=mysql` and `REDIS_HOST=redis` refer to Docker service names defined in `compose.yaml`, not `localhost`.
 
@@ -145,7 +147,7 @@ ANTHROPIC_API_KEY=sk-ant-xxxx
 ./vendor/bin/sail up -d
 ```
 
-Containers started: `laravel.test` (PHP 8.5, artisan built-in server), `mysql:8.4`, `redis:alpine`, `mailpit`.
+Containers started: `laravel.test` (PHP 8.5, artisan built-in server), `mysql:8.4`, `redis:alpine`, `mailpit`, `worker` (queue), plus `reverb` (WebSockets, port 8080) and `proxy` (nginx on port 80) from `docker-compose.override.yml`. Scheduled jobs (`routes/console.php`) need `sail artisan schedule:work` in a terminal; no container runs it.
 
 > **Untrusted networks:** Sail's default `compose.yaml` forwards MySQL (3306) and Redis (6379) to `0.0.0.0` on the host, and dev Redis has no password. Fine on a trusted home/office network; if working from a coffee shop, conference wifi, or a shared VPN, bind them to `127.0.0.1:PORT:PORT` instead of the bare `PORT:PORT` shorthand in `compose.yaml`.
 
@@ -195,21 +197,14 @@ For debugging a specific job interactively, run a one-off foreground worker inst
 
 ```bash
 # Health check
-curl http://localhost/up
+curl http://localhost/up        # framework health
+curl http://localhost/v1/health # {"status":"ok"}
 
 # Route list
 ./vendor/bin/sail artisan route:list --path=v1
 ```
 
-Expected output:
-
-```
-POST       v1/digest/deliver
-POST       v1/schedule
-GET|HEAD   v1/schedule
-DELETE     v1/schedule
-POST       v1/summarize
-```
+The route list shows every `/v1/*` endpoint (27 at time of writing); see [API Routes](#api-routes) for the auth and tier of each.
 
 ---
 
@@ -217,13 +212,23 @@ POST       v1/summarize
 
 ### Server requirements
 
-- PHP 8.2+ with extensions: `pdo_mysql`, `redis`, `bcmath`, `mbstring`, `xml`
-- MySQL 8.x or PostgreSQL 14+
+- PHP 8.4+ with extensions: `pdo_mysql`, `redis`, `bcmath`, `mbstring`, `xml`
+- MySQL 8.4 (the schema uses `BEFORE DELETE` triggers, see the trade-off note below)
 - Redis 6+
-- Queue worker managed by Supervisor or Laravel Forge
+- Queue worker, Reverb server and a scheduler (`schedule:run` every minute)
 - SMTP provider: Mailgun, Postmark, SES, or equivalent
 
-### Deployment checklist
+### Deployment (Docker, the repo's path)
+
+`docker-compose.prod.yml` + `scripts/deploy.sh` is the supported production path. Copy `.env.production.example` to `.env`, fill in the `<REQUIRED>` values, then run `./scripts/deploy.sh`. It pulls `main`, rebuilds the `app` image, starts `docker compose up -d`, runs `migrate --force`, `config:cache`, `route:cache`, then `scripts/healthcheck.sh`.
+
+Services in `docker-compose.prod.yml`: `app` (php-fpm, port 9000), `nginx` (80/443, proxies `/app/` to Reverb), `reverb` (WebSocket server, port 8080), `queue` (`queue:work --sleep=3 --tries=3 --backoff=5`, no `--timeout`), `mysql` (8.4), `redis` (7, password required).
+
+> **Gap:** no service runs the Laravel scheduler, so `RevokeExpiredGrantsJob`, `WarmNpmDownloadsCacheJob` and `SendSlackDigestJob` do not run in this stack. Add a cron entry (`* * * * * docker compose -f docker-compose.prod.yml exec -T app php artisan schedule:run`) or a `schedule:work` service.
+>
+> **Gap:** `Dockerfile.prod` is based on `php:8.3-fpm-alpine`, but `composer.json` requires PHP ^8.4. Bump the base image before deploying.
+
+### Deployment checklist (bare metal alternative)
 
 ```bash
 # Install production dependencies only
@@ -249,7 +254,6 @@ APP_DEBUG=false
 APP_URL=https://api.ticketlens.dev
 
 TICKETLENS_SKIP_LICENSE=false
-LEMONSQUEEZY_API_KEY=your-key-here
 
 MAIL_HOST=smtp.mailgun.org
 MAIL_PORT=587
@@ -257,7 +261,7 @@ MAIL_USERNAME=your-user
 MAIL_PASSWORD=your-password
 ```
 
-### Supervisor config (queue worker)
+### Supervisor config (bare metal only; Docker uses the `queue` service)
 
 ```ini
 [program:ticketlens-worker]
@@ -286,7 +290,7 @@ server {
     }
 
     location ~ \.php$ {
-        fastcgi_pass unix:/var/run/php/php8.2-fpm.sock;
+        fastcgi_pass unix:/var/run/php/php8.4-fpm.sock;
         fastcgi_param SCRIPT_FILENAME $realpath_root$fastcgi_script_name;
         include fastcgi_params;
     }
@@ -318,41 +322,66 @@ server {
 | `SESSION_DRIVER`            | yes          | `redis`        | Same driver locally and in prod — avoids MySQL contention |
 | `MAIL_HOST`                 | yes          | `mailpit`      | `mailpit` locally; your SMTP host in prod         |
 | `TICKETLENS_SKIP_LICENSE`   | no           | `false`        | Set `true` to bypass LemonSqueezy locally         |
-| `ANTHROPIC_API_KEY`         | for BYOK     | —              | Required for `--summarize` without `--cloud`      |
-| `LEMONSQUEEZY_API_KEY`      | for prod     | —              | Required when `SKIP_LICENSE=false`                |
+| `TICKETLENS_SKIP_LICENSE`   | no           | `false`        | Honoured only when `APP_ENV` is `local` or `testing` (`LicenseValidationService`, `LicenseSkipGuard`) |
+| `LEMONSQUEEZY_VALIDATE_URL` | no           | LemonSqueezy public URL | License validation endpoint (`config/services.php`) |
+| `BROADCAST_CONNECTION`      | yes          | `reverb`       | Live Console updates                              |
+| `REVERB_APP_ID` / `REVERB_APP_KEY` / `REVERB_APP_SECRET` | yes | — | Reverb credentials. Never alias the secret as `VITE_*` |
+| `REVERB_HOST` / `REVERB_PORT` / `REVERB_SCHEME` | yes | `reverb` / `8080` / `http` | Where PHP reaches Reverb (Docker service name) |
+| `VITE_REVERB_APP_KEY` / `VITE_REVERB_HOST` / `VITE_REVERB_PORT` / `VITE_REVERB_SCHEME` | dev | — | Where the browser reaches Reverb |
+| `OWNER_EMAIL` / `OWNER_PASSWORD` / `OWNER_NAME` | prod | `owner@test.local` / `password` | Platform owner account (`OwnerRecoverySeeder`, `db:reset-to-owner`). Must be overridden in production |
+| `SLACK_CLIENT_ID` / `SLACK_CLIENT_SECRET` / `SLACK_SIGNING_SECRET` / `SLACK_REDIRECT_URI` | for Slack | — | Slack integration (`config/services.php`) |
+| `INERTIA_SSR_ENABLED`       | no           | `true`         | Set `false` in dev unless an SSR server runs on port 13714 |
+| `OWNER_ANALYTICS_CACHE_TTL` | no           | `300`          | Seconds to cache Owner analytics pages            |
+| `REDIS_PASSWORD`            | prod         | `null`         | Required by `docker-compose.prod.yml`             |
+| `DB_ROOT_PASSWORD`          | prod         | —              | MySQL root password in `docker-compose.prod.yml`  |
+
+`ANTHROPIC_API_KEY`, `GROQ_API_KEY` and `LEMONSQUEEZY_API_KEY` appear in `config/services.php` or older docs but are not read by application code. AI provider keys are stored per user through the Console.
+
+> **LemonSqueezy webhook secret.** `POST /webhooks/lemonsqueezy` is verified against `config('services.lemonsqueezy.signing_secret')`, which reads `LEMON_SQUEEZY_WEBHOOK_SECRET`. Set it in production; an unset secret rejects every webhook with 403.
 
 ---
 
 ## API Routes
 
-All routes are prefixed `/v1/`. There is no `/api/` segment — this is set via `apiPrefix: ''` in `bootstrap/app.php`.
+All routes are prefixed `/v1/`. There is no `/api/` segment — this is set via `apiPrefix: ''` in `bootstrap/app.php`. Source of truth: `routes/api.php` (`php artisan route:list --path=v1`).
 
 ### Authentication
 
-Every request requires a Bearer token matching a licensed key:
+Every authenticated request sends `Authorization: Bearer <token>`. Raw secrets are never stored; the backend keeps a hash.
 
-```
-Authorization: Bearer <license-key>
-```
+| Auth | Endpoints |
+|------|-----------|
+| None | `GET /v1/health`, `POST /v1/licenses/activate`, `POST /v1/licenses/validate`, `POST /v1/reports` |
+| CLI token (`auth.cli`) | `GET /v1/profiles`, `/v1/statuses`, `/v1/templates`; `POST /v1/triage/push`, `/v1/triage/share`, `GET /v1/triage/collisions`; `POST /v1/recall/push`, `GET /v1/recall/pull`; `POST|GET|DELETE /v1/schedule` (needs the Schedules permission, else 403); `/v1/ai-providers` CRUD and `/test` |
+| CLI token + Pro tier | `POST /v1/summarize`, `POST /v1/recall/auto-capture`, `GET /v1/team/config`, `GET /v1/recall/settings`, `GET /v1/ai-provider-pool`, `GET /v1/ai-provider-roles`, `POST /v1/consensus` |
+| License key + Pro tier (`auth.license`) | `POST /v1/digest/deliver` |
 
-The raw key is never stored. The backend stores `sha256(key)` and compares on each request.
+CLI tokens are created in Console > Account. `POST /v1/schedule`, `/v1/summarize` etc. do not accept a license key.
 
-**Rate limits per license key:**
+**Rate limits** (`routes/api.php`):
 
-| Route                  | Limit       |
-|------------------------|-------------|
-| `POST /v1/summarize`   | 10 req/min  |
-| `POST /v1/schedule`    | 5 req/min   |
-| `POST /v1/digest/deliver` | 20 req/min |
-| Global                 | 120 req/min |
+| Limiter | Limit | Keyed by | Routes |
+|---------|-------|----------|--------|
+| `api-global` | 120/min | IP | all authenticated and licence routes |
+| `summarize` | 10/min | token or IP | `/summarize`, `/recall/auto-capture` |
+| `compliance` (name kept) | 10/min | token or IP | `/consensus` |
+| `schedule` | 5/min | token or IP | `/schedule` |
+| `digest` | 20/min | token or IP | `/digest/deliver` |
+| `ai-test` | 5/min | token or IP | `/ai-providers/{id}/test` |
+| `triage`, `recall`, `profiles`, `team-config`, `recall-settings` | 30/min | token or IP | matching routes |
+| `license-act` | 10/min | IP | `/licenses/*` |
+| `error-reports` | 10/min | IP | `/reports` |
+| `health` | 60/min | IP | `/health` |
 
-**Brute force protection:** 5 consecutive auth failures trigger a 15-minute IP lockout.
+**Brute force protection:** 5 consecutive auth failures trigger a 15-minute IP lockout (`auth-fail:{ip}`), for both license keys and CLI tokens.
+
+**Error shape on `/v1/*`:** `ModelNotFoundException` returns `{"error":"Not found"}` 404; other unhandled exceptions return `{"error":"Request failed"}` (`bootstrap/app.php`).
 
 ---
 
 ### POST /v1/schedule
 
-Create or update a digest schedule for the authenticated license key. This endpoint performs an upsert — it always returns `201` whether creating or updating.
+Create or update a digest schedule for the authenticated user (CLI token, Schedules permission). This endpoint performs an upsert — it always returns `201` whether creating or updating.
 
 ```bash
 curl -X POST http://localhost/v1/schedule \
@@ -414,7 +443,7 @@ Response `200`: `{ "deleted": true }`
 
 ### POST /v1/digest/deliver
 
-Trigger an immediate digest email. This endpoint is called by `ticketlens triage --digest`.
+Trigger an immediate digest email (Pro, license-key auth). Called by `ticketlens triage --digest`. Requires an active digest schedule for the key (404 otherwise).
 
 ```bash
 curl -X POST http://localhost/v1/digest/deliver \
@@ -443,7 +472,7 @@ The email is dispatched as a `SendDigestEmail` job with 3 retries and backoff of
 
 ### POST /v1/summarize
 
-Generate an AI summary of a ticket brief. Used by `ticketlens --summarize --cloud`.
+Generate an AI summary of a ticket brief (Pro, CLI token). Used by `ticketlens --summarize --cloud`. Runs the caller's enabled AI providers in priority order; returns 503 if none is configured. Writes a `usage_logs` row with the tokens consumed.
 
 ```bash
 curl -X POST http://localhost/v1/summarize \
@@ -464,11 +493,11 @@ Response: `{"summary": "..."}`
 ./vendor/bin/sail artisan test
 ```
 
-39 tests passing. Coverage includes:
+About 2,000 test cases in 134 files (Pest). Coverage includes:
 
 - `DigestControllerTest` — schedule creation, job dispatch, 404/422 handling
 - `ScheduleControllerTest` — CRUD and rate limiting
-- `SummarizeControllerTest` — Anthropic service mock
+- `SummarizeControllerTest` — AI provider mock
 - `ValidateLicenseKeyTest` — brute force lockout, key hashing
 
 ### Check email delivery via Mailpit
@@ -497,7 +526,7 @@ node --test 'skills/jtb/scripts/test/*.test.mjs'
 
 ```bash
 curl -s -X POST http://localhost/v1/schedule \
-  -H "Authorization: Bearer test-key-123" \
+  -H "Authorization: Bearer <cli-token>" \
   -H "Content-Type: application/json" \
   -d '{"email":"you@example.com","timezone":"America/New_York","deliverAt":"07:00"}' | jq
 ```
@@ -506,7 +535,8 @@ curl -s -X POST http://localhost/v1/schedule \
 |----------|---------|
 | `201`    | Schedule created or updated (always 201 — this endpoint is an upsert) |
 | `422`    | Validation error — check field names, especially `deliverAt` (camelCase) |
-| `401`    | Key rejected or IP lockout active — verify `TICKETLENS_SKIP_LICENSE=true` |
+| `401`    | Token rejected or IP lockout active. Generate a CLI token in Console > Account |
+| `403`    | User lacks the Schedules permission (Pro+) |
 
 ---
 
@@ -598,7 +628,7 @@ ticketlens triage --assignee="Jane Dev" --sprint="Sprint 12" --export=csv
 
 ### Access denied for user 'sail' to database 'ticketlens'
 
-Sail's MySQL only grants `sail` access to a database named `laravel` by default. Any other `DB_DATABASE` value requires manual setup:
+Only needed on a stale MySQL volume created with a different `DB_DATABASE` (a fresh volume creates the database and grants automatically, see step 4):
 
 ```bash
 docker exec -it ticketlens-api-mysql-1 mysql -u root -p
@@ -614,20 +644,22 @@ FLUSH PRIVILEGES;
 
 ### ModelNotFoundException returns 500 instead of 404
 
-`ModelNotFoundException` does not extend `HttpException`, so Laravel's built-in exception handler does not convert it to a 404 automatically. The fix is to handle it inside the `Throwable` renderer in `bootstrap/app.php`, with an explicit `instanceof` check before the generic catch-all:
+`ModelNotFoundException` does not extend `HttpException`, so it would surface as a 500 on API routes. `bootstrap/app.php` handles it inside the `Throwable` renderer, scoped to `v1/*`:
 
 ```php
-->withExceptions(function (Exceptions $exceptions) {
-    $exceptions->render(function (\Throwable $e, $request) {
-        if ($e instanceof \Illuminate\Validation\ValidationException) return null;
-        if ($e instanceof \Symfony\Component\HttpKernel\Exception\HttpException) return null;
-        if ($e instanceof \Illuminate\Database\Eloquent\ModelNotFoundException) {
-            return response()->json(['error' => 'Not found'], 404);
+->withExceptions(function (Exceptions $exceptions): void {
+    $exceptions->render(function (\Throwable $e, \Illuminate\Http\Request $request) {
+        if ($e instanceof \Illuminate\Validation\ValidationException
+            || $e instanceof \Symfony\Component\HttpKernel\Exception\HttpException) {
+            return null;
         }
-        if (str_starts_with($request->path(), 'v1/')) {
-            return response()->json(['error' => 'Request failed'], 500);
+        if ($request->is('v1/*')) {
+            if ($e instanceof \Illuminate\Database\Eloquent\ModelNotFoundException) {
+                return response()->json(['error' => 'Not found'], 404);
+            }
+            $status = method_exists($e, 'getStatusCode') ? $e->getStatusCode() : 500;
+            return response()->json(['error' => 'Request failed'], $status);
         }
-        return null;
     });
 })
 ```
@@ -650,7 +682,7 @@ DNS lookups fail inside the Docker test network. Change validation rules from `e
 
 ### Emails queued but never delivered
 
-The queue worker is a separate process. If it is not running, jobs sit in Redis indefinitely:
+The queue worker is a separate process (the `worker` service in Sail, `queue` in the prod compose). If it is not running, jobs sit in Redis indefinitely. Check with `docker ps`, or run one manually:
 
 ```bash
 ./vendor/bin/sail artisan queue:work --tries=3
@@ -660,7 +692,7 @@ The queue worker is a separate process. If it is not running, jobs sit in Redis 
 
 ### strip_tags() corrupting Jira content
 
-An earlier version of `AnthropicService` called `strip_tags()` on the ticket brief before sending it to the LLM. This silently removed HTML entities and angle-bracket syntax (e.g. `Array<string>`). The fix: strip only null bytes, nothing else.
+An earlier version of the summarizer (now `AiService`) called `strip_tags()` on the ticket brief before sending it to the LLM. This silently removed HTML entities and angle-bracket syntax (e.g. `Array<string>`). The fix: strip only null bytes, nothing else.
 
 ```php
 $sanitized = mb_substr(str_replace("\x00", '', $brief), 0, 50_000);
@@ -697,9 +729,9 @@ RateLimiter::clear('auth-fail:127.0.0.1');
 
 ### Queue job retried but schedule shows wrong last_delivered_at
 
-`last_delivered_at` must be updated **before** dispatching the job. If the DB write is done after dispatch and fails, the job may re-execute and see a stale timestamp. Correct order:
+`DigestController::deliver` dispatches the job **first** and only then writes `last_delivered_at`, so a queue-driver failure does not poison the cooldown window and the request can be retried:
 
 ```php
+SendDigestEmail::dispatch($schedule->id, $request->validated());
 $schedule->update(['last_delivered_at' => now()]);
-SendDigestEmail::dispatch($schedule->id, $payload);
 ```

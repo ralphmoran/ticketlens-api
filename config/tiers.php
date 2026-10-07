@@ -4,12 +4,12 @@ return [
     /*
      | Monthly prices per tier (in USD).
      | Matches RevenueController MRR calculation — update both when LemonSqueezy prices change.
-     | Pro $8 / Team $15 reflects currently charged prices (announced $9/$19 pending LemonSqueezy update).
+     | Pro $9 / Team $19 are the official prices. Keep the LemonSqueezy variants in sync.
      */
     'prices' => [
         'free'       => 0,
-        'pro'        => 8,
-        'team'       => 15,
+        'pro'        => 9,
+        'team'       => 19,
         'enterprise' => 0,
         'owner'      => 0,
     ],

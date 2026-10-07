@@ -14,7 +14,7 @@ const tiers = [
     {
         key:      'pro',
         name:     'Pro',
-        price:    '$8',
+        price:    '$9',
         period:   '/month',
         features: ['Digest Schedules', 'Digest History', 'Summarize History', 'Savings Analytics (full)'],
         cta:      'Upgrade to Pro',
@@ -23,9 +23,9 @@ const tiers = [
     {
         key:      'team',
         name:     'Team',
-        price:    '$15',
+        price:    '$19',
         period:   '/seat/month',
-        features: ['Everything in Pro', 'Compliance Tracking', 'CSV/JSON Export', 'Team & Seat Management'],
+        features: ['Everything in Pro', 'Compliance Analytics', 'Attention Queue', 'Recall', 'CSV/JSON Export', 'Team & Seat Management'],
         cta:      'Upgrade to Team',
         style:    'tl-btn--primary',
     },

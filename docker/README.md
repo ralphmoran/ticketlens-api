@@ -13,6 +13,9 @@ Console and the static landing page.
 | `http://ticketlens.test/@vite/`, `/resources/`, `/node_modules/` | Vite dev server (`laravel.test:5173`) |
 | `http://api.ticketlens.test/v1/*`, `/webhooks/*`, `/up` | Laravel API |
 | `http://api.ticketlens.test/`     | redirect to `http://ticketlens.test/` |
+| `http://ticketlens.test/app/` | Reverb WebSocket server (`reverb:8080`) |
+| `http://ticketlens.test/broadcasting/`, `/build/`, `/js/`, `/storage/` | Laravel |
+| `http://ticketlens.test/vite-ws`, `/@id/`, `/@fs/` | Vite dev server HMR |
 
 ## One-time host setup
 
@@ -28,19 +31,20 @@ Console and the static landing page.
    # edit .env: APP_URL=http://ticketlens.test, DB_CONNECTION=mysql, ...,
    #           INERTIA_SSR_ENABLED=false   (avoid 30s SSR timeout in dev)
    composer install
+   # also set the REVERB_* / VITE_REVERB_* values (see .env.example)
    ./vendor/bin/sail up -d
    ./vendor/bin/sail artisan key:generate
    ./vendor/bin/sail artisan migrate --seed
    ./vendor/bin/sail artisan db:seed --class=DevSeeder
-   ./vendor/bin/sail npm install
-   ./vendor/bin/sail npm run dev
+   npm install      # on the host; the Sail container lacks the linux rolldown binding
+   npm run dev
    ```
 
 ## Files
 
 - `nginx-proxy.conf` — nginx server blocks routing by `Host` header.
 - `_proxy-headers.conf` — shared proxy headers (Host, X-Forwarded-*, WS upgrade).
-- `../docker-compose.override.yml` — adds the `proxy` service to Sail's stack
+- `../docker-compose.override.yml` — adds the `reverb` and `proxy` services to Sail's stack
   and forces same-origin Vite asset URLs via env vars.
 
 ## Why a reverse proxy at all?
@@ -55,4 +59,4 @@ fetches from `localhost:5173`.
 Inertia's default config tries to render via a Node SSR server on port 13714.
 If that service isn't running, every Inertia render hangs ~30 seconds before
 falling back to client-render. Set `INERTIA_SSR_ENABLED=false` in `.env` for
-local dev. Production can opt back in once an SSR service is provisioned.
+local dev (the default in `config/inertia.php` is `true`; the key is not in `.env.example`). Production can opt back in once an SSR service is provisioned.

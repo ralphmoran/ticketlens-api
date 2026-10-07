@@ -311,3 +311,15 @@ npm run build        # or: npm run dev (behind the docker/ proxy, see docker/REA
 ```
 
 The production build outputs to `public/build/` (gitignored). After pulling changes that include new or modified Vue components, always rebuild.
+
+---
+
+## Landing page
+
+`/` serves `public/landing.html`, which is generated. Edit `resources/landing/index.html`, never the output. Plan prices and the annual discount are placeholders (`{{pro_monthly}}`, `{{team_annual_total}}`, `{{annual_discount}}`, ...) filled from `config/tiers.php` by `LandingPageBuilder`.
+
+```bash
+php artisan landing:build    # rewrite public/landing.html
+```
+
+Run it after changing `prices` or `annual_discount_percent`, then commit the output. `LandingPageBuildTest` fails when the committed page is stale, and `scripts/deploy.sh` rebuilds it on every deploy. Static assets live in `public/assets/`.

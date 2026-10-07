@@ -41,6 +41,9 @@ timeout 120 docker compose -f "$COMPOSE_FILE" wait app || {
 echo "==> Running database migrations"
 docker compose -f "$COMPOSE_FILE" exec app php artisan migrate --force
 
+echo "==> Rendering landing page with config prices"
+docker compose -f "$COMPOSE_FILE" exec app php artisan landing:build
+
 echo "==> Caching config and routes"
 docker compose -f "$COMPOSE_FILE" exec app php artisan config:cache
 docker compose -f "$COMPOSE_FILE" exec app php artisan route:cache

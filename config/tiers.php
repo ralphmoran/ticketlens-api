@@ -15,6 +15,12 @@ return [
     ],
 
     /*
+     | Annual billing discount (percent) shown on the landing page.
+     | Run `php artisan landing:build` after changing prices or this value.
+     */
+    'annual_discount_percent' => 20,
+
+    /*
      | Reference rate for estimated token-savings ROI.
      | Uses GPT-4 Turbo input pricing ($15/1M tokens) as a representative benchmark.
      | Owner can override in settings (future). Define once here; DashboardController

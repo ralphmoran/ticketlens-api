@@ -418,7 +418,7 @@
           <button class="billing-opt" data-billing="monthly">Monthly</button>
           <button class="billing-opt is-active" data-billing="annual">
             Annual
-            <span class="billing-badge">~20% off</span>
+            <span class="billing-badge">~{{annual_discount}}% off</span>
           </button>
         </div>
       </div>
@@ -449,12 +449,12 @@
           <div class="featured-badge">Most popular</div>
           <div class="pricing-tier">Pro</div>
           <div class="pricing-price">
-            <span class="price-mo">$9<sub>/mo</sub></span>
-            <span class="price-yr">$7.20<sub>/mo</sub></span>
+            <span class="price-mo">${{pro_monthly}}<sub>/mo</sub></span>
+            <span class="price-yr">${{pro_annual_per_month}}<sub>/mo</sub></span>
           </div>
           <div class="pricing-period">
             <span class="price-mo">billed monthly</span>
-            <span class="price-yr">$86/yr — ~20% off</span>
+            <span class="price-yr">${{pro_annual_total}}/yr — ~{{annual_discount}}% off</span>
           </div>
           <ul class="pricing-feats">
             <li>Everything in Free</li>
@@ -487,12 +487,12 @@
         <div class="pricing-card fd3">
           <div class="pricing-tier">Team</div>
           <div class="pricing-price">
-            <span class="price-mo">$19<sub>/seat</sub></span>
-            <span class="price-yr">$15.20<sub>/seat</sub></span>
+            <span class="price-mo">${{team_monthly}}<sub>/seat</sub></span>
+            <span class="price-yr">${{team_annual_per_month}}<sub>/seat</sub></span>
           </div>
           <div class="pricing-period">
             <span class="price-mo">per month</span>
-            <span class="price-yr">$182/seat/yr — ~20% off</span>
+            <span class="price-yr">${{team_annual_total}}/seat/yr — ~{{annual_discount}}% off</span>
           </div>
           <ul class="pricing-feats">
             <li>Everything in Pro</li>

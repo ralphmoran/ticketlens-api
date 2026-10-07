@@ -8,7 +8,7 @@ Console and the static landing page.
 
 | Hostname (host machine) | Routed to |
 |-------------------------|-----------|
-| `http://ticketlens.test/`         | static landing (`../../ticket-lens/site/`) |
+| `http://ticketlens.test/`         | landing page (Laravel, `public/landing.html`) |
 | `http://ticketlens.test/console/*`| Laravel Console (`laravel.test:80`)        |
 | `http://ticketlens.test/@vite/`, `/resources/`, `/node_modules/` | Vite dev server (`laravel.test:5173`) |
 | `http://api.ticketlens.test/v1/*`, `/webhooks/*`, `/up` | Laravel API |

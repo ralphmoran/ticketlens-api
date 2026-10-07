@@ -470,15 +470,12 @@ class PushControllerTest extends TestCase
     public function test_an_oversized_attachment_returns_422_and_nothing_is_persisted(): void
     {
         [, $token] = $this->makeEntitledUserWithToken();
-        $previous = ini_set('memory_limit', '512M');
+        // Raise only, never restore: in a full run usage already exceeds the old limit, so ini_set() back to it throws.
+        ini_set('memory_limit', '512M');
 
-        try {
-            $response = $this->withToken($token)->postJson('/v1/recall/push', $this->validPayload([
-                'attachments' => [$this->attachmentPayload('big.bin', str_repeat('a', 11 * 1024 * 1024))],
-            ]));
-        } finally {
-            ini_set('memory_limit', $previous);
-        }
+        $response = $this->withToken($token)->postJson('/v1/recall/push', $this->validPayload([
+            'attachments' => [$this->attachmentPayload('big.bin', str_repeat('a', 11 * 1024 * 1024))],
+        ]));
 
         $response->assertStatus(422);
         $this->assertSame(0, RecallNote::count());

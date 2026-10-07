@@ -219,6 +219,8 @@ const skipSlideTransitions = ref(false)
 
 async function toggleCollapsed() {
     skipSlideTransitions.value = true
+    ownerSubOpen.value = false
+    activeGroupKey.value = null
     sidebarCollapsed.value = !sidebarCollapsed.value
     localStorage.setItem(SIDEBAR_KEY, sidebarCollapsed.value)
     await nextTick()

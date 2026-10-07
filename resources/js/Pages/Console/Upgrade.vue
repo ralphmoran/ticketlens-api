@@ -8,13 +8,14 @@ defineOptions({ layout: ConsoleLayout })
 const props = defineProps({
     required_tier: { type: String, default: 'pro' },
     current_tier:  { type: String, default: 'free' },
+    prices:        { type: Object, required: true },
 })
 
 const tiers = [
     {
         key:      'pro',
         name:     'Pro',
-        price:    '$9',
+        price:    `$${props.prices.pro}`,
         period:   '/month',
         features: ['Digest Schedules', 'Digest History', 'Summarize History', 'Savings Analytics (full)'],
         cta:      'Upgrade to Pro',
@@ -23,7 +24,7 @@ const tiers = [
     {
         key:      'team',
         name:     'Team',
-        price:    '$19',
+        price:    `$${props.prices.team}`,
         period:   '/seat/month',
         features: ['Everything in Pro', 'Compliance Analytics', 'Attention Queue', 'Recall', 'CSV/JSON Export', 'Team & Seat Management'],
         cta:      'Upgrade to Team',

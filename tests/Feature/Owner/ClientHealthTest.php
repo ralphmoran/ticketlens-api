@@ -208,7 +208,7 @@ class ClientHealthTest extends TestCase
         $response = $this->actingAs($owner)->get('/console/owner/health');
 
         // Pro price from config; ARPU = price / 1 paid user
-        $proPrice = config('tiers.prices.pro', 8);
+        $proPrice = config('tiers.prices.pro');
         $response->assertInertia(fn ($page) => $page->where('arpu', $proPrice));
     }
 
@@ -223,7 +223,7 @@ class ClientHealthTest extends TestCase
 
         $response = $this->actingAs($owner)->get('/console/owner/health');
 
-        $proPrice = config('tiers.prices.pro', 8);
+        $proPrice = config('tiers.prices.pro');
         $response->assertInertia(fn ($page) => $page->where('arpu', $proPrice));
     }
 

@@ -15,7 +15,14 @@ const props = defineProps({
     stats:         { type: Object,  default: null },
     daily:         { type: Array,   default: () => [] },
     is_owner_view: { type: Boolean, default: false },
+    token_rate_per_million: { type: Number, required: true },
 })
+
+const ratePer1kTokens = computed(() => props.token_rate_per_million / 1000)
+
+// Illustrative figures for the blurred Free-tier teaser.
+const SAMPLE_TOKENS = 12847
+const sampleCost = computed(() => ((SAMPLE_TOKENS / 1000) * ratePer1kTokens.value).toFixed(2))
 
 const tierBadgeClass = computed(() => ({
     free:       'tl-badge--neutral',
@@ -26,7 +33,7 @@ const tierBadgeClass = computed(() => ({
 
 const estimatedSavings = computed(() => {
     if (!props.stats) return '$0.00'
-    const dollars = (props.stats.totalTokens / 1000) * 0.015
+    const dollars = (props.stats.totalTokens / 1000) * ratePer1kTokens.value
     return '$' + dollars.toFixed(2)
 })
 
@@ -94,7 +101,7 @@ const actionOptions = { indexAxis: 'y', scales: { x: { beginAtZero: true }, y: {
                 <div class="tl-stat-card tl-stat-card--locked">
                     <div class="tl-blurred">
                         <p class="tl-stat-label">Tokens Consumed</p>
-                        <p class="tl-stat-value">12,847</p>
+                        <p class="tl-stat-value">{{ SAMPLE_TOKENS.toLocaleString() }}</p>
                         <p class="tl-hint">last 30 days</p>
                     </div>
                     <div class="tl-lock-overlay">
@@ -106,8 +113,8 @@ const actionOptions = { indexAxis: 'y', scales: { x: { beginAtZero: true }, y: {
                 <div class="tl-stat-card tl-stat-card--locked">
                     <div class="tl-blurred">
                         <p class="tl-stat-label">Estimated Cost</p>
-                        <p class="tl-stat-value">$0.19</p>
-                        <p class="tl-hint">at $0.015 / 1K tokens</p>
+                        <p class="tl-stat-value">${{ sampleCost }}</p>
+                        <p class="tl-hint">at ${{ ratePer1kTokens }} / 1K tokens</p>
                     </div>
                     <div class="tl-lock-overlay">
                         <TlIcon name="lock-closed" class="tl-ic tl-ic--lg" />
@@ -178,7 +185,7 @@ const actionOptions = { indexAxis: 'y', scales: { x: { beginAtZero: true }, y: {
                         <span class="tl-stat-icon tl-stat-icon--success"><TlIcon name="currency-dollar" class="tl-ic" /></span>
                     </div>
                     <p class="tl-stat-value">{{ estimatedSavings }}</p>
-                    <p class="tl-hint">at $0.015 / 1K tokens</p>
+                    <p class="tl-hint">at ${{ ratePer1kTokens }} / 1K tokens</p>
                 </div>
 
                 <div class="tl-stat-card">

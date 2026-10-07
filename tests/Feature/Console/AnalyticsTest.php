@@ -30,6 +30,7 @@ class AnalyticsTest extends TestCase
             ->where('tier', 'free')
             ->where('stats', null)
             ->has('daily')
+            ->where('token_rate_per_million', config('tiers.token_rate_per_million'))
         );
     }
 
@@ -43,6 +44,7 @@ class AnalyticsTest extends TestCase
         $response->assertInertia(fn ($page) => $page
             ->component('Console/Analytics')
             ->where('tier', 'pro')
+            ->where('token_rate_per_million', config('tiers.token_rate_per_million'))
             ->has('stats')
             ->has('stats.totalTokens')
             ->has('stats.totalCalls')

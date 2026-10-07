@@ -24,6 +24,7 @@ class AnalyticsController
                 'stats'         => null,
                 'daily'         => [],
                 'is_owner_view' => false,
+                'token_rate_per_million' => config('tiers.token_rate_per_million'),
             ]);
         }
 
@@ -61,6 +62,7 @@ class AnalyticsController
                 'byAction'    => $logs->pluck('total_tokens', 'action'),
             ],
             'daily' => $daily,
+            'token_rate_per_million' => config('tiers.token_rate_per_million'),
         ]);
     }
 }

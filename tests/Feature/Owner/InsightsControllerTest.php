@@ -60,7 +60,7 @@ class InsightsControllerTest extends TestCase
         \App\Models\License::create(['user_id' => $proUser->id, 'lemon_key_hash' => str_repeat('a', 64), 'tier' => 'pro', 'seats' => 1, 'status' => 'active', 'expires_at' => null]);
         \App\Models\License::create(['user_id' => $proUser->id, 'lemon_key_hash' => str_repeat('e', 64), 'tier' => 'pro', 'seats' => 4, 'status' => 'active', 'expires_at' => null, 'granted_by_owner_as_addon' => true]);
 
-        $proPrice = config('tiers.prices.pro', 8);
+        $proPrice = config('tiers.prices.pro');
 
         $this->actingAs($owner)->get('/console/owner/insights')
             ->assertInertia(fn ($page) => $page->where('monthly_revenue', $proPrice));
@@ -73,7 +73,7 @@ class InsightsControllerTest extends TestCase
         \App\Models\License::create(['user_id' => $proUser->id, 'lemon_key_hash' => str_repeat('a', 64), 'tier' => 'pro', 'seats' => 1, 'status' => 'active', 'expires_at' => null]);
         \App\Models\License::create(['user_id' => $proUser->id, 'lemon_key_hash' => str_repeat('e', 64), 'tier' => 'pro', 'seats' => 4, 'status' => 'active', 'expires_at' => null, 'granted_by_owner_as_addon' => true]);
 
-        $proPrice = config('tiers.prices.pro', 8);
+        $proPrice = config('tiers.prices.pro');
 
         $this->actingAs($owner)->get('/console/owner/insights')
             ->assertInertia(function ($page) use ($proPrice) {

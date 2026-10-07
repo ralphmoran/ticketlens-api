@@ -45,6 +45,18 @@ class UpgradeTest extends TestCase
         );
     }
 
+    public function test_upgrade_page_exposes_paid_tier_prices_from_config(): void
+    {
+        $user = User::factory()->create(['tier' => 'free', 'permissions' => 64]);
+
+        $response = $this->actingAs($user)->get('/console/upgrade');
+
+        $response->assertInertia(fn ($page) => $page
+            ->where('prices.pro', config('tiers.prices.pro'))
+            ->where('prices.team', config('tiers.prices.team'))
+        );
+    }
+
     public function test_permission_denied_redirects_authenticated_user_to_upgrade(): void
     {
         $user = User::factory()->create(['tier' => 'free', 'permissions' => 64]);

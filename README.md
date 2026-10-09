@@ -295,7 +295,7 @@ SLACK_REDIRECT_URI=https://your-ngrok-url.ngrok-free.app/console/slack/callback
 | `WarmNpmDownloadsCacheJob` | Hourly | Warms the owner client-health cache |
 | `SendSlackDigestJob` | Every minute | Self-selects due Slack digest schedules by timezone |
 
-Scheduled jobs need `php artisan schedule:run` every minute (cron) or `schedule:work`. Sail does not start one by default, and `docker-compose.prod.yml` has no scheduler service yet.
+Scheduled jobs need `php artisan schedule:run` every minute (cron) or `schedule:work`. Sail does not start one by default; `docker-compose.prod.yml` runs a dedicated `scheduler` service (`schedule:work`).
 
 The queue worker runs as its own `sail up -d` service (`compose.yaml`'s `worker`) and restarts automatically if it crashes — no manual terminal needed. Check it's up with `docker ps --filter name=ticketlens-api-worker`.
 

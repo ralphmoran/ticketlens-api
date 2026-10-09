@@ -222,11 +222,11 @@ The route list shows every `/v1/*` endpoint (27 at time of writing); see [API Ro
 
 `docker-compose.prod.yml` + `scripts/deploy.sh` is the supported production path. Copy `.env.production.example` to `.env`, fill in the `<REQUIRED>` values, then run `./scripts/deploy.sh`. It pulls `main`, rebuilds the `app` image, starts `docker compose up -d`, runs `migrate --force`, `config:cache`, `route:cache`, then `scripts/healthcheck.sh`.
 
-Services in `docker-compose.prod.yml`: `app` (php-fpm, port 9000), `nginx` (80/443, proxies `/app/` to Reverb), `reverb` (WebSocket server, port 8080), `queue` (`queue:work --sleep=3 --tries=3 --backoff=5`, no `--timeout`), `mysql` (8.4), `redis` (7, password required).
+Services in `docker-compose.prod.yml`: `app` (php-fpm, port 9000), `nginx` (80/443, proxies `/app/` to Reverb), `reverb` (WebSocket server, port 8080), `queue` (`queue:work --sleep=3 --tries=3 --backoff=5`, no `--timeout`), `scheduler` (`schedule:work`, runs `RevokeExpiredGrantsJob`, `WarmNpmDownloadsCacheJob`, `SendSlackDigestJob`), `mysql` (8.4), `redis` (7, password required).
 
-> **Gap:** no service runs the Laravel scheduler, so `RevokeExpiredGrantsJob`, `WarmNpmDownloadsCacheJob` and `SendSlackDigestJob` do not run in this stack. Add a cron entry (`* * * * * docker compose -f docker-compose.prod.yml exec -T app php artisan schedule:run`) or a `schedule:work` service.
->
-> **Gap:** `Dockerfile.prod` is based on `php:8.3-fpm-alpine`, but `composer.json` requires PHP ^8.4. Bump the base image before deploying.
+The app image is built on `php:8.4-fpm-alpine`, matching `composer.json` (PHP ^8.4). The Composer stage uses `php:8.4-cli-alpine` plus the Composer binary, and `.dockerignore` keeps the host `vendor/`, `bootstrap/cache/*.php` and `storage/logs` out of the image. `public/build/` is still copied from the host, so run `npm run build` before deploying.
+
+`deploy.sh` also runs `php artisan landing:build`. Set `ENTERPRISE_CONTACT_EMAIL`, `LEMON_SQUEEZY_WEBHOOK_SECRET` and the optional `SLACK_*` values in `.env`; `docker-compose.prod.yml` passes them to the `app` container.
 
 ### Deployment checklist (bare metal alternative)
 
@@ -330,6 +330,7 @@ server {
 | `VITE_REVERB_APP_KEY` / `VITE_REVERB_HOST` / `VITE_REVERB_PORT` / `VITE_REVERB_SCHEME` | dev | — | Where the browser reaches Reverb |
 | `OWNER_EMAIL` / `OWNER_PASSWORD` / `OWNER_NAME` | prod | `owner@test.local` / `password` | Platform owner account (`OwnerRecoverySeeder`, `db:reset-to-owner`). Must be overridden in production |
 | `SLACK_CLIENT_ID` / `SLACK_CLIENT_SECRET` / `SLACK_SIGNING_SECRET` / `SLACK_REDIRECT_URI` | for Slack | — | Slack integration (`config/services.php`) |
+| `ENTERPRISE_CONTACT_EMAIL` | production | `enterprise@ticketlens.test` | Landing page "Talk to us" address; run `php artisan landing:build` after changing. Local and staging mail is caught by Mailpit |
 | `INERTIA_SSR_ENABLED`       | no           | `true`         | Set `false` in dev unless an SSR server runs on port 13714 |
 | `OWNER_ANALYTICS_CACHE_TTL` | no           | `300`          | Seconds to cache Owner analytics pages            |
 | `REDIS_PASSWORD`            | prod         | `null`         | Required by `docker-compose.prod.yml`             |
@@ -337,7 +338,7 @@ server {
 
 `ANTHROPIC_API_KEY`, `GROQ_API_KEY` and `LEMONSQUEEZY_API_KEY` appear in `config/services.php` or older docs but are not read by application code. AI provider keys are stored per user through the Console.
 
-> **LemonSqueezy webhook secret.** `POST /webhooks/lemonsqueezy` is verified against `config('services.lemonsqueezy.signing_secret')`, which reads `LEMON_SQUEEZY_WEBHOOK_SECRET`. Set it in production; an unset secret rejects every webhook with 403.
+> **LemonSqueezy webhook secret.** `POST /webhooks/lemonsqueezy` is verified against `config('services.lemonsqueezy.signing_secret')`, which reads `LEMON_SQUEEZY_WEBHOOK_SECRET`. Set it in production; an unset secret rejects every webhook with 403. The `X-Signature` header is LemonSqueezy's bare hex HMAC-SHA256 digest (a `sha256=` prefix is also accepted). `docker-compose.prod.yml` aborts when `LEMON_SQUEEZY_WEBHOOK_SECRET` or `ENTERPRISE_CONTACT_EMAIL` is unset.
 
 ---
 

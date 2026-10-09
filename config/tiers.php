@@ -21,6 +21,12 @@ return [
     'annual_discount_percent' => 20,
 
     /*
+     | Landing page "Talk to us" address. Local and staging mail is caught by Mailpit.
+     | Set ENTERPRISE_CONTACT_EMAIL in production, then run `php artisan landing:build`.
+     */
+    'enterprise_contact_email' => env('ENTERPRISE_CONTACT_EMAIL', 'enterprise@ticketlens.test'),
+
+    /*
      | Reference rate for estimated token-savings ROI.
      | Uses GPT-4 Turbo input pricing ($15/1M tokens) as a representative benchmark.
      | Owner can override in settings (future). Define once here; DashboardController

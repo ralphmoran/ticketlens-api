@@ -15,10 +15,14 @@ class LandingPageBuilder
     /**
      * @param array<string,int|float> $prices          tier => monthly price (config('tiers.prices'))
      * @param int|float               $discountPercent annual billing discount
+     * @param array<string,string>    $extras          extra placeholders; values are HTML-escaped
      */
-    public function render(string $template, array $prices, int|float $discountPercent): string
+    public function render(string $template, array $prices, int|float $discountPercent, array $extras = []): string
     {
-        $values = $this->values($prices, $discountPercent);
+        $values = $this->values($prices, $discountPercent) + array_map(
+            fn ($v) => htmlspecialchars((string) $v, ENT_QUOTES),
+            $extras,
+        );
 
         return preg_replace_callback(
             '/\{\{\s*([a-z_]+)\s*\}\}/',
@@ -26,6 +30,28 @@ class LandingPageBuilder
                 ?? throw new InvalidArgumentException("Unknown landing placeholder: {$m[1]}"),
             $template,
         );
+    }
+
+    /** Render using config/tiers.php: prices, annual discount and enterprise contact. */
+    public function renderFromConfig(string $template): string
+    {
+        $email = (string) $this->config('tiers.enterprise_contact_email');
+
+        if (! filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            throw new InvalidArgumentException("Invalid tiers.enterprise_contact_email: {$email}");
+        }
+
+        return $this->render(
+            $template,
+            $this->config('tiers.prices'),
+            $this->config('tiers.annual_discount_percent'),
+            ['enterprise_email' => $email],
+        );
+    }
+
+    protected function config(string $key): mixed
+    {
+        return config($key);
     }
 
     /** @return array<string,string> */

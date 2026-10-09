@@ -25,9 +25,10 @@ class WebhookTest extends TestCase
         $this->seed(FeatureSeeder::class);
     }
 
+    /** LemonSqueezy sends the bare hex HMAC-SHA256 digest in X-Signature. */
     private function sign(string $payload): string
     {
-        return 'sha256=' . hash_hmac('sha256', $payload, self::WEBHOOK_SECRET);
+        return hash_hmac('sha256', $payload, self::WEBHOOK_SECRET);
     }
 
     private function postSigned(array $data): \Illuminate\Testing\TestResponse
@@ -46,6 +47,31 @@ class WebhookTest extends TestCase
         ]);
 
         $response->assertStatus(403);
+    }
+
+    public function test_webhook_accepts_the_bare_hex_digest_lemonsqueezy_sends(): void
+    {
+        $data = ['meta' => ['event_name' => 'order_created']];
+
+        $this->postJson(self::WEBHOOK_URL, $data, ['X-Signature' => $this->sign(json_encode($data))])
+            ->assertStatus(200);
+    }
+
+    public function test_webhook_still_accepts_a_sha256_prefixed_digest(): void
+    {
+        $data = ['meta' => ['event_name' => 'order_created']];
+
+        $this->postJson(self::WEBHOOK_URL, $data, ['X-Signature' => 'sha256=' . $this->sign(json_encode($data))])
+            ->assertStatus(200);
+    }
+
+    public function test_webhook_rejects_everything_when_no_secret_is_configured(): void
+    {
+        config(['services.lemonsqueezy.signing_secret' => null]);
+        $data = ['meta' => ['event_name' => 'order_created']];
+
+        $this->postJson(self::WEBHOOK_URL, $data, ['X-Signature' => $this->sign(json_encode($data))])
+            ->assertStatus(403);
     }
 
     public function test_webhook_rejects_missing_signature(): void

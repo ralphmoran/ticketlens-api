@@ -38,6 +38,46 @@ class LandingPageBuilderTest extends TestCase
         $this->assertSame('~25% off', $this->render('~{{annual_discount}}% off', discount: 25));
     }
 
+    public function test_extra_placeholders_are_injected(): void
+    {
+        $out = (new LandingPageBuilder())->render(
+            'mailto:{{enterprise_email}}',
+            ['pro' => 10, 'team' => 20],
+            20,
+            ['enterprise_email' => 'sales@example.test'],
+        );
+
+        $this->assertSame('mailto:sales@example.test', $out);
+    }
+
+    public function test_extra_placeholder_values_are_html_escaped(): void
+    {
+        $out = (new LandingPageBuilder())->render(
+            '{{enterprise_email}}',
+            ['pro' => 10, 'team' => 20],
+            20,
+            ['enterprise_email' => '"><script>x</script>'],
+        );
+
+        $this->assertStringNotContainsString('<script>', $out);
+    }
+
+    public function test_render_from_config_rejects_an_invalid_contact_email(): void
+    {
+        $builder = new class extends LandingPageBuilder {
+            protected function config(string $key): mixed
+            {
+                return $key === 'tiers.enterprise_contact_email'
+                    ? 'a@b.test?bcc=x@y.test'
+                    : parent::config($key);
+            }
+        };
+
+        $this->expectException(InvalidArgumentException::class);
+
+        $builder->renderFromConfig('{{enterprise_email}}');
+    }
+
     public function test_unknown_placeholder_fails_loudly(): void
     {
         $this->expectException(InvalidArgumentException::class);

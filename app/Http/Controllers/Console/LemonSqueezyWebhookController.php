@@ -76,9 +76,10 @@ class LemonSqueezyWebhookController
             return false;
         }
 
-        $expected = 'sha256=' . hash_hmac('sha256', $payload, $secret);
+        // LemonSqueezy sends the bare hex digest; tolerate an optional "sha256=" prefix.
+        $received = str_starts_with($signature, 'sha256=') ? substr($signature, 7) : $signature;
 
-        return hash_equals($expected, $signature);
+        return hash_equals(hash_hmac('sha256', $payload, $secret), $received);
     }
 
     private function activateSubscription(User $user, array $data): void

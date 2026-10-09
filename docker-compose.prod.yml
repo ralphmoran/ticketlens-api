@@ -1,3 +1,9 @@
+x-slack-env: &slack-env
+  SLACK_CLIENT_ID: ${SLACK_CLIENT_ID:-}
+  SLACK_CLIENT_SECRET: ${SLACK_CLIENT_SECRET:-}
+  SLACK_SIGNING_SECRET: ${SLACK_SIGNING_SECRET:-}
+  SLACK_REDIRECT_URI: ${SLACK_REDIRECT_URI:-}
+
 services:
 
   app:
@@ -43,6 +49,11 @@ services:
       MAIL_PASSWORD: ${MAIL_PASSWORD}
       MAIL_FROM_ADDRESS: ${MAIL_FROM_ADDRESS}
       MAIL_FROM_NAME: ${MAIL_FROM_NAME:-TicketLens}
+
+      <<: *slack-env
+      LEMON_SQUEEZY_WEBHOOK_SECRET: ${LEMON_SQUEEZY_WEBHOOK_SECRET:?set LEMON_SQUEEZY_WEBHOOK_SECRET}
+      INERTIA_SSR_ENABLED: ${INERTIA_SSR_ENABLED:-false}
+      ENTERPRISE_CONTACT_EMAIL: ${ENTERPRISE_CONTACT_EMAIL:?set ENTERPRISE_CONTACT_EMAIL}
     volumes:
       - app-storage:/var/www/html/storage
     depends_on:
@@ -97,6 +108,56 @@ services:
     restart: unless-stopped
     command: php artisan queue:work --sleep=3 --tries=3 --backoff=5
     environment:
+      <<: *slack-env
+      APP_ENV: production
+      APP_KEY: ${APP_KEY}
+      APP_DEBUG: "false"
+      APP_URL: ${APP_URL}
+      DB_CONNECTION: mysql
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_DATABASE: ${DB_DATABASE}
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-null}
+      CACHE_STORE: redis
+      SESSION_DRIVER: redis
+      QUEUE_CONNECTION: redis
+      BROADCAST_CONNECTION: reverb
+      REVERB_APP_ID: ${REVERB_APP_ID}
+      REVERB_APP_KEY: ${REVERB_APP_KEY}
+      REVERB_APP_SECRET: ${REVERB_APP_SECRET}
+      REVERB_HOST: reverb
+      REVERB_PORT: 8080
+      REVERB_SCHEME: http
+      MAIL_MAILER: ${MAIL_MAILER}
+      MAIL_HOST: ${MAIL_HOST}
+      MAIL_PORT: ${MAIL_PORT}
+      MAIL_USERNAME: ${MAIL_USERNAME}
+      MAIL_PASSWORD: ${MAIL_PASSWORD}
+      MAIL_FROM_ADDRESS: ${MAIL_FROM_ADDRESS}
+      MAIL_FROM_NAME: ${MAIL_FROM_NAME:-TicketLens}
+    volumes:
+      - app-storage:/var/www/html/storage
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - internal
+
+  scheduler:
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
+    image: ticketlens-app:latest
+    restart: unless-stopped
+    command: php artisan schedule:work --no-interaction
+    environment:
+      <<: *slack-env
       APP_ENV: production
       APP_KEY: ${APP_KEY}
       APP_DEBUG: "false"

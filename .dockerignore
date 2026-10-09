@@ -3,3 +3,15 @@
 .env.production
 .git
 node_modules
+vendor
+bootstrap/cache/*.php
+storage/logs
+.env.*
+.claude
+.idea
+graphify-out
+.github
+tests
+docs
+.phpunit.result.cache
+public/hot

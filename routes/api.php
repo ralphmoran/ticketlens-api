@@ -31,7 +31,7 @@ RateLimiter::for('api-global', fn(Request $r) => Limit::perMinute(120)->by($r->i
 RateLimiter::for('summarize',  fn(Request $r) => Limit::perMinute(10)->by($r->bearerToken() ?: $r->ip()));
 RateLimiter::for('schedule',   fn(Request $r) => Limit::perMinute(5)->by($r->bearerToken() ?: $r->ip()));
 RateLimiter::for('digest',      fn(Request $r) => Limit::perMinute(20)->by($r->bearerToken() ?: $r->ip()));
-RateLimiter::for('compliance',  fn(Request $r) => Limit::perMinute(10)->by($r->bearerToken() ?: $r->ip()));
+RateLimiter::for('consensus',   fn(Request $r) => Limit::perMinute(10)->by($r->bearerToken() ?: $r->ip()));
 RateLimiter::for('ai-test',     fn(Request $r) => Limit::perMinute(5)->by($r->bearerToken() ?: $r->ip()));
 RateLimiter::for('triage',      fn(Request $r) => Limit::perMinute(30)->by($r->bearerToken() ?: $r->ip()));
 RateLimiter::for('recall',      fn(Request $r) => Limit::perMinute(30)->by($r->bearerToken() ?: $r->ip()));
@@ -118,6 +118,6 @@ Route::middleware(['throttle:api-global', 'auth.cli', 'license.tier:pro'])->grou
     Route::get('/v1/ai-provider-pool',  [AiProviderPoolController::class, 'index'])->name('api.ai-provider-pool');
     Route::get('/v1/ai-provider-roles', [AiProviderRoleController::class, 'index'])->name('api.ai-provider-roles');
     Route::post('/v1/consensus', [ConsensusController::class, 'run'])
-        ->middleware('throttle:compliance')
+        ->middleware('throttle:consensus')
         ->name('api.consensus');
 });

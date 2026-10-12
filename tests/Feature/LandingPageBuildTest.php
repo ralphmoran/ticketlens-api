@@ -71,7 +71,15 @@ class LandingPageBuildTest extends TestCase
         $pro      = explode('<div class="pricing-tier">Team</div>', $afterPro)[0];
 
         $this->assertStringContainsString('pr --open', $pro);
+        $this->assertStringContainsString('ticketlens review', $pro);
         $this->assertStringNotContainsString('install-hooks', $pro);
+    }
+
+    public function test_free_card_says_the_pr_compliance_section_shares_the_monthly_cap(): void
+    {
+        $free = explode('<div class="pricing-tier">Pro</div>', $this->freshRender())[0];
+
+        $this->assertMatchesRegularExpression('/<li>[^<]*ticketlens pr\)[^<]*3\/month/', $free);
     }
 
     public function test_landing_privacy_copy_makes_no_unqualified_server_claims(): void

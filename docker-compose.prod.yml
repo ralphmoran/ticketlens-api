@@ -65,10 +65,8 @@ services:
       - internal
 
   reverb:
-    build:
-      context: .
-      dockerfile: Dockerfile.prod
     image: ticketlens-app:latest
+    pull_policy: never
     restart: unless-stopped
     command: php artisan reverb:start --host=0.0.0.0 --port=8080 --no-interaction
     environment:
@@ -101,10 +99,8 @@ services:
       - internal
 
   queue:
-    build:
-      context: .
-      dockerfile: Dockerfile.prod
     image: ticketlens-app:latest
+    pull_policy: never
     restart: unless-stopped
     command: php artisan queue:work --sleep=3 --tries=3 --backoff=5
     environment:
@@ -150,10 +146,8 @@ services:
       - internal
 
   scheduler:
-    build:
-      context: .
-      dockerfile: Dockerfile.prod
     image: ticketlens-app:latest
+    pull_policy: never
     restart: unless-stopped
     command: php artisan schedule:work --no-interaction
     environment:
@@ -190,6 +184,12 @@ services:
       MAIL_FROM_NAME: ${MAIL_FROM_NAME:-TicketLens}
     volumes:
       - app-storage:/var/www/html/storage
+    healthcheck:
+      # busybox pgrep; [a] keeps the pattern from matching this shell's own command line
+      test: ["CMD-SHELL", "pgrep -f '[a]rtisan schedule:work' > /dev/null"]
+      interval: 30s
+      retries: 3
+      timeout: 5s
     depends_on:
       mysql:
         condition: service_healthy

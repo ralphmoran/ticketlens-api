@@ -85,6 +85,24 @@ class DockerfileProdTest extends TestCase
         }
     }
 
+    public function test_only_the_app_service_builds_the_image(): void
+    {
+        $compose = file_get_contents($this->root('docker-compose.prod.yml'));
+
+        $this->assertSame(1, preg_match_all('/^    build:/m', $compose), 'queue, reverb and scheduler reuse the image built by app');
+        $this->assertSame(4, preg_match_all('/^    image: ticketlens-app:latest/m', $compose));
+        $this->assertSame(3, preg_match_all('/^    pull_policy: never/m', $compose), 'image-only services must never try to pull the local tag');
+    }
+
+    public function test_scheduler_has_a_healthcheck(): void
+    {
+        $compose = file_get_contents($this->root('docker-compose.prod.yml'));
+        preg_match('/^  scheduler:\n(.*?)(?=^  \w)/ms', $compose, $m);
+
+        $this->assertStringContainsString('healthcheck:', $m[1]);
+        $this->assertStringContainsString("pgrep -f '[a]rtisan schedule:work'", $m[1], 'a plain pgrep pattern matches its own sh -c line and never fails');
+    }
+
     public function test_prod_compose_runs_the_scheduler_as_its_own_service(): void
     {
         $compose = file_get_contents($this->root('docker-compose.prod.yml'));

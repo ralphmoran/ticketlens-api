@@ -856,6 +856,14 @@
       .how-step         { grid-template-columns: 1fr; gap: 16px; }
       .how-num          { font-size: 32px; }
       .container        { padding: 72px 20px; }
+      /* MCP diagram: let nodes and arrows wrap instead of overflowing the card */
+      .mcp-row          { flex-wrap: wrap; justify-content: center; row-gap: 6px; }
+      .mcp-node         { flex-shrink: 1; white-space: normal; }
+      .mcp-arrow        { flex: 0 0 auto; }
+    }
+    @media (max-width: 360px) {
+      .t-dots           { padding: 0 10px; }
+      .t-tab            { padding: 0 8px; }
     }
     @media (prefers-reduced-motion: reduce) {
       *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }

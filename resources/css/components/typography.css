@@ -143,13 +143,15 @@
     z-index: 50;
   }
 
-  .tl-abbr:hover::after {
+  .tl-abbr:hover::after,
+  .tl-abbr:focus-visible::after {
     display: block;
     opacity: 1;
   }
 
   @starting-style {
-    .tl-abbr:hover::after {
+    .tl-abbr:hover::after,
+    .tl-abbr:focus-visible::after {
       opacity: 0;
     }
   }

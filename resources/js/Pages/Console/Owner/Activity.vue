@@ -60,6 +60,7 @@ const { filters, loading, navigate } = useTableFilters({
                                 <th class="tl-th">
                                     <abbr
                                         class="tl-abbr tl-abbr--below"
+                                        tabindex="0"
                                         title="Estimated at ~4 characters per token of the fetched ticket brief"
                                         data-tooltip="Estimated at ~4 characters per token of the fetched ticket brief"
                                     >Tokens Saved</abbr>

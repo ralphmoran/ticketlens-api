@@ -29,7 +29,16 @@ RateLimiter::for('reset-by-email', function ($r) {
     return Limit::perHour(3)->by($key);
 });
 
+// The form is public and sends real mail: cap per IP, per email, and globally per day.
+RateLimiter::for('enterprise-contact', fn ($r) => [
+    Limit::perMinute(5)->by('enterprise-contact-ip:' . $r->ip()),
+    Limit::perHour(3)->by('enterprise-contact-email:' . strtolower((string) $r->input('email', $r->ip()))),
+    Limit::perDay(200)->by('enterprise-contact-global'),
+]);
+
 Route::get('/', fn () => response()->file(public_path('landing.html')));
+Route::post('/contact/enterprise', \App\Http\Controllers\Web\EnterpriseContactController::class)
+    ->middleware('throttle:enterprise-contact');
 Route::get('/inertia-test', fn () => inertia('Test'));
 
 // LemonSqueezy webhook (public, HMAC-verified inside controller)

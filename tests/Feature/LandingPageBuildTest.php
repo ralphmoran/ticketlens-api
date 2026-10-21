@@ -48,6 +48,15 @@ class LandingPageBuildTest extends TestCase
         );
     }
 
+    public function test_landing_enterprise_band_posts_the_contact_form_to_the_app(): void
+    {
+        $html = $this->freshRender();
+
+        $this->assertStringContainsString('id="enterprise-form"', $html);
+        $this->assertStringContainsString('action="/contact/enterprise"', $html);
+        $this->assertStringContainsString('name="website"', $html);
+    }
+
     public function test_enterprise_contact_email_has_a_non_production_default(): void
     {
         $tiers = require config_path('tiers.php');

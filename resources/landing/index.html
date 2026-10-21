@@ -526,8 +526,29 @@
             <div class="pricing-enterprise-label">Enterprise</div>
             <p class="pricing-enterprise-desc">SSO, centralized billing, DPA, and dedicated onboarding for teams of 50+. Your ticket data never leaves your network — passes security review in days.</p>
           </div>
-          <a href="mailto:{{enterprise_email}}" class="pricing-cta ghost pricing-enterprise-cta">Talk to us →</a>
+          <a href="mailto:{{enterprise_email}}" class="pricing-cta ghost pricing-enterprise-cta" id="enterprise-cta" aria-controls="enterprise-form" aria-expanded="false">Talk to us →</a>
         </div>
+        <form id="enterprise-form" class="enterprise-form" action="/contact/enterprise" method="post" hidden novalidate>
+          <div class="enterprise-form-row">
+            <label class="enterprise-form-field">Name
+              <input type="text" name="name" maxlength="100" autocomplete="name" required>
+            </label>
+            <label class="enterprise-form-field">Work email
+              <input type="email" name="email" maxlength="254" autocomplete="email" required>
+            </label>
+          </div>
+          <label class="enterprise-form-field">How can we help?
+            <textarea name="message" rows="4" maxlength="5000" required></textarea>
+          </label>
+          <div class="enterprise-form-trap" aria-hidden="true">
+            <label>Website <input type="text" name="website" tabindex="-1" autocomplete="off"></label>
+          </div>
+          <div class="enterprise-form-actions">
+            <button type="submit" class="pricing-cta solid">Send message</button>
+            <a href="mailto:{{enterprise_email}}">or email {{enterprise_email}}</a>
+          </div>
+          <p class="enterprise-form-status" role="status" aria-live="polite"></p>
+        </form>
       </div>
       <p class="pricing-note fade-in"><strong>Open core</strong> — The CLI is free forever. No usage limits. No forced account.</p>
     </div>

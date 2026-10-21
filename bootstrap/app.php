@@ -30,8 +30,9 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
         $middleware->redirectGuestsTo(fn () => route('console.login'));
         $middleware->redirectUsersTo(fn () => route('console.dashboard'));
-        // LemonSqueezy posts without a browser session — HMAC signature is the auth mechanism
-        $middleware->validateCsrfTokens(except: ['webhooks/*']);
+        // LemonSqueezy posts without a browser session — HMAC signature is the auth mechanism.
+        // contact/enterprise is posted from the static landing page, which has no CSRF token.
+        $middleware->validateCsrfTokens(except: ['webhooks/*', 'contact/enterprise']);
         $middleware->alias([
             'auth.license'     => \App\Http\Middleware\ValidateLicenseKey::class,
             'auth.cli'         => \App\Http\Middleware\ValidateCliToken::class,

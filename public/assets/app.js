@@ -456,6 +456,48 @@
     });
 
     /* ============================================================
+       ENTERPRISE CONTACT FORM
+       Without JS the CTA stays a plain mailto: link.
+    ============================================================ */
+    (function() {
+      var cta = document.getElementById('enterprise-cta');
+      var form = document.getElementById('enterprise-form');
+      if (!cta || !form) return;
+      var status = form.querySelector('.enterprise-form-status');
+      var submit = form.querySelector('button[type="submit"]');
+
+      function say(text, isError) {
+        status.textContent = text;
+        status.classList.toggle('error', !!isError);
+      }
+
+      cta.addEventListener('click', function(e) {
+        e.preventDefault();
+        var open = form.hidden;
+        form.hidden = !open;
+        cta.setAttribute('aria-expanded', String(open));
+        if (open) form.querySelector('input[name="name"]').focus();
+      });
+
+      form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        if (!form.checkValidity()) { form.reportValidity(); return; }
+        submit.disabled = true;
+        say('Sending…', false);
+        fetch(form.action, {
+          method: 'POST',
+          headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
+          body: JSON.stringify(Object.fromEntries(new FormData(form)))
+        }).then(function(res) {
+          if (res.status === 204) { form.reset(); say('Thanks — we will reply within one business day.', false); return; }
+          say(res.status === 429 ? 'Too many attempts. Try again in a minute.' : 'Check your details and try again.', true);
+        }).catch(function() {
+          say('Could not send. Please email us directly.', true);
+        }).finally(function() { submit.disabled = false; });
+      });
+    })();
+
+    /* ============================================================
        COPY BUTTONS
     ============================================================ */
     document.querySelectorAll('.copy-btn').forEach(function(btn) {

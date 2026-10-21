@@ -121,3 +121,27 @@ Route::middleware(['throttle:api-global', 'auth.cli', 'license.tier:pro'])->grou
         ->middleware('throttle:consensus')
         ->name('api.consensus');
 });
+
+// Public API for third-party integrations (per-integrator API keys, see ApiKey).
+// Quota is per key, not per IP, and scales with the owner's tier.
+RateLimiter::for('public-api', function (Request $r) {
+    $key  = $r->attributes->get('api_key');
+    $user = $key?->user;
+
+    return Limit::perMinute($user?->is_owner || $user?->tier === 'team' ? 120 : 60)
+        ->by('public-api:' . ($key?->id ?? $r->ip()));
+});
+
+// Recall routes reuse the CLI controllers: they act on $request->user(), which the key resolves to.
+Route::prefix('v1/public')->middleware('throttle:api-global')->group(function () {
+    Route::get('/triage/snapshots', \App\Http\Controllers\Api\PublicApi\TriageSnapshotsController::class)
+        ->middleware(['auth.api-key:triage:read', 'throttle:public-api']);
+
+    Route::get('/recall/notes', RecallPullController::class)
+        ->middleware(['auth.api-key:recall:read', 'throttle:public-api']);
+    Route::post('/recall/notes', RecallPushController::class)
+        ->middleware(['auth.api-key:recall:write', 'throttle:public-api', 'api.audit']);
+
+    Route::post('/digest/send', \App\Http\Controllers\Api\PublicApi\DigestSendController::class)
+        ->middleware(['auth.api-key:digest:send', 'throttle:public-api', 'api.audit']);
+});

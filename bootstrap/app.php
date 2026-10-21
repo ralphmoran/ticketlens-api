@@ -33,10 +33,16 @@ return Application::configure(basePath: dirname(__DIR__))
         // LemonSqueezy posts without a browser session — HMAC signature is the auth mechanism.
         // contact/enterprise is posted from the static landing page, which has no CSRF token.
         $middleware->validateCsrfTokens(except: ['webhooks/*', 'contact/enterprise']);
+        // The public-api limiter keys on the authenticated key, so auth must run before throttling.
+        $middleware->prependToPriorityList(
+            before: \Illuminate\Routing\Middleware\ThrottleRequests::class,
+            prepend: \App\Http\Middleware\ValidateApiKey::class,
+        );
         $middleware->alias([
-            'auth.license'     => \App\Http\Middleware\ValidateLicenseKey::class,
+            'auth.license'     =>\App\Http\Middleware\ValidateLicenseKey::class,
             'auth.cli'         => \App\Http\Middleware\ValidateCliToken::class,
             'auth.api-key'     => \App\Http\Middleware\ValidateApiKey::class,
+            'api.audit'        => \App\Http\Middleware\AuditApiKeyCall::class,
             'license.tier'     => \App\Http\Middleware\RequireLicenseTier::class,
             'permission'       => \App\Http\Middleware\HasPermission::class,
             'owner'            => \App\Http\Middleware\IsOwner::class,

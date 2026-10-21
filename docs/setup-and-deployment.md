@@ -330,7 +330,7 @@ server {
 | `VITE_REVERB_APP_KEY` / `VITE_REVERB_HOST` / `VITE_REVERB_PORT` / `VITE_REVERB_SCHEME` | dev | — | Where the browser reaches Reverb |
 | `OWNER_EMAIL` / `OWNER_PASSWORD` / `OWNER_NAME` | prod | `owner@test.local` / `password` | Platform owner account (`OwnerRecoverySeeder`, `db:reset-to-owner`). Must be overridden in production |
 | `SLACK_CLIENT_ID` / `SLACK_CLIENT_SECRET` / `SLACK_SIGNING_SECRET` / `SLACK_REDIRECT_URI` | for Slack | — | Slack integration (`config/services.php`) |
-| `ENTERPRISE_CONTACT_EMAIL` | production | `enterprise@ticketlens.test` | Landing page "Talk to us" address; run `php artisan landing:build` after changing. Local and staging mail is caught by Mailpit |
+| `ENTERPRISE_CONTACT_EMAIL` | production | `enterprise@ticketlens.test` | Landing page "Talk to us" address and recipient of `POST /contact/enterprise` (sent synchronously, so SMTP must be configured; failures log `Enterprise contact mail failed` and return 503). Limits: 5/min per IP, 3/hour per email, 200/day global. Run `php artisan landing:build` after changing. Local and staging mail is caught by Mailpit |
 | `INERTIA_SSR_ENABLED`       | no           | `true`         | Set `false` in dev unless an SSR server runs on port 13714 |
 | `OWNER_ANALYTICS_CACHE_TTL` | no           | `300`          | Seconds to cache Owner analytics pages            |
 | `REDIS_PASSWORD`            | prod         | `null`         | Required by `docker-compose.prod.yml`             |

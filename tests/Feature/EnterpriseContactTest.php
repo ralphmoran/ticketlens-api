@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Mail\EnterpriseContactMail;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Tests\TestCase;
 
@@ -133,6 +134,19 @@ class EnterpriseContactTest extends TestCase
                 && str_contains($mail->render(), 'We need SSO for 80 seats.')
                 && str_contains($mail->render(), 'ada@example.com');
         });
+    }
+
+    public function test_mail_failure_is_logged_and_returns_service_unavailable(): void
+    {
+        Mail::shouldReceive('to')->once()->andReturnSelf();
+        Mail::shouldReceive('send')->once()->andThrow(new \RuntimeException('smtp down'));
+        Log::shouldReceive('error')->once()->withArgs(
+            fn (string $message, array $context) => str_contains($message, 'Enterprise contact mail failed')
+                && $context['exception'] === 'smtp down',
+        );
+
+        $this->postJson('/contact/enterprise', $this->payload())
+            ->assertNoContent(503);
     }
 
     public function test_sixth_submission_from_one_ip_is_throttled(): void

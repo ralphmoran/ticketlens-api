@@ -490,7 +490,8 @@
           body: JSON.stringify(Object.fromEntries(new FormData(form)))
         }).then(function(res) {
           if (res.status === 204) { form.reset(); say('Thanks — we will reply within one business day.', false); return; }
-          say(res.status === 429 ? 'Too many attempts. Try again in a minute.' : 'Check your details and try again.', true);
+          if (res.status >= 500) { say('Could not send. Please email us directly.', true); return; }
+          say(res.status === 429 ? 'Too many attempts. Try again later.' : 'Check your details and try again.', true);
         }).catch(function() {
           say('Could not send. Please email us directly.', true);
         }).finally(function() { submit.disabled = false; });

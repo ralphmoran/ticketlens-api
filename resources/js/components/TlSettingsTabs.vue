@@ -37,6 +37,7 @@ const groups = computed(() => {
         { key: 'profile',     label: 'Profile',     href: '/console/account',     icon: 'user-circle' },
         { key: 'connections', label: 'Connections', href: '/console/connections', icon: 'link' },
         { key: 'behavior',    label: 'Behavior',    href: '/console/behavior',    icon: 'sliders' },
+        { key: 'api-keys',    label: 'API Keys',    href: '/console/api-keys',    icon: 'key' },
     ]
 
     const teamConfig = []

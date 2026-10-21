@@ -125,6 +125,11 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasMany(CliToken::class);
     }
 
+    public function apiKeys(): HasMany
+    {
+        return $this->hasMany(ApiKey::class);
+    }
+
     public function aiProviders(): HasMany
     {
         return $this->hasMany(UserAiProvider::class)->orderBy('priority');

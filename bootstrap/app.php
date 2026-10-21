@@ -36,6 +36,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'auth.license'     => \App\Http\Middleware\ValidateLicenseKey::class,
             'auth.cli'         => \App\Http\Middleware\ValidateCliToken::class,
+            'auth.api-key'     => \App\Http\Middleware\ValidateApiKey::class,
             'license.tier'     => \App\Http\Middleware\RequireLicenseTier::class,
             'permission'       => \App\Http\Middleware\HasPermission::class,
             'owner'            => \App\Http\Middleware\IsOwner::class,

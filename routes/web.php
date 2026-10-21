@@ -106,6 +106,11 @@ Route::prefix('console')->name('console.')->group(function () {
         Route::delete('/impersonate', [\App\Http\Controllers\Owner\ImpersonationController::class, 'destroy'])
             ->name('impersonate.stop');
 
+        // Public API keys (Pro/Team to create; owners bypass the tier check)
+        Route::get('/api-keys', [\App\Http\Controllers\Console\ApiKeyController::class, 'index'])->name('api-keys');
+        Route::post('/api-keys', [\App\Http\Controllers\Console\ApiKeyController::class, 'store'])->name('api-keys.store')->middleware(['license.tier:pro', 'throttle:10,1']);
+        Route::delete('/api-keys/{id}', [\App\Http\Controllers\Console\ApiKeyController::class, 'destroy'])->name('api-keys.destroy')->middleware('throttle:10,1');
+
         // Dashboard — landing page after login
         Route::get('/dashboard', [\App\Http\Controllers\Console\DashboardController::class, 'index'])->name('dashboard');
 

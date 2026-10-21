@@ -156,6 +156,9 @@ Auth is per route group (`routes/api.php`). All use `Authorization: Bearer <toke
 | CLI token (`auth.cli`) | `GET /v1/profiles`, `/v1/statuses`, `/v1/templates`; `POST /v1/triage/push`, `/v1/triage/share`, `GET /v1/triage/collisions`; `POST /v1/recall/push`, `GET /v1/recall/pull`; `POST/GET/DELETE /v1/schedule` (also needs the Schedules permission); `/v1/ai-providers` CRUD + `POST /v1/ai-providers/{id}/test` |
 | CLI token + Pro tier | `POST /v1/summarize`, `POST /v1/recall/auto-capture`, `GET /v1/team/config`, `GET /v1/recall/settings`, `GET /v1/ai-provider-pool`, `GET /v1/ai-provider-roles`, `POST /v1/consensus` |
 | License key + Pro tier (`auth.license`) | `POST /v1/digest/deliver` |
+| API key + Pro/Team (`auth.api-key`) | `GET /v1/public/triage/snapshots`, `GET/POST /v1/public/recall/notes`, `POST /v1/public/digest/send`; contract at `GET /v1/public/openapi.json` (public) |
+
+The public API is for third-party integrations. Keys are created in Console under Settings > API Keys (5 active per account, scoped, shown once). See [docs/public-api.md](docs/public-api.md) for scopes, limits, versioning and the deprecation policy.
 
 `/v1/summarize` runs the caller's own enabled AI providers (configured in Console, keys stored per user) and returns 503 if none is set up. Summarize, auto-capture and role-prompt calls write a `usage_logs` row with the real tokens consumed.
 

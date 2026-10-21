@@ -859,7 +859,7 @@
       /* MCP diagram: let nodes and arrows wrap instead of overflowing the card */
       .mcp-row          { flex-wrap: wrap; justify-content: center; row-gap: 6px; }
       .mcp-node         { flex-shrink: 1; white-space: normal; }
-      .mcp-arrow        { flex: 0 0 auto; }
+      .mcp-arrow        { flex: 1 1 100%; }
     }
     @media (max-width: 360px) {
       .t-dots           { padding: 0 10px; }

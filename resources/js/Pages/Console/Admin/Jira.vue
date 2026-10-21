@@ -155,7 +155,7 @@ function remove() {
         </p>
 
         <!-- ── Connection Test ───────────────────────────────────── -->
-        <div class="tl-card tl-card--lg tl-form-stack">
+        <form class="tl-card tl-card--lg tl-form-stack" @submit.prevent="canTest && !testing && testConnection()">
             <div>
                 <h2 class="tl-title">Connect to Jira</h2>
                 <p class="tl-hint">Enter your credentials to fetch available projects and statuses. Credentials are used for this test only and never stored.</p>
@@ -234,7 +234,7 @@ function remove() {
                 <span v-if="testDone && !testing" class="tl-badge tl-badge--success">Connected</span>
             </div>
             <p v-if="testError" class="tl-error">{{ testError }}</p>
-        </div>
+        </form>
 
         <!-- ── Configuration ─────────────────────────────────────── -->
         <div class="tl-card tl-card--lg">

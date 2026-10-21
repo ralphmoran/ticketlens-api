@@ -235,6 +235,9 @@ async function revokeToken() {
             <h2 class="tl-label tl-label--spaced">Security</h2>
 
             <form class="tl-form-stack" @submit.prevent="savePassword">
+                <!-- Lets password managers and browsers pair the password fields with this account. -->
+                <input type="text" name="username" autocomplete="username" :value="account.email" class="tl-sr-only" readonly tabindex="-1" aria-hidden="true" />
+
                 <div class="tl-stack--sm">
                     <label class="tl-label tl-label--field" for="current-password">Current password</label>
                     <input id="current-password" v-model="passwordForm.current_password" type="password" class="tl-input tl-input--full" autocomplete="current-password" />

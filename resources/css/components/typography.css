@@ -137,12 +137,21 @@
     font-weight: 400;
     pointer-events: none;
     opacity: 0;
-    transition: opacity 0.12s ease;
+    /* display:none while idle: an invisible nowrap tooltip still widens the page's scroll area. */
+    display: none;
+    transition: opacity 0.12s ease, display 0.12s allow-discrete;
     z-index: 50;
   }
 
   .tl-abbr:hover::after {
+    display: block;
     opacity: 1;
+  }
+
+  @starting-style {
+    .tl-abbr:hover::after {
+      opacity: 0;
+    }
   }
 
   /* Opens the tooltip downward instead of upward — for use inside a

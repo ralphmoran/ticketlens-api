@@ -266,26 +266,28 @@ function setPeriod(p) {
                             hmmm... revenue chart is waiting for its first dollar
                         </div>
                     </div>
-                    <table v-if="licenses_by_tier.length > 0" class="tl-table tl-table--spaced">
-                        <thead>
-                            <tr class="tl-thead">
-                                <th class="tl-th">Tier</th>
-                                <th class="tl-th tl-td--right">Licenses</th>
-                                <th class="tl-th tl-td--right">Unit Price</th>
-                                <th class="tl-th tl-td--right">Revenue</th>
-                            </tr>
-                        </thead>
-                        <tbody class="tl-divide">
-                            <tr v-for="row in licenses_by_tier" :key="row.tier" class="tl-tr">
-                                <td class="tl-td">
-                                    <span class="tl-badge" :class="`tl-badge--${tierColors[row.tier] ?? 'neutral'}`">{{ row.tier }}</span>
-                                </td>
-                                <td class="tl-td tl-td--right">{{ row.count }}</td>
-                                <td class="tl-td tl-td--right">${{ row.unit_price }}/mo</td>
-                                <td class="tl-td tl-td--right tl-num--success">${{ row.revenue.toLocaleString() }}/mo</td>
-                            </tr>
-                        </tbody>
-                    </table>
+                    <div class="tl-table-scroll">
+                        <table v-if="licenses_by_tier.length > 0" class="tl-table tl-table--spaced">
+                            <thead>
+                                <tr class="tl-thead">
+                                    <th class="tl-th">Tier</th>
+                                    <th class="tl-th tl-td--right">Licenses</th>
+                                    <th class="tl-th tl-td--right">Unit Price</th>
+                                    <th class="tl-th tl-td--right">Revenue</th>
+                                </tr>
+                            </thead>
+                            <tbody class="tl-divide">
+                                <tr v-for="row in licenses_by_tier" :key="row.tier" class="tl-tr">
+                                    <td class="tl-td">
+                                        <span class="tl-badge" :class="`tl-badge--${tierColors[row.tier] ?? 'neutral'}`">{{ row.tier }}</span>
+                                    </td>
+                                    <td class="tl-td tl-td--right">{{ row.count }}</td>
+                                    <td class="tl-td tl-td--right">${{ row.unit_price }}/mo</td>
+                                    <td class="tl-td tl-td--right tl-num--success">${{ row.revenue.toLocaleString() }}/mo</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>

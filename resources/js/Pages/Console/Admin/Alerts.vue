@@ -412,7 +412,7 @@ function goRulesPage(page) {
                                 <span />
                             </button>
                         </div>
-                        <div class="tl-row">
+                        <div class="tl-row tl-row--wrap">
                             <label class="tl-hint-inline tl-body--muted" for="nr-cooldown">Cooldown</label>
                             <input
                                 id="nr-cooldown"
@@ -463,7 +463,7 @@ function goRulesPage(page) {
                                 <span />
                             </button>
                         </div>
-                        <div class="tl-row">
+                        <div class="tl-row tl-row--wrap">
                             <label class="tl-hint-inline tl-body--muted" for="ag-cooldown">Cooldown</label>
                             <input
                                 id="ag-cooldown"
@@ -514,7 +514,7 @@ function goRulesPage(page) {
                                 <span />
                             </button>
                         </div>
-                        <div class="tl-row">
+                        <div class="tl-row tl-row--wrap">
                             <label class="tl-hint-inline tl-body--muted" for="cg-cooldown">Cooldown</label>
                             <input
                                 id="cg-cooldown"

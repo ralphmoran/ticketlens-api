@@ -40,6 +40,9 @@ jobs:
       - name: Install npm dependencies
         run: npm ci
 
+      - name: Run JS tests
+        run: npm run test:js
+
       - name: Audit npm dependencies (advisory, non-blocking)
         continue-on-error: true
         run: npm audit --omit=dev --audit-level=high

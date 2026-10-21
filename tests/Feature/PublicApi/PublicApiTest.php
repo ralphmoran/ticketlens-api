@@ -236,6 +236,39 @@ class PublicApiTest extends TestCase
         Queue::assertPushed(SendDigestEmail::class, 2);
     }
 
+    public function test_digest_send_inside_the_cooldown_returns_too_many_requests(): void
+    {
+        Queue::fake();
+        $user = $this->proUser();
+        $this->schedule($user)->update(['last_delivered_at' => now()->subMinute()]);
+
+        $this->withToken($this->issueKey($user, ['digest:send']))
+            ->postJson('/v1/public/digest/send', $this->digestPayload())
+            ->assertTooManyRequests()
+            ->assertHeader('Retry-After');
+
+        Queue::assertNothingPushed();
+    }
+
+    public function test_digest_send_skips_only_the_schedules_inside_the_cooldown(): void
+    {
+        Queue::fake();
+        $user = $this->proUser();
+        $recent = $this->schedule($user);
+        $recent->update(['last_delivered_at' => now()->subMinute()]);
+        $stale = $this->schedule($user);
+        $stale->update(['last_delivered_at' => now()->subMinutes(6)]);
+
+        $this->withToken($this->issueKey($user, ['digest:send']))
+            ->postJson('/v1/public/digest/send', $this->digestPayload())
+            ->assertOk()
+            ->assertJson(['schedules' => 1]);
+
+        Queue::assertPushed(SendDigestEmail::class, 1);
+        $this->assertTrue($recent->fresh()->last_delivered_at->lt(now()->subSeconds(30)));
+        $this->assertTrue($stale->fresh()->last_delivered_at->gt(now()->subMinute()));
+    }
+
     public function test_digest_send_without_an_active_schedule_returns_not_found(): void
     {
         Queue::fake();

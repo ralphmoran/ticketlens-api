@@ -206,6 +206,23 @@ class PublicApiTest extends TestCase
         $this->assertSame($user->id, $note->author_id);
     }
 
+    public function test_recall_note_create_cannot_target_another_teams_group(): void
+    {
+        [$user]      = $this->recallMember('A');
+        [, $otherGroup] = $this->recallMember('B');
+
+        $this->withToken($this->issueKey($user, ['recall:write']))
+            ->postJson('/v1/public/recall/notes', [
+                'external_id' => '1700000000000-abcdef.md',
+                'title'       => 't',
+                'body'        => 'b',
+                'group_id'    => $otherGroup->id,
+            ])
+            ->assertUnprocessable();
+
+        $this->assertSame(0, RecallNote::count());
+    }
+
     public function test_recall_note_create_is_forbidden_for_a_read_only_key(): void
     {
         [$user] = $this->recallMember('A');

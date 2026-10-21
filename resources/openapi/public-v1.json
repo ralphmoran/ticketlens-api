@@ -5,27 +5,75 @@
     "version": "1.0.0",
     "description": "Integrator access to TicketLens triage, Recall and digest data. Create a key in Console under Settings > API Keys. Requires a Pro or Team account. Ticket content stays local: only data the CLI already pushed is readable."
   },
-  "servers": [{ "url": "/v1/public" }],
-  "security": [{ "bearerAuth": [] }],
+  "servers": [
+    {
+      "url": "/v1/public"
+    }
+  ],
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
   "paths": {
     "/triage/snapshots": {
       "get": {
         "operationId": "listTriageSnapshots",
         "summary": "List the key owner's triage snapshots, newest first",
-        "x-required-scopes": ["triage:read"],
+        "x-required-scopes": [
+          "triage:read"
+        ],
         "parameters": [
-          { "name": "profile", "in": "query", "schema": { "type": "string", "maxLength": 100 } },
-          { "name": "limit", "in": "query", "schema": { "type": "integer", "minimum": 1, "maximum": 100, "default": 30 } }
+          {
+            "name": "profile",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "maxLength": 100
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 30
+            }
+          }
         ],
         "responses": {
           "200": {
             "description": "Snapshots",
-            "content": { "application/json": { "schema": { "type": "object", "properties": { "snapshots": { "type": "array", "items": { "$ref": "#/components/schemas/TriageSnapshot" } } } } } }
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "snapshots": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/TriageSnapshot"
+                      }
+                    }
+                  }
+                }
+              }
+            }
           },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "403": { "$ref": "#/components/responses/Forbidden" },
-          "422": { "$ref": "#/components/responses/ValidationError" },
-          "429": { "$ref": "#/components/responses/RateLimited" }
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
         }
       }
     },
@@ -33,39 +81,183 @@
       "get": {
         "operationId": "listRecallNotes",
         "summary": "Pull the key owner's team Recall notes and deletions",
-        "x-required-scopes": ["recall:read"],
+        "x-required-scopes": [
+          "recall:read"
+        ],
         "parameters": [
-          { "name": "since", "in": "query", "description": "Only changes after this instant.", "schema": { "type": "string", "format": "date-time" } },
-          { "name": "group_id", "in": "query", "description": "Team to read when the owner belongs to several.", "schema": { "type": "integer" } }
+          {
+            "name": "since",
+            "in": "query",
+            "description": "Only changes after this instant.",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "group_id",
+            "in": "query",
+            "description": "Team to read when the owner belongs to several.",
+            "schema": {
+              "type": "integer"
+            }
+          }
         ],
         "responses": {
           "200": {
             "description": "Notes and tombstones",
-            "content": { "application/json": { "schema": { "type": "object", "properties": { "notes": { "type": "array", "items": { "$ref": "#/components/schemas/RecallNote" } }, "deleted": { "type": "array", "items": { "type": "object", "properties": { "external_id": { "type": "string" }, "tickets": { "type": "array", "items": { "type": "string" } } } } } } } } }
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "notes": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/RecallNote"
+                      }
+                    },
+                    "deleted": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "external_id": {
+                            "type": "string"
+                          },
+                          "tickets": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
           },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "403": { "$ref": "#/components/responses/Forbidden" },
-          "422": { "$ref": "#/components/responses/ValidationError" },
-          "429": { "$ref": "#/components/responses/RateLimited" }
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
         }
       },
       "post": {
         "operationId": "createRecallNote",
         "summary": "Create or update a Recall note, keyed by external_id",
-        "x-required-scopes": ["recall:write"],
+        "x-required-scopes": [
+          "recall:write"
+        ],
         "requestBody": {
           "required": true,
-          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/RecallNoteInput" } } }
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecallNoteInput"
+              }
+            }
+          }
         },
         "responses": {
           "200": {
             "description": "Stored",
-            "content": { "application/json": { "schema": { "type": "object", "properties": { "pushed": { "type": "boolean" }, "id": { "type": "integer" }, "status": { "type": "string" } } } } }
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "pushed": {
+                      "type": "boolean"
+                    },
+                    "id": {
+                      "type": "integer"
+                    },
+                    "status": {
+                      "type": "string"
+                    },
+                    "attachments": {
+                      "type": "integer",
+                      "description": "Attachments stored."
+                    }
+                  }
+                }
+              }
+            }
           },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "403": { "$ref": "#/components/responses/Forbidden" },
-          "422": { "$ref": "#/components/responses/ValidationError" },
-          "429": { "$ref": "#/components/responses/RateLimited" }
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "422": {
+            "description": "Invalid input, unknown team, note rejected by the secret scanner, or invalid attachment.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "reasons": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "errors": {
+                      "type": "object"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "500": {
+            "description": "Note saved but attachment storage failed. Retrying the same request is safe.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "pushed": {
+                      "type": "boolean"
+                    },
+                    "id": {
+                      "type": "integer"
+                    },
+                    "status": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "reason": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
         }
       }
     },
@@ -74,87 +266,342 @@
         "operationId": "sendDigest",
         "summary": "Send a digest to every active schedule of the key owner",
         "description": "Each schedule receives at most one digest per 5 minutes. A call where every schedule is inside that window returns 429 with Retry-After.",
-        "x-required-scopes": ["digest:send"],
+        "x-required-scopes": [
+          "digest:send"
+        ],
         "requestBody": {
           "required": true,
-          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/DigestInput" } } }
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DigestInput"
+              }
+            }
+          }
         },
         "responses": {
           "200": {
             "description": "Queued",
-            "content": { "application/json": { "schema": { "type": "object", "properties": { "delivered": { "type": "boolean" }, "schedules": { "type": "integer" } } } } }
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "delivered": {
+                      "type": "boolean"
+                    },
+                    "schedules": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
           },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "403": { "$ref": "#/components/responses/Forbidden" },
-          "404": { "description": "The owner has no active digest schedule.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
-          "422": { "$ref": "#/components/responses/ValidationError" },
-          "429": { "$ref": "#/components/responses/RateLimited" }
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "description": "The owner has no active digest schedule.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
         }
       }
     }
   },
   "components": {
     "securitySchemes": {
-      "bearerAuth": { "type": "http", "scheme": "bearer", "description": "API key, e.g. tl_pk_..." }
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "API key, e.g. tl_pk_..."
+      }
     },
     "responses": {
-      "Unauthorized": { "description": "Missing, unknown or revoked key, or a suspended owner.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
-      "Forbidden": { "description": "Key lacks the required scope, or the owner is no longer on Pro or Team.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
-      "ValidationError": { "description": "Invalid parameters.", "content": { "application/json": { "schema": { "type": "object", "properties": { "message": { "type": "string" }, "errors": { "type": "object" } } } } } },
-      "RateLimited": { "description": "Quota exceeded: 60 requests per minute per key, 120 for Team and owner accounts.", "headers": { "Retry-After": { "schema": { "type": "integer" } } }, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
+      "Unauthorized": {
+        "description": "Missing, unknown or revoked key, or a suspended owner.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "Forbidden": {
+        "description": "Key lacks the required scope, the owner is no longer on Pro or Team, Recall is not enabled for the owner, or the owner has no team.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "ValidationError": {
+        "description": "Invalid parameters.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "message": {
+                  "type": "string"
+                },
+                "errors": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      },
+      "RateLimited": {
+        "description": "Quota exceeded: 60 requests per minute per key, 120 for Team and owner accounts.",
+        "headers": {
+          "Retry-After": {
+            "schema": {
+              "type": "integer"
+            }
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      }
     },
     "schemas": {
-      "Error": { "type": "object", "properties": { "error": { "type": "string" } } },
+      "Error": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string"
+          }
+        }
+      },
       "TriageSnapshot": {
         "type": "object",
         "properties": {
-          "id": { "type": "integer" },
-          "profile": { "type": "string" },
-          "ticket_count": { "type": "integer" },
-          "captured_at": { "type": "string", "format": "date-time" },
-          "tickets": { "type": "array", "items": { "type": "object" } }
+          "id": {
+            "type": "integer"
+          },
+          "profile": {
+            "type": "string"
+          },
+          "ticket_count": {
+            "type": "integer"
+          },
+          "captured_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "tickets": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          }
         }
       },
       "RecallNote": {
         "type": "object",
         "properties": {
-          "external_id": { "type": "string" },
-          "title": { "type": "string" },
-          "aliases": { "type": "array", "items": { "type": "string" } },
-          "tickets": { "type": "array", "items": { "type": "string" } },
-          "tags": { "type": "array", "items": { "type": "string" } },
-          "author": { "type": ["string", "null"] },
-          "sources": { "type": "array", "items": { "type": "string" } },
-          "body": { "type": "string" },
-          "status": { "type": "string" },
-          "created": { "type": "string", "format": "date-time" }
+          "external_id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "aliases": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "tickets": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "author": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "sources": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "body": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "created": {
+            "type": "string",
+            "format": "date-time"
+          }
         }
       },
       "RecallNoteInput": {
         "type": "object",
-        "required": ["external_id", "title", "body"],
+        "required": [
+          "external_id",
+          "title",
+          "body"
+        ],
         "properties": {
-          "external_id": { "type": "string", "pattern": "^\\d+-[0-9a-f]{6}\\.md$", "maxLength": 100 },
-          "title": { "type": "string", "maxLength": 200 },
-          "body": { "type": "string", "maxLength": 50000 },
-          "aliases": { "type": "array", "maxItems": 10, "items": { "type": "string", "maxLength": 200 } },
-          "tickets": { "type": "array", "maxItems": 20, "items": { "type": "string", "pattern": "^[A-Z][A-Z0-9]+-\\d+$" } },
-          "tags": { "type": "array", "maxItems": 20, "items": { "type": "string", "maxLength": 100 } },
-          "sources": { "type": "array", "maxItems": 20, "items": { "type": "string", "maxLength": 2048 } },
-          "captured_at": { "type": ["string", "null"], "format": "date-time" },
-          "group_id": { "type": ["integer", "null"] }
+          "external_id": {
+            "type": "string",
+            "pattern": "^\\d+-[0-9a-f]{6}\\.md$",
+            "maxLength": 100
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "body": {
+            "type": "string",
+            "maxLength": 50000
+          },
+          "aliases": {
+            "type": "array",
+            "maxItems": 10,
+            "items": {
+              "type": "string",
+              "maxLength": 200
+            }
+          },
+          "tickets": {
+            "type": "array",
+            "maxItems": 20,
+            "items": {
+              "type": "string",
+              "pattern": "^[A-Z][A-Z0-9]+-\\d+$"
+            }
+          },
+          "tags": {
+            "type": "array",
+            "maxItems": 20,
+            "items": {
+              "type": "string",
+              "maxLength": 100
+            }
+          },
+          "sources": {
+            "type": "array",
+            "maxItems": 20,
+            "items": {
+              "type": "string",
+              "maxLength": 2048
+            }
+          },
+          "captured_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "group_id": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "attachments": {
+            "type": "array",
+            "maxItems": 50,
+            "description": "Base64 file content. Per-tier file count and size caps apply (Free 10 files, Pro/Team 50, 12 MB per request).",
+            "items": {
+              "type": "object",
+              "required": [
+                "filename",
+                "content"
+              ],
+              "properties": {
+                "filename": {
+                  "type": "string",
+                  "maxLength": 255
+                },
+                "content": {
+                  "type": "string",
+                  "contentEncoding": "base64"
+                }
+              }
+            }
+          }
         }
       },
       "DigestInput": {
         "type": "object",
-        "required": ["profile", "staleDays", "summary", "tickets"],
+        "required": [
+          "profile",
+          "staleDays",
+          "summary",
+          "tickets"
+        ],
         "properties": {
-          "profile": { "type": "string", "maxLength": 100 },
-          "staleDays": { "type": "integer", "minimum": 0, "maximum": 365 },
+          "profile": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "staleDays": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 365
+          },
           "summary": {
             "type": "object",
-            "required": ["total", "needsResponse", "aging"],
-            "properties": { "total": { "type": "integer", "minimum": 0 }, "needsResponse": { "type": "integer", "minimum": 0 }, "aging": { "type": "integer", "minimum": 0 } }
+            "required": [
+              "total",
+              "needsResponse",
+              "aging"
+            ],
+            "properties": {
+              "total": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "needsResponse": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "aging": {
+                "type": "integer",
+                "minimum": 0
+              }
+            }
           },
           "tickets": {
             "type": "array",
@@ -162,12 +609,33 @@
             "maxItems": 50,
             "items": {
               "type": "object",
-              "required": ["ticketKey", "summary", "status", "urgency"],
+              "required": [
+                "ticketKey",
+                "summary",
+                "status",
+                "urgency"
+              ],
               "properties": {
-                "ticketKey": { "type": "string", "maxLength": 50 },
-                "summary": { "type": "string", "maxLength": 500 },
-                "status": { "type": "string", "maxLength": 100 },
-                "urgency": { "type": "string", "enum": ["needs-response", "aging", "clear"] }
+                "ticketKey": {
+                  "type": "string",
+                  "maxLength": 50
+                },
+                "summary": {
+                  "type": "string",
+                  "maxLength": 500
+                },
+                "status": {
+                  "type": "string",
+                  "maxLength": 100
+                },
+                "urgency": {
+                  "type": "string",
+                  "enum": [
+                    "needs-response",
+                    "aging",
+                    "clear"
+                  ]
+                }
               }
             }
           }

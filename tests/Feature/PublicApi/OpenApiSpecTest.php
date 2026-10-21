@@ -74,4 +74,22 @@ class OpenApiSpecTest extends TestCase
             ->assertOk()
             ->assertJson($this->spec());
     }
+
+    public function test_spec_is_cacheable_and_revalidates_with_an_etag(): void
+    {
+        $first = $this->getJson('/' . self::SPEC_URI)->assertOk();
+        $etag  = $first->headers->get('ETag');
+
+        $this->assertNotEmpty($etag);
+        $this->assertStringContainsString('max-age', $first->headers->get('Cache-Control'));
+
+        $this->getJson('/' . self::SPEC_URI, ['If-None-Match' => $etag])->assertStatus(304);
+    }
+
+    public function test_recall_note_input_documents_attachments_like_the_request_validates_them(): void
+    {
+        $input = $this->spec()['components']['schemas']['RecallNoteInput']['properties'];
+
+        $this->assertSame(['filename', 'content'], $input['attachments']['items']['required']);
+    }
 }

@@ -133,7 +133,7 @@ RateLimiter::for('public-api', function (Request $r) {
 });
 
 // The contract itself is public so integrators can read it before owning a key.
-Route::get('/v1/public/openapi.json', fn () => response(file_get_contents(resource_path('openapi/public-v1.json')), 200, ['Content-Type' => 'application/json']))
+Route::get('/v1/public/openapi.json', \App\Http\Controllers\Api\PublicApi\OpenApiController::class)
     ->middleware('throttle:api-global');
 
 // Recall routes reuse the CLI controllers: they act on $request->user(), which the key resolves to.

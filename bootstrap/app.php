@@ -34,12 +34,13 @@ return Application::configure(basePath: dirname(__DIR__))
         // contact/enterprise is posted from the static landing page, which has no CSRF token.
         $middleware->validateCsrfTokens(except: ['webhooks/*', 'contact/enterprise']);
         // The public-api limiter keys on the authenticated key, so auth must run before throttling.
+        // Unauthenticated floods are therefore bounded by ValidateApiKey's 5-failure IP lockout.
         $middleware->prependToPriorityList(
             before: \Illuminate\Routing\Middleware\ThrottleRequests::class,
             prepend: \App\Http\Middleware\ValidateApiKey::class,
         );
         $middleware->alias([
-            'auth.license'     =>\App\Http\Middleware\ValidateLicenseKey::class,
+            'auth.license'     => \App\Http\Middleware\ValidateLicenseKey::class,
             'auth.cli'         => \App\Http\Middleware\ValidateCliToken::class,
             'auth.api-key'     => \App\Http\Middleware\ValidateApiKey::class,
             'api.audit'        => \App\Http\Middleware\AuditApiKeyCall::class,

@@ -126,7 +126,8 @@ class LicenseIssuanceService
 
             $lockedLicense->update(['status' => 'cancelled']);
 
-            $user = User::lockForUpdate()->findOrFail($lockedLicense->user_id);
+            // Trashed users still hold licenses; revoking must work after an owner deletes the client.
+            $user = User::withTrashed()->lockForUpdate()->findOrFail($lockedLicense->user_id);
             $this->syncUserTierToOwnLicenses($user, $licenseId);
 
             return $user;

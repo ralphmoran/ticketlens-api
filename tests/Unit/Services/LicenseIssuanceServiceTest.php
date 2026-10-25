@@ -249,6 +249,21 @@ class LicenseIssuanceServiceTest extends TestCase
         $this->assertDatabaseHas('licenses', ['id' => $license->id]);
     }
 
+    public function test_revoke_cancels_license_of_soft_deleted_user(): void
+    {
+        $recipient = User::factory()->create();
+        $license   = $this->service->issue($this->owner, $recipient, 'pro')['license'];
+        $recipient->delete();
+
+        $this->service->revoke($this->owner, $license);
+
+        $this->assertSame('cancelled', $license->fresh()->status);
+        $this->assertDatabaseHas('audit_logs', [
+            'action'         => 'license.revoked',
+            'target_user_id' => $recipient->id,
+        ]);
+    }
+
     public function test_revoke_is_idempotent(): void
     {
         $recipient = User::factory()->create();

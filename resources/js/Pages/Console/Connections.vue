@@ -5,6 +5,7 @@ import TlIcon from '@/components/TlIcon.vue'
 import { useForm, router } from '@inertiajs/vue3'
 import { ref, computed } from 'vue'
 import { useConfirm } from '@/composables/useConfirm'
+import { useEscapeClose } from '@/composables/useEscapeClose'
 
 defineOptions({ layout: ConsoleLayout })
 
@@ -82,6 +83,7 @@ const openEdit = (profile) => {
 }
 
 const closeModal = () => { showModal.value = false; editTarget.value = null; form.clearErrors() }
+useEscapeClose(showModal, () => { if (!form.processing) closeModal() })
 
 const isGitHub = computed(() => form.tracker_type === 'github')
 

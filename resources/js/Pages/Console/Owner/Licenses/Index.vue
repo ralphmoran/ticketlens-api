@@ -5,9 +5,10 @@ import TlPagination from '@/Components/TlPagination.vue'
 import UserAvatar from '@/Components/UserAvatar.vue'
 import { useTableFilters } from '@/composables/useTableFilters'
 import { Link, router } from '@inertiajs/vue3'
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { formatDate, expiryWarning } from '@/composables/useDateFormat'
 import { useConfirm } from '@/composables/useConfirm'
+import { useEscapeClose } from '@/composables/useEscapeClose'
 
 defineOptions({ layout: ConsoleLayout })
 
@@ -50,6 +51,8 @@ function closeEdit() {
     editDate.value = ''
     editSaving.value = false
 }
+
+useEscapeClose(computed(() => !!editing.value), () => { if (!editSaving.value) closeEdit() })
 
 function submitEdit() {
     if (!editing.value) return

@@ -1,8 +1,10 @@
 <script setup>
 import { useConfirm } from '@/composables/useConfirm'
+import { useEscapeClose } from '@/composables/useEscapeClose'
 import TlIcon from '@/components/TlIcon.vue'
 
 const { show, options, onConfirm, onCancel } = useConfirm()
+useEscapeClose(show, onCancel)
 </script>
 
 <template>

@@ -6,6 +6,7 @@ let _resolve  = null
 
 export function useConfirm() {
     function confirm(opts = {}) {
+        _resolve?.(false)
         options.value = {
             title:        opts.title        ?? 'Are you sure?',
             message:      opts.message      ?? '',

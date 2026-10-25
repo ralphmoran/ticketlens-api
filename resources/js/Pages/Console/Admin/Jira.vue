@@ -4,6 +4,7 @@ import { router, Link } from '@inertiajs/vue3'
 import axios from 'axios'
 import ConsoleLayout from '@/Layouts/ConsoleLayout.vue'
 import TlSettingsTabs from '@/components/TlSettingsTabs.vue'
+import { useConfirm } from '@/composables/useConfirm'
 
 defineOptions({ layout: ConsoleLayout })
 
@@ -11,6 +12,8 @@ const props = defineProps({
     group:  { type: Object, default: null },
     config: { type: Object, default: null },
 })
+
+const { confirm: askConfirm } = useConfirm()
 
 const form = reactive({
     jira_base_url: props.config?.jira_base_url ?? '',
@@ -126,8 +129,13 @@ function save() {
     })
 }
 
-function remove() {
-    if (!confirm('Remove team Jira configuration? Members will fall back to their local settings.')) return
+async function remove() {
+    const ok = await askConfirm({
+        title:        'Remove Jira configuration?',
+        message:      'Members will fall back to their local settings.',
+        confirmLabel: 'Remove',
+    })
+    if (!ok) return
     removing.value = true
     router.delete('/console/admin/jira', {
         onFinish: () => { removing.value = false },

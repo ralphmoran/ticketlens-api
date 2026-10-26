@@ -68,6 +68,28 @@ class OpenApiSpecTest extends TestCase
         }
     }
 
+    public function test_spec_documents_the_triage_pushed_webhook_and_its_signature_headers(): void
+    {
+        $spec      = $this->spec();
+        $operation = $spec['webhooks']['triage.pushed']['post'] ?? null;
+
+        $this->assertNotNull($operation, 'webhooks.triage.pushed.post is missing');
+        $this->assertSame('#/components/schemas/TriagePushedEvent', $operation['requestBody']['content']['application/json']['schema']['$ref']);
+
+        $headers = array_column($operation['parameters'], 'name');
+        foreach (['TicketLens-Signature', 'TicketLens-Timestamp', 'TicketLens-Event', 'TicketLens-Delivery'] as $header) {
+            $this->assertContains($header, $headers);
+        }
+
+        $event = $spec['components']['schemas']['TriagePushedEvent']['properties'];
+        $this->assertEqualsCanonicalizing(['id', 'event', 'created_at', 'data'], array_keys($event));
+        $this->assertEqualsCanonicalizing(
+            ['snapshot_id', 'profile', 'ticket_count', 'captured_at'],
+            array_keys($event['data']['properties']),
+            'webhook data fields must match WebhookDispatcher::triagePushed()',
+        );
+    }
+
     public function test_spec_is_served_publicly_without_a_key(): void
     {
         $this->getJson('/' . self::SPEC_URI)

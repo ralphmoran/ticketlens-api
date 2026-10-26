@@ -68,6 +68,12 @@ class PushController
 
         EvaluateAlertsJob::dispatch($user->id, $snapshot->id);
         EvaluateCustomNotifyRulesJob::dispatch($user->id, $snapshot->id);
+        try {
+            app(\App\Services\WebhookDispatcher::class)->triagePushed($user, $snapshot);
+        } catch (\Throwable $e) {
+            // The snapshot is already saved: a webhook fault must not turn a successful push into a 500 the CLI retries.
+            report($e);
+        }
 
         $commands = $request->input('cli_activity.commands', []);
         if (!empty($commands)) {

@@ -26,6 +26,21 @@ A key acts as its owner. Scopes only narrow what the owner can already do, inclu
 - A digest is sent to each active schedule at most once per 5 minutes.
 - Write calls (`POST`) are recorded in the audit log as `api_key.call` with the key id.
 
+## Webhooks
+
+Register up to 5 HTTPS endpoints in Console under Settings > API Keys > Webhooks. Each gets a signing secret, shown once.
+
+| Event | Sent when |
+|-------|-----------|
+| `triage.pushed` | The CLI pushes a triage snapshot |
+
+- Payload is metadata only: `snapshot_id`, `profile`, `ticket_count`, `captured_at`. Fetch tickets with `GET /v1/public/triage/snapshots` (`triage:read`).
+- Headers: `TicketLens-Signature` (`sha256=` + HMAC-SHA256 of `{timestamp}.{raw body}`), `TicketLens-Timestamp`, `TicketLens-Event`, `TicketLens-Delivery`.
+- Reject deliveries whose timestamp is older than 5 minutes. Deduplicate on `TicketLens-Delivery`; retries reuse it.
+- Reply with any 2xx within 5 seconds. Other answers retry 5 times (10 s, 1 min, 5 min, 30 min). After 10 consecutive failed deliveries the endpoint is disabled; delete and re-add it to reset.
+- URLs must be https on port 443 with a hostname that resolves to public addresses. Redirects are not followed.
+- Pro or Team only; tier and suspension are re-checked at send time.
+
 ## Versioning and deprecation
 
 - The version is in the path. Everything here is `v1`.
@@ -34,6 +49,9 @@ A key acts as its owner. Scopes only narrow what the owner can already do, inclu
 - Announcements go in the changelog below. Deprecated responses will carry a `Deprecation` header.
 
 ## Changelog
+
+### 2026-10-25: webhooks
+- Added the `triage.pushed` webhook and Console endpoint management.
 
 ### 2026-10-22: v1
 - Added `GET /v1/public/triage/snapshots`, `GET` and `POST /v1/public/recall/notes`, `POST /v1/public/digest/send`.

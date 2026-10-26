@@ -89,11 +89,12 @@ class HandleInertiaRequests extends Middleware
 
         return array_merge(parent::share($request), [
             'flash' => [
-                'cli_token_generated' => $request->session()->get('cli_token_generated'),
-                'api_key_generated'   => $request->session()->get('api_key_generated'),
-                'status'              => $request->session()->get('status'),
-                'success'             => $request->session()->get('success'),
-                'rule_type'           => $request->session()->get('rule_type'),
+                'cli_token_generated'      => $request->session()->get('cli_token_generated'),
+                'api_key_generated'        => $request->session()->get('api_key_generated'),
+                'webhook_secret_generated' => $request->session()->get('webhook_secret_generated'),
+                'status'                   => $request->session()->get('status'),
+                'success'                  => $request->session()->get('success'),
+                'rule_type'                => $request->session()->get('rule_type'),
             ],
             'auth' => [
                 'user'                 => $user ? array_merge(

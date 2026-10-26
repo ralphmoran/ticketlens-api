@@ -47,6 +47,12 @@ class ApiKey extends Model
         return in_array($scope, $this->scopes ?? [], true);
     }
 
+    /** Whether the user's tier currently allows public-API features (keys, webhooks). */
+    public static function entitles(User $user): bool
+    {
+        return $user->is_owner || in_array($user->tier, self::ALLOWED_TIERS, true);
+    }
+
     public static function hashToken(string $plaintext): string
     {
         return hash('sha256', $plaintext);

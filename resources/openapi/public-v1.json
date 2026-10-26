@@ -640,6 +640,115 @@
             }
           }
         }
+      },
+      "TriagePushedEvent": {
+        "type": "object",
+        "required": [
+          "id",
+          "event",
+          "created_at",
+          "data"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Delivery id, same as TicketLens-Delivery"
+          },
+          "event": {
+            "type": "string",
+            "const": "triage.pushed"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "data": {
+            "type": "object",
+            "required": [
+              "snapshot_id",
+              "profile",
+              "ticket_count",
+              "captured_at"
+            ],
+            "properties": {
+              "snapshot_id": {
+                "type": "integer"
+              },
+              "profile": {
+                "type": "string"
+              },
+              "ticket_count": {
+                "type": "integer"
+              },
+              "captured_at": {
+                "type": "string",
+                "format": "date-time"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "webhooks": {
+    "triage.pushed": {
+      "post": {
+        "summary": "A triage snapshot was pushed",
+        "description": "Sent after each CLI triage push to every active endpoint registered in Console under Settings > API Keys. Metadata only: fetch ticket data with GET /triage/snapshots. Respond with any 2xx within 5 seconds; other answers are retried up to 5 times with backoff, and an endpoint is disabled after 10 consecutive failed deliveries. Verify by computing HMAC-SHA256 of `{TicketLens-Timestamp}.{raw body}` with your signing secret and comparing it to TicketLens-Signature (`sha256=<hex>`). Reject timestamps older than 5 minutes.",
+        "parameters": [
+          {
+            "name": "TicketLens-Signature",
+            "in": "header",
+            "required": true,
+            "description": "sha256=<hex HMAC of timestamp.body>",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "TicketLens-Timestamp",
+            "in": "header",
+            "required": true,
+            "description": "Unix seconds at send time",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "TicketLens-Event",
+            "in": "header",
+            "required": true,
+            "description": "Event name, `triage.pushed`",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "TicketLens-Delivery",
+            "in": "header",
+            "required": true,
+            "description": "Unique delivery id; identical on retries, use it to deduplicate",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TriagePushedEvent"
+              }
+            }
+          }
+        },
+        "responses": {
+          "2XX": {
+            "description": "Acknowledged"
+          }
+        }
       }
     }
   }

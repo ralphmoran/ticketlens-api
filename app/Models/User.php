@@ -130,6 +130,11 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasMany(ApiKey::class);
     }
 
+    public function webhookEndpoints(): HasMany
+    {
+        return $this->hasMany(WebhookEndpoint::class);
+    }
+
     public function aiProviders(): HasMany
     {
         return $this->hasMany(UserAiProvider::class)->orderBy('priority');

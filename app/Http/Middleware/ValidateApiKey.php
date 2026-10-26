@@ -41,7 +41,7 @@ class ValidateApiKey
         }
 
         // Re-checked on every call: a downgraded account must not keep working keys.
-        if (! $user->is_owner && ! in_array($user->tier, ApiKey::ALLOWED_TIERS, true)) {
+        if (! ApiKey::entitles($user)) {
             return response()->json(['error' => 'Insufficient license tier.'], 403);
         }
 

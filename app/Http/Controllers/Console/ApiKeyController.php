@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Console;
 use App\Http\Controllers\Controller;
 use App\Models\ApiKey;
 use App\Models\User;
+use App\Models\WebhookEndpoint;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -30,6 +31,15 @@ class ApiKeyController extends Controller
             ]),
             'availableScopes' => ApiKey::SCOPES,
             'maxActiveKeys'   => ApiKey::MAX_ACTIVE_PER_USER,
+            'webhooks'        => $request->user()->webhookEndpoints()->latest()->get()->map(fn (WebhookEndpoint $endpoint) => [
+                'id'                => $endpoint->id,
+                'url'               => $endpoint->url,
+                'failure_count'     => $endpoint->failure_count,
+                'last_delivered_at' => $endpoint->last_delivered_at?->toIso8601String(),
+                'disabled_at'       => $endpoint->disabled_at?->toIso8601String(),
+                'created_at'        => $endpoint->created_at->toIso8601String(),
+            ]),
+            'maxWebhooks'     => WebhookEndpoint::MAX_PER_USER,
         ]);
     }
 

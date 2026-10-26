@@ -3,6 +3,7 @@ import { computed, ref } from 'vue'
 import ConsoleLayout from '@/Layouts/ConsoleLayout.vue'
 import TlSettingsTabs from '@/components/TlSettingsTabs.vue'
 import TlIcon from '@/components/TlIcon.vue'
+import ApiWebhooksCard from '@/components/ApiWebhooksCard.vue'
 import { Link, useForm, router, usePage } from '@inertiajs/vue3'
 import { formatDate } from '@/composables/useDateFormat'
 import { useConfirm } from '@/composables/useConfirm'
@@ -14,6 +15,8 @@ const props = defineProps({
     keys:            { type: Array,  required: true },
     availableScopes: { type: Array,  required: true },
     maxActiveKeys:   { type: Number, required: true },
+    webhooks:        { type: Array,  required: true },
+    maxWebhooks:     { type: Number, required: true },
 })
 
 const page = usePage()
@@ -206,6 +209,8 @@ async function copyKey() {
                 </div>
             </div>
         </template>
+
+        <ApiWebhooksCard :webhooks="webhooks" :max-webhooks="maxWebhooks" :can-create="canCreate" />
 
         </div>
     </div>

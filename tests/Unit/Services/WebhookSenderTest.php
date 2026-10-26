@@ -42,4 +42,15 @@ class WebhookSenderTest extends TestCase
 
         $this->addToAssertionCount(1);
     }
+
+    public function test_bytes_actually_received_are_capped_even_without_a_content_length(): void
+    {
+        $options = (new WebhookSender(new WebhookUrlGuard()))->requestOptions(['host' => 'h.example.com', 'ips' => ['93.184.216.34']]);
+
+        $options['progress'](0, WebhookSender::MAX_RESPONSE_BYTES, 0, 0);
+
+        $this->expectException(\RuntimeException::class);
+
+        $options['progress'](0, WebhookSender::MAX_RESPONSE_BYTES + 1, 0, 0);
+    }
 }

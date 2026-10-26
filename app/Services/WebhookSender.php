@@ -57,9 +57,15 @@ class WebhookSender
     {
         return [
             'allow_redirects' => false,
-            // Refuse to buffer a huge body into memory on the synchronous handshake path.
+            // Refuse to buffer a huge body into memory on the synchronous handshake path: abort early on a
+            // declared length, and on bytes actually received (chunked or lying responses have no usable length).
             'on_headers'      => function (ResponseInterface $response): void {
                 if ((int) $response->getHeaderLine('Content-Length') > self::MAX_RESPONSE_BYTES) {
+                    throw new RuntimeException('Webhook response too large.');
+                }
+            },
+            'progress'        => function (int|float $downloadTotal, int|float $downloaded): void {
+                if ($downloaded > self::MAX_RESPONSE_BYTES) {
                     throw new RuntimeException('Webhook response too large.');
                 }
             },

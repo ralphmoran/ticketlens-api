@@ -56,6 +56,9 @@ class WebhookEndpointController extends Controller
     public function enable(Request $request, int $id): RedirectResponse
     {
         $endpoint = $request->user()->webhookEndpoints()->findOrFail($id);
+
+        // Ownership is proven again: the domain may have changed hands while the endpoint was disabled.
+        $this->verifyOwnership($endpoint->url, $endpoint->secret, 'enable');
         $endpoint->update(['disabled_at' => null, 'failure_count' => 0]);
 
         $this->audit->logFromRequest($request, 'webhook_endpoint.enabled', null, null, null, ['endpoint_id' => $id]);
@@ -77,21 +80,21 @@ class WebhookEndpointController extends Controller
      * Handshake: the receiver must echo a random challenge from a signed `webhook.verify` event,
      * so an account cannot aim deliveries at a third party that never agreed to receive them.
      */
-    private function verifyOwnership(string $url, string $secret): void
+    private function verifyOwnership(string $url, string $secret, string $errorKey = 'url'): void
     {
         $challenge = Str::random(40);
 
         try {
             $response = $this->sender->send($url, $secret, 'webhook.verify', (string) Str::uuid(), ['challenge' => $challenge]);
         } catch (InvalidArgumentException $e) {
-            throw ValidationException::withMessages(['url' => $e->getMessage()]);
+            throw ValidationException::withMessages([$errorKey => $e->getMessage()]);
         } catch (ConnectionException|TransferException) {
-            throw ValidationException::withMessages(['url' => 'Could not reach the endpoint to verify it.']);
+            throw ValidationException::withMessages([$errorKey => 'Could not reach the endpoint to verify it.']);
         }
 
         if (! $response->successful() || ! hash_equals($challenge, (string) $response->json('challenge'))) {
             throw ValidationException::withMessages([
-                'url' => 'The endpoint must answer 2xx with JSON {"challenge": "<the challenge it received>"}.',
+                $errorKey => 'The endpoint must answer 2xx with JSON {"challenge": "<the challenge it received>"}.',
             ]);
         }
     }

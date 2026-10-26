@@ -104,6 +104,8 @@ async function copySecret() {
             </div>
         </form>
 
+        <p v-if="page.props.errors?.enable" class="tl-error tl-card-gap">{{ page.props.errors.enable }}</p>
+
         <ul v-if="webhooks.length" class="tl-stack--sm tl-card-gap">
             <li v-for="webhook in webhooks" :key="webhook.id" class="tl-row tl-row--between">
                 <div>

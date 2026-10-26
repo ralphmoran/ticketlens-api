@@ -185,6 +185,19 @@ class WebhookEndpointControllerTest extends TestCase
         $this->assertDatabaseHas('audit_logs', ['actor_id' => $user->id, 'action' => 'webhook_endpoint.enabled']);
     }
 
+    public function test_enable_re_runs_the_handshake_and_keeps_the_endpoint_disabled_when_it_fails(): void
+    {
+        $user     = $this->proUser();
+        $endpoint = $this->makeEndpoint($user, ['failure_count' => 10, 'disabled_at' => now()]);
+        $this->receiverAnswers(fn () => Http::response(['challenge' => 'wrong']));
+
+        $this->actingAs($user)->post("/console/webhooks/{$endpoint->id}/enable")->assertSessionHasErrors('enable');
+
+        $fresh = $endpoint->fresh();
+        $this->assertNotNull($fresh->disabled_at);
+        $this->assertSame(10, $fresh->failure_count);
+    }
+
     public function test_downgraded_user_cannot_re_enable_an_endpoint(): void
     {
         $user     = User::factory()->create(['tier' => 'free']);

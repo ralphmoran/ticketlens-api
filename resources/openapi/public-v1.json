@@ -695,7 +695,7 @@
     "triage.pushed": {
       "post": {
         "summary": "A triage snapshot was pushed",
-        "description": "Sent after each CLI triage push to every active endpoint registered in Console under Settings > API Keys. Metadata only: fetch ticket data with GET /triage/snapshots. Respond with any 2xx within 5 seconds; other answers are retried up to 5 times with backoff, and an endpoint is disabled after 10 consecutive failed deliveries. Verify by computing HMAC-SHA256 of `{TicketLens-Timestamp}.{raw body}` with your signing secret and comparing it to TicketLens-Signature (`sha256=<hex>`). Reject timestamps older than 5 minutes.",
+        "description": "Sent after each CLI triage push to every active endpoint registered in Console under Settings > API Keys. Metadata only: fetch ticket data with GET /triage/snapshots. Respond with any 2xx within 5 seconds; other answers are retried up to 5 times with backoff, and an endpoint is disabled after 10 consecutive failed deliveries. Verify by computing HMAC-SHA256 of `{TicketLens-Timestamp}.{raw body}` with your signing secret and comparing it to TicketLens-Signature (`sha256=<hex>`). Reject timestamps older than 5 minutes. Registration handshake: when you add a URL, TicketLens first sends a signed `webhook.verify` event (same envelope and headers) whose `data.challenge` your endpoint must echo as JSON `{\"challenge\": \"<value>\"}` with a 2xx status; otherwise the URL is rejected.",
         "parameters": [
           {
             "name": "TicketLens-Signature",

@@ -34,10 +34,12 @@ Register up to 5 HTTPS endpoints in Console under Settings > API Keys > Webhooks
 |-------|-----------|
 | `triage.pushed` | The CLI pushes a triage snapshot |
 
+- Registration handshake: before saving a URL we POST a signed `webhook.verify` event. Answer 2xx with JSON `{"challenge": "<data.challenge>"}` or the URL is rejected.
+- Disabled endpoints (10 failed deliveries) can be re-enabled in Console.
 - Payload is metadata only: `snapshot_id`, `profile`, `ticket_count`, `captured_at`. Fetch tickets with `GET /v1/public/triage/snapshots` (`triage:read`).
 - Headers: `TicketLens-Signature` (`sha256=` + HMAC-SHA256 of `{timestamp}.{raw body}`), `TicketLens-Timestamp`, `TicketLens-Event`, `TicketLens-Delivery`.
 - Reject deliveries whose timestamp is older than 5 minutes. Deduplicate on `TicketLens-Delivery`; retries reuse it.
-- Reply with any 2xx within 5 seconds. Other answers retry 5 times (10 s, 1 min, 5 min, 30 min). After 10 consecutive failed deliveries the endpoint is disabled; delete and re-add it to reset.
+- Reply with any 2xx within 5 seconds. Other answers retry 5 times (10 s, 1 min, 5 min, 30 min). After 10 consecutive failed deliveries the endpoint is disabled; re-enable it in Console after fixing the receiver.
 - URLs must be https on port 443 with a hostname that resolves to public addresses. Redirects are not followed.
 - Pro or Team only; tier and suspension are re-checked at send time.
 
@@ -51,7 +53,7 @@ Register up to 5 HTTPS endpoints in Console under Settings > API Keys > Webhooks
 ## Changelog
 
 ### 2026-10-25: webhooks
-- Added the `triage.pushed` webhook and Console endpoint management.
+- Added the `triage.pushed` webhook, the `webhook.verify` registration handshake, and Console endpoint management.
 
 ### 2026-10-22: v1
 - Added `GET /v1/public/triage/snapshots`, `GET` and `POST /v1/public/recall/notes`, `POST /v1/public/digest/send`.

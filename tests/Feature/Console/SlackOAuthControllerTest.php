@@ -14,6 +14,15 @@ class SlackOAuthControllerTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        // The popup origin allow-list and redirects are built from app.url; a dev container's real
+        // APP_URL (an ngrok tunnel) would otherwise leak into these hardcoded expectations.
+        config(['app.url' => 'http://ticketlens.test']);
+    }
+
     // --- redirect() ---
 
     public function test_redirect_sends_manager_to_slack_auth_url(): void

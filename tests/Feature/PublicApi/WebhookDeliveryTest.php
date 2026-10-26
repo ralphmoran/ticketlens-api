@@ -9,6 +9,7 @@ use App\Models\TriageSnapshot;
 use App\Models\User;
 use App\Models\WebhookEndpoint;
 use App\Services\WebhookDispatcher;
+use App\Services\WebhookSender;
 use App\Services\WebhookUrlGuard;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request;
@@ -41,7 +42,7 @@ class WebhookDeliveryTest extends TestCase
 
     private function deliver(WebhookEndpoint $endpoint): void
     {
-        (new DeliverWebhookJob($endpoint->id, 'triage.pushed', ['snapshot_id' => 7, 'profile' => 'default', 'ticket_count' => 3], 'dlv-1'))->handle(app(WebhookUrlGuard::class));
+        (new DeliverWebhookJob($endpoint->id, 'triage.pushed', ['snapshot_id' => 7, 'profile' => 'default', 'ticket_count' => 3], 'dlv-1'))->handle(app(WebhookSender::class));
     }
 
     // ── Dispatch on triage push ───────────────────────────────────────────────

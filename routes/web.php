@@ -111,6 +111,7 @@ Route::prefix('console')->name('console.')->group(function () {
         Route::post('/api-keys', [\App\Http\Controllers\Console\ApiKeyController::class, 'store'])->name('api-keys.store')->middleware(['license.tier:pro', 'throttle:10,1']);
         Route::delete('/api-keys/{id}', [\App\Http\Controllers\Console\ApiKeyController::class, 'destroy'])->name('api-keys.destroy')->middleware('throttle:10,1');
         Route::post('/webhooks', [\App\Http\Controllers\Console\WebhookEndpointController::class, 'store'])->name('webhooks.store')->middleware(['license.tier:pro', 'throttle:10,1']);
+        Route::post('/webhooks/{id}/enable', [\App\Http\Controllers\Console\WebhookEndpointController::class, 'enable'])->name('webhooks.enable')->middleware(['license.tier:pro', 'throttle:10,1']);
         Route::delete('/webhooks/{id}', [\App\Http\Controllers\Console\WebhookEndpointController::class, 'destroy'])->name('webhooks.destroy')->middleware('throttle:10,1');
 
         // Dashboard — landing page after login

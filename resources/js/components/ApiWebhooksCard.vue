@@ -35,6 +35,10 @@ async function deleteWebhook(webhook) {
     router.delete(`/console/webhooks/${webhook.id}`, { preserveScroll: true })
 }
 
+function enableWebhook(webhook) {
+    router.post(`/console/webhooks/${webhook.id}/enable`, {}, { preserveScroll: true })
+}
+
 const copied = ref(false)
 
 async function copySecret() {
@@ -56,7 +60,8 @@ async function copySecret() {
         <p class="tl-hint">
             We POST a signed <code class="tl-kbd">triage.pushed</code> event to your HTTPS URL after each triage push.
             Events carry metadata only; fetch ticket data with the <code class="tl-kbd">triage:read</code> key scope.
-            {{ webhooks.length }} of {{ maxWebhooks }} endpoints used.
+            We verify each URL when you add it: it must answer a signed <code class="tl-kbd">webhook.verify</code> event
+            with its challenge. {{ webhooks.length }} of {{ maxWebhooks }} endpoints used.
         </p>
 
         <!-- One-time secret reveal -->
@@ -112,6 +117,9 @@ async function copySecret() {
                     <span class="tl-badge" :class="webhook.disabled_at ? 'tl-badge--neutral' : 'tl-badge--success'">
                         {{ webhook.disabled_at ? 'Disabled' : 'Active' }}
                     </span>
+                    <button v-if="webhook.disabled_at" type="button" class="tl-btn tl-btn--secondary tl-nowrap" @click="enableWebhook(webhook)">
+                        Re-enable
+                    </button>
                     <button type="button" class="tl-btn tl-btn--danger-outline" @click="deleteWebhook(webhook)">
                         <TlIcon name="trash" class="tl-ic tl-ic--xs" />
                         Delete

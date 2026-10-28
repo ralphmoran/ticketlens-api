@@ -110,6 +110,45 @@ class LandingPageBuildTest extends TestCase
         unlink($out);
     }
 
+    public function test_landing_pro_card_lists_public_api_keys_and_signed_webhooks(): void
+    {
+        $html = $this->freshRender();
+
+        $this->assertStringContainsString('Public API', $html);
+        $this->assertStringContainsString('scoped API keys', $html);
+        $this->assertStringContainsString('signed webhooks', $html);
+    }
+
+    public function test_landing_team_card_states_the_higher_public_api_rate_limit(): void
+    {
+        $this->assertStringContainsString('120 requests/min', $this->freshRender());
+    }
+
+    public function test_landing_recall_bullet_mentions_autonomous_capture(): void
+    {
+        $this->assertStringContainsString('captured automatically after a session', $this->freshRender());
+    }
+
+    public function test_landing_feature_panel_has_a_public_api_tile_with_a_demo(): void
+    {
+        $html = $this->freshRender();
+        $js = file_get_contents(public_path('assets/app.js'));
+
+        $this->assertStringContainsString('<span class="feat-item-name">Public API</span>', $html);
+        $this->assertSame(
+            preg_match_all('/class="feat-item( active)?"/', $html),
+            $this->featDemoCount($js),
+            'Every feat-item tile needs a matching featData demo entry in public/assets/app.js',
+        );
+    }
+
+    private function featDemoCount(string $js): int
+    {
+        preg_match('/var featData = \[(.*?)\n    \];/s', $js, $block);
+
+        return substr_count($block[1] ?? '', "label: '");
+    }
+
     public function test_root_route_serves_the_landing_page(): void
     {
         $this->get('/')->assertOk();

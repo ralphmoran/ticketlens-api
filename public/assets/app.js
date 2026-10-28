@@ -344,6 +344,20 @@
           '<span style="color:#404958">$ ticketlens doctor --fix</span>',
         ]
       },
+      {
+        label: 'Public API  [Pro]',
+        lines: [
+          '<span style="color:#404958">$ curl -H "Authorization: Bearer tl_pk_..." \\</span>',
+          '<span style="color:#404958">    /v1/public/triage/snapshots</span>',
+          '',
+          '<span style="color:#404958">── webhook: triage.pushed ───────────────────────</span>',
+          '<span style="color:#404958">TicketLens-Signature: </span><span style="color:#4A9CC5">sha256=...</span>',
+          '<span style="color:#404958">snapshot_id · profile · ticket_count · captured_at</span>',
+          '',
+          '<span style="color:#7b8aa0">Metadata only. Ticket content stays on your machine.</span>',
+          '<span style="color:#7b8aa0">Keys and webhooks: Console → Settings → API Keys.</span>',
+        ]
+      },
     ];
 
     var featActive = 0;

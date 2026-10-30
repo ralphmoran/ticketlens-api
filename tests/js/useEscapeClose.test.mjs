@@ -1,6 +1,6 @@
 import { describe, test, afterEach } from 'node:test'
 import assert from 'node:assert/strict'
-import { ref, effectScope } from 'vue'
+import { ref, reactive, effectScope } from 'vue'
 import { useEscapeClose } from '../../resources/js/composables/useEscapeClose.js'
 
 // A real EventTarget stands in for window, so each test dispatches real key events.
@@ -97,6 +97,32 @@ describe('useEscapeClose', () => {
     test('does not throw where there is no window (SSR)', () => {
         assert.equal(typeof window, 'undefined')
         assert.doesNotThrow(() => inScope(() => useEscapeClose(ref(true), () => {})))
+    })
+
+    describe('components passing a props getter', () => {
+        test('a getter source closes on Escape like a ref', () => {
+            const target = new EventTarget()
+            const props = reactive({ open: false })
+            let closed = 0
+            inScope(() => useEscapeClose(() => props.open, () => { closed++ }, target))
+            props.open = true
+            pressOn(target, 'Escape')
+            assert.equal(closed, 1)
+        })
+
+        test('a confirm opened over a drawer: first Escape closes only the confirm', () => {
+            const target = new EventTarget()
+            const drawer = reactive({ open: true })
+            const confirm = reactive({ open: false })
+            const closed = { drawer: 0, confirm: 0 }
+            inScope(() => useEscapeClose(() => drawer.open, () => { closed.drawer++; drawer.open = false }, target))
+            inScope(() => useEscapeClose(() => confirm.open, () => { closed.confirm++; confirm.open = false }, target))
+            confirm.open = true
+            pressOn(target, 'Escape')
+            assert.deepEqual(closed, { drawer: 0, confirm: 1 })
+            pressOn(target, 'Escape')
+            assert.deepEqual(closed, { drawer: 1, confirm: 1 })
+        })
     })
 
     describe('nested modals', () => {

@@ -1,6 +1,7 @@
 <script setup>
 import { computed, nextTick, ref, watch } from 'vue'
 import TlIcon from '@/components/TlIcon.vue'
+import { useEscapeClose } from '@/composables/useEscapeClose'
 
 const props = defineProps({
     visible:     { type: Boolean, required: true },
@@ -12,6 +13,9 @@ const props = defineProps({
 const emit = defineEmits(['stay', 'logout'])
 
 const stayButton = ref(null)
+
+// Escape is the safe choice, same as the focused button: keep the session alive.
+useEscapeClose(() => props.visible, () => emit('stay'))
 
 const countdown = computed(() => {
     const total = props.secondsLeft.value
@@ -38,7 +42,6 @@ watch(() => props.visible, async (open) => {
                 role="alertdialog"
                 aria-modal="true"
                 aria-labelledby="tl-session-title"
-                @keydown.esc="emit('stay')"
             >
                 <div class="tl-confirm-backdrop" />
 

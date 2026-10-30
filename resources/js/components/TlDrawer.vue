@@ -1,7 +1,8 @@
 <script setup>
-import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
 import { usePage } from '@inertiajs/vue3'
 import TlIcon from '@/components/TlIcon.vue'
+import { useEscapeClose } from '@/composables/useEscapeClose'
 
 const props = defineProps({
     open:  { type: Boolean, default: false },
@@ -23,23 +24,17 @@ function close() {
     emit('close')
 }
 
-function onKeydown(event) {
-    if (event.key === 'Escape') close()
-}
+useEscapeClose(() => props.open, close)
 
 watch(() => props.open, async (isOpen) => {
     if (isOpen) {
         lastFocused = document.activeElement
-        window.addEventListener('keydown', onKeydown)
         await nextTick()
         panelRef.value?.focus()
     } else {
-        window.removeEventListener('keydown', onKeydown)
         lastFocused?.focus?.()
     }
 })
-
-onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
 </script>
 
 <template>

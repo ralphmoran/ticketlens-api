@@ -14,7 +14,7 @@ class ProcessMetricsTest extends TestCase
 
     // --- Helpers ---
 
-    private function makeManager(string $name = null): User
+    private function makeManager(?string $name = null): User
     {
         $manager = User::factory()->create([
             'tier'        => 'team',
@@ -26,7 +26,7 @@ class ProcessMetricsTest extends TestCase
         return $manager;
     }
 
-    private function makeMember(Group $group, string $name = null): User
+    private function makeMember(Group $group, ?string $name = null): User
     {
         $member = User::factory()->create([
             'tier'        => 'team',

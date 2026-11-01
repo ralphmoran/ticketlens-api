@@ -14,7 +14,7 @@ class StatsControllerTest extends TestCase
 
     // --- Helpers ---
 
-    private function makeManager(string $name = null): User
+    private function makeManager(?string $name = null): User
     {
         $manager = User::factory()->create([
             'tier'        => 'team',
@@ -26,7 +26,7 @@ class StatsControllerTest extends TestCase
         return $manager;
     }
 
-    private function makeMember(Group $group, string $name = null): User
+    private function makeMember(Group $group, ?string $name = null): User
     {
         $member = User::factory()->create([
             'tier'        => 'team',
@@ -37,7 +37,7 @@ class StatsControllerTest extends TestCase
         return $member;
     }
 
-    private function pushSnapshot(User $user, array $tickets, string $profile = 'production', string $capturedAt = null): TriageSnapshot
+    private function pushSnapshot(User $user, array $tickets, string $profile = 'production', ?string $capturedAt = null): TriageSnapshot
     {
         return TriageSnapshot::create([
             'user_id'      => $user->id,
@@ -48,7 +48,7 @@ class StatsControllerTest extends TestCase
         ]);
     }
 
-    private function ticket(string $key, array $flags = [], string $lastCommentAt = null): array
+    private function ticket(string $key, array $flags = [], ?string $lastCommentAt = null): array
     {
         return [
             'key'             => $key,

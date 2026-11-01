@@ -39,7 +39,7 @@ class ComplianceAnalyticsTest extends TestCase
 
     private int $snapshotSeq = 0;
 
-    private function pushSnapshot(User $user, array $tickets, string $capturedAt = null): TriageSnapshot
+    private function pushSnapshot(User $user, array $tickets, ?string $capturedAt = null): TriageSnapshot
     {
         $this->snapshotSeq++;
         return TriageSnapshot::create([

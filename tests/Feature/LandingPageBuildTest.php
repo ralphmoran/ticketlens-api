@@ -84,6 +84,14 @@ class LandingPageBuildTest extends TestCase
         $this->assertStringNotContainsString('install-hooks', $pro);
     }
 
+    public function test_pro_card_lists_epic_name_support_on_ticket_creation(): void
+    {
+        $afterPro = explode('<div class="pricing-tier">Pro</div>', $this->freshRender())[1];
+        $pro      = explode('<div class="pricing-tier">Team</div>', $afterPro)[0];
+
+        $this->assertMatchesRegularExpression('/<li>[^<]*Epic Name[^<]*ticketlens create/', $pro);
+    }
+
     public function test_free_card_says_the_pr_compliance_section_shares_the_monthly_cap(): void
     {
         $free = explode('<div class="pricing-tier">Pro</div>', $this->freshRender())[0];

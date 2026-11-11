@@ -92,6 +92,13 @@ class LandingPageBuildTest extends TestCase
         $this->assertMatchesRegularExpression('/<li>[^<]*Epic Name[^<]*ticketlens create/', $pro);
     }
 
+    public function test_free_card_lists_jira_search_with_raw_jql(): void
+    {
+        $free = explode('<div class="pricing-tier">Pro</div>', $this->freshRender())[0];
+
+        $this->assertMatchesRegularExpression('/<li>[^<]*JQL[^<]*ticketlens search/', $free);
+    }
+
     public function test_free_card_says_the_pr_compliance_section_shares_the_monthly_cap(): void
     {
         $free = explode('<div class="pricing-tier">Pro</div>', $this->freshRender())[0];
